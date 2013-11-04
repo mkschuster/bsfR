@@ -1,0 +1,44 @@
+BSF R Library
+
+Introduction
+
+The Biomedical Sequencing Facility (BSF) [1] is part of the joint genomics core facility of the
+Medical University of Vienna [2] and the CeMM Research Center for Molecular Medicine [3] of the
+Austrian Academy of Sciences [4]. The BSF is Austria’s first technology platform dedicated to
+next generation sequencing in biomedicine and expected to play a catalyzing role for the
+development of genomic medicine in Vienna and Austria.
+
+This R library and the accompanying scripts are used for day-to-day analysis of
+next-generation sequencing (NGS) data sets.
+
+References
+
+[1] http://www.biomedical-sequencing.at/
+[2] http://www.meduniwien.ac.at/homepage/homepage/en/
+[3] http://www.cemm.oeaw.ac.at/
+[4] http://www.oeaw.ac.at/english/home.html
+
+
+Licence
+
+Copyright 2013 Michael K. Schuster
+
+Biomedical Sequencing Facility (BSF), part of the genomics core facility
+of the Research Center for Molecular Medicine (CeMM) of the
+Austrian Academy of Sciences and the Medical University of Vienna (MUW).
+
+
+This file is part of BSF R.
+
+BSF R is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+BSF R is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
