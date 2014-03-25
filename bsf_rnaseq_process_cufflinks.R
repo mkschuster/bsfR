@@ -103,7 +103,7 @@ message("Load transcript data from BioMart")
 # "chromosome_name", "start_position", "end_position", "strand"
 
 ensembl_transcripts = getBM(attributes=c("ensembl_transcript_id", "external_gene_id", "external_gene_db"), 
-                      mart=ensembl_mart)
+                            mart=ensembl_mart)
 
 # Merge the data frames ...
 
