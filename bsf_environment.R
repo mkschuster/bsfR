@@ -14,5 +14,5 @@ biocLite(pkgs=c("DiffBind"))
 # The IlluminaHumanMethylation450k.db is > 60 MB
 # TODO: This should be taken care of by an eventual RnBeads package.
 biocLite(pkgs=c("foreach", "mclust", "RPMM", "fields",
-           "matrixStats", "IlluminaHumanMethylation450k.db", "methylumi",
-           "ggbio", "GEOquery", "GOstats", "wordcloud"))
+                "matrixStats", "IlluminaHumanMethylation450k.db", "methylumi",
+                "ggbio", "GEOquery", "GOstats", "wordcloud"))
