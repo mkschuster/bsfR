@@ -3,10 +3,10 @@
 suppressPackageStartupMessages(library(package="optparse"))
 suppressPackageStartupMessages(library(package="cummeRbund"))
 
-# specify our desired options in a list
-# by default OptionParser will add an help option equivalent to
+# Specify the desired options in a list.
+# By default OptionParser will add an help option equivalent to
 # make_option(c("-h", "--help"), action="store_true", default=FALSE,
-# help="Show this help message and exit")
+# help="Show this help message and exit").
 
 option_list = list(
   make_option(opt_str=c("-v", "--verbose"), action="store_true",
@@ -25,13 +25,13 @@ option_list = list(
 )
 
 # Get command line options, if help option encountered print help and exit,
-# otherwise if options not found on command line then set defaults,
+# otherwise if options not found on command line then set defaults.
 
 opt = parse_args(OptionParser(option_list=option_list))
 
 prefix = paste("rnaseq", "cuffdiff", opt$comparison, sep="_")
 
-# Read and index Cuffdiff output and create a CuffSet object..
+# Read and index Cuffdiff output and create a CuffSet object.
 
 message("Create or load the cummeRbund database")
 cuff_set = readCufflinks(dir=file.path(opt$genome_directory, prefix,
@@ -148,7 +148,7 @@ active_device = dev.off()
 # TODO: Dendrograms are only meaningful for time-series analyses.
 # TODO: MAplot for genes with and without count data.
 
-# Create a MAplot for a gene sample pair
+# Create a MAplot for a gene sample pair.
 sample_list = samples(object=genes(object=cuff_set))
 
 plot_name = paste(prefix, "_maplot.png", sep="")
@@ -167,7 +167,7 @@ active_device = dev.off()
 
 # TODO: Volcano plots by sample pair ...
 
-# Create a Multidimensional Scaling (MDS) Plot
+# Create a Multidimensional Scaling (MDS) Plot.
 
 plot_name = paste(prefix, "_genes_mds.png", sep="")
 png(filename=file.path(output_directory, plot_name, fsep=.Platform$file.sep))
@@ -179,7 +179,7 @@ if (have_replicates) {
 }
 active_device = dev.off()
 
-# Create a Principal Component Analysis (PCA) Plot
+# Create a Principal Component Analysis (PCA) Plot.
 
 plot_name = paste(prefix, "_genes_pca.png", sep="")
 png(filename=file.path(output_directory, plot_name, fsep=.Platform$file.sep))
@@ -193,7 +193,7 @@ active_device = dev.off()
 # Show replicate names, total map masses and normalised map masses.
 # replicates(object=cuff_set)
 
-# Create a new, simpler data frame for gene annotation and merge both data frames
+# Create a new, simpler data frame for gene annotation and merge both data frames.
 
 message("Creating FPKM per replicates for genes")
 # gene_replicates = replicates(object=genes(object=cuff_set))
@@ -232,61 +232,47 @@ write.table(x=isoform_merge,
             file=file.path(output_directory, file_name, fsep=.Platform$file.sep),
             quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
 
-# Finally, create comparison-specific symbolic links for cuffdiff results in the
+# Finally, create comparison-specific relative symbolic links for cuffdiff results in the
 # rnaseq_process_cuffdiff_* directory to avoid identical file names between comparisons.
 
-result = file.symlink(from=file.path(opt$genome_directory,
+setwd(dir=file.path(opt$genome_directory,
+                    paste("rnaseq", "process", "cuffdiff", opt$comparison, sep="_"),
+                    fsep=.Platform$file.sep))
+
+result = file.symlink(from=file.path("..",
                                      paste("rnaseq", "cuffdiff", opt$comparison, sep="_"),
                                      "cds_exp.diff",
                                      fsep=.Platform$file.sep),
-                      to=file.path(opt$genome_directory,
-                                   paste("rnaseq", "process", "cuffdiff", opt$comparison, sep="_"),
-                                   paste(prefix, "_cds_exp_diff.txt", sep=""),
-                                   fsep=.Platform$file.sep))
+                      to=paste(prefix, "_cds_exp_diff.txt", sep=""))
 
-result = file.symlink(from=file.path(opt$genome_directory,
+result = file.symlink(from=file.path("..",
                                      paste("rnaseq", "cuffdiff", opt$comparison, sep="_"),
                                      "gene_exp.diff",
                                      fsep=.Platform$file.sep),
-                      to=file.path(opt$genome_directory,
-                                   paste("rnaseq", "process", "cuffdiff", opt$comparison, sep="_"),
-                                   paste(prefix, "_gene_exp_diff.txt", sep=""),
-                                   fsep=.Platform$file.sep))
+                      to=paste(prefix, "_gene_exp_diff.txt", sep=""))
 
-result = file.symlink(from=file.path(opt$genome_directory,
+result = file.symlink(from=file.path("..",
                                      paste("rnaseq", "cuffdiff", opt$comparison, sep="_"),
                                      "isoform_exp.diff",
                                      fsep=.Platform$file.sep),
-                      to=file.path(opt$genome_directory,
-                                   paste("rnaseq", "process", "cuffdiff", opt$comparison, sep="_"),
-                                   paste(prefix, "_isoform_exp_diff.txt", sep=""),
-                                   fsep=.Platform$file.sep))
+                      to=paste(prefix, "_isoform_exp_diff.txt", sep=""))
 
-result = file.symlink(from=file.path(opt$genome_directory,
+result = file.symlink(from=file.path("..",
                                      paste("rnaseq", "cuffdiff", opt$comparison, sep="_"),
                                      "promoters.diff",
                                      fsep=.Platform$file.sep),
-                      to=file.path(opt$genome_directory,
-                                   paste("rnaseq", "process", "cuffdiff", opt$comparison, sep="_"),
-                                   paste(prefix, "_promoters_diff.txt", sep=""),
-                                   fsep=.Platform$file.sep))
+                      to=paste(prefix, "_promoters_diff.txt", sep=""))
 
-result = file.symlink(from=file.path(opt$genome_directory,
+result = file.symlink(from=file.path("..",
                                      paste("rnaseq", "cuffdiff", opt$comparison, sep="_"),
                                      "splicing.diff",
                                      fsep=.Platform$file.sep),
-                      to=file.path(opt$genome_directory,
-                                   paste("rnaseq", "process", "cuffdiff", opt$comparison, sep="_"),
-                                   paste(prefix, "_splicing_diff.txt", sep=""),
-                                   fsep=.Platform$file.sep))
+                      to=paste(prefix, "_splicing_diff.txt", sep=""))
 
-result = file.symlink(from=file.path(opt$genome_directory,
+result = file.symlink(from=file.path("..",
                                      paste("rnaseq", "cuffdiff", opt$comparison, sep="_"),
                                      "tss_group_exp.diff",
                                      fsep=.Platform$file.sep),
-                      to=file.path(opt$genome_directory,
-                                   paste("rnaseq", "process", "cuffdiff", opt$comparison, sep="_"),
-                                   paste(prefix, "_tss_group_exp_diff.txt", sep=""),
-                                   fsep=.Platform$file.sep))
+                      to=paste(prefix, "_tss_group_exp_diff.txt", sep=""))
 
 message("All done")
