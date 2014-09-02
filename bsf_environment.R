@@ -4,6 +4,9 @@
 
 source(file="http://bioconductor.org/biocLite.R")
 
+# CRAN package for BSF R scripts.
+install.packages("optparse")
+
 # For the BSF RNA-Seq pipeline
 biocLite(pkgs=c("DESeq", "cummeRbund"))
 
@@ -16,3 +19,7 @@ biocLite(pkgs=c("DiffBind"))
 biocLite(pkgs=c("foreach", "mclust", "RPMM", "fields",
                 "matrixStats", "IlluminaHumanMethylation450k.db", "methylumi",
                 "ggbio", "GEOquery", "GOstats", "wordcloud"))
+
+# CRAN package for GATK
+install.packages("ggplot2")
+install.packages("gsalib")
