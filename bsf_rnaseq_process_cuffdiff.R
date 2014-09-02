@@ -188,10 +188,26 @@ PCAplot(object=genes(object=cuff_set), x="PC1", y="PC2", replicates=TRUE)
 active_device = dev.off()
 
 # TODO: Process gene and isoform sets and lists.
-# Show Cuffdiff run options
-# runInfo(object=cuff_set)
+
+# Show Cuffdiff run information
+
+message("Creating run information table")
+info_frame = runInfo(object=cuff_set)
+file_name = paste(prefix, "_run_information.txt", sep="")
+write.table(x=info_frame,
+            file=file.path(output_directory, file_name, fsep=.Platform$file.sep),
+            quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
+rm(info_frame)
+
 # Show replicate names, total map masses and normalised map masses.
-# replicates(object=cuff_set)
+
+message("Creating replicate table")
+replicate_frame = replicates(object=cuff_set)
+file_name = paste(prefix, "_replicates.txt", sep="")
+write.table(x=replicate_frame,
+            file=file.path(output_directory, file_name, fsep=.Platform$file.sep),
+            quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
+rm(replicate_frame)
 
 # Create a new, simpler data frame for gene annotation and merge both data frames.
 
@@ -212,6 +228,7 @@ file_name = paste(prefix, "_genes_fpkm_replicates.txt", sep="")
 write.table(x=gene_merge,
             file=file.path(output_directory, file_name, fsep=.Platform$file.sep),
             quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
+rm(gene_frame)
 
 message("Creating FPKM per replicates for isoforms")
 isoform_annotation = annotation(object=isoforms(object=cuff_set))
@@ -231,6 +248,7 @@ file_name = paste(prefix, "_isoforms_fpkm_replicates.txt", sep="")
 write.table(x=isoform_merge,
             file=file.path(output_directory, file_name, fsep=.Platform$file.sep),
             quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
+rm(isoform_frame)
 
 # Finally, create comparison-specific relative symbolic links for cuffdiff results in the
 # rnaseq_process_cuffdiff_* directory to avoid identical file names between comparisons.
