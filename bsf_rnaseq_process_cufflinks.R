@@ -70,6 +70,9 @@ message("Load gene data from BioMart")
 # The following attributes are not needed for the moment.
 # "chromosome_name", "start_position", "end_position", "strand"
 
+# From Ensembl version e75, the attributes "external_gene_id" and "external_gene_db" are called
+# "external_gene_name" and "external_gene_source", respectively.
+
 ensembl_genes = getBM(attributes=c("ensembl_gene_id", "external_gene_id", "external_gene_db"),
                       mart=ensembl_mart)
 
@@ -120,3 +123,20 @@ write.table(x=cufflinks_ensembl,
             col.names=TRUE, row.names=FALSE, sep="\t")
 
 rm(ensembl_transcripts, cufflinks_transcripts, cufflinks_ensembl)
+
+# Finally, create a replicate-specific symbolic link to the Tophat aligned BAM file and its index.
+
+setwd(dir=file.path(opt$genome_directory, prefix,
+                    fsep=.Platform$file.sep))
+
+result = file.symlink(from=file.path("..",
+                                     paste("rnaseq", "tophat", opt$sample, sep="_"),
+                                     "accepted_hits.bam",
+                                     fsep=.Platform$file.sep),
+                      to=paste("rnaseq", "tophat", opt$sample, "accepted_hits.bam", sep="_"))
+
+result = file.symlink(from=file.path("..",
+                                     paste("rnaseq", "tophat", opt$sample, sep="_"),
+                                     "accepted_hits.bam.bai",
+                                     fsep=.Platform$file.sep),
+                      to=paste("rnaseq", "tophat", opt$sample, "accepted_hits.bam.bai", sep="_"))
