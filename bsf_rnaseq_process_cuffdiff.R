@@ -66,7 +66,7 @@ if (!file.exists(output_directory)) {
 
 frame_path = file.path(output_directory, paste0(prefix, "_run_information.tsv"))
 if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
-  message(paste("Skipping run information table")
+  message("Skipping run information table")
 } else {
   message("Creating run information table")
   write.table(x=runInfo(object=cuff_set), file=frame_path, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
@@ -82,6 +82,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
   message("Creating sample table")
   write.table(x=sample_frame, file=frame_path, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
 }
+sample_number = nrow(x=sample_frame)
 sample_pairs = combn(x=sample_frame$sample_name, m=2)
 rm(sample_frame)
 
@@ -107,7 +108,8 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
   write.table(x=replicate_frame, file=frame_path, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
 }
 # Some plots require replicates. Check that there is at least one row with a replicate column value greater than 0.
-have_replicates = (nrow(replicate_frame[replicate_frame$replicate > 0, ]) > 0)
+replicate_number = nrow(x=replicate_frame)
+have_replicates = (nrow(x=replicate_frame[replicate_frame$replicate > 0, ]) > 0)
 rm(replicate_frame)
 
 rm(frame_path)
@@ -322,10 +324,32 @@ plot_path = file.path(output_directory, paste0(prefix, "_genes_mds.png"))
 if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
   message("Skipping a Multidimensional Scaling Plot on Genes")
 } else {
-#  if (have_replicates) {
+# if (have_replicates) {
     message("Creating a Multidimensional Scaling Plot on Genes")
-    MDSplot(object=genes(object=cuff_set), replicates=TRUE)
-    ggsave(filename=plot_path)
+    # Nothing ever is simple. If the set has too many replicates, the standard cummeRbund MDSplot() falls down.
+    if (replicate_number <= 24) {
+      MDSplot(object=genes(object=cuff_set), replicates=TRUE)
+      ggsave(filename=plot_path)
+      plot_path = file.path(output_directory, paste0(prefix, "_genes_mds.pdf"))
+      ggsave(filename=plot_path)
+    } else {
+      # The standard MDSplot has too many replicates.
+      gene_rep_fit = cmdscale(d=JSdist(mat=makeprobs(a=repFpkmMatrix(object=genes(object=cuff_set)))), eig=TRUE, k=2)
+      gene_rep_res = data.frame(names=rownames(gene_rep_fit$points), M1=gene_rep_fit$points[,1], M2=gene_rep_fit$points[,2])
+      gene_rep_mdsplot = ggplot(data=gene_rep_res)
+      gene_rep_mdsplot = gene_rep_mdsplot + theme_bw()  # Add theme black and white.
+      gene_rep_mdsplot = gene_rep_mdsplot + geom_point(aes(x = M1, y = M2, color = names))  # Draw points in any case.
+      if (replicate_number <= 24) {
+        # Only add text for a sensible number of replicates i.e. less than or equal to 24.
+        gene_rep_mdsplot = gene_rep_mdsplot + geom_text(aes(x = M1, y = M2, label = names, color = names, size=4))
+      }
+      # Arrange a maximum of 24 replicates in each guide column.
+      gene_rep_mdsplot = gene_rep_mdsplot + guides(col=guide_legend(ncol=ceiling(x=replicate_number / 24)))
+      ggsave(filename=plot_path, plot=gene_rep_mdsplot)
+      plot_path = file.path(output_directory, paste0(prefix, "_genes_mds.pdf"))
+      ggsave(filename=plot_path, plot=gene_rep_mdsplot)      
+      rm(gene_rep_fit, gene_rep_res, gene_rep_mdsplot)
+    }
 #  } else {
 #    message("Skipping Multidimensional Scaling Plot on genes in lack of replicates")
 #  }
@@ -461,8 +485,9 @@ rm(frame_path, plot_path, gene_frame, isoform_frame)
 
 # Get a CuffFeatureSet or CuffGeneSet of significant genes.
 
-significant_gene_ids = getSig(object=cuff_set, level='genes')
-significant_genes = getGenes(object=cuff_set, geneIdList=significant_gene_ids)
+# TODO: Comment-out for the moment, as the data is currently not used.
+# significant_gene_ids = getSig(object=cuff_set, level='genes')
+# significant_genes = getGenes(object=cuff_set, geneIdList=significant_gene_ids)
 
 # The csHeatmap plot does not seem to be a sensible option for larger sets of significant genes.
 # for (i in 1:length(sample_pairs[1,])) {
@@ -477,36 +502,48 @@ message("Started creating symbolic links to cuffdiff results")
 
 link_path = file.path(output_directory, paste0(prefix, "_cds_exp_diff.tsv"))
 if (! file.exists(link_path)) {
-  result = file.symlink(from=file.path("..", cuffdiff_directory, "cds_exp.diff"), to=link_path)
+  if (! file.symlink(from=file.path("..", cuffdiff_directory, "cds_exp.diff"), to=link_path)) {
+    message("Encountered an error linking the cds_exp.diff file.")
+  }
 }
 
 link_path = file.path(output_directory, paste0(prefix, "_genes_exp_diff.tsv"))
 if (! file.exists(link_path)) {
-  result = file.symlink(from=file.path("..", cuffdiff_directory, "gene_exp.diff"), to=link_path)
+  if (! file.symlink(from=file.path("..", cuffdiff_directory, "gene_exp.diff"), to=link_path)) {
+    message("Encountered an error linking the gene_exp.diff file.")
+  }
 }
 
 link_path = file.path(output_directory, paste0(prefix, "_isoforms_exp_diff.tsv"))
 if (! file.exists(link_path)) {
-  result = file.symlink(from=file.path("..", cuffdiff_directory, "isoform_exp.diff"), to=link_path)
+  if (! file.symlink(from=file.path("..", cuffdiff_directory, "isoform_exp.diff"), to=link_path)) {
+    message("Encountered an error linking the isoform_exp.diff file.")
+  }
 }
 
 link_path = file.path(output_directory, paste0(prefix, "_promoters_diff.tsv"))
 if (! file.exists(link_path)) {
-  result = file.symlink(from=file.path("..", cuffdiff_directory, "promoters.diff"), to=link_path)
+  if (! file.symlink(from=file.path("..", cuffdiff_directory, "promoters.diff"), to=link_path)) {
+    message("Encountered an error linking the promoters.diff file.")
+  }
 }
 
 link_path = file.path(output_directory, paste0(prefix, "_splicing_diff.tsv"))
 if (! file.exists(link_path)) {
-  result = file.symlink(from=file.path("..", cuffdiff_directory, "splicing.diff"), to=link_path)
+  if (! file.symlink(from=file.path("..", cuffdiff_directory, "splicing.diff"), to=link_path)) {
+    message("Encountered an error linking the splicing.diff file.")
+  }
 }
 
 link_path = file.path(output_directory, paste0(prefix, "_tss_group_exp_diff.tsv"))
 if (! file.exists(link_path)) {
-  result = file.symlink(from=file.path("..", cuffdiff_directory, "tss_group_exp.diff"), to=link_path)
+  if (! file.symlink(from=file.path("..", cuffdiff_directory, "tss_group_exp.diff"), to=link_path)) {
+    message("Encountered an error linking the tss_group_exp.diff file.")
+  }
 }
 
 message("Finished creating symbolic links to cuffdiff results")
-rm(link_path, result)
+rm(link_path)
 
 rm(cuff_set, output_directory, sample_pairs, prefix, i)
 message("All done")
