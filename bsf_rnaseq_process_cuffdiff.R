@@ -58,7 +58,7 @@ cuff_set = readCufflinks(dir=cuffdiff_directory, gtfFile=opt$gtf_file, genome=op
 
 # Create a new sub-directory for plots if it does not exist.
 
-if (!file.exists(output_directory)) {
+if (! file.exists(output_directory)) {
   dir.create(output_directory, showWarnings=TRUE, recursive=FALSE)
 }
 
@@ -71,6 +71,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
   message("Creating run information table")
   write.table(x=runInfo(object=cuff_set), file=frame_path, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
 }
+rm(frame_path)
 
 # Store a table with sample information and define all possible pairwise sample comparisons or sample pairs.
 
@@ -82,6 +83,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
   message("Creating sample table")
   write.table(x=sample_frame, file=frame_path, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
 }
+rm(frame_path)
 sample_number = nrow(x=sample_frame)
 sample_pairs = combn(x=sample_frame$sample_name, m=2)
 rm(sample_frame)
@@ -96,6 +98,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
   message("Create sample pairs table")
   write.table(x=aperm(a=sample_pairs), file=frame_path, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
 }
+rm(frame_path)
 
 # Store a table of replicate information and find out, whether the analysis has replicates.
 
@@ -107,270 +110,369 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
   message("Creating replicate table")
   write.table(x=replicate_frame, file=frame_path, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
 }
+rm(frame_path)
 # Some plots require replicates. Check that there is at least one row with a replicate column value greater than 0.
 replicate_number = nrow(x=replicate_frame)
 have_replicates = (nrow(x=replicate_frame[replicate_frame$replicate > 0, ]) > 0)
 rm(replicate_frame)
 
-rm(frame_path)
-
 # Create a set of QC plots.
 
-message("Started plotting.")
+message("Started QC plotting")
 
 # Create a Dispersion Plot on Genes.
 
-plot_path = file.path(output_directory, paste0(prefix, "_genes_dispersion.png"))
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_genes_dispersion.pdf"))
+plot_path_png = file.path(output_directory, paste0(prefix, "_genes_dispersion.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
   message("Skipping a Dispersion Plot on Genes")
 } else {
   message("Creating a Dispersion Plot on Genes")
-  dispersionPlot(object=genes(object=cuff_set))
-  ggsave(filename=plot_path)
+  ggplot_object = dispersionPlot(object=genes(object=cuff_set))
+  ggsave(filename=plot_path_pdf, plot=ggplot_object)
+  ggsave(filename=plot_path_png, plot=ggplot_object)
+  rm(ggplot_object)
 }
+rm(plot_path_pdf, plot_path_png)
 
 # Create a Dispersion Plot on Isoforms.
 
-plot_path = file.path(output_directory, paste0(prefix, "_isoforms_dispersion.png"))
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_isoforms_dispersion.pdf"))
+plot_path_png = file.path(output_directory, paste0(prefix, "_isoforms_dispersion.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
   message("Skipping a Dispersion Plot on Isoforms")
 } else {
   message("Creating Dispersion Plot on Isoforms")
-  dispersionPlot(object=isoforms(object=cuff_set))
-  ggsave(filename=plot_path)
+  ggplot_object= dispersionPlot(object=isoforms(object=cuff_set))
+  ggsave(filename=plot_path_pdf, plot=ggplot_object)
+  ggsave(filename=plot_path_png, plot=ggplot_object)
+  rm(ggplot_object)
 }
+rm(plot_path_pdf, plot_path_png)
 
 # Create a Squared Coefficient of Variation (SCV) Plot on Genes.
 # The plot requires replicates.
 
-plot_path = file.path(output_directory, paste0(prefix, "_genes_scv.png"))
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_genes_scv.pdf"))
+plot_path_png = file.path(output_directory, paste0(prefix, "_genes_scv.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
   message("Skipping a SCV Plot on Genes")
 } else {
   if (have_replicates) {
     message("Creating a SCV Plot on Genes")
-    fpkmSCVPlot(object=genes(object=cuff_set))
-    ggsave(filename=plot_path)
+    ggplot_object = fpkmSCVPlot(object=genes(object=cuff_set))
+    ggsave(filename=plot_path_pdf, plot=ggplot_object)
+    ggsave(filename=plot_path_png, plot=ggplot_object)
+    rm(ggplot_object)
   } else {
     message("Skipping a SCV Plot on Genes in lack of replicates")  
   }
 }
+rm(plot_path_pdf, plot_path_png)
 
 # Create a Squared Coefficient of Variation (SCV) Plot on Isoforms.
 # The plot requires replicates.
 
-plot_path = file.path(output_directory, paste0(prefix, "_isoforms_scv.png"))
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_isoforms_scv.pdf"))
+plot_path_png = file.path(output_directory, paste0(prefix, "_isoforms_scv.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
   message("Skipping a SCV Plot on Isoforms")
 } else {
   if (have_replicates) {
     message("Creating a SCV Plot on Isoforms")
-    fpkmSCVPlot(object=isoforms(object=cuff_set))
-    ggsave(filename=plot_path)
+    ggplot_object = fpkmSCVPlot(object=isoforms(object=cuff_set))
+    ggsave(filename=plot_path_pdf, plot=ggplot_object)
+    ggsave(filename=plot_path_png, plot=ggplot_object)
+    rm(ggplot_object)
   } else {
     message("Skipping a SCV Plot on Isoforms in lack of replicates")
   }
 }
+rm(plot_path_pdf, plot_path_png)
 
 # Create a Density Plot on Genes with and without replicates.
 
-plot_path = file.path(output_directory, paste0(prefix, "_genes_density_wo_replicates.png"))
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_genes_density_wo_replicates.pdf"))
+plot_path_png = file.path(output_directory, paste0(prefix, "_genes_density_wo_replicates.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
   message("Skipping a Density Plot on Genes without replicates")
 } else {
   message("Creating a Density Plot on Genes without replicates")
-  csDensity(object=genes(object=cuff_set), replicates=FALSE)
-  ggsave(filename=plot_path)
+  ggplot_object = csDensity(object=genes(object=cuff_set), replicates=FALSE)
+  ggsave(filename=plot_path_pdf, plot=ggplot_object)
+  ggsave(filename=plot_path_png, plot=ggplot_object)
+  rm(ggplot_object)
 }
+rm(plot_path_pdf, plot_path_png)
 
-plot_path = file.path(output_directory, paste0(prefix, "_genes_density_w_replicates.png"))
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_genes_density_w_replicates.pdf"))
+plot_path_png = file.path(output_directory, paste0(prefix, "_genes_density_w_replicates.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
   message("Skipping a Density Plot on Genes with replicates")
 } else {
   message("Creating a Density Plot on Genes with replicates")
-  csDensity(object=genes(object=cuff_set), replicates=TRUE)
-  ggsave(filename=plot_path)
+  ggplot_object = csDensity(object=genes(object=cuff_set), replicates=TRUE)
+  ggsave(filename=plot_path_pdf, plot=ggplot_object)
+  ggsave(filename=plot_path_png, plot=ggplot_object)
+  rm(ggplot_object)
 }
+rm(plot_path_pdf, plot_path_png)
 
 # Create a Density Plot on Isoforms with and without replicates.
 
-plot_path = file.path(output_directory, paste0(prefix, "_isoforms_density_wo_replicates.png"))
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_isoforms_density_wo_replicates.pdf"))
+plot_path_png = file.path(output_directory, paste0(prefix, "_isoforms_density_wo_replicates.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
   message("Skipping a Density Plot on Isoforms without replicates")
 } else {
   message("Creating a Density Plot on Isoforms without replicates")
-  csDensity(object=isoforms(object=cuff_set), replicates=FALSE)
-  ggsave(filename=plot_path)
+  ggplot_object = csDensity(object=isoforms(object=cuff_set), replicates=FALSE)
+  ggsave(filename=plot_path_pdf, plot=ggplot_object)
+  ggsave(filename=plot_path_png, plot=ggplot_object)
+  rm(ggplot_object)
 }
+rm(plot_path_pdf, plot_path_png)
 
-plot_path = file.path(output_directory, paste0(prefix, "_isoforms_density_w_replicates.png"))
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_isoforms_density_w_replicates.pdf"))
+plot_path_png = file.path(output_directory, paste0(prefix, "_isoforms_density_w_replicates.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
   message("Skipping a Density Plot on Isoforms with replicates")
 } else {
   message("Creating a Density Plot on Isoforms with replicates")
-  csDensity(object=isoforms(object=cuff_set), replicates=TRUE)
-  ggsave(filename=plot_path)
+  ggplot_object = csDensity(object=isoforms(object=cuff_set), replicates=TRUE)
+  ggsave(filename=plot_path_pdf, plot=ggplot_object)
+  ggsave(filename=plot_path_png, plot=ggplot_object)
+  rm(ggplot_object)
 }
+rm(plot_path_pdf, plot_path_png)
 
 # Create a Box Plot on Genes with and without replicates.
 
-plot_path = file.path(output_directory, paste0(prefix, "_genes_box_w_replicates.png"))
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_genes_box_w_replicates.pdf"))
+plot_path_png = file.path(output_directory, paste0(prefix, "_genes_box_w_replicates.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
   message("Skipping a Box Plot on Genes with replicates")
 } else {
   message("Creating a Box Plot on Genes with replicates")
-  csBoxplot(object=genes(object=cuff_set), replicates=TRUE)
-  ggsave(filename=plot_path)
+  ggplot_object = csBoxplot(object=genes(object=cuff_set), replicates=TRUE)
+  ggsave(filename=plot_path_pdf, plot=ggplot_object)
+  ggsave(filename=plot_path_png, plot=ggplot_object)
+  rm(ggplot_object)
 }
+rm(plot_path_pdf, plot_path_png)
 
-plot_path = file.path(output_directory, paste0(prefix, "_genes_box_wo_replicates.png"))
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_genes_box_wo_replicates.pdf"))
+plot_path_png = file.path(output_directory, paste0(prefix, "_genes_box_wo_replicates.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
   message("Skipping a Box Plot on Genes without replicates")
 } else {
   message("Creating a Box Plot on Genes without replicates")
-  csBoxplot(object=genes(object=cuff_set), replicates=FALSE)
-  ggsave(filename=plot_path)
+  ggplot_object = csBoxplot(object=genes(object=cuff_set), replicates=FALSE)
+  ggsave(filename=plot_path_pdf, plot=ggplot_object)
+  ggsave(filename=plot_path_png, plot=ggplot_object)
+  rm(ggplot_object)
 }
+rm(plot_path_pdf, plot_path_png)
 
 # Create a Scatter Matrix Plot on Genes and Isoforms.
 
-plot_path = file.path(output_directory, paste0(prefix, "_genes_scatter_matrix.png"))
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_genes_scatter_matrix.pdf"))
+plot_path_png = file.path(output_directory, paste0(prefix, "_genes_scatter_matrix.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
   message("Skipping a Scatter Matrix Plot on Genes")
 } else {
   message("Creating a Scatter Matrix Plot on Genes")
-  csScatterMatrix(object=genes(object=cuff_set))
-  ggsave(filename=plot_path)
+  ggplot_object = csScatterMatrix(object=genes(object=cuff_set))
+  ggsave(filename=plot_path_pdf, plot=ggplot_object)
+  ggsave(filename=plot_path_png, plot=ggplot_object)
+  rm(ggplot_object)
 }
+rm(plot_path_pdf, plot_path_png)
 
-plot_path = file.path(output_directory, paste0(prefix, "_isoforms_scatter_matrix.png"))
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_isoforms_scatter_matrix.pdf"))
+plot_path_png = file.path(output_directory, paste0(prefix, "_isoforms_scatter_matrix.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
   message("Skipping a Scatter Matrix Plot on Isoforms")
 } else {
   message("Creating a Scatter Matrix Plot on Isoforms")
-  csScatterMatrix(object=isoforms(object=cuff_set))
-  ggsave(filename=plot_path)
+  ggplot_object = csScatterMatrix(object=isoforms(object=cuff_set))
+  ggsave(filename=plot_path_pdf, plot=ggplot_object)
+  ggsave(filename=plot_path_png, plot=ggplot_object)
+  rm(ggplot_object)
 }
+rm(plot_path_pdf, plot_path_png)
 
 # Create a Scatter Plot on Genes for each sample pair.
 
 for (i in 1:length(sample_pairs[1,])) {
-  plot_path = file.path(output_directory, paste(prefix, sample_pairs[1, i], sample_pairs[2, i], "genes_scatter.png", sep="_"))
-  if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+  plot_path_pdf = file.path(output_directory, paste(prefix, sample_pairs[1, i], sample_pairs[2, i], "genes_scatter.pdf", sep="_"))
+  plot_path_png = file.path(output_directory, paste(prefix, sample_pairs[1, i], sample_pairs[2, i], "genes_scatter.png", sep="_"))
+  if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+        file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
     message(paste("Skipping a Scatter Plot on Genes for", sample_pairs[1, i], "versus", sample_pairs[2, i]))
   } else {
     message(paste("Creating a Scatter Plot on Genes for", sample_pairs[1, i], "versus", sample_pairs[2, i]))
-    csScatter(object=genes(object=cuff_set), x=sample_pairs[1, i], y=sample_pairs[2, i])
-    ggsave(filename=plot_path)
+    ggplot_object = csScatter(object=genes(object=cuff_set), x=sample_pairs[1, i], y=sample_pairs[2, i])
+    ggsave(filename=plot_path_pdf, plot=ggplot_object)
+    ggsave(filename=plot_path_png, plot=ggplot_object)
+    rm(ggplot_object)
   }
+  rm(plot_path_pdf, plot_path_png)
 }
 
 # Create a Dendrogram Plot on Genes for time-series analyses.
-# The csDendro function returns an dendrogram object that cannot be saved with the ggsave.
+# The csDendro function returns a dendrogram object that cannot be saved with the ggsave function.
 
-plot_path = file.path(output_directory, paste0(prefix, "_genes_dendrogram.png"))
-png(filename=plot_path)
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
-  message("Skipping a Dendrogram Plot on Genes")
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_genes_dendrogram.pdf"))
+pdf(file=plot_path_pdf)
+if (file.exists(plot_path_pdf) && file.info(plot_path_pdf)$size > 0) {
+  message("Skipping a Dendrogram Plot on Genes [PDF]")
 } else {
-  message("Creating a Dendrogram Plot on Genes")
+  message("Creating a Dendrogram Plot on Genes [PDF]")
   csDendro(object=genes(object=cuff_set))
-  # ggsave(filename=plot_path)
 }
 active_device = dev.off()
+rm(active_device)
+rm(plot_path_pdf)
+
+plot_path_png = file.path(output_directory, paste0(prefix, "_genes_dendrogram.png"))
+png(filename=plot_path_png)
+if (file.exists(plot_path_png) && file.info(plot_path_png)$size > 0) {
+  message("Skipping a Dendrogram Plot on Genes [PNG]")
+} else {
+  message("Creating a Dendrogram Plot on Genes [PNG]")
+  csDendro(object=genes(object=cuff_set))
+}
+active_device = dev.off()
+rm(active_device)
+rm(plot_path_png)
 
 # Create a MA Plot on genes for each sample pair based on FPKM values.
 
 for (i in 1:length(sample_pairs[1,])) {
-  plot_path = file.path(output_directory, paste(prefix, sample_pairs[1, i], sample_pairs[2, i], "maplot.png", sep="_"))
-  if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+  plot_path_pdf = file.path(output_directory, paste(prefix, sample_pairs[1, i], sample_pairs[2, i], "maplot.pdf", sep="_"))
+  plot_path_png = file.path(output_directory, paste(prefix, sample_pairs[1, i], sample_pairs[2, i], "maplot.png", sep="_"))
+  if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+        file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
     message(paste("Skipping a MAplot on Genes for", sample_pairs[1, i], "versus", sample_pairs[2, i]))
   } else {
     message(paste("Creating a MAplot on Genes for", sample_pairs[1, i], "versus", sample_pairs[2, i]))
-    MAplot(object=genes(object=cuff_set), x=sample_pairs[1, i], y=sample_pairs[2, i])
-    ggsave(filename=plot_path)
+    ggplot_object = MAplot(object=genes(object=cuff_set), x=sample_pairs[1, i], y=sample_pairs[2, i])
+    ggsave(filename=plot_path_pdf, plot=ggplot_object)
+    ggsave(filename=plot_path_png, plot=ggplot_object)
+    rm(ggplot_object)
   }
+  rm(plot_path_pdf, plot_path_png)
 }
 
 # TODO: Create a MAplot on genes for each sample pair based on count data.
 
 # Create a Volcano Matrix Plot on Genes.
 
-plot_path = file.path(output_directory, paste0(prefix, "_genes_volcano_matrix.png"))
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_genes_volcano_matrix.pdf"))
+plot_path_png = file.path(output_directory, paste0(prefix, "_genes_volcano_matrix.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
   message("Skipping a Volcano Matrix Plot on Genes")
 } else {
   message("Creating a Volcano Matrix Plot on Genes")
-  csVolcanoMatrix(object=genes(object=cuff_set))
-  ggsave(filename=plot_path)
+  ggplot_object = csVolcanoMatrix(object=genes(object=cuff_set))
+  ggsave(filename=plot_path_pdf, plot=ggplot_object)
+  ggsave(filename=plot_path_png, plot=ggplot_object)
+  rm(ggplot_object)
 }
+rm(plot_path_pdf, plot_path_png)
 
 # Create a Volcano Plot on genes for each sample pair.
 
 for (i in 1:length(sample_pairs[1,])) {
-  plot_path = file.path(output_directory, paste(prefix, sample_pairs[1, i], sample_pairs[2, i], "genes_volcano.png", sep="_"))
-  if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+  plot_path_pdf = file.path(output_directory, paste(prefix, sample_pairs[1, i], sample_pairs[2, i], "genes_volcano.pdf", sep="_"))
+  plot_path_png = file.path(output_directory, paste(prefix, sample_pairs[1, i], sample_pairs[2, i], "genes_volcano.png", sep="_"))
+  if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+        file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
     message(paste("Skipping a Volcano Plot on Genes for", sample_pairs[1, i], "versus", sample_pairs[2, i]))
   } else {
     message(paste("Creating a Volcano Plot on Genes for", sample_pairs[1, i], "versus", sample_pairs[2, i]))
-    csVolcano(object=genes(object=cuff_set), x=sample_pairs[1, i], y=sample_pairs[2, i])
-    ggsave(filename=plot_path)
+    ggplot_object = csVolcano(object=genes(object=cuff_set), x=sample_pairs[1, i], y=sample_pairs[2, i])
+    ggsave(filename=plot_path_pdf, plot=ggplot_object)
+    ggsave(filename=plot_path_png, plot=ggplot_object)
+    rm(ggplot_object)
   }
+  rm(plot_path_pdf, plot_path_png)
 }
 
 # Create a Multidimensional Scaling (MDS) Plot on genes.
 
-plot_path = file.path(output_directory, paste0(prefix, "_genes_mds.png"))
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_genes_mds.pdf"))
+plot_path_png = file.path(output_directory, paste0(prefix, "_genes_mds.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
   message("Skipping a Multidimensional Scaling Plot on Genes")
 } else {
 # if (have_replicates) {
     message("Creating a Multidimensional Scaling Plot on Genes")
     # Nothing ever is simple. If the set has too many replicates, the standard cummeRbund MDSplot() falls down.
     if (replicate_number <= 24) {
-      MDSplot(object=genes(object=cuff_set), replicates=TRUE)
-      ggsave(filename=plot_path)
-      plot_path = file.path(output_directory, paste0(prefix, "_genes_mds.pdf"))
-      ggsave(filename=plot_path)
+      ggplot_object = MDSplot(object=genes(object=cuff_set), replicates=TRUE)
+      ggsave(filename=plot_path_pdf, plot=ggplot_object)
+      ggsave(filename=plot_path_png, plot=ggplot_object)
+      rm(ggplot_object)
     } else {
       # The standard MDSplot has too many replicates.
       gene_rep_fit = cmdscale(d=JSdist(mat=makeprobs(a=repFpkmMatrix(object=genes(object=cuff_set)))), eig=TRUE, k=2)
       gene_rep_res = data.frame(names=rownames(gene_rep_fit$points), M1=gene_rep_fit$points[,1], M2=gene_rep_fit$points[,2])
-      gene_rep_mdsplot = ggplot(data=gene_rep_res)
-      gene_rep_mdsplot = gene_rep_mdsplot + theme_bw()  # Add theme black and white.
-      gene_rep_mdsplot = gene_rep_mdsplot + geom_point(aes(x = M1, y = M2, color = names))  # Draw points in any case.
+      ggplot_object = ggplot(data=gene_rep_res)
+      ggplot_object = ggplot_object + theme_bw()  # Add theme black and white.
+      ggplot_object = ggplot_object + geom_point(aes(x = M1, y = M2, color = names))  # Draw points in any case.
       if (replicate_number <= 24) {
         # Only add text for a sensible number of replicates i.e. less than or equal to 24.
-        gene_rep_mdsplot = gene_rep_mdsplot + geom_text(aes(x = M1, y = M2, label = names, color = names, size=4))
+        ggplot_object = ggplot_object + geom_text(aes(x = M1, y = M2, label = names, color = names, size=4))
       }
       # Arrange a maximum of 24 replicates in each guide column.
-      gene_rep_mdsplot = gene_rep_mdsplot + guides(col=guide_legend(ncol=ceiling(x=replicate_number / 24)))
-      ggsave(filename=plot_path, plot=gene_rep_mdsplot)
-      plot_path = file.path(output_directory, paste0(prefix, "_genes_mds.pdf"))
-      ggsave(filename=plot_path, plot=gene_rep_mdsplot)      
-      rm(gene_rep_fit, gene_rep_res, gene_rep_mdsplot)
+      ggplot_object = ggplot_object + guides(col=guide_legend(ncol=ceiling(x=replicate_number / 24)))
+      ggsave(filename=plot_path_pdf, plot=ggplot_object)      
+      ggsave(filename=plot_path_png, plot=ggplot_object)
+      rm(ggplot_object)
+      rm(gene_rep_fit, gene_rep_res)
     }
 #  } else {
 #    message("Skipping Multidimensional Scaling Plot on genes in lack of replicates")
 #  }
 }
+rm(plot_path_pdf, plot_path_png)
 
 # Create a Principal Component Analysis (PCA) Plot on Genes.
-# TODO: Add also other principal components.
+# TODO: Add also other principal components or even better use plots of the PCA package?
 
-plot_path = file.path(output_directory, paste0(prefix, "_genes_pca.png"))
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_genes_pca.pdf"))
+plot_path_png = file.path(output_directory, paste0(prefix, "_genes_pca.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
   message("Skipping a Principal Component Analysis Plot (PCA) on Genes")
 } else {
   message("Creating a Principal Component Analysis Plot (PCA) on Genes")
-  PCAplot(object=genes(object=cuff_set), x="PC1", y="PC2", replicates=TRUE)
-  ggsave(filename=plot_path)
+  ggplot_object = PCAplot(object=genes(object=cuff_set), x="PC1", y="PC2", replicates=TRUE)
+  ggsave(filename=plot_path_pdf, plot=ggplot_object)
+  ggsave(filename=plot_path_png, plot=ggplot_object)
+  rm(ggplot_object)
 }
+rm(plot_path_pdf, plot_path_png)
 
 # Finished plotting.
 
-message("Finished plotting.")
-rm(plot_path, active_device)
+message("Finished QC plotting")
 
 # TODO: Process gene and isoform sets and lists.
 # Feature-level information can be accessed directly from a CuffData object using the
@@ -420,6 +522,7 @@ for (i in 1:length(sample_pairs[1,])) {
     write.table(x=gene_merge, file=frame_path, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
     rm(gene_diff, gene_merge)
   }
+  rm(frame_path)
 }
 
 for (i in 1:length(sample_pairs[1,])) {
@@ -437,6 +540,7 @@ for (i in 1:length(sample_pairs[1,])) {
     write.table(x=isoform_merge, file=frame_path, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
     rm(isoform_diff, isoform_merge)
   }
+  rm(frame_path)
 }
 
 frame_path = file.path(output_directory, paste0(prefix, "_genes_fpkm_replicates.tsv"))
@@ -447,8 +551,10 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
   gene_rep_fpkm_matrix = repFpkmMatrix(object=genes(object=cuff_set))
   gene_merge = merge(x=gene_frame, y=gene_rep_fpkm_matrix, by.x="gene_id", by.y="row.names", all=TRUE, sort=TRUE)
   write.table(x=gene_merge, file=frame_path, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
-  rm(gene_merge)
+  rm(gene_merge, gene_rep_fpkm_matrix)
 }
+rm(frame_path)
+
 # repCountMatrix would be a similar function for normalised count rather than FPKM values.
 
 frame_path = file.path(output_directory, paste0(prefix, "_isoforms_fpkm_replicates.tsv"))
@@ -459,29 +565,40 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
   isoform_rep_fpkm_matrix = repFpkmMatrix(object=isoforms(object=cuff_set))
   isoform_merge = merge(x=isoform_frame, y=isoform_rep_fpkm_matrix, by.x="isoform_id", by.y="row.names", all=TRUE, sort=TRUE)
   write.table(x=isoform_merge, file=frame_path, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
-  rm(isoform_merge)
+  rm(isoform_merge, isoform_rep_fpkm_matrix)
 }
+rm(frame_path)
 
 # TODO: Deal with sets of significantly regulated genes, including a sigMatrix ggplot plot.
-plot_path = file.path(output_directory, paste0(prefix, "_genes_significance_matrix.png"))
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_genes_significance_matrix.pdf"))
+plot_path_png = file.path(output_directory, paste0(prefix, "_genes_significance_matrix.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
   message("Skipping a significance matrix plot on Genes")
 } else {
   message("Creating a a significance matrix plot on Genes")
-  sigMatrix(object=cuff_set, level="genes")
-  ggsave(filename=plot_path)
+  ggplot_object = sigMatrix(object=cuff_set, level="genes")
+  ggsave(filename=plot_path_pdf, plot=ggplot_object)
+  ggsave(filename=plot_path_png, plot=ggplot_object)
+  rm(ggplot_object)
 }
+rm(plot_path_pdf, plot_path_png)
 
-plot_path = file.path(output_directory, paste0(prefix, "_isoforms_significance_matrix.png"))
-if (file.exists(plot_path) && file.info(plot_path)$size > 0) {
+plot_path_pdf = file.path(output_directory, paste0(prefix, "_isoforms_significance_matrix.pdf"))
+plot_path_png = file.path(output_directory, paste0(prefix, "_isoforms_significance_matrix.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
   message("Skipping a significance matrix plot on Isoforms")
 } else {
   message("Creating a a significance matrix plot on Isoforms")
-  sigMatrix(object=cuff_set, level="isoforms")
-  ggsave(filename=plot_path)
+  ggplot_object = sigMatrix(object=cuff_set, level="isoforms")
+  ggsave(filename=plot_path_pdf, plot=ggplot_object)
+  ggsave(filename=plot_path_png, plot=ggplot_object)
+  rm(ggplot_object)
 }
+rm(plot_path_pdf, plot_path_png)
 
-rm(frame_path, plot_path, gene_frame, isoform_frame)
+rm(gene_frame, isoform_frame)
 
 # Get a CuffFeatureSet or CuffGeneSet of significant genes.
 
@@ -503,48 +620,54 @@ message("Started creating symbolic links to cuffdiff results")
 link_path = file.path(output_directory, paste0(prefix, "_cds_exp_diff.tsv"))
 if (! file.exists(link_path)) {
   if (! file.symlink(from=file.path("..", cuffdiff_directory, "cds_exp.diff"), to=link_path)) {
-    message("Encountered an error linking the cds_exp.diff file.")
+    warning("Encountered an error linking the cds_exp.diff file.")
   }
 }
+rm(link_path)
 
 link_path = file.path(output_directory, paste0(prefix, "_genes_exp_diff.tsv"))
 if (! file.exists(link_path)) {
   if (! file.symlink(from=file.path("..", cuffdiff_directory, "gene_exp.diff"), to=link_path)) {
-    message("Encountered an error linking the gene_exp.diff file.")
+    warning("Encountered an error linking the gene_exp.diff file.")
   }
 }
+rm(link_path)
 
 link_path = file.path(output_directory, paste0(prefix, "_isoforms_exp_diff.tsv"))
 if (! file.exists(link_path)) {
   if (! file.symlink(from=file.path("..", cuffdiff_directory, "isoform_exp.diff"), to=link_path)) {
-    message("Encountered an error linking the isoform_exp.diff file.")
+    warning("Encountered an error linking the isoform_exp.diff file.")
   }
 }
+rm(link_path)
 
 link_path = file.path(output_directory, paste0(prefix, "_promoters_diff.tsv"))
 if (! file.exists(link_path)) {
   if (! file.symlink(from=file.path("..", cuffdiff_directory, "promoters.diff"), to=link_path)) {
-    message("Encountered an error linking the promoters.diff file.")
+    warning("Encountered an error linking the promoters.diff file.")
   }
 }
+rm(link_path)
 
 link_path = file.path(output_directory, paste0(prefix, "_splicing_diff.tsv"))
 if (! file.exists(link_path)) {
   if (! file.symlink(from=file.path("..", cuffdiff_directory, "splicing.diff"), to=link_path)) {
-    message("Encountered an error linking the splicing.diff file.")
+    warning("Encountered an error linking the splicing.diff file.")
   }
 }
+rm(link_path)
 
 link_path = file.path(output_directory, paste0(prefix, "_tss_group_exp_diff.tsv"))
 if (! file.exists(link_path)) {
   if (! file.symlink(from=file.path("..", cuffdiff_directory, "tss_group_exp.diff"), to=link_path)) {
-    message("Encountered an error linking the tss_group_exp.diff file.")
+    warning("Encountered an error linking the tss_group_exp.diff file.")
   }
 }
-
-message("Finished creating symbolic links to cuffdiff results")
 rm(link_path)
 
-rm(cuff_set, output_directory, sample_pairs, prefix, i)
+message("Finished creating symbolic links to cuffdiff results")
+
+rm(cuff_set, output_directory, cuffdiff_directory, sample_pairs, sample_number, replicate_number, have_replicates, prefix, i,
+   opt, option_list)
 message("All done")
-ls()
+ls()  # List all objects that have not been deleted at this stage.
