@@ -155,6 +155,19 @@ if (! file.exists(link_path)) {
 }
 rm(file_path, link_path)
 
+file_path = file.path(opt$genome_directory,
+                      paste("rnaseq", "tophat", opt$sample, sep="_"),
+                      "unmapped.bam")
+link_path = file.path(opt$genome_directory,
+                      prefix,
+                      paste("rnaseq", "tophat", opt$sample, "unmapped.bam", sep="_"))
+if (! file.exists(link_path)) {
+  if (! file.symlink(from=file_path, to=link_path)) {
+    warning("Encountered an error linking the unmapped.bam file.")
+  }
+}
+rm(file_path, link_path)
+
 rm(opt, option_list, prefix, ensembl_mart)
 message("All done")
 ls()
