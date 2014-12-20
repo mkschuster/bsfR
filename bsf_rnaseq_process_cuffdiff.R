@@ -543,11 +543,13 @@ for (i in 1:length(sample_pairs[1,])) {
   rm(frame_path)
 }
 
+# Matrix of FPKM values per replicate on genes.
+
 frame_path = file.path(output_directory, paste0(prefix, "_genes_fpkm_replicates.tsv"))
 if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
-  message("Skipping a matrix of FPKM per replicates for genes")
+  message("Skipping a matrix of FPKM values per replicates on genes")
 } else {
-  message("Creating a matrix of FPKM per replicates for genes")
+  message("Creating a matrix of FPKM values per replicates on genes")
   gene_rep_fpkm_matrix = repFpkmMatrix(object=genes(object=cuff_set))
   gene_merge = merge(x=gene_frame, y=gene_rep_fpkm_matrix, by.x="gene_id", by.y="row.names", all=TRUE, sort=TRUE)
   write.table(x=gene_merge, file=frame_path, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
@@ -555,17 +557,45 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
 }
 rm(frame_path)
 
-# repCountMatrix would be a similar function for normalised count rather than FPKM values.
+# Matrix of count values per replicate on genes.
+
+frame_path = file.path(output_directory, paste0(prefix, "_genes_counts_replicates.tsv"))
+if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
+  message("Skipping a matrix of count values per replicates on genes")
+} else {
+  message("Creating a matrix of count values per replicates on genes")
+  gene_rep_count_matrix = repCountMatrix(object=genes(object=cuff_set))
+  gene_merge = merge(x=gene_frame, y=gene_rep_count_matrix, by.x="gene_id", by.y="row.names", all=TRUE, sort=TRUE)
+  write.table(x=gene_merge, file=frame_path, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
+  rm(gene_merge, gene_rep_count_matrix)
+}
+rm(frame_path)
+
+# Matrix of FPKM values per replicate on isoforms
 
 frame_path = file.path(output_directory, paste0(prefix, "_isoforms_fpkm_replicates.tsv"))
 if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
-  message("Skipping a matrix of FPKM per replicates for isoforms")
+  message("Skipping a matrix of FPKM per replicates on isoforms")
 } else {
-  message("Creating a matrix of FPKM per replicates for isoforms")
+  message("Creating a matrix of FPKM per replicates on isoforms")
   isoform_rep_fpkm_matrix = repFpkmMatrix(object=isoforms(object=cuff_set))
   isoform_merge = merge(x=isoform_frame, y=isoform_rep_fpkm_matrix, by.x="isoform_id", by.y="row.names", all=TRUE, sort=TRUE)
   write.table(x=isoform_merge, file=frame_path, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
   rm(isoform_merge, isoform_rep_fpkm_matrix)
+}
+rm(frame_path)
+
+# Matrix of count values per replicate on isoforms.
+
+frame_path = file.path(output_directory, paste0(prefix, "_isoforms_counts_replicates.tsv"))
+if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
+  message("Skipping a matrix of count values per replicates on isoforms")
+} else {
+  message("Creating a matrix of count values per replicates on isoforms")
+  isoform_rep_count_matrix = repCountMatrix(object=isoforms(object=cuff_set))
+  isoform_merge = merge(x=isoform_frame, y=isoform_rep_count_matrix, by.x="isoform_id", by.y="row.names", all=TRUE, sort=TRUE)
+  write.table(x=isoform_merge, file=frame_path, quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
+  rm(isoform_merge, isoform_rep_count_matrix)
 }
 rm(frame_path)
 
