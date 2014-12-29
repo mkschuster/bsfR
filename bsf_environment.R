@@ -2,23 +2,23 @@
 
 # Rscript to quickly setup the BSF environment after an R upgrade.
 
-source(file="http://bioconductor.org/biocLite.R")
+source(file = "http://bioconductor.org/biocLite.R")
 
 # CRAN package for BSF R scripts.
 install.packages("optparse")
 
 # For the BSF RNA-Seq pipeline
-biocLite(pkgs=c("DESeq", "cummeRbund"))
+biocLite(pkgs = c("DESeq", "cummeRbund"))
 
 # For the BSF ChIP-Seq pipeline
-biocLite(pkgs=c("DiffBind"))
+biocLite(pkgs = c("DiffBind"))
 
 # For RnBeads
 # The IlluminaHumanMethylation450k.db is > 60 MB
 # TODO: This should be taken care of by an eventual RnBeads package.
-biocLite(pkgs=c("foreach", "mclust", "RPMM", "fields",
-                "matrixStats", "IlluminaHumanMethylation450k.db", "methylumi",
-                "ggbio", "GEOquery", "GOstats", "wordcloud"))
+biocLite(pkgs = c("foreach", "mclust", "RPMM", "fields",
+                  "matrixStats", "IlluminaHumanMethylation450k.db", "methylumi",
+                  "ggbio", "GEOquery", "GOstats", "wordcloud"))
 
 # CRAN package for GATK
 install.packages("ggplot2")
