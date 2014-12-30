@@ -59,7 +59,7 @@ cuff_set <- readCufflinks(dir = cuffdiff_directory, gtfFile = opt$gtf_file, geno
 # Create a new sub-directory for plots if it does not exist.
 
 if (! file.exists(output_directory)) {
-  dir.create(output_directory, showWarnings = TRUE, recursive = FALSE)
+  dir.create(path = output_directory, showWarnings = TRUE, recursive = FALSE)
 }
 
 # Store a table with Cuffdiff run information.
