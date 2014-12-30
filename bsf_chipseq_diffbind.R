@@ -31,20 +31,20 @@ opt <- parse_args(object = OptionParser(option_list = option_list))
 
 prefix <- paste("chipseq", "diffbind", opt$factor, sep = "_")
 
-output_directory <- file.path(opt$genome_directory, prefix, fsep = .Platform$file.sep)
+output_directory <- file.path(opt$genome_directory, prefix)
 
-if (!file.exists(output_directory)) {
-  dir.create(output_directory, showWarnings = TRUE, recursive = FALSE)
+if (! file.exists(output_directory)) {
+  dir.create(path = output_directory, showWarnings = TRUE, recursive = FALSE)
 }
 
-setwd(output_directory)
+setwd(dir = output_directory)
 
 message("Create a DiffBind dba object.")
 diffbind_dba <- dba(sampleSheet = opt$sample_annotation, bCorPlot = FALSE)
 
 message("Plotting correlation heatmap based on peak caller score data.")
-file_name <- paste(prefix, "_correlation_peak_caller_score.png", sep = "")
-png(filename = file.path(output_directory, file_name, fsep = .Platform$file.sep))
+file_name <- paste(prefix, "correlation_peak_caller_score.png", sep = "_")
+png(filename = file.path(output_directory, file_name))
 return_value <- dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
 active_device <- dev.off()
 
@@ -52,8 +52,8 @@ message("Counting reads.")
 diffbind_dba <- dba.count(DBA = diffbind_dba, bCorPlot = FALSE)
 
 message("Plotting correlation heatmap based on read counts.")
-file_name <- paste(prefix, "_correlation_read_counts.png", sep = "")
-png(filename = file.path(output_directory, file_name, fsep = .Platform$file.sep))
+file_name <- paste(prefix, "correlation_read_counts.png", sep = "_")
+png(filename = file.path(output_directory, file_name))
 return_value <- dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
 active_device <- dev.off()
 
@@ -64,8 +64,8 @@ message("Running differential binding affinity analysis.")
 diffbind_dba <- dba.analyze(DBA = diffbind_dba, bCorPlot = FALSE)
 
 message("Plotting correlation heatmap based on differential binding affinity analysis.")
-file_name <- paste(prefix, "_correlation_analysis.png", sep = "")
-png(filename = file.path(output_directory, file_name, fsep = .Platform$file.sep))
+file_name <- paste(prefix, "correlation_analysis.png", sep = "_")
+png(filename = file.path(output_directory, file_name))
 return_value <- dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
 active_device <- dev.off()
 
@@ -92,28 +92,28 @@ process_per_contrast <- function(contrast, group1, group2) {
   message(sprintf("Creating MA plot for factor %s and contrast %s versus %s.",
                   opt$factor, group1, group2))
   file_name <- sprintf("%s_ma_plot_%s__%s.png", prefix, group1, group2)
-  png(filename = file.path(output_directory, file_name, fsep = .Platform$file.sep))
+  png(filename = file.path(output_directory, file_name))
   dba.plotMA(DBA = diffbind_dba, bNormalized = TRUE, bXY = FALSE, contrast = as.integer(contrast))
   active_device <- dev.off()
   
   message(sprintf("Creating scatter plot for factor %s and contrast %s versus %s.",
                   opt$factor, group1, group2))
   file_name <- sprintf("%s_scatter_plot_%s__%s.png", prefix, group1, group2)
-  png(filename = file.path(output_directory, file_name, fsep = .Platform$file.sep))
+  png(filename = file.path(output_directory, file_name))
   dba.plotMA(DBA = diffbind_dba, bNormalized = TRUE, bXY = TRUE, contrast = as.integer(contrast))
   active_device <- dev.off()
   
   message(sprintf("Creating PCA plot for factor %s and contrast %s versus %s.",
                   opt$factor, group1, group2))
   file_name <- sprintf("%s_pca_plot_%s__%s.png", prefix, group1, group2)
-  png(filename = file.path(output_directory, file_name, fsep = .Platform$file.sep))
+  png(filename = file.path(output_directory, file_name))
   dba.plotPCA(DBA = diffbind_dba, attributes = DBA_CONDITION)
   active_device <- dev.off()
   
   message(sprintf("Creating Box plot for factor %s and contrast %s versus %s.",
                   opt$factor, group1, group2))
   file_name <- sprintf("%s_box_plot_%s__%s.png", prefix, group1, group2)
-  png(filename = file.path(output_directory, file_name, fsep = .Platform$file.sep))
+  png(filename = file.path(output_directory, file_name))
   diffbind_pvals <- dba.plotBox(DBA = diffbind_dba, bNormalized = TRUE)
   active_device <- dev.off()
   
@@ -144,8 +144,8 @@ rm(file_name)
 # dba.overlap(DBA = diffbind_dba, mode = DBA_OLAP_RATE)
 
 # message("Creating a Venn diagram")
-# file_name <- paste(prefix, "_box_plot.png", sep = "")
-# png(filename = file.path(output_directory, file_name, fsep = .Platform$file.sep))
+# file_name <- paste(prefix, "box_plot.png", sep = "_")
+# png(filename = file.path(output_directory, file_name))
 # file_name <- dba.plotVenn(DBA = diffbind_dba)
 # active_device <- dev.off()
 
