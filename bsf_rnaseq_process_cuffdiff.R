@@ -21,10 +21,6 @@ option_list <- list(
   make_option(opt_str = c("--comparison-name"),
               dest = "comparison_name",
               help = "Comparison name"),
-  make_option(opt_str = c("--genome-directory"),
-              default = NULL,
-              dest = "genome_directory",
-              help = "Genome-specific analysis directory"),
   make_option(opt_str = c("--gtf-file"),
               default = NULL,
               dest = "gtf_file",
@@ -32,7 +28,15 @@ option_list <- list(
   make_option(opt_str = c("--genome-version"),
               default = NULL,
               dest = "genome_version",
-              help = "Genome version")
+              help = "Genome version"),
+  make_option(opt_str = c("--plot-width"),
+              default = 7,
+              dest = "plot_width",
+              help = "Plot width in inches"),
+  make_option(opt_str = c("--plot-height"),
+              default = 7,
+              dest = "plot_height",
+              help = "Plot height in inches")
 )
 
 # Get command line options, if help option encountered print help and exit,
@@ -130,8 +134,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
 } else {
   message("Creating a Dispersion Plot on Genes")
   ggplot_object <- dispersionPlot(object = genes(object = cuff_set))
-  ggsave(filename = plot_path_pdf, plot = ggplot_object)
-  ggsave(filename = plot_path_png, plot = ggplot_object)
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
   rm(ggplot_object)
 }
 rm(plot_path_pdf, plot_path_png)
@@ -146,8 +150,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
 } else {
   message("Creating Dispersion Plot on Isoforms")
   ggplot_object <- dispersionPlot(object = isoforms(object = cuff_set))
-  ggsave(filename = plot_path_pdf, plot = ggplot_object)
-  ggsave(filename = plot_path_png, plot = ggplot_object)
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
   rm(ggplot_object)
 }
 rm(plot_path_pdf, plot_path_png)
@@ -164,8 +168,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
   if (have_replicates) {
     message("Creating a SCV Plot on Genes")
     ggplot_object <- fpkmSCVPlot(object = genes(object = cuff_set))
-    ggsave(filename = plot_path_pdf, plot = ggplot_object)
-    ggsave(filename = plot_path_png, plot = ggplot_object)
+    ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+    ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
     rm(ggplot_object)
   } else {
     message("Skipping a SCV Plot on Genes in lack of replicates")  
@@ -185,8 +189,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
   if (have_replicates) {
     message("Creating a SCV Plot on Isoforms")
     ggplot_object <- fpkmSCVPlot(object = isoforms(object = cuff_set))
-    ggsave(filename = plot_path_pdf, plot = ggplot_object)
-    ggsave(filename = plot_path_png, plot = ggplot_object)
+    ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+    ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
     rm(ggplot_object)
   } else {
     message("Skipping a SCV Plot on Isoforms in lack of replicates")
@@ -204,8 +208,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
 } else {
   message("Creating a Density Plot on Genes without replicates")
   ggplot_object <- csDensity(object = genes(object = cuff_set), replicates = FALSE)
-  ggsave(filename = plot_path_pdf, plot = ggplot_object)
-  ggsave(filename = plot_path_png, plot = ggplot_object)
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
   rm(ggplot_object)
 }
 rm(plot_path_pdf, plot_path_png)
@@ -218,8 +222,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
 } else {
   message("Creating a Density Plot on Genes with replicates")
   ggplot_object <- csDensity(object = genes(object = cuff_set), replicates = TRUE)
-  ggsave(filename = plot_path_pdf, plot = ggplot_object)
-  ggsave(filename = plot_path_png, plot = ggplot_object)
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
   rm(ggplot_object)
 }
 rm(plot_path_pdf, plot_path_png)
@@ -234,8 +238,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
 } else {
   message("Creating a Density Plot on Isoforms without replicates")
   ggplot_object <- csDensity(object = isoforms(object = cuff_set), replicates = FALSE)
-  ggsave(filename = plot_path_pdf, plot = ggplot_object)
-  ggsave(filename = plot_path_png, plot = ggplot_object)
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
   rm(ggplot_object)
 }
 rm(plot_path_pdf, plot_path_png)
@@ -248,8 +252,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
 } else {
   message("Creating a Density Plot on Isoforms with replicates")
   ggplot_object <- csDensity(object = isoforms(object = cuff_set), replicates = TRUE)
-  ggsave(filename = plot_path_pdf, plot = ggplot_object)
-  ggsave(filename = plot_path_png, plot = ggplot_object)
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
   rm(ggplot_object)
 }
 rm(plot_path_pdf, plot_path_png)
@@ -264,8 +268,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
 } else {
   message("Creating a Box Plot on Genes with replicates")
   ggplot_object <- csBoxplot(object = genes(object = cuff_set), replicates = TRUE)
-  ggsave(filename = plot_path_pdf, plot = ggplot_object)
-  ggsave(filename = plot_path_png, plot = ggplot_object)
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
   rm(ggplot_object)
 }
 rm(plot_path_pdf, plot_path_png)
@@ -278,8 +282,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
 } else {
   message("Creating a Box Plot on Genes without replicates")
   ggplot_object <- csBoxplot(object = genes(object = cuff_set), replicates = FALSE)
-  ggsave(filename = plot_path_pdf, plot = ggplot_object)
-  ggsave(filename = plot_path_png, plot = ggplot_object)
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
   rm(ggplot_object)
 }
 rm(plot_path_pdf, plot_path_png)
@@ -294,8 +298,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
 } else {
   message("Creating a Scatter Matrix Plot on Genes")
   ggplot_object <- csScatterMatrix(object = genes(object = cuff_set))
-  ggsave(filename = plot_path_pdf, plot = ggplot_object)
-  ggsave(filename = plot_path_png, plot = ggplot_object)
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
   rm(ggplot_object)
 }
 rm(plot_path_pdf, plot_path_png)
@@ -308,8 +312,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
 } else {
   message("Creating a Scatter Matrix Plot on Isoforms")
   ggplot_object <- csScatterMatrix(object = isoforms(object = cuff_set))
-  ggsave(filename = plot_path_pdf, plot = ggplot_object)
-  ggsave(filename = plot_path_png, plot = ggplot_object)
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
   rm(ggplot_object)
 }
 rm(plot_path_pdf, plot_path_png)
@@ -325,8 +329,8 @@ for (i in 1:length(sample_pairs[1,])) {
   } else {
     message(paste("Creating a Scatter Plot on Genes for", sample_pairs[1, i], "versus", sample_pairs[2, i]))
     ggplot_object <- csScatter(object = genes(object = cuff_set), x = sample_pairs[1, i], y = sample_pairs[2, i])
-    ggsave(filename = plot_path_pdf, plot = ggplot_object)
-    ggsave(filename = plot_path_png, plot = ggplot_object)
+    ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+    ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
     rm(ggplot_object)
   }
   rm(plot_path_pdf, plot_path_png)
@@ -370,8 +374,8 @@ for (i in 1:length(sample_pairs[1,])) {
   } else {
     message(paste("Creating a MAplot on Genes for", sample_pairs[1, i], "versus", sample_pairs[2, i]))
     ggplot_object <- MAplot(object = genes(object = cuff_set), x = sample_pairs[1, i], y = sample_pairs[2, i])
-    ggsave(filename = plot_path_pdf, plot = ggplot_object)
-    ggsave(filename = plot_path_png, plot = ggplot_object)
+    ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+    ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
     rm(ggplot_object)
   }
   rm(plot_path_pdf, plot_path_png)
@@ -389,8 +393,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
 } else {
   message("Creating a Volcano Matrix Plot on Genes")
   ggplot_object <- csVolcanoMatrix(object = genes(object = cuff_set))
-  ggsave(filename = plot_path_pdf, plot = ggplot_object)
-  ggsave(filename = plot_path_png, plot = ggplot_object)
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
   rm(ggplot_object)
 }
 rm(plot_path_pdf, plot_path_png)
@@ -406,8 +410,8 @@ for (i in 1:length(sample_pairs[1,])) {
   } else {
     message(paste("Creating a Volcano Plot on Genes for", sample_pairs[1, i], "versus", sample_pairs[2, i]))
     ggplot_object <- csVolcano(object = genes(object = cuff_set), x = sample_pairs[1, i], y = sample_pairs[2, i])
-    ggsave(filename = plot_path_pdf, plot = ggplot_object)
-    ggsave(filename = plot_path_png, plot = ggplot_object)
+    ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+    ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
     rm(ggplot_object)
   }
   rm(plot_path_pdf, plot_path_png)
@@ -426,8 +430,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
   # Nothing ever is simple. If the set has too many replicates, the standard cummeRbund MDSplot() falls down.
   if (replicate_number <= 24) {
     ggplot_object <- MDSplot(object = genes(object = cuff_set), replicates = TRUE)
-    ggsave(filename = plot_path_pdf, plot = ggplot_object)
-    ggsave(filename = plot_path_png, plot = ggplot_object)
+    ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+    ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
     rm(ggplot_object)
   } else {
     # The standard MDSplot has too many replicates.
@@ -442,8 +446,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
     }
     # Arrange a maximum of 24 replicates in each guide column.
     ggplot_object <- ggplot_object + guides(col = guide_legend(ncol = ceiling(x = replicate_number / 24)))
-    ggsave(filename = plot_path_pdf, plot = ggplot_object)      
-    ggsave(filename = plot_path_png, plot = ggplot_object)
+    ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)      
+    ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
     rm(ggplot_object)
     rm(gene_rep_fit, gene_rep_res)
   }
@@ -464,8 +468,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
 } else {
   message("Creating a Principal Component Analysis Plot (PCA) on Genes")
   ggplot_object <- PCAplot(object = genes(object = cuff_set), x = "PC1", y = "PC2", replicates = TRUE)
-  ggsave(filename = plot_path_pdf, plot = ggplot_object)
-  ggsave(filename = plot_path_png, plot = ggplot_object)
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
   rm(ggplot_object)
 }
 rm(plot_path_pdf, plot_path_png)
@@ -608,8 +612,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
 } else {
   message("Creating a a significance matrix plot on Genes")
   ggplot_object <- sigMatrix(object = cuff_set, level = "genes")
-  ggsave(filename = plot_path_pdf, plot = ggplot_object)
-  ggsave(filename = plot_path_png, plot = ggplot_object)
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
   rm(ggplot_object)
 }
 rm(plot_path_pdf, plot_path_png)
@@ -622,8 +626,8 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
 } else {
   message("Creating a a significance matrix plot on Isoforms")
   ggplot_object <- sigMatrix(object = cuff_set, level = "isoforms")
-  ggsave(filename = plot_path_pdf, plot = ggplot_object)
-  ggsave(filename = plot_path_png, plot = ggplot_object)
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
   rm(ggplot_object)
 }
 rm(plot_path_pdf, plot_path_png)
