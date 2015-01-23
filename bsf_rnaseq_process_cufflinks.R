@@ -34,10 +34,7 @@ option_list <- list(
               help = "BioMart path"),
   make_option(opt_str = c("--sample"),
               dest = "sample",
-              help = "Sample name"),
-  make_option(opt_str = c("--genome-directory"),
-              dest = "genome_directory",
-              help = "Genome-specific analysis directory")
+              help = "Sample name")
 )
 
 # Get command line options, if help option encountered print help and exit,
@@ -66,9 +63,7 @@ ensembl_mart <- useMart(biomart = opt$biomart_instance,
 
 # Read the Cufflinks genes.fpkm_tracking file into a data_frame.
 
-cufflinks_genes <- read.table(file = file.path(opt$genome_directory, prefix,
-                                               "genes.fpkm_tracking"),
-                              header = TRUE)
+cufflinks_genes <- read.table(file = file.path(prefix, "genes.fpkm_tracking"), header = TRUE)
 
 message("Load gene data from BioMart")
 
@@ -91,17 +86,14 @@ cufflinks_ensembl <- merge(x = ensembl_genes, y = cufflinks_genes,
 # Write back to disk.
 
 write.table(x = cufflinks_ensembl,
-            file = file.path(opt$genome_directory, prefix,
-                             paste(prefix, "genes_fpkm_tracking.tsv", sep = "_")),
+            file = file.path(prefix, paste(prefix, "genes_fpkm_tracking.tsv", sep = "_")),
             col.names = TRUE, row.names = FALSE, sep = "\t")
 
 rm(cufflinks_genes, ensembl_genes, cufflinks_ensembl)
 
 # Read the Cufflinks isoforms.fpkm_tracking file into a data_frame.
 
-cufflinks_transcripts <- read.table(file = file.path(opt$genome_directory, prefix,
-                                                     "isoforms.fpkm_tracking"),
-                                    header = TRUE)
+cufflinks_transcripts <- read.table(file = file.path(prefix, "isoforms.fpkm_tracking"), header = TRUE)
 
 message("Load transcript data from BioMart")
 
@@ -121,19 +113,15 @@ cufflinks_ensembl <- merge(x = ensembl_transcripts, y = cufflinks_transcripts,
 # Write back to disk.
 
 write.table(x = cufflinks_ensembl,
-            file = file.path(opt$genome_directory, prefix,
-                             paste(prefix, "isoforms_fpkm_tracking.tsv", sep = "_")),
+            file = file.path(prefix, paste(prefix, "isoforms_fpkm_tracking.tsv", sep = "_")),
             col.names = TRUE, row.names = FALSE, sep = "\t")
 
 rm(cufflinks_transcripts, ensembl_transcripts, cufflinks_ensembl)
 
 # Finally, create a replicate-specific symbolic link to the Tophat aligned BAM file and its index.
 
-file_path <- file.path(opt$genome_directory,
-                       paste("rnaseq", "tophat", opt$sample, sep = "_"),
-                       "accepted_hits.bam")
-link_path <- file.path(opt$genome_directory,
-                       prefix,
+file_path <- file.path(paste("rnaseq", "tophat", opt$sample, sep = "_"), "accepted_hits.bam")
+link_path <- file.path(prefix,
                        paste("rnaseq", "tophat", opt$sample, "accepted_hits.bam", sep = "_"))
 if (! file.exists(link_path)) {
   if (! file.symlink(from = file_path, to = link_path)) {
@@ -142,11 +130,8 @@ if (! file.exists(link_path)) {
 }
 rm(file_path, link_path)
 
-file_path <- file.path(opt$genome_directory,
-                       paste("rnaseq", "tophat", opt$sample, sep = "_"),
-                       "accepted_hits.bam.bai")
-link_path <- file.path(opt$genome_directory,
-                       prefix,
+file_path <- file.path(paste("rnaseq", "tophat", opt$sample, sep = "_"), "accepted_hits.bam.bai")
+link_path <- file.path(prefix,
                        paste("rnaseq", "tophat", opt$sample, "accepted_hits.bam.bai", sep = "_"))
 if (! file.exists(link_path)) {
   if (! file.symlink(from = file_path, to = link_path)) {
@@ -155,11 +140,8 @@ if (! file.exists(link_path)) {
 }
 rm(file_path, link_path)
 
-file_path <- file.path(opt$genome_directory,
-                       paste("rnaseq", "tophat", opt$sample, sep = "_"),
-                       "unmapped.bam")
-link_path <- file.path(opt$genome_directory,
-                       prefix,
+file_path <- file.path(paste("rnaseq", "tophat", opt$sample, sep = "_"), "unmapped.bam")
+link_path <- file.path(prefix,
                        paste("rnaseq", "tophat", opt$sample, "unmapped.bam", sep = "_"))
 if (! file.exists(link_path)) {
   if (! file.symlink(from = file_path, to = link_path)) {
