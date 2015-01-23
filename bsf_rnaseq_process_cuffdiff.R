@@ -267,10 +267,23 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
   message("Skipping a Box Plot on Genes with replicates")
 } else {
   message("Creating a Box Plot on Genes with replicates")
-  ggplot_object <- csBoxplot(object = genes(object = cuff_set), replicates = TRUE)
+  # By default, the csBoxplot function adds a pseudocount of 1e-04 for log10 transformed fpkms.
+  # In case of a large number of missing values in shallowly sequenced samples, this affects the plot.
+  # Hence reproduce the plot here.
+  # ggplot_object <- csBoxplot(object = genes(object = cuff_set), replicates = TRUE)
+  rep_fpkm_genes <- repFpkm(object = genes(object = cuff_set))
+  # Rename the "rep_name" column into "condition".
+  colnames(rep_fpkm_genes)[colnames(rep_fpkm_genes) == "rep_name"] <- "condition"
+  ggplot_object <- ggplot(data = rep_fpkm_genes)
+  ggplot_object <- ggplot_object + geom_boxplot(aes(x = condition, y = log10(fpkm), fill = condition), size = 0.3, alpha = I(1/3))
+  ggplot_object <- ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
+  ggplot_object <- ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))  # Reduce the legend text
+  ggplot_object <- ggplot_object + scale_fill_hue(l = 50, h.start = 200)
+  # Arrange a maximum of 24 replicates in each guide column.
+  ggplot_object <- ggplot_object + guides(fill = guide_legend(ncol = ceiling(x = replicate_number / 24)))
   ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
   ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-  rm(ggplot_object)
+  rm(ggplot_object, rep_fpkm_genes)
 }
 rm(plot_path_pdf, plot_path_png)
 
@@ -281,10 +294,73 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
   message("Skipping a Box Plot on Genes without replicates")
 } else {
   message("Creating a Box Plot on Genes without replicates")
-  ggplot_object <- csBoxplot(object = genes(object = cuff_set), replicates = FALSE)
+  # ggplot_object <- csBoxplot(object = genes(object = cuff_set), replicates = FALSE)
+  fpkm_genes <- fpkm(object = genes(object = cuff_set))
+  # Rename the "sample_name" column into "condition".
+  colnames(fpkm_genes)[colnames(fpkm_genes) == "sample_name"] <- "condition"
+  ggplot_object <- ggplot(data = fpkm_genes)
+  ggplot_object <- ggplot_object + geom_boxplot(aes(x = condition, y = log10(fpkm), fill = condition), size = 0.3, alpha = I(1/3))
+  ggplot_object <- ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
+  ggplot_object <- ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))  # Reduce the legend text
+  ggplot_object <- ggplot_object + scale_fill_hue(l = 50, h.start = 200)
+  # Arrange a maximum of 24 samples in each guide column.
+  ggplot_object <- ggplot_object + guides(fill = guide_legend(ncol = ceiling(x = sample_number / 24)))
   ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
   ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-  rm(ggplot_object)
+  rm(ggplot_object, fpkm_genes)
+}
+rm(plot_path_pdf, plot_path_png)
+
+# Create a Box Plot on Isoforms with and without replicates.
+
+plot_path_pdf <- file.path(output_directory, paste0(prefix, "_isoforms_box_w_replicates.pdf"))
+plot_path_png <- file.path(output_directory, paste0(prefix, "_isoforms_box_w_replicates.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
+  message("Skipping a Box Plot on Isoforms with replicates")
+} else {
+  message("Creating a Box Plot on Isoforms with replicates")
+  # By default, the csBoxplot function adds a pseudocount of 1e-04 for log10 transformed fpkms.
+  # In case of a large number of missing values in shallowly sequenced samples, this affects the plot.
+  # Hence reproduce the plot here.
+  # ggplot_object <- csBoxplot(object = isoforms(object = cuff_set), replicates = TRUE)
+  rep_fpkm_isoforms <- repFpkm(object = isoforms(object = cuff_set))
+  # Rename the "rep_name" column into "condition".
+  colnames(rep_fpkm_isoforms)[colnames(rep_fpkm_isoforms) == "rep_name"] <- "condition"
+  ggplot_object <- ggplot(data = rep_fpkm_isoforms)
+  ggplot_object <- ggplot_object + geom_boxplot(aes(x = condition, y = log10(fpkm), fill = condition), size = 0.3, alpha = I(1/3))
+  ggplot_object <- ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
+  ggplot_object <- ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))  # Reduce the legend text
+  ggplot_object <- ggplot_object + scale_fill_hue(l = 50, h.start = 200)
+  # Arrange a maximum of 24 replicates in each guide column.
+  ggplot_object <- ggplot_object + guides(fill = guide_legend(ncol = ceiling(x = replicate_number / 24)))
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  rm(ggplot_object, rep_fpkm_isoforms)
+}
+rm(plot_path_pdf, plot_path_png)
+
+plot_path_pdf <- file.path(output_directory, paste0(prefix, "_isoforms_box_wo_replicates.pdf"))
+plot_path_png <- file.path(output_directory, paste0(prefix, "_isoforms_box_wo_replicates.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
+  message("Skipping a Box Plot on Isoforms without replicates")
+} else {
+  message("Creating a Box Plot on Isoforms without replicates")
+  # ggplot_object <- csBoxplot(object = isoforms(object = cuff_set), replicates = FALSE)
+  fpkm_isoforms <- fpkm(object = isoforms(object = cuff_set))
+  # Rename the "sample_name" column into "condition".
+  colnames(fpkm_isoforms)[colnames(fpkm_isoforms) == "sample_name"] <- "condition"
+  ggplot_object <- ggplot(data = fpkm_isoforms)
+  ggplot_object <- ggplot_object + geom_boxplot(aes(x = condition, y = log10(fpkm), fill = condition), size = 0.3, alpha = I(1/3))
+  ggplot_object <- ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
+  ggplot_object <- ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))  # Reduce the legend text
+  ggplot_object <- ggplot_object + scale_fill_hue(l = 50, h.start = 200)
+  # Arrange a maximum of 24 replicates in each guide column.
+  ggplot_object <- ggplot_object + guides(fill = guide_legend(ncol = ceiling(x = sample_number / 24)))
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+  rm(ggplot_object, fpkm_isoforms)
 }
 rm(plot_path_pdf, plot_path_png)
 
@@ -445,7 +521,7 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
       ggplot_object <- ggplot_object + geom_text(aes(x = M1, y = M2, label = names, color = names, size = 4))
     }
     # Arrange a maximum of 24 replicates in each guide column.
-    ggplot_object <- ggplot_object + guides(col = guide_legend(ncol = ceiling(x = replicate_number / 24)))
+    ggplot_object <- ggplot_object + guides(color = guide_legend(ncol = ceiling(x = replicate_number / 24)))
     ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)      
     ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
     rm(ggplot_object)
