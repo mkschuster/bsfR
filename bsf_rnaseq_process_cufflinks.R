@@ -120,7 +120,7 @@ rm(cufflinks_transcripts, ensembl_transcripts, cufflinks_ensembl)
 
 # Finally, create a replicate-specific symbolic link to the Tophat aligned BAM file and its index.
 
-file_path <- file.path(paste("rnaseq", "tophat", opt$sample, sep = "_"), "accepted_hits.bam")
+file_path <- file.path("..", paste("rnaseq", "tophat", opt$sample, sep = "_"), "accepted_hits.bam")
 link_path <- file.path(prefix,
                        paste("rnaseq", "tophat", opt$sample, "accepted_hits.bam", sep = "_"))
 if (! file.exists(link_path)) {
@@ -130,7 +130,7 @@ if (! file.exists(link_path)) {
 }
 rm(file_path, link_path)
 
-file_path <- file.path(paste("rnaseq", "tophat", opt$sample, sep = "_"), "accepted_hits.bam.bai")
+file_path <- file.path("..", paste("rnaseq", "tophat", opt$sample, sep = "_"), "accepted_hits.bam.bai")
 link_path <- file.path(prefix,
                        paste("rnaseq", "tophat", opt$sample, "accepted_hits.bam.bai", sep = "_"))
 if (! file.exists(link_path)) {
@@ -140,7 +140,7 @@ if (! file.exists(link_path)) {
 }
 rm(file_path, link_path)
 
-file_path <- file.path(paste("rnaseq", "tophat", opt$sample, sep = "_"), "unmapped.bam")
+file_path <- file.path("..", paste("rnaseq", "tophat", opt$sample, sep = "_"), "unmapped.bam")
 link_path <- file.path(prefix,
                        paste("rnaseq", "tophat", opt$sample, "unmapped.bam", sep = "_"))
 if (! file.exists(link_path)) {
