@@ -66,7 +66,7 @@ if (! file.exists(output_directory)) {
   dir.create(path = output_directory, showWarnings = TRUE, recursive = FALSE)
 }
 
-# Store a table with Cuffdiff run information.
+# Process Cuffdiff run information.
 
 frame_path <- file.path(output_directory, paste0(prefix, "_run_information.tsv"))
 if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
@@ -77,9 +77,12 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
 }
 rm(frame_path)
 
-# Store a table with sample information and define all possible pairwise sample comparisons or sample pairs.
+# Process Cuffdiff sample information.
 
 sample_frame <- samples(object = cuff_set)
+# Get the number of samples.
+sample_number <- nrow(x = sample_frame)
+# Write the sample_frame table.
 frame_path <- file.path(output_directory, paste0(prefix, "_samples.tsv"))
 if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
   message("Skipping sample table")
@@ -88,13 +91,10 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
   write.table(x = sample_frame, file = frame_path, quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 }
 rm(frame_path)
-sample_number <- nrow(x = sample_frame)
+# Define an array of all possible pairwise sample comparisons or sample pairs.
 sample_pairs <- combn(x = sample_frame$sample_name, m = 2)
-rm(sample_frame)
-
-# Store a table of sample pair information by transposing the sample pairs array.
+# Write a table of sample pair information by transposing the sample pairs array.
 # This table allows the Python web code to link in pairwise plots.
-
 frame_path <- file.path(output_directory, paste0(prefix, "_sample_pairs.tsv"))
 if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
   message("Skipping sample pairs table")
@@ -102,11 +102,16 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
   message("Create sample pairs table")
   write.table(x = aperm(a = sample_pairs), file = frame_path, quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 }
-rm(frame_path)
+rm(frame_path, sample_frame)
 
-# Store a table of replicate information and find out, whether the analysis has replicates.
+# Process Cuffdiff replicate information.
 
 replicate_frame <- replicates(object = cuff_set)
+# Get the number of replicates.
+replicate_number <- nrow(x = replicate_frame)
+# Some plots require replicates. Check whether at least one row has a replicate column value greater than 0.
+have_replicates <- (nrow(x = replicate_frame[replicate_frame$replicate > 0, ]) > 0)
+# Write the replicate_frame.
 frame_path <- file.path(output_directory, paste0(prefix, "_replicates.tsv"))
 if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
   message("Skipping replicate table")
@@ -115,10 +120,23 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
   write.table(x = replicate_frame, file = frame_path, quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
 }
 rm(frame_path)
-# Some plots require replicates. Check that there is at least one row with a replicate column value greater than 0.
-replicate_number <- nrow(x = replicate_frame)
-have_replicates <- (nrow(x = replicate_frame[replicate_frame$replicate > 0, ]) > 0)
-rm(replicate_frame)
+# Plot the log10(internal_scale) of the replicate_frame to visualise outliers.
+plot_path_pdf <- file.path(output_directory, paste0(prefix, "_replicate_scale.pdf"))
+plot_path_png <- file.path(output_directory, paste0(prefix, "_replicate_scale.png"))
+if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
+  message("Skipping a library scale plot on replicates")
+} else {
+  message("Creating a library scale plot on replicates")
+  ggplot_object <- ggplot(data = replicate_frame)
+  ggplot_object <- ggplot_object + geom_point(mapping = aes(x=rep_name, y=log10(internal_scale)))
+  ggplot_object <- ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
+  plot_width = opt$plot_width + (ceiling(x = replicate_number / 24) - 1) * opt$plot_width * 0.25
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = plot_width, height = opt$plot_height)
+  rm(ggplot_object, plot_width)
+}
+rm(plot_path_pdf, plot_path_png, replicate_frame)
 
 # Create a set of QC plots.
 
@@ -149,10 +167,19 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
   message("Skipping a Dispersion Plot on Isoforms")
 } else {
   message("Creating Dispersion Plot on Isoforms")
-  ggplot_object <- dispersionPlot(object = isoforms(object = cuff_set))
-  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-  rm(ggplot_object)
+  tryCatch(
+    {
+      ggplot_object <- dispersionPlot(object = isoforms(object = cuff_set))
+      ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+      ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+      rm(ggplot_object)
+    },
+    error = function(cond) {
+      message("Dispersion Plot on Isoforms failed with message:")
+      message(cond, appendLF = TRUE)
+      return(NULL)
+    }
+  )
 }
 rm(plot_path_pdf, plot_path_png)
 
@@ -275,15 +302,17 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
   # Rename the "rep_name" column into "condition".
   colnames(rep_fpkm_genes)[colnames(rep_fpkm_genes) == "rep_name"] <- "condition"
   ggplot_object <- ggplot(data = rep_fpkm_genes)
-  ggplot_object <- ggplot_object + geom_boxplot(aes(x = condition, y = log10(fpkm), fill = condition), size = 0.3, alpha = I(1/3))
+  ggplot_object <- ggplot_object + geom_boxplot(mapping = aes(x = condition, y = log10(fpkm), fill = condition), size = 0.3, alpha = I(1/3))
   ggplot_object <- ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
   ggplot_object <- ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))  # Reduce the legend text
   ggplot_object <- ggplot_object + scale_fill_hue(l = 50, h.start = 200)
   # Arrange a maximum of 24 replicates in each guide column.
   ggplot_object <- ggplot_object + guides(fill = guide_legend(ncol = ceiling(x = replicate_number / 24)))
-  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-  rm(ggplot_object, rep_fpkm_genes)
+  # Use the base plot_witdh and add a quarter of the width for each additional guide legend column.
+  plot_width = opt$plot_width + (ceiling(x = replicate_number / 24) - 1) * opt$plot_width * 0.25
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = plot_width, height = opt$plot_height)
+  rm(ggplot_object, plot_width, rep_fpkm_genes)
 }
 rm(plot_path_pdf, plot_path_png)
 
@@ -299,15 +328,17 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
   # Rename the "sample_name" column into "condition".
   colnames(fpkm_genes)[colnames(fpkm_genes) == "sample_name"] <- "condition"
   ggplot_object <- ggplot(data = fpkm_genes)
-  ggplot_object <- ggplot_object + geom_boxplot(aes(x = condition, y = log10(fpkm), fill = condition), size = 0.3, alpha = I(1/3))
+  ggplot_object <- ggplot_object + geom_boxplot(mapping = aes(x = condition, y = log10(fpkm), fill = condition), size = 0.3, alpha = I(1/3))
   ggplot_object <- ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
   ggplot_object <- ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))  # Reduce the legend text
   ggplot_object <- ggplot_object + scale_fill_hue(l = 50, h.start = 200)
   # Arrange a maximum of 24 samples in each guide column.
   ggplot_object <- ggplot_object + guides(fill = guide_legend(ncol = ceiling(x = sample_number / 24)))
-  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-  rm(ggplot_object, fpkm_genes)
+  # Use the base plot_witdh and add a quarter of the width for each additional guide legend column.
+  plot_width = opt$plot_width + (ceiling(x = sample_number / 24) - 1) * opt$plot_width * 0.25
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = plot_width, height = opt$plot_height)
+  rm(ggplot_object, plot_width, fpkm_genes)
 }
 rm(plot_path_pdf, plot_path_png)
 
@@ -328,15 +359,17 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
   # Rename the "rep_name" column into "condition".
   colnames(rep_fpkm_isoforms)[colnames(rep_fpkm_isoforms) == "rep_name"] <- "condition"
   ggplot_object <- ggplot(data = rep_fpkm_isoforms)
-  ggplot_object <- ggplot_object + geom_boxplot(aes(x = condition, y = log10(fpkm), fill = condition), size = 0.3, alpha = I(1/3))
+  ggplot_object <- ggplot_object + geom_boxplot(mapping = aes(x = condition, y = log10(fpkm), fill = condition), size = 0.3, alpha = I(1/3))
   ggplot_object <- ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
   ggplot_object <- ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))  # Reduce the legend text
   ggplot_object <- ggplot_object + scale_fill_hue(l = 50, h.start = 200)
   # Arrange a maximum of 24 replicates in each guide column.
   ggplot_object <- ggplot_object + guides(fill = guide_legend(ncol = ceiling(x = replicate_number / 24)))
-  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-  rm(ggplot_object, rep_fpkm_isoforms)
+  # Use the base plot_witdh and add a quarter of the width for each additional guide legend column.
+  plot_width = opt$plot_width + (ceiling(x = replicate_number / 24) - 1) * opt$plot_width * 0.25
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = plot_width, height = opt$plot_height)
+  rm(ggplot_object, plot_width, rep_fpkm_isoforms)
 }
 rm(plot_path_pdf, plot_path_png)
 
@@ -352,15 +385,17 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
   # Rename the "sample_name" column into "condition".
   colnames(fpkm_isoforms)[colnames(fpkm_isoforms) == "sample_name"] <- "condition"
   ggplot_object <- ggplot(data = fpkm_isoforms)
-  ggplot_object <- ggplot_object + geom_boxplot(aes(x = condition, y = log10(fpkm), fill = condition), size = 0.3, alpha = I(1/3))
+  ggplot_object <- ggplot_object + geom_boxplot(mapping = aes(x = condition, y = log10(fpkm), fill = condition), size = 0.3, alpha = I(1/3))
   ggplot_object <- ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
   ggplot_object <- ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))  # Reduce the legend text
   ggplot_object <- ggplot_object + scale_fill_hue(l = 50, h.start = 200)
   # Arrange a maximum of 24 replicates in each guide column.
   ggplot_object <- ggplot_object + guides(fill = guide_legend(ncol = ceiling(x = sample_number / 24)))
-  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-  rm(ggplot_object, fpkm_isoforms)
+  # Use the base plot_witdh and add a quarter of the with for each additional guide legend column.
+  plot_width = opt$plot_width + (ceiling(x = sample_number / 24) - 1) * opt$plot_width * 0.25
+  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = plot_width, height = opt$plot_height)
+  ggsave(filename = plot_path_png, plot = ggplot_object, width = plot_width, height = opt$plot_height)
+  rm(ggplot_object, plot_width, fpkm_isoforms)
 }
 rm(plot_path_pdf, plot_path_png)
 
@@ -515,17 +550,18 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
     gene_rep_res <- data.frame(names = rownames(gene_rep_fit$points), M1 = gene_rep_fit$points[,1], M2 = gene_rep_fit$points[,2])
     ggplot_object <- ggplot(data = gene_rep_res)
     ggplot_object <- ggplot_object + theme_bw()  # Add theme black and white.
-    ggplot_object <- ggplot_object + geom_point(aes(x = M1, y = M2, color = names))  # Draw points in any case.
+    ggplot_object <- ggplot_object + geom_point(mapping = aes(x = M1, y = M2, color = names))  # Draw points in any case.
     if (replicate_number <= 24) {
       # Only add text for a sensible number of replicates i.e. less than or equal to 24.
-      ggplot_object <- ggplot_object + geom_text(aes(x = M1, y = M2, label = names, color = names, size = 4))
+      ggplot_object <- ggplot_object + geom_text(mapping = aes(x = M1, y = M2, label = names, color = names, size = 4))
     }
     # Arrange a maximum of 24 replicates in each guide column.
     ggplot_object <- ggplot_object + guides(color = guide_legend(ncol = ceiling(x = replicate_number / 24)))
-    ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)      
-    ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-    rm(ggplot_object)
-    rm(gene_rep_fit, gene_rep_res)
+    # Use the base plot_witdh and add a quarter of the width for each additional guide legend column.
+    plot_width = opt$plot_width + (ceiling(x = replicate_number / 24) - 1) * opt$plot_width * 0.25
+    ggsave(filename = plot_path_pdf, plot = ggplot_object, width = plot_width, height = opt$plot_height)      
+    ggsave(filename = plot_path_png, plot = ggplot_object, width = plot_width, height = opt$plot_height)
+    rm(ggplot_object, plot_width, gene_rep_res, gene_rep_fit)
   }
   #  } else {
   #    message("Skipping Multidimensional Scaling Plot on genes in lack of replicates")
