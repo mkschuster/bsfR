@@ -599,26 +599,37 @@ message("Finished QC plotting")
 
 message("Create gene annotation information")
 gene_annotation <- annotation(object = genes(object = cuff_set))
-gene_frame <- data.frame(gene_annotation$gene_id,
-                         gene_annotation$gene_short_name,
-                         gene_annotation$locus)
+gene_frame <- data.frame(
+  gene_annotation$gene_id,
+  gene_annotation$gene_short_name,
+  gene_annotation$locus)
 colnames(gene_frame)[1] <- "gene_id"
 colnames(gene_frame)[2] <- "gene_short_name"
 colnames(gene_frame)[3] <- "locus"
 rm(gene_annotation)
 
+# Create a new, simpler data frame for isoform annotation ready for merging with other data frames.
+# The CDS_id and coverage fields seem to be empty by design.
+
 message("Create isoform annotation information")
 isoform_annotation <- annotation(object = isoforms(object = cuff_set))
-isoform_frame <- data.frame(isoform_annotation$isoform_id,
-                            isoform_annotation$gene_short_name,
-                            isoform_annotation$nearest_ref_id,
-                            isoform_annotation$locus,
-                            isoform_annotation$length)
+isoform_frame <- data.frame(
+  isoform_annotation$isoform_id,
+  isoform_annotation$gene_id,
+  isoform_annotation$gene_short_name,
+  isoform_annotation$TSS_group_id,
+  isoform_annotation$class_code,
+  isoform_annotation$nearest_ref_id,
+  isoform_annotation$locus,
+  isoform_annotation$length)
 colnames(isoform_frame)[1] <- "isoform_id"
-colnames(isoform_frame)[2] <- "gene_short_name"
-colnames(isoform_frame)[3] <- "nearest_ref_id"
-colnames(isoform_frame)[4] <- "locus"
-colnames(isoform_frame)[5] <- "length"
+colnames(isoform_frame)[2] <- "gene_id"
+colnames(isoform_frame)[3] <- "gene_short_name"
+colnames(isoform_frame)[4] <- "TSS_group_id"
+colnames(isoform_frame)[5] <- "class_code"
+colnames(isoform_frame)[6] <- "nearest_ref_id"
+colnames(isoform_frame)[7] <- "locus"
+colnames(isoform_frame)[8] <- "length"
 rm(isoform_annotation)
 
 # Split the large and unwieldy differential data tables into pairwise comparisons.-
