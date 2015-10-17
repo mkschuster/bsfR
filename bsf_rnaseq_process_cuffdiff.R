@@ -399,35 +399,39 @@ if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
 }
 rm(plot_path_pdf, plot_path_png)
 
-# Create a Scatter Matrix Plot on Genes and Isoforms.
+# Create a Scatter Matrix Plot on Genes and Isoforms for less than or equal to 20 samples.
 
-plot_path_pdf <- file.path(output_directory, paste0(prefix, "_genes_scatter_matrix.pdf"))
-plot_path_png <- file.path(output_directory, paste0(prefix, "_genes_scatter_matrix.png"))
-if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+if (sample_number <= 20) {
+  plot_path_pdf <- file.path(output_directory, paste0(prefix, "_genes_scatter_matrix.pdf"))
+  plot_path_png <- file.path(output_directory, paste0(prefix, "_genes_scatter_matrix.png"))
+  if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
       file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
-  message("Skipping a Scatter Matrix Plot on Genes")
-} else {
-  message("Creating a Scatter Matrix Plot on Genes")
-  ggplot_object <- csScatterMatrix(object = genes(object = cuff_set))
-  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-  rm(ggplot_object)
+    message("Skipping a Scatter Matrix Plot on Genes")
+  } else {
+    message("Creating a Scatter Matrix Plot on Genes")
+    ggplot_object <- csScatterMatrix(object = genes(object = cuff_set))
+    ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+    ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+    rm(ggplot_object)
+  }
+  rm(plot_path_pdf, plot_path_png)
 }
-rm(plot_path_pdf, plot_path_png)
 
-plot_path_pdf <- file.path(output_directory, paste0(prefix, "_isoforms_scatter_matrix.pdf"))
-plot_path_png <- file.path(output_directory, paste0(prefix, "_isoforms_scatter_matrix.png"))
-if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
+if (sample_number <= 20) {
+  plot_path_pdf <- file.path(output_directory, paste0(prefix, "_isoforms_scatter_matrix.pdf"))
+  plot_path_png <- file.path(output_directory, paste0(prefix, "_isoforms_scatter_matrix.png"))
+  if (file.exists(plot_path_pdf) && (file.info(plot_path_pdf)$size > 0) &&
       file.exists(plot_path_png) && (file.info(plot_path_png)$size > 0)) {
-  message("Skipping a Scatter Matrix Plot on Isoforms")
-} else {
-  message("Creating a Scatter Matrix Plot on Isoforms")
-  ggplot_object <- csScatterMatrix(object = isoforms(object = cuff_set))
-  ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-  ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-  rm(ggplot_object)
+    message("Skipping a Scatter Matrix Plot on Isoforms")
+  } else {
+    message("Creating a Scatter Matrix Plot on Isoforms")
+    ggplot_object <- csScatterMatrix(object = isoforms(object = cuff_set))
+    ggsave(filename = plot_path_pdf, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+    ggsave(filename = plot_path_png, plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+    rm(ggplot_object)
+  }
+  rm(plot_path_pdf, plot_path_png)
 }
-rm(plot_path_pdf, plot_path_png)
 
 # Create a Scatter Plot on Genes for each sample pair.
 
@@ -451,27 +455,27 @@ for (i in 1:length(sample_pairs[1,])) {
 # The csDendro function returns a dendrogram object that cannot be saved with the ggsave function.
 
 plot_path_pdf <- file.path(output_directory, paste0(prefix, "_genes_dendrogram.pdf"))
-pdf(file = plot_path_pdf)
 if (file.exists(plot_path_pdf) && file.info(plot_path_pdf)$size > 0) {
   message("Skipping a Dendrogram Plot on Genes [PDF]")
 } else {
   message("Creating a Dendrogram Plot on Genes [PDF]")
+  pdf(file = plot_path_pdf)
   csDendro(object = genes(object = cuff_set))
+  active_device <- dev.off()
+  rm(active_device)
 }
-active_device <- dev.off()
-rm(active_device)
 rm(plot_path_pdf)
 
 plot_path_png <- file.path(output_directory, paste0(prefix, "_genes_dendrogram.png"))
-png(filename = plot_path_png)
 if (file.exists(plot_path_png) && file.info(plot_path_png)$size > 0) {
   message("Skipping a Dendrogram Plot on Genes [PNG]")
 } else {
   message("Creating a Dendrogram Plot on Genes [PNG]")
+  png(filename = plot_path_png)
   csDendro(object = genes(object = cuff_set))
+  active_device <- dev.off()
+  rm(active_device)
 }
-active_device <- dev.off()
-rm(active_device)
 rm(plot_path_png)
 
 # Create a MA Plot on genes for each sample pair based on FPKM values.
@@ -640,9 +644,11 @@ for (i in 1:length(sample_pairs[1,])) {
     message(paste("Skipping a differential data frame on Genes for", sample_pairs[1, i], "versus", sample_pairs[2, i]))
   } else {
     message(paste("Creating a differential data frame on Genes for", sample_pairs[1, i], "versus", sample_pairs[2, i]))
-    # The diffData function allows merging in feature annotation, but that includes some empty columns.
-    # Therefore, merge with the gene_frame.
-    # Unfortunately, the gene_id column seems to apper twice, which interferes with merge, so that the first column needs removing.
+    # The diffData function allows automatic merging with feature annotation, but that includes some empty columns.
+    # For cleaner result tables, merge with the smaller gene_frame established above.
+    # Unfortunately, the 'gene_id' column appears twice as a consequence of a SQL table join of the 'genes' table with the
+    # 'geneExpDiffData' table. Separate data.frame columns of the same name interfere with the merge() function,
+    # so that the first column needs removing.
     gene_diff <- diffData(object = genes(object = cuff_set), x = sample_pairs[1, i], y = sample_pairs[2, i], features = FALSE)
     gene_diff <- gene_diff[, -1]
     gene_merge <- merge(x = gene_frame, y = gene_diff, by.x = "gene_id", by.y = "gene_id", all = TRUE, sort = TRUE)
@@ -658,9 +664,11 @@ for (i in 1:length(sample_pairs[1,])) {
     message(paste("Skipping a differential data frame on Isoforms for", sample_pairs[1, i], "versus", sample_pairs[2, i]))
   } else {
     message(paste("Creating a differential data frame on Isoforms for", sample_pairs[1, i], "versus", sample_pairs[2, i]))
-    # The diffData function allows merging in feature annotation, but that includes some empty columns.
-    # Therefore, merge with the isoform_frame.
-    # Unfortunately, the isoform_id column seems to apper twice, which interferes with merge, so that the first column needs removing.
+    # The diffData function allows automatic merging with feature annotation, but that includes some empty columns.
+    # For cleaner result tables, merge with the smaller isoform_frame estbalished above.
+    # Unfortunately, the 'isoform_id' column appears twice as a consequence of a SQL table join of the 'isoforms' table with the
+    # 'isoformsExpDiffData' table. Separate data.frame columns of the same name interfere with the merge() function,
+    # so that the first column needs removing.
     isoform_diff <- diffData(object = isoforms(object = cuff_set), x = sample_pairs[1, i], y = sample_pairs[2, i], features = FALSE)
     isoform_diff <- isoform_diff[, -1]
     isoform_merge <- merge(x = isoform_frame, y = isoform_diff, by.x = "isoform_id", by.y = "isoform_id", all = TRUE, sort = TRUE)
