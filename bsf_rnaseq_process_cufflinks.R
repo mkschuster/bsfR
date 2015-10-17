@@ -353,25 +353,24 @@ if (is.null(x = opt$sample)) {
   
   ggplot_object <- ggplot(data = summary_frame)
   ggplot_object <- ggplot_object + geom_point(mapping = aes(x = replicate, y = mapped / input, color = replicate))
-  ggplot_object <- ggplot_object + guides(col = guide_legend(ncol = ceiling(x = (nrow(x = summary_frame) / 24))))
-  ggplot_object <- ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
-  ggplot_object <- ggplot_object + theme(legend.text = element_text(size = rel(x = 0.7)))  # Reduce the legend text
-  
+  # Reduce the label font size and the legend key size and allow a maximum of 24 guide legend rows.
+  ggplot_object <- ggplot_object + guides(color = guide_legend(keywidth = rel(x = 0.8), keyheight = rel(x = 0.8), nrow = 24))
+  ggplot_object <- ggplot_object + theme(
+    axis.text.x = element_text(size = rel(x = 0.7), hjust = 0, angle = -90),
+    legend.text = element_text(size = rel(x = 0.7)))
+  # Scale the plot width with the number of replicates, by adding a quarter of the original width for each 24 replicates.
+  plot_width = opt$plot_width + (ceiling(x = nrow(x = summary_frame) / 24) - 1) * opt$plot_width * 0.25
   ggsave(filename = "rnaseq_tophat_alignment_summary.png",
-         plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
+         plot = ggplot_object, width = plot_width, height = opt$plot_height)
   ggsave(filename = "rnaseq_tophat_alignment_summary.pdf",
-         plot = ggplot_object, width = opt$plot_width, height = opt$plot_height)
-  
-  rm(ggplot_object, summary_frame, replicate_names)
+         plot = ggplot_object, width = plot_width, height = opt$plot_height)
+  rm(ggplot_object, plot_width, summary_frame, replicate_names)
 } else {
   # Process the single sample (replicate).
   process_replicate(replicate_name = opt$sample)
 }
 
 rm(ensembl_attributes, ensembl_transcripts, ensembl_genes,
-   option_list, opt, process_replicate)
+   option_list, opt, process_replicate, process_align_summary)
 
 message("All done")
-# TODO: For debugging and development.
-ls()
-save.image()
