@@ -1,18 +1,54 @@
 #! /usr/bin/env Rscript
+#
+# This script post-processes Cufflinks output, by enriching gene and transcript
+# tables with Ensembl annotation downloaded via BioMart. It also sets replicate-specific
+# symbolic links to Tophat output files. The Tophat align_summary.txt files are parsed
+# and the resulting data frame (rnaseq_tophat_alignment_summary.tsv), as well as plots
+# of alignment rates per replicate in PDF (rnaseq_tophat_alignment_summary.pdf) and
+# PNG format (rnaseq_tophat_alignment_summary.png) are written into the current
+# working directory.
+#
+# Copyright 2013 -2015 Michael K. Schuster
+#
+# Biomedical Sequencing Facility (BSF), part of the genomics core facility
+# of the Research Center for Molecular Medicine (CeMM) of the
+# Austrian Academy of Sciences and the Medical University of Vienna (MUW).
+#
+#
+# This file is part of BSF R.
+#
+# BSF R is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# BSF R is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
 suppressPackageStartupMessages(expr = library(package = "biomaRt"))
 suppressPackageStartupMessages(expr = library(package = "ggplot2"))
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
-# Process Tophat and Cufflinks directories for a particular, named replicate.
-#
-# @param replicate_name: Replicate name
-# @type replicate_name: char
+
+#' Process Tophat and Cufflinks directories for a particular, named replicate.
+#' Enrich Cufflinks genes.fpkm_tracking and isoforms.fpkm_tracking tables with
+#' Ensembl annotation downloaded via BioMart.
+#' Create replicate-specific symbolic links to Tophat files accepted_hits.bam,
+#' accepted_hits.bam.bai, unmapped.bam, align_summary.txt, transcripts.gtf and
+#' skipped.gtf.
+#'
+#' @param replicate_name: Replicate name
+#' @type replicate_name: char
 
 process_replicate <- function(replicate_name) {
   
   if (is.null(x = replicate_name)) {
-    stop("Missing replicate_name argument")    
+    stop("Missing replicate_name argument")
   }
   
   message(paste0("Processing replicate ", replicate_name))
@@ -21,7 +57,7 @@ process_replicate <- function(replicate_name) {
   prefix_cufflinks <- paste("rnaseq", "cufflinks", replicate_name, sep = "_")
   prefix_tophat <- paste("rnaseq", "tophat", replicate_name, sep = "_")
   
-  # Read, merge, write and delete gene tables.
+  # Read, merge, write and delete gene (genes.fpkm_tracking) tables.
   
   file_path <- file.path(prefix_cufflinks, paste(prefix_cufflinks, "genes_fpkm_tracking.tsv", sep = "_"))
   if (! (file.exists(file_path) && (file.info(file_path)$size > 0))) {
@@ -34,7 +70,7 @@ process_replicate <- function(replicate_name) {
   }
   rm(file_path)
   
-  # Read, merge, write and delete transcript tables.
+  # Read, merge, write and delete transcript (isoforms.fpkm_tracking) tables.
   
   file_path <- file.path(prefix_cufflinks, paste(prefix_cufflinks, "isoforms_fpkm_tracking.tsv", sep = "_"))
   if (! (file.exists(file_path) && (file.info(file_path)$size > 0))) {
@@ -47,7 +83,7 @@ process_replicate <- function(replicate_name) {
   }
   rm(file_path)
   
-  # Finally, create a replicate-specific symbolic link to the Tophat aligned BAM file and its index.
+  # Finally, create replicate-specific symbolic links to Tophat files.
   
   file_path <- file.path("..", prefix_tophat, "accepted_hits.bam")
   link_path <- file.path(prefix_cufflinks, paste(prefix_tophat, "accepted_hits.bam", sep = "_"))
@@ -108,12 +144,13 @@ process_replicate <- function(replicate_name) {
   return()
 }
 
-# Parse Tophat align_summary.txt files and return a data frame.
-#
-# @param replicate_names: list of replicate names
-# @type replicate_names: list
-# @return: Data frame with alignment summary statistics
-# @rtype: data.frame
+
+#' Parse Tophat align_summary.txt files and return a data frame.
+#'
+#' @param replicate_names: List of replicate names
+#' @type replicate_names: list
+#' @return: Data frame with alignment summary statistics
+#' @rtype: data.frame
 
 process_align_summary <- function(replicate_names) {
   
@@ -195,6 +232,7 @@ process_align_summary <- function(replicate_names) {
   
   return(summary_frame)
 }
+
 
 option_list <- list(
   make_option(opt_str = c("--verbose", "-v"),
