@@ -1,18 +1,21 @@
 #! /usr/bin/env Rscript
 #
-# This script post-processes Cufflinks output, by enriching gene and transcript
-# tables with Ensembl annotation downloaded via BioMart. It also sets replicate-specific
-# symbolic links to Tophat output files. The Tophat align_summary.txt files are parsed
-# and the resulting data frame (rnaseq_tophat_alignment_summary.tsv), as well as plots
-# of alignment rates per replicate in PDF (rnaseq_tophat_alignment_summary.pdf) and
-# PNG format (rnaseq_tophat_alignment_summary.png) are written into the current
-# working directory.
+# BSF R script to post-processes Cufflinks output by enriching gene and
+# transcript tables with Ensembl annotation downloaded from BioMart utilising
+# the cummeRbund package. This script also sets replicate-specific symbolic
+# links to Tophat output files. Tophat alignment summary files are parsed for
+# each replicate and the resulting data frame
+# (rnaseq_tophat_alignment_summary.tsv), as well as plots of alignment rates per
+# replicate in PDF (rnaseq_tophat_alignment_summary.pdf) and PNG format
+# (rnaseq_tophat_alignment_summary.png) are written into the current working
+# directory.
+#
 #
 # Copyright 2013 -2015 Michael K. Schuster
 #
-# Biomedical Sequencing Facility (BSF), part of the genomics core facility
-# of the Research Center for Molecular Medicine (CeMM) of the
-# Austrian Academy of Sciences and the Medical University of Vienna (MUW).
+# Biomedical Sequencing Facility (BSF), part of the genomics core facility of
+# the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
+# Sciences and the Medical University of Vienna (MUW).
 #
 #
 # This file is part of BSF R.
@@ -35,12 +38,11 @@ suppressPackageStartupMessages(expr = library(package = "ggplot2"))
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 
-#' Process Tophat and Cufflinks directories for a particular, named replicate.
-#' Enrich Cufflinks genes.fpkm_tracking and isoforms.fpkm_tracking tables with
-#' Ensembl annotation downloaded via BioMart.
-#' Create replicate-specific symbolic links to Tophat files accepted_hits.bam,
-#' accepted_hits.bam.bai, unmapped.bam, align_summary.txt, transcripts.gtf and
-#' skipped.gtf.
+#' Process Tophat and Cufflinks directories for a particular, named replicate. 
+#' Enrich Cufflinks genes.fpkm_tracking and isoforms.fpkm_tracking tables with 
+#' Ensembl annotation downloaded via BioMart. Create replicate-specific symbolic
+#' links to Tophat files accepted_hits.bam, accepted_hits.bam.bai, unmapped.bam,
+#' align_summary.txt, transcripts.gtf and skipped.gtf.
 #'
 #' @param replicate_name: Replicate name
 #' @type replicate_name: char
@@ -61,19 +63,28 @@ process_replicate <- function(replicate_name) {
   # Read, merge, write and delete gene (genes.fpkm_tracking) tables.
   
   file_path <-
-    file.path(prefix_cufflinks, paste(prefix_cufflinks, "genes_fpkm_tracking.tsv", sep = "_"))
+    file.path(prefix_cufflinks,
+              paste(prefix_cufflinks, "genes_fpkm_tracking.tsv", sep = "_"))
   if (!(file.exists(file_path) &&
         (file.info(file_path)$size > 0))) {
     cufflinks_genes <-
-      read.table(file = file.path(prefix_cufflinks, "genes.fpkm_tracking"), header = TRUE)
+      read.table(file = file.path(prefix_cufflinks, "genes.fpkm_tracking"),
+                 header = TRUE)
     cufflinks_ensembl <-
       merge(
-        x = ensembl_genes, y = cufflinks_genes,
-        by.x = "ensembl_gene_id", by.y = "tracking_id",
-        all.y = TRUE, sort = TRUE
+        x = ensembl_genes,
+        y = cufflinks_genes,
+        by.x = "ensembl_gene_id",
+        by.y = "tracking_id",
+        all.y = TRUE,
+        sort = TRUE
       )
     write.table(
-      x = cufflinks_ensembl, file = file_path, col.names = TRUE, row.names = FALSE, sep = "\t"
+      x = cufflinks_ensembl,
+      file = file_path,
+      col.names = TRUE,
+      row.names = FALSE,
+      sep = "\t"
     )
     rm(cufflinks_genes, cufflinks_ensembl)
   }
@@ -83,22 +94,31 @@ process_replicate <- function(replicate_name) {
   
   file_path <-
     file.path(
-      prefix_cufflinks, paste(prefix_cufflinks, "isoforms_fpkm_tracking.tsv", sep = "_")
+      prefix_cufflinks,
+      paste(prefix_cufflinks, "isoforms_fpkm_tracking.tsv", sep = "_")
     )
   if (!(file.exists(file_path) &&
         (file.info(file_path)$size > 0))) {
     cufflinks_transcripts <-
       read.table(
-        file = file.path(prefix_cufflinks, "isoforms.fpkm_tracking"), header = TRUE
+        file = file.path(prefix_cufflinks, "isoforms.fpkm_tracking"),
+        header = TRUE
       )
     cufflinks_ensembl <-
       merge(
-        x = ensembl_transcripts, y = cufflinks_transcripts,
-        by.x = "ensembl_transcript_id", by.y = "tracking_id",
-        all.y = TRUE, sort = TRUE
+        x = ensembl_transcripts,
+        y = cufflinks_transcripts,
+        by.x = "ensembl_transcript_id",
+        by.y = "tracking_id",
+        all.y = TRUE,
+        sort = TRUE
       )
     write.table(
-      x = cufflinks_ensembl, file = file_path, col.names = TRUE, row.names = FALSE, sep = "\t"
+      x = cufflinks_ensembl,
+      file = file_path,
+      col.names = TRUE,
+      row.names = FALSE,
+      sep = "\t"
     )
     rm(cufflinks_transcripts, cufflinks_ensembl)
   }
@@ -108,7 +128,8 @@ process_replicate <- function(replicate_name) {
   
   file_path <- file.path("..", prefix_tophat, "accepted_hits.bam")
   link_path <-
-    file.path(prefix_cufflinks, paste(prefix_tophat, "accepted_hits.bam", sep = "_"))
+    file.path(prefix_cufflinks,
+              paste(prefix_tophat, "accepted_hits.bam", sep = "_"))
   if (!file.exists(link_path)) {
     if (!file.symlink(from = file_path, to = link_path)) {
       warning("Encountered an error linking the accepted_hits.bam file.")
@@ -119,7 +140,8 @@ process_replicate <- function(replicate_name) {
   file_path <-
     file.path("..", prefix_tophat, "accepted_hits.bam.bai")
   link_path <-
-    file.path(prefix_cufflinks, paste(prefix_tophat, "accepted_hits.bam.bai", sep = "_"))
+    file.path(prefix_cufflinks,
+              paste(prefix_tophat, "accepted_hits.bam.bai", sep = "_"))
   if (!file.exists(link_path)) {
     if (!file.symlink(from = file_path, to = link_path)) {
       warning("Encountered an error linking the accepted_hits.bam.bai file.")
@@ -129,7 +151,8 @@ process_replicate <- function(replicate_name) {
   
   file_path <- file.path("..", prefix_tophat, "unmapped.bam")
   link_path <-
-    file.path(prefix_cufflinks, paste(prefix_tophat, "unmapped.bam", sep = "_"))
+    file.path(prefix_cufflinks,
+              paste(prefix_tophat, "unmapped.bam", sep = "_"))
   if (!file.exists(link_path)) {
     if (!file.symlink(from = file_path, to = link_path)) {
       warning("Encountered an error linking the unmapped.bam file.")
@@ -139,7 +162,8 @@ process_replicate <- function(replicate_name) {
   
   file_path <- file.path("..", prefix_tophat, "align_summary.txt")
   link_path <-
-    file.path(prefix_cufflinks, paste(prefix_tophat, "align_summary.txt", sep = "_"))
+    file.path(prefix_cufflinks,
+              paste(prefix_tophat, "align_summary.txt", sep = "_"))
   if (!file.exists(link_path)) {
     if (!file.symlink(from = file_path, to = link_path)) {
       warning("Encountered an error linking the align_summary.txt file.")
@@ -149,7 +173,8 @@ process_replicate <- function(replicate_name) {
   
   file_path <- "transcripts.gtf"
   link_path <-
-    file.path(prefix_cufflinks, paste(prefix_cufflinks, "transcripts.gtf", sep = "_"))
+    file.path(prefix_cufflinks,
+              paste(prefix_cufflinks, "transcripts.gtf", sep = "_"))
   if (!file.exists(link_path)) {
     if (!file.symlink(from = file_path, to = link_path)) {
       warning("Encountered an error linking the transcripts.gtf file.")
@@ -159,7 +184,8 @@ process_replicate <- function(replicate_name) {
   
   file_path <- "skipped.gtf"
   link_path <-
-    file.path(prefix_cufflinks, paste(prefix_cufflinks, "skipped.gtf", sep = "_"))
+    file.path(prefix_cufflinks,
+              paste(prefix_cufflinks, "skipped.gtf", sep = "_"))
   if (!file.exists(link_path)) {
     if (!file.symlink(from = file_path, to = link_path)) {
       warning("Encountered an error linking the skipped.gtf file.")
@@ -173,7 +199,8 @@ process_replicate <- function(replicate_name) {
 }
 
 
-#' Parse Tophat align_summary.txt files and return a data frame.
+#' Parse Tophat alignment summary (align_summary.txt) files and return a data
+#' frame.
 #'
 #' @param replicate_names: List of replicate names
 #' @type replicate_names: list
@@ -271,7 +298,7 @@ process_align_summary <- function(replicate_names) {
 
 
 # Get command line options, if help option encountered print help and exit,
-# otherwise if options not found on command line then set defaults,
+# otherwise if options not found on command line then set defaults.
 
 argument_list <- parse_args(object = OptionParser(
   option_list = list(
@@ -279,31 +306,36 @@ argument_list <- parse_args(object = OptionParser(
       opt_str = c("--verbose", "-v"),
       action = "store_true",
       default = TRUE,
-      help = "Print extra output [default]"
+      help = "Print extra output [default]",
+      type = "logical"
     ),
     make_option(
       opt_str = c("--quiet", "-q"),
       action = "store_false",
       default = FALSE,
       dest = "verbose",
-      help = "Print little output"
+      help = "Print little output",
+      type = "logical"
     ),
     make_option(
       opt_str = c("--biomart-instance"),
       default = "ENSEMBL_MART_ENSEMBL",
       dest = "biomart_instance",
-      help = "BioMart instance"
+      help = "BioMart instance",
+      type = "character"
     ),
     make_option(
       opt_str = c("--biomart-data-set"),
       dest = "biomart_data_set",
-      help = "BioMart data set"
+      help = "BioMart data set",
+      type = "character"
     ),
     make_option(
       opt_str = c("--biomart-host"),
       dest = "biomart_host",
       default = "www.ensembl.org",
-      help = "BioMart host"
+      help = "BioMart host",
+      type = "character"
     ),
     make_option(
       opt_str = c("--biomart-port"),
@@ -315,24 +347,28 @@ argument_list <- parse_args(object = OptionParser(
     make_option(
       opt_str = c("--biomart-path"),
       dest = "biomart_path",
-      help = "BioMart path"
+      help = "BioMart path",
+      type = "character"
     ),
     make_option(
       opt_str = c("--sample"),
       dest = "sample",
-      help = "Sample name"
+      help = "Sample name",
+      type = "character"
     ),
     make_option(
       opt_str = c("--plot-width"),
       default = 7,
       dest = "plot_width",
-      help = "Plot width in inches"
+      help = "Plot width in inches",
+      type = "numeric"
     ),
     make_option(
       opt_str = c("--plot-height"),
       default = 7,
       dest = "plot_height",
-      help = "Plot height in inches"
+      help = "Plot height in inches",
+      type = "numeric"
     )
   )
 ))
@@ -358,9 +394,9 @@ ensembl_attributes <- listAttributes(
   what = c("name", "description", "page")
 )
 
-# Get Ensembl Gene information.
-# From Ensembl version e75, the attributes "external_gene_id" and "external_gene_db" are called
-# "external_gene_name" and "external_gene_source", respectively.
+# Get Ensembl Gene information. From Ensembl version e75, the attributes
+# "external_gene_id" and "external_gene_db" are called "external_gene_name" and
+# "external_gene_source", respectively.
 
 if (any(ensembl_attributes$name == "external_gene_id")) {
   # Pre e75.
@@ -428,15 +464,18 @@ rm(ensembl_transcript_attributes)
 rm(ensembl_mart)
 
 if (is.null(x = argument_list$sample)) {
-  # If a --sample option was not provided, process all "rnaseq_cufflinks_*" directories in the
-  # current working directory. List all rnaseq_cufflinks directories via their common prefix and
-  # parse the sample (or replicate) name simply by removing the prefix.
+  # If a --sample option was not provided, process all "rnaseq_cufflinks_*"
+  # directories in the current working directory. List all rnaseq_cufflinks
+  # directories via their common prefix and parse the sample (or replicate) name
+  # simply by removing the prefix.
   
   replicate_names <- sub(
     pattern = "^rnaseq_cufflinks_",
     replacement = "",
     x = grep(
-      pattern = '^rnaseq_cufflinks_', x = list.dirs(full.names = FALSE, recursive = FALSE), value = TRUE
+      pattern = '^rnaseq_cufflinks_',
+      x = list.dirs(full.names = FALSE, recursive = FALSE),
+      value = TRUE
     )
   )
   
@@ -452,56 +491,48 @@ if (is.null(x = argument_list$sample)) {
   file_path <- "rnaseq_tophat_alignment_summary.tsv"
   # if (! (file.exists(file_path) && (file.info(file_path)$size > 0))) {
   write.table(
-    x = summary_frame, file = file_path, col.names = TRUE, row.names = FALSE, sep = "\t"
+    x = summary_frame,
+    file = file_path,
+    col.names = TRUE,
+    row.names = FALSE,
+    sep = "\t"
   )
   # }
   rm(file_path)
   
-  # Alignment rate plot.
-  
-  ggplot_object <- ggplot(data = summary_frame)
-  ggplot_object <-
-    ggplot_object + geom_point(mapping = aes(x = replicate, y = mapped / input))
-  # Reduce and rotate the axis text.
-  ggplot_object <-
-    ggplot_object + theme(axis.text.x = element_text(
-      size = rel(x = 0.7), hjust = 0, angle = -90
-    ))
-  # Scale the plot width with the number of replicates, by adding a quarter of the original width for each 24 replicates.
-  plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24) - 1) * argument_list$plot_width * 0.25
-  ggsave(
-    filename = "rnaseq_tophat_alignment_rate.png",
-    plot = ggplot_object, width = plot_width, height = argument_list$plot_height
-  )
-  ggsave(
-    filename = "rnaseq_tophat_alignment_rate.pdf",
-    plot = ggplot_object, width = plot_width, height = argument_list$plot_height
-  )
-  
   # Alignment summary plot.
-  
   ggplot_object <- ggplot(data = summary_frame)
   ggplot_object <-
     ggplot_object + geom_point(mapping = aes(
-      x = mapped, y = mapped / input, color = replicate
+      x = mapped,
+      y = mapped / input,
+      color = replicate
     ))
-  # Reduce the label font size and the legend key size and allow a maximum of 24 guide legend rows.
+  # Reduce the label font size and the legend key size and allow a maximum of 24
+  # guide legend rows.
   ggplot_object <-
     ggplot_object + guides(color = guide_legend(
-      keywidth = rel(x = 0.8), keyheight = rel(x = 0.8), nrow = 24
+      keywidth = rel(x = 0.8),
+      keyheight = rel(x = 0.8),
+      nrow = 24
     ))
   ggplot_object <-
     ggplot_object + theme(legend.text = element_text(size = rel(x = 0.7)))
-  # Scale the plot width with the number of replicates, by adding a quarter of the original width for each 24 replicates.
-  # plot_width <- argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24) - 1) * argument_list$plot_width * 0.25
+  # Scale the plot width with the number of replicates, by adding a quarter of
+  # the original width for each 24 replicates.
+  plot_width <-
+    argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24) - 1) * argument_list$plot_width * 0.25
   ggsave(
     filename = "rnaseq_tophat_alignment_summary.png",
-    plot = ggplot_object, width = plot_width, height = argument_list$plot_height
+    plot = ggplot_object,
+    width = plot_width,
+    height = argument_list$plot_height
   )
   ggsave(
     filename = "rnaseq_tophat_alignment_summary.pdf",
-    plot = ggplot_object, width = plot_width, height = argument_list$plot_height
+    plot = ggplot_object,
+    width = plot_width,
+    height = argument_list$plot_height
   )
   rm(ggplot_object, plot_width, summary_frame, replicate_names)
 } else {
@@ -510,8 +541,17 @@ if (is.null(x = argument_list$sample)) {
 }
 
 rm(
-  ensembl_attributes, ensembl_transcripts, ensembl_genes,
-  argument_list, process_replicate, process_align_summary
+  ensembl_attributes,
+  ensembl_transcripts,
+  ensembl_genes,
+  argument_list,
+  process_replicate,
+  process_align_summary
 )
 
 message("All done")
+
+# Finally, print all objects that have not been removed from the environment.
+if (length(x = ls())) {
+  print(x = ls())
+}
