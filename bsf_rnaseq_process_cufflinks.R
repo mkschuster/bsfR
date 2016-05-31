@@ -374,7 +374,7 @@ argument_list <- parse_args(object = OptionParser(
 ))
 
 if (is.null(x = argument_list$biomart_data_set)) {
-  stop("Missing --data_set option")
+  stop("Missing --biomart-data-set option")
 }
 
 # Connect to the Ensembl BioMart.
