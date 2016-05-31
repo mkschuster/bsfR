@@ -545,7 +545,7 @@ if (file.exists(plot_path_pdf) &&
   # ggplot_object <- csBoxplot(object = genes(object = cuff_set), replicates = TRUE)
   rep_fpkm_genes <- repFpkm(object = genes(object = cuff_set))
   # Rename the "rep_name" column into "condition".
-  colnames(rep_fpkm_genes)[colnames(rep_fpkm_genes) == "rep_name"] <-
+  colnames(x = rep_fpkm_genes)[colnames(x = rep_fpkm_genes) == "rep_name"] <-
     "condition"
   ggplot_object <- ggplot(data = rep_fpkm_genes)
   ggplot_object <-
@@ -882,7 +882,8 @@ for (i in 1:length(sample_pairs[1, ])) {
     ggplot_object <-
       csScatter(object = genes(object = cuff_set),
                 x = sample_pairs[1, i],
-                y = sample_pairs[2, i])
+                y = sample_pairs[2, i],
+                colorByStatus = TRUE)
     ggsave(
       filename = plot_path_pdf,
       plot = ggplot_object,
@@ -1064,10 +1065,20 @@ for (i in 1:length(sample_pairs[1, ])) {
         sample_pairs[2, i]
       )
     )
+    # FIXME: The definition of the generic function "csVolcano" does not include
+    # the "alpha" and "showSignificant" options, although the function
+    # definition contains them. It doesn not seem that the option defaults are used.
+    # In R/methods-CuffData.R:
+    # .volcano<-function(object,x,y,alpha=0.05,showSignificant=TRUE,features=FALSE,xlimits=c(-20,20),...)
+    # setMethod("csVolcano",signature(object="CuffData"), .volcano)
+    # In R/AllGenerics.R:
+    # setGeneric("csVolcano",function(object, x, y, features=F, ...) standardGeneric("csVolcano"))
     ggplot_object <-
       csVolcano(object = genes(object = cuff_set),
                 x = sample_pairs[1, i],
-                y = sample_pairs[2, i])
+                y = sample_pairs[2, i],
+                alpha = 0.05,
+                showSignificant = TRUE)
     ggsave(
       filename = plot_path_pdf,
       plot = ggplot_object,
@@ -1130,7 +1141,8 @@ if (file.exists(plot_path_pdf) &&
       data.frame(
         names = rownames(gene_rep_fit$points),
         M1 = gene_rep_fit$points[, 1],
-        M2 = gene_rep_fit$points[, 2]
+        M2 = gene_rep_fit$points[, 2],
+        stringsAsFactors = FALSE
       )
     ggplot_object <- ggplot(data = gene_rep_res)
     ggplot_object <-
@@ -1219,7 +1231,7 @@ message("Finished QC plotting")
 
 # TODO: Process gene and isoform sets and lists. Feature-level information can
 # be accessed directly from a CuffData object using the fpkm, repFpkm, count,
-# diffData, or annotation methods
+# diffData, or annotation methods.
 
 # Unfortunately, there does not seem to be a simple way to correlate XLOC and
 # Ensembl gene identifiers within cummeRbund. Read the reference GTF to
@@ -1291,14 +1303,16 @@ gene_frame <- merge(
   x = data.frame(
     gene_id = gene_annotation$gene_id,
     gene_short_name = gene_annotation$gene_short_name,
-    locus = gene_annotation$locus
+    locus = gene_annotation$locus,
+    stringsAsFactors = FALSE
   ),
   # Create a new Ensembl data frame that correlates gene (XLOC) identifiers with
   # comma-separated lists of Ensembl Gene and Transcript Identifiers.
   y = data.frame(
     gene_id = unique_gene_identifiers,
     ensembl_gene_id = ensembl_gene_identifiers,
-    ensembl_transcript_id = ensembl_transcript_identifiers
+    ensembl_transcript_id = ensembl_transcript_identifiers,
+    stringsAsFactors = FALSE
   ),
   # Merge on gene (XLOC) identifiers.
   by = "gene_id"
@@ -1325,7 +1339,8 @@ isoform_frame <- data.frame(
   class_code = isoform_annotation$class_code,
   nearest_ref_id = isoform_annotation$nearest_ref_id,
   locus = isoform_annotation$locus,
-  length = isoform_annotation$length
+  length = isoform_annotation$length,
+  stringsAsFactors = FALSE
 )
 rm(isoform_annotation)
 
