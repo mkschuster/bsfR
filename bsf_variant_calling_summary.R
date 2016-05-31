@@ -1,7 +1,7 @@
 #! /usr/bin/env Rscript
 #
-# BSF R script to summarise a variant caling analysis. Picard Duplication 
-# Metrics, Picard Alignment Summary Metrics and Picard Hybrid Selection Metrics 
+# BSF R script to summarise a variant caling analysis. Picard Duplication
+# Metrics, Picard Alignment Summary Metrics and Picard Hybrid Selection Metrics
 # reports are read for each sample and plotted at the aliquot or sample level.
 #
 #
@@ -69,6 +69,7 @@ argument_list <- parse_args(object = OptionParser(
 
 # Process Picard Duplication Metrics reports.
 
+message("Processing Picard Duplication Metrics reports for sample:")
 combined_metrics_sample <- NULL
 
 file_names <-
@@ -78,16 +79,18 @@ for (file_name in file_names) {
     gsub(pattern = "variant_calling_process_sample_(.*?)_duplicate_metrics.tsv",
          replacement = "\\1",
          x = file_name)
+  message(paste0("  ", sample_name))
   picard_metrics_sample <-
     read.table(
       file = file_name,
       header = TRUE,
       sep = "\t",
       nrows = 1,
-      skip = 6
+      skip = 6,
+      stringsAsFactors = TRUE
     )
   # Add the sample name, which is not part of the Picard report.
-  picard_metrics_sample$SAMPLE <- sample_name
+  picard_metrics_sample$SAMPLE <- as.character(x = sample_name)
   
   if (is.null(x = combined_metrics_sample)) {
     combined_metrics_sample <- picard_metrics_sample
@@ -100,11 +103,19 @@ for (file_name in file_names) {
 rm(file_name, file_names)
 
 if (!is.null(x = combined_metrics_sample)) {
+  write.table(
+    x = combined_metrics_sample,
+    file = "variant_calling_summary_duplication.tsv",
+    sep = "\t",
+    row.names = FALSE,
+    col.names = TRUE
+  )
   # Adjust the plot width according to batches of 24 samples or aliquots.
   plot_width <-
     argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample$SAMPLE) / 24) - 1) * argument_list$plot_width * 0.3
   
-  # Plot the absolute number of aligned pass-filter reads per sample.
+  # Plot the percent duplication per sample.
+  message("Plotting the percent duplication per sample")
   plot_object <-
     ggplot(data = combined_metrics_sample)
   plot_object <-
@@ -133,6 +144,7 @@ rm(combined_metrics_sample)
 
 # Process Picard Alignment Summary Metrics reports.
 
+message("Processing Picard Alignment Summary Metrics reports for sample:")
 combined_metrics_sample <- NULL
 combined_metrics_aliquot <- NULL
 
@@ -143,17 +155,32 @@ for (file_name in file_names) {
     gsub(pattern = "variant_calling_process_sample_(.*?)_alignment_summary_metrics.tsv",
          replacement = "\\1",
          x = file_name)
+  message(paste0("  ", sample_name))
   picard_metrics_total <-
-    read.table(file = file_name,
-               header = TRUE,
-               sep = "\t")
+    read.table(
+      file = file_name,
+      header = TRUE,
+      sep = "\t",
+      stringsAsFactors = FALSE
+    )
+  # To support numeric sample names the redd.table(stringsAsFactors = FALSE) is turned off.
+  # Manually convert CATEGORY, SAMPLE, LIBRARY and READ_GROUP columns into factors, which are handy for plotting.
+  picard_metrics_total$CATEGORY <-
+    as.factor(x = picard_metrics_total$CATEGORY)
+  picard_metrics_total$SAMPLE <-
+    as.factor(x = as.character(x = picard_metrics_total$SAMPLE))
+  picard_metrics_total$LIBRARY <-
+    as.factor(x = as.character(x = picard_metrics_total$LIBRARY))
+  picard_metrics_total$READ_GROUP <-
+    as.factor(x = picard_metrics_total$READ_GROUP)
   
   # Modify the row names so that the names do not clash.
   # row.names(picard_metrics_total) <- paste(sample_name, row.names(x = picard_metrics_total), sep = "_")
   
   # Select only rows showing the SAMPLE summary, i.e. showing SAMPLE, but no LIBRARY and READ_GROUP information.
   picard_metrics_sample <-
-    picard_metrics_total[(picard_metrics_total$SAMPLE != "") &
+    picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
+                           (picard_metrics_total$SAMPLE != "") &
                            (picard_metrics_total$LIBRARY == "") &
                            (picard_metrics_total$READ_GROUP == ""),]
   if (is.null(x = combined_metrics_sample)) {
@@ -208,6 +235,21 @@ if (!is.null(x = combined_metrics_sample)) {
       )
     )
   
+  write.table(
+    x = combined_metrics_aliquot,
+    file = "variant_calling_summary_alignment_aliquot.tsv",
+    sep = "\t",
+    row.names = FALSE,
+    col.names = TRUE
+  )
+  write.table(
+    x = combined_metrics_sample,
+    file = "variant_calling_summary_alignment_sample.tsv",
+    sep = "\t",
+    row.names = FALSE,
+    col.names = TRUE
+  )
+  
   # Adjust the plot width according to batches of 24 samples or aliquots.
   plot_width_aliquot <-
     argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_aliquot$ALIQUOT) / 24) - 1) * argument_list$plot_width * 0.35
@@ -215,6 +257,7 @@ if (!is.null(x = combined_metrics_sample)) {
     argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample$SAMPLE) / 24) - 1) * argument_list$plot_width * 0.25
   
   # Plot the absolute number of aligned pass-filter reads per sample.
+  message("Plotting the absolute number of aligned pass-filter reads per sample")
   plot_object <-
     ggplot(data = combined_metrics_sample)
   plot_object <-
@@ -238,6 +281,7 @@ if (!is.null(x = combined_metrics_sample)) {
   rm(plot_object)
   
   # Plot the absolute number of aligned pass-filter reads per aliquot.
+  message("Plotting the absolute number of aligned pass-filter reads per aliquot")
   plot_object <-
     ggplot(data = combined_metrics_aliquot)
   plot_object <-
@@ -265,6 +309,7 @@ if (!is.null(x = combined_metrics_sample)) {
   rm(plot_object)
   
   # Plot the percentage of aligned pass-filter reads per sample.
+  message("Plotting the percentage of aligned pass-filter reads per sample")
   plot_object <-
     ggplot(data = combined_metrics_sample)
   plot_object <-
@@ -288,6 +333,7 @@ if (!is.null(x = combined_metrics_sample)) {
   rm(plot_object)
   
   # Plot the percentage of aligned pass-filter reads per aliquot.
+  message("Plotting the percentage of aligned pass-filter reads per aliquot")
   plot_object <-
     ggplot(data = combined_metrics_aliquot)
   plot_object <-
@@ -320,6 +366,7 @@ rm(combined_metrics_aliquot, combined_metrics_sample)
 
 # Process Picard Hybrid Selection Metrics reports.
 
+message("Processing Picard Hybrid Selection Metrics reports for sample:")
 combined_metrics_sample <- NULL
 combined_metrics_aliquot <- NULL
 
@@ -330,18 +377,32 @@ for (file_name in file_names) {
     gsub(pattern = "variant_calling_diagnose_sample_(.*?)_hybrid_selection_metrics.tsv",
          replacement = "\\1",
          x = file_name)
-  # message(paste("Processing hybrid selection metrics file", file_name, "for sample", sample_name))
+  message(paste0("  ", sample_name))
   picard_metrics_total <-
-    read.table(file = file_name,
-               header = TRUE,
-               sep = "\t")
+    read.table(
+      file = file_name,
+      header = TRUE,
+      sep = "\t",
+      stringsAsFactors = FALSE
+    )
+  # To support numeric sample names the redd.table(stringsAsFactors = FALSE) is turned off.
+  # Manually convert BAIT_SET, SAMPLE, LIBRARY and READ_GROUP columns into factors, which are handy for plotting.
+  picard_metrics_total$BAIT_SET <-
+    as.factor(x = picard_metrics_total$BAIT_SET)
+  picard_metrics_total$SAMPLE <-
+    as.factor(x = as.character(x = picard_metrics_total$SAMPLE))
+  picard_metrics_total$LIBRARY <-
+    as.factor(x = as.character(x = picard_metrics_total$LIBRARY))
+  picard_metrics_total$READ_GROUP <-
+    as.factor(x = picard_metrics_total$READ_GROUP)
   
   # Modify the row names so that the names do not clash.
   # row.names(picard_metrics_total) <- paste(sample_name, row.names(x = picard_metrics_total), sep = "_")
   
   # Select only rows showing the SAMPLE summary, i.e. showing SAMPLE, but no LIBRARY and READ_GROUP information.
   picard_metrics_sample <-
-    picard_metrics_total[(picard_metrics_total$SAMPLE != "") &
+    picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
+                           (picard_metrics_total$SAMPLE != "") &
                            (picard_metrics_total$LIBRARY == "") &
                            (picard_metrics_total$READ_GROUP == ""),]
   if (is.null(x = combined_metrics_sample)) {
@@ -389,7 +450,23 @@ if (!is.null(x = combined_metrics_sample)) {
     nlevels(x = combined_metrics_sample$SAMPLE) / 24
   )) - 1) * argument_list$plot_width * 0.25
   
+  write.table(
+    x = combined_metrics_sample,
+    file = "variant_calling_summary_hybrid_aliquot.tsv",
+    sep = "\t",
+    row.names = FALSE,
+    col.names = TRUE
+  )
+  write.table(
+    x = combined_metrics_sample,
+    file = "variant_calling_summary_hybrid_sample.tsv",
+    sep = "\t",
+    row.names = FALSE,
+    col.names = TRUE
+  )
+  
   # Plot the percentage of unique pass-filter reads per sample.
+  message("Plotting the percentage of unique pass-filter reads per sample")
   plot_object <-
     ggplot(data = combined_metrics_sample)
   plot_object <-
@@ -419,6 +496,7 @@ if (!is.null(x = combined_metrics_sample)) {
   rm(plot_object)
   
   # Plot the percentage of unique pass-filter reads per aliquot.
+  message("Plotting the percentage of unique pass-filter reads per aliquot")
   plot_object <-
     ggplot(data = combined_metrics_aliquot)
   plot_object <-
@@ -437,17 +515,20 @@ if (!is.null(x = combined_metrics_sample)) {
     filename = "variant_calling_summary_hybrid_unique_percentage_read_group.png",
     plot = plot_object,
     width = plot_width_aliquot,
-    height = argument_list$plot_height
+    height = argument_list$plot_height,
+    limitsize = FALSE
   )
   ggsave(
     filename = "variant_calling_summary_hybrid_unique_percentage_read_group.pdf",
     plot = plot_object,
     width = plot_width_aliquot,
-    height = argument_list$plot_height
+    height = argument_list$plot_height,
+    limitsize = FALSE
   )
   rm(plot_object)
   
   # Plot the mean target coverage per sample.
+  message("Plotting the mean target coverage per sample")
   plot_object <-
     ggplot(data = combined_metrics_sample)
   plot_object <-
@@ -477,6 +558,7 @@ if (!is.null(x = combined_metrics_sample)) {
   rm(plot_object)
   
   # Plot the mean target coverage per aliquot.
+  message("Plotting the mean target coverage per aliquot")
   plot_object <-
     ggplot(data = combined_metrics_aliquot)
   plot_object <-
@@ -495,19 +577,140 @@ if (!is.null(x = combined_metrics_sample)) {
     filename = "variant_calling_summary_hybrid_target_coverage_read_group.png",
     plot = plot_object,
     width = plot_width_aliquot,
-    height = argument_list$plot_height
+    height = argument_list$plot_height,
+    limitsize = FALSE
   )
   ggsave(
     filename = "variant_calling_summary_hybrid_target_coverage_read_group.pdf",
     plot = plot_object,
     width = plot_width_aliquot,
-    height = argument_list$plot_height
+    height = argument_list$plot_height,
+    limitsize = FALSE
   )
   rm(plot_object)
   
   rm(plot_width_aliquot, plot_width_sample)
 }
 rm(combined_metrics_aliquot, combined_metrics_sample)
+
+# Process non-callable summary reports.
+
+message("Processing non-callable summary reports for sample:")
+combined_metrics_sample <- NULL
+
+file_names <-
+  list.files(pattern = "variant_calling_diagnose_sample_.*_non_callable_summary.tsv")
+for (file_name in file_names) {
+  sample_name <-
+    gsub(pattern = "variant_calling_diagnose_sample_(.*?)_non_callble_summary.tsv",
+         replacement = "\\1",
+         x = file_name)
+  message(paste0("  ", sample_name))
+  non_callable_metrics_sample <-
+    read.table(
+      file = file_name,
+      header = TRUE,
+      sep = "\t",
+      stringsAsFactors = FALSE
+    )
+  
+  # To support numeric sample names the redd.table(stringsAsFactors = FALSE) is turned off.
+  # Manually convert the sample_name column into factors, which are handy for plotting.
+  non_callable_metrics_sample$sample_name <-
+    as.factor(x = non_callable_metrics_sample$sample_name)
+  
+  if (is.null(x = combined_metrics_sample)) {
+    combined_metrics_sample <- non_callable_metrics_sample
+  } else {
+    combined_metrics_sample <-
+      rbind(combined_metrics_sample, non_callable_metrics_sample)
+  }
+  rm(sample_name, non_callable_metrics_sample)
+}
+rm(file_name, file_names)
+
+if (!is.null(x = combined_metrics_sample)) {
+  # Adjust the plot width according to batches of 24 samples or aliquots.
+  plot_width_sample <- argument_list$plot_width + (ceiling(x = (
+    nlevels(x = combined_metrics_sample$sample_name) / 24
+  )) - 1) * argument_list$plot_width * 0.25
+  
+  write.table(
+    x = combined_metrics_sample,
+    file = "variant_calling_summary_non_callable.tsv",
+    sep = "\t",
+    row.names = FALSE,
+    col.names = TRUE
+  )
+  
+  # Plot the number of non-callable loci per sample.
+  message("Plotting the number of non-callable loci per sample")
+  plot_object <-
+    ggplot(data = combined_metrics_sample)
+  plot_object <-
+    plot_object + ggtitle(label = "Number of Non-Callable Loci per Sample")
+  plot_object <-
+    plot_object + geom_point(mapping = aes(x = sample_name, y = non_callable_number_constrained))
+  plot_object <-
+    plot_object + guides(color = guide_legend(nrow = 24))
+  plot_object <-
+    plot_object + theme(axis.text.x = element_text(
+      angle = -90,
+      hjust = 0,
+      size = rel(x = 0.8)
+    ))
+  ggsave(
+    filename = "variant_calling_summary_non_callable_number.png",
+    plot = plot_object,
+    width = plot_width_sample,
+    height = argument_list$plot_height,
+    limitsize = FALSE
+  )
+  ggsave(
+    filename = "variant_calling_summary_non_callable_number.pdf",
+    plot = plot_object,
+    width = plot_width_sample,
+    height = argument_list$plot_height,
+    limitsize = FALSE
+  )
+  rm(plot_object)
+  
+  # Plot the fraction of non-callable loci per sample.
+  message("Plotting the fraction of non-callable loci per sample")
+  plot_object <-
+    ggplot(data = combined_metrics_sample)
+  plot_object <-
+    plot_object + ggtitle(label = "Fraction of Non-Callable Loci per Sample")
+  plot_object <-
+    plot_object + geom_point(mapping = aes(x = sample_name, y = non_callable_constrained_fraction))
+  plot_object <-
+    plot_object + guides(color = guide_legend(nrow = 24))
+  plot_object <-
+    plot_object + theme(axis.text.x = element_text(
+      angle = -90,
+      hjust = 0,
+      size = rel(x = 0.8)
+    ))
+  ggsave(
+    filename = "variant_calling_summary_non_callable_percentage.png",
+    plot = plot_object,
+    width = plot_width_sample,
+    height = argument_list$plot_height,
+    limitsize = FALSE
+  )
+  ggsave(
+    filename = "variant_calling_summary_non_callable_percentage.pdf",
+    plot = plot_object,
+    width = plot_width_sample,
+    height = argument_list$plot_height,
+    limitsize = FALSE
+  )
+  rm(plot_object)
+  
+  rm(plot_width_sample)
+}
+rm(combined_metrics_sample)
+
 rm(argument_list)
 
 message("All done")
