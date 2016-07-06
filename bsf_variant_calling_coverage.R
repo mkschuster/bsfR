@@ -95,20 +95,20 @@ i <- 1
 # Import Ensembl gene, transcript and exon annotation as GRanges vector object,
 # where only exon components are relevant for this analysis.
 summary_frame[i, "exon_path"] <- argument_list$exon_path
-# message(paste0("Importing exon ranges: ", summary_frame[i, "exon_path"]))
+message(paste0("Importing exon ranges: ", summary_frame[i, "exon_path"]))
 exon_ranges <-
   import(con = summary_frame[i, "exon_path"],
          genome = "hs37d5",
          feature.type = "exon")
 summary_frame[i, "exon_number"] <- length(x = exon_ranges)
-# message(paste0("Number of exon ranges: ", summary_frame[i, "exon_number"]))
+message(paste0("Number of exon ranges: ", summary_frame[i, "exon_number"]))
 summary_frame[i, "exon_width"] <- sum(width(x = exon_ranges))
-# message(paste0("Cumulative width of exon ranges: ", summary_frame[i, "exon_width"]))
+message(paste0("Cumulative width of exon ranges: ", summary_frame[i, "exon_width"]))
 
 # Reduce the non-redundant Ensembl exons to their footprint on the genome to get
 # transcribed regions. The revmap column contains the mapping to original
 # exon_ranges components.
-# message("Reducing exon ranges to transcribed ranges.")
+message("Reducing exon ranges to transcribed ranges.")
 transcribed_ranges <-
   reduce(
     x = exon_ranges,
@@ -118,30 +118,30 @@ transcribed_ranges <-
   )
 summary_frame[i, "transcribed_number"] <-
   length(x = transcribed_ranges)
-# message(paste0("Number of transcribed ranges: ", summary_frame[i, "transcribed_number"]))
+message(paste0("Number of transcribed ranges: ", summary_frame[i, "transcribed_number"]))
 summary_frame[i, "transcribed_width"] <-
   sum(width(x = transcribed_ranges))
-# message(paste0("Cumulative width of transcribed ranges: ", summary_frame[i, "transcribed_width"]))
+message(paste0("Cumulative width of transcribed ranges: ", summary_frame[i, "transcribed_width"]))
 
 # Read the file of targeted regions, if available. Although the GATK Callable
 # Loci analysis is generally only run on these target regions, this file
 # provides the target (probe) names of the enrichment design.
-summary_frame[i, "target_path"] <- argument_list$target_path
 target_ranges <- NULL
 constrained_ranges <- NULL
-if (!is.null(x = summary_frame[i, "target_path"])) {
-  # message(paste0("Importing target range annotation: ", summary_frame[i, "target_path"]))
+if (!is.null(x = argument_list$target_path)) {
+  summary_frame[i, "target_path"] <- argument_list$target_path
+  message(paste0("Importing target range annotation: ", summary_frame[i, "target_path"]))
   target_ranges <- import(con = summary_frame[i, "target_path"])
   # TODO: Could the genome version be specified to get the sequence lengths from the
   # sequence dictionary (*.dict) file.
   summary_frame[i, "target_number_raw"] <-
     length(x = target_ranges)
-  # message(paste0("Number of target ranges: ", summary_frame[i, "target_number_raw"]))
+  message(paste0("Number of target ranges: ", summary_frame[i, "target_number_raw"]))
   summary_frame[i, "target_width_raw"] <-
     sum(width(x = target_ranges))
-  # message(paste0("Cumulative width of target ranges: ", summary_frame[i, "target_width_raw"]))
+  message(paste0("Cumulative width of target ranges: ", summary_frame[i, "target_width_raw"]))
   
-  # message("Overlapping target and transcribed ranges.")
+  message("Overlapping target and transcribed ranges.")
   overlap_frame <-
     mergeByOverlaps(query = target_ranges, subject = transcribed_ranges)
   overlap_ranges <- overlap_frame[, "target_ranges"]
@@ -163,6 +163,8 @@ if (!is.null(x = summary_frame[i, "target_path"])) {
   rm(overlap_frame)
 } else {
   # If target regions are not avaiable, all transcribed GRanges count.
+  summary_frame[i, "target_path"] <- NA
+  message("Not importing target range annotation.")
   target_ranges <- transcribed_ranges
   summary_frame[i, "target_width_raw"] <-
     summary_frame[i, "transcribed_width"]
@@ -171,10 +173,10 @@ if (!is.null(x = summary_frame[i, "target_path"])) {
 }
 summary_frame[i, "target_number_constrained"] <-
   length(x = constrained_ranges)
-# message(paste0("Number of transcribed target ranges: ", summary_frame[i, "target_number_constrained"]))
+message(paste0("Number of transcribed target ranges: ", summary_frame[i, "target_number_constrained"]))
 summary_frame[i, "target_width_constrained"] <-
   sum(width(x = constrained_ranges))
-# message(paste0("Cumulative width of transcribed target ranges: ", summary_frame[i, "target_width_constrained"]))
+message(paste0("Cumulative width of transcribed target ranges: ", summary_frame[i, "target_width_constrained"]))
 
 # Import the callable loci BED file produced by the GATK CallableLoci analysis.
 summary_frame[i, "callable_loci_path"] <-
@@ -184,7 +186,7 @@ summary_frame[i, "sample_name"] <-
   gsub(pattern = "variant_calling_diagnose_sample_(.*?)_callable_loci.bed",
        replacement = "\\1",
        x = summary_frame[i, "callable_loci_path"])
-# message(paste0("Processing sample name: ", summary_frame[i, "sample_name"]))
+message(paste0("Processing sample name: ", summary_frame[i, "sample_name"]))
 callable_ranges <-
   import(con = summary_frame[i, "callable_loci_path"])
 non_callable_ranges <-
@@ -193,10 +195,10 @@ non_callable_ranges$name <-
   as.factor(x = non_callable_ranges$name)
 summary_frame[i, "non_callable_number_raw"] <-
   length(x = non_callable_ranges)
-# message(paste0("Number of non-callable raw ranges: ", summary_frame[i, "non_callable_number_raw"]))
+message(paste0("Number of non-callable raw ranges: ", summary_frame[i, "non_callable_number_raw"]))
 summary_frame[i, "non_callable_width_raw"] <-
   sum(width(x = non_callable_ranges))
-# message(paste0("Cumulative width of non-callable raw ranges: ", summary_frame[i, "non_callable_width_raw"]))
+message(paste0("Cumulative width of non-callable raw ranges: ", summary_frame[i, "non_callable_width_raw"]))
 
 # To get accurate non-callable statistics with regards to the target regions
 # that are transcribed, non-callable GRanges need overlapping with the
@@ -217,10 +219,10 @@ overlap_ranges <- GRanges(
 )
 summary_frame[i, "non_callable_number_constrained"] <-
   length(x = overlap_ranges)
-# message(paste0("Number of non-callable constrained ranges: ", summary_frame[i, "non_callable_number_constrained"]))
+message(paste0("Number of non-callable constrained ranges: ", summary_frame[i, "non_callable_number_constrained"]))
 summary_frame[i, "non_callable_width_constrained"] <-
   sum(width(x = overlap_ranges))
-# message(paste0("Cumulative width of non-callable constrained ranges: ", summary_frame[i, "non_callable_width_constrained"]))
+message(paste0("Cumulative width of non-callable constrained ranges: ", summary_frame[i, "non_callable_width_constrained"]))
 summary_frame[i, "non_callable_constrained_fraction"] <-
   summary_frame[i, "non_callable_width_constrained"] / summary_frame[i, "target_width_constrained"]
 
