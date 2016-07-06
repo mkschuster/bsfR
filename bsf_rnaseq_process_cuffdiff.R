@@ -1,6 +1,6 @@
 #! /usr/bin/env Rscript
 #
-# BSF R script to post-processes Cuffdiff output utilising the cummeRbund 
+# BSF R script to post-processes Cuffdiff output utilising the cummeRbund
 # package. This script creates a cummeRbund SQLite database, writes a set of QC
 # plots in PDF and PNG format, splits the large and unwieldy differential data
 # tables into pairwise comparisons and creates symbolic links to the original
@@ -33,7 +33,7 @@ suppressPackageStartupMessages(expr = library(package = "cummeRbund"))
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
 
-# Get command line options, if help option encountered print help and exit, 
+# Get command line options, if help option encountered print help and exit,
 # otherwise if options not found on command line then set defaults.
 
 argument_list <- parse_args(object = OptionParser(
@@ -200,7 +200,7 @@ replicate_number <- nrow(x = replicate_frame)
 # Some plots require replicates. Check whether at least one row has a replicate
 # column value greater than 0.
 have_replicates <-
-  (nrow(x = replicate_frame[replicate_frame$replicate > 0, ]) > 0)
+  (nrow(x = replicate_frame[replicate_frame$replicate > 0,]) > 0)
 # Write the replicate_frame.
 frame_path <-
   file.path(output_directory, paste0(prefix, "_replicates.tsv"))
@@ -565,10 +565,9 @@ if (file.exists(plot_path_pdf) &&
   ggplot_object <-
     ggplot_object + scale_fill_hue(l = 50, h.start = 200)
   # Arrange a maximum of 24 replicates in each guide column.
-  ggplot_object <-
-    ggplot_object + guides(fill = guide_legend(nrow = 24))
-  # Use the base plot_witdh and add a quarter of the width for each additional
-  # guide legend column.
+  # ggplot_object <-
+  #   ggplot_object + guides(fill = guide_legend(nrow = 24))
+  # Use the base plot_witdh and add a quarter of the width for each additional guide legend column.
   plot_width <-
     argument_list$plot_width + (ceiling(x = replicate_number / 24) - 1) * argument_list$plot_width * 0.25
   ggsave(
@@ -623,8 +622,8 @@ if (file.exists(plot_path_pdf) &&
   ggplot_object <-
     ggplot_object + scale_fill_hue(l = 50, h.start = 200)
   # Arrange a maximum of 24 samples in each guide column.
-  ggplot_object <-
-    ggplot_object + guides(fill = guide_legend(nrow = 24))
+  # ggplot_object <-
+  #   ggplot_object + guides(fill = guide_legend(nrow = 24))
   # Use the base plot_witdh and add a quarter of the width for each additional guide legend column.
   plot_width <-
     argument_list$plot_width + (ceiling(x = sample_number / 24) - 1) * argument_list$plot_width * 0.25
@@ -685,10 +684,9 @@ if (file.exists(plot_path_pdf) &&
   ggplot_object <-
     ggplot_object + scale_fill_hue(l = 50, h.start = 200)
   # Arrange a maximum of 24 replicates in each guide column.
-  ggplot_object <-
-    ggplot_object + guides(fill = guide_legend(nrow = 24))
-  # Use the base plot_witdh and add a quarter of the width for each additional
-  # guide legend column.
+  # ggplot_object <-
+  #   ggplot_object + guides(fill = guide_legend(nrow = 24))
+  # Use the base plot_witdh and add a quarter of the width for each additional guide legend column.
   plot_width <-
     argument_list$plot_width + (ceiling(x = replicate_number / 24) - 1) * argument_list$plot_width * 0.25
   ggsave(
@@ -743,8 +741,8 @@ if (file.exists(plot_path_pdf) &&
   ggplot_object <-
     ggplot_object + scale_fill_hue(l = 50, h.start = 200)
   # Arrange a maximum of 24 replicates in each guide column.
-  ggplot_object <-
-    ggplot_object + guides(fill = guide_legend(nrow = 24))
+  # ggplot_object <-
+  #   ggplot_object + guides(fill = guide_legend(nrow = 24))
   # Use the base plot_witdh and add a quarter of the with for each additional guide legend column.
   plot_width <-
     argument_list$plot_width + (ceiling(x = sample_number / 24) - 1) * argument_list$plot_width * 0.25
@@ -835,7 +833,7 @@ if (sample_number <= 20) {
 
 # Create a Scatter Plot on Genes for each sample pair.
 
-for (i in 1:length(sample_pairs[1, ])) {
+for (i in 1:length(sample_pairs[1,])) {
   plot_path_pdf <-
     file.path(
       output_directory,
@@ -880,10 +878,12 @@ for (i in 1:length(sample_pairs[1, ])) {
       )
     )
     ggplot_object <-
-      csScatter(object = genes(object = cuff_set),
-                x = sample_pairs[1, i],
-                y = sample_pairs[2, i],
-                colorByStatus = TRUE)
+      csScatter(
+        object = genes(object = cuff_set),
+        x = sample_pairs[1, i],
+        y = sample_pairs[2, i],
+        colorByStatus = TRUE
+      )
     ggsave(
       filename = plot_path_pdf,
       plot = ggplot_object,
@@ -935,7 +935,7 @@ rm(plot_path_png)
 
 # Create a MA Plot on genes for each sample pair based on FPKM values.
 
-for (i in 1:length(sample_pairs[1, ])) {
+for (i in 1:length(sample_pairs[1,])) {
   plot_path_pdf <-
     file.path(
       output_directory,
@@ -1021,7 +1021,7 @@ rm(plot_path_pdf, plot_path_png)
 
 # Create a Volcano Plot on genes for each sample pair.
 
-for (i in 1:length(sample_pairs[1, ])) {
+for (i in 1:length(sample_pairs[1,])) {
   plot_path_pdf <-
     file.path(
       output_directory,
@@ -1074,11 +1074,13 @@ for (i in 1:length(sample_pairs[1, ])) {
     # In R/AllGenerics.R:
     # setGeneric("csVolcano",function(object, x, y, features=F, ...) standardGeneric("csVolcano"))
     ggplot_object <-
-      csVolcano(object = genes(object = cuff_set),
-                x = sample_pairs[1, i],
-                y = sample_pairs[2, i],
-                alpha = 0.05,
-                showSignificant = TRUE)
+      csVolcano(
+        object = genes(object = cuff_set),
+        x = sample_pairs[1, i],
+        y = sample_pairs[2, i],
+        alpha = 0.05,
+        showSignificant = TRUE
+      )
     ggsave(
       filename = plot_path_pdf,
       plot = ggplot_object,
@@ -1096,97 +1098,98 @@ for (i in 1:length(sample_pairs[1, ])) {
   rm(plot_path_pdf, plot_path_png)
 }
 
-# Create a Multidimensional Scaling (MDS) Plot on genes.
+# Create a Multidimensional Scaling (MDS) Plot on genes,
+# but only if the CuffData object contains more than two samples.
 
-plot_path_pdf <-
-  file.path(output_directory, paste0(prefix, "_genes_mds.pdf"))
-plot_path_png <-
-  file.path(output_directory, paste0(prefix, "_genes_mds.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0)) {
-  message("Skipping a Multidimensional Scaling Plot on Genes")
-} else {
-  # if (have_replicates) {
-  message("Creating a Multidimensional Scaling Plot on Genes")
-  # Nothing ever is simple. If the set has too many replicates, the standard
-  # cummeRbund MDSplot() falls down.
-  if (replicate_number <= 24) {
-    ggplot_object <-
-      MDSplot(object = genes(object = cuff_set),
-              replicates = TRUE)
-    ggsave(
-      filename = plot_path_pdf,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    ggsave(
-      filename = plot_path_png,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    rm(ggplot_object)
+if (sample_number > 2) {
+  plot_path_pdf <-
+    file.path(output_directory, paste0(prefix, "_genes_mds.pdf"))
+  plot_path_png <-
+    file.path(output_directory, paste0(prefix, "_genes_mds.png"))
+  if (file.exists(plot_path_pdf) &&
+      (file.info(plot_path_pdf)$size > 0) &&
+      file.exists(plot_path_png) &&
+      (file.info(plot_path_png)$size > 0)) {
+    message("Skipping a Multidimensional Scaling Plot on Genes")
   } else {
-    # The standard MDSplot has too many replicates.
-    gene_rep_fit <-
-      cmdscale(d = JSdist(mat = makeprobs(a = repFpkmMatrix(
-        object = genes(object = cuff_set)
-      ))),
-      eig = TRUE,
-      k = 2)
-    gene_rep_res <-
-      data.frame(
-        names = rownames(gene_rep_fit$points),
-        M1 = gene_rep_fit$points[, 1],
-        M2 = gene_rep_fit$points[, 2],
-        stringsAsFactors = FALSE
-      )
-    ggplot_object <- ggplot(data = gene_rep_res)
-    ggplot_object <-
-      ggplot_object + theme_bw()  # Add theme black and white.
-    ggplot_object <-
-      ggplot_object + geom_point(mapping = aes(x = M1, y = M2, color = names))  # Draw points in any case.
+    # if (have_replicates) {
+    message("Creating a Multidimensional Scaling Plot on Genes")
+    # Nothing ever is simple. If the set has too many replicates, the standard
+    # cummeRbund MDSplot() falls down.
     if (replicate_number <= 24) {
-      # Only add text for a sensible number of replicates i.e. less than or
-      # equal to 24.
       ggplot_object <-
-        ggplot_object + geom_text(mapping = aes(
-          x = M1,
-          y = M2,
-          label = names,
-          color = names,
-          size = 4
-        ))
+        MDSplot(object = genes(object = cuff_set),
+                replicates = TRUE)
+      ggsave(
+        filename = plot_path_pdf,
+        plot = ggplot_object,
+        width = argument_list$plot_width,
+        height = argument_list$plot_height
+      )
+      ggsave(
+        filename = plot_path_png,
+        plot = ggplot_object,
+        width = argument_list$plot_width,
+        height = argument_list$plot_height
+      )
+      rm(ggplot_object)
+    } else {
+      # The standard MDSplot has too many replicates.
+      gene_rep_fit <-
+        cmdscale(d = JSdist(mat = makeprobs(a = repFpkmMatrix(
+          object = genes(object = cuff_set)
+        ))),
+        eig = TRUE,
+        k = 2)
+      gene_rep_res <-
+        data.frame(
+          names = rownames(gene_rep_fit$points),
+          M1 = gene_rep_fit$points[, 1],
+          M2 = gene_rep_fit$points[, 2],
+          stringsAsFactors = FALSE
+        )
+      ggplot_object <- ggplot(data = gene_rep_res)
+      ggplot_object <-
+        ggplot_object + theme_bw()  # Add theme black and white.
+      ggplot_object <-
+        ggplot_object + geom_point(mapping = aes(x = M1, y = M2, color = names))  # Draw points in any case.
+      if (replicate_number <= 24) {
+        # Only add text for a sensible number of replicates i.e. less than or
+        # equal to 24.
+        ggplot_object <-
+          ggplot_object + geom_text(mapping = aes(
+            x = M1,
+            y = M2,
+            label = names,
+            color = names,
+            size = 4
+          ))
+      }
+      # Arrange a maximum of 24 replicates in each guide column.
+      ggplot_object <-
+        ggplot_object + guides(color = guide_legend(nrow = 24))
+      # Use the base plot_witdh and add a quarter of the width for each additional guide legend column.
+      plot_width <-
+        argument_list$plot_width + (ceiling(x = replicate_number / 24) - 1) * argument_list$plot_width * 0.25
+      ggsave(
+        filename = plot_path_pdf,
+        plot = ggplot_object,
+        width = plot_width,
+        height = argument_list$plot_height
+      )
+      ggsave(
+        filename = plot_path_png,
+        plot = ggplot_object,
+        width = plot_width,
+        height = argument_list$plot_height
+      )
+      rm(ggplot_object, plot_width, gene_rep_res, gene_rep_fit)
     }
-    # Arrange a maximum of 24 replicates in each guide column.
-    ggplot_object <-
-      ggplot_object + guides(color = guide_legend(nrow = 24))
-    # Use the base plot_witdh and add a quarter of the width for each additional
-    # guide legend column.
-    plot_width <-
-      argument_list$plot_width + (ceiling(x = replicate_number / 24) - 1) * argument_list$plot_width * 0.25
-    ggsave(
-      filename = plot_path_pdf,
-      plot = ggplot_object,
-      width = plot_width,
-      height = argument_list$plot_height
-    )
-    ggsave(
-      filename = plot_path_png,
-      plot = ggplot_object,
-      width = plot_width,
-      height = argument_list$plot_height
-    )
-    rm(ggplot_object, plot_width, gene_rep_res, gene_rep_fit)
   }
-  #  } else {
-  #    message("Skipping Multidimensional Scaling Plot on genes in lack of replicates")
-  #  }
+  rm(plot_path_pdf, plot_path_png)
+} else {
+  message("Skipping Multidimensional Scaling Plot on genes in lack of sufficient samples")
 }
-rm(plot_path_pdf, plot_path_png)
 
 # Create a Principal Component Analysis (PCA) Plot on Genes.
 # TODO: Add also other principal components or even better use plots of the PCA package?
@@ -1285,7 +1288,7 @@ ensembl_transcript_identifiers <-
   character(length = length(x = unique_gene_identifiers))
 for (i in 1:length(x = unique_gene_identifiers)) {
   gene_frame <-
-    ensembl_frame[ensembl_frame$gene_id == unique_gene_identifiers[i], ]
+    ensembl_frame[ensembl_frame$gene_id == unique_gene_identifiers[i],]
   ensembl_gene_identifiers[i] <-
     paste(unique(x = gene_frame$ensembl_gene_id), collapse = ',')
   ensembl_transcript_identifiers[i] <-
@@ -1346,7 +1349,7 @@ rm(isoform_annotation)
 
 # Split the large and unwieldy differential data tables into pairwise comparisons.-
 
-for (i in 1:length(sample_pairs[1, ])) {
+for (i in 1:length(sample_pairs[1,])) {
   frame_path <-
     file.path(
       output_directory,
@@ -1384,7 +1387,7 @@ for (i in 1:length(sample_pairs[1, ])) {
         y = sample_pairs[2, i],
         features = FALSE
       )
-    gene_diff <- gene_diff[, -1]
+    gene_diff <- gene_diff[,-1]
     # Calculate ranks for the effect size (log2_fold_change), absolute level and
     # statistical significance (q_value).
     gene_diff$rank_log2_fold_change <-
@@ -1424,7 +1427,7 @@ for (i in 1:length(sample_pairs[1, ])) {
   rm(frame_path)
 }
 
-for (i in 1:length(sample_pairs[1, ])) {
+for (i in 1:length(sample_pairs[1,])) {
   frame_path <-
     file.path(
       output_directory,
@@ -1459,7 +1462,7 @@ for (i in 1:length(sample_pairs[1, ])) {
     # with the smaller isoform_frame estbalished above. Unfortunately, the
     # 'isoform_id' column appears twice as a consequence of a SQL table join of
     # the 'isoforms' table with the 'isoformsExpDiffData' table. Separate
-    # data.frame columns of the same name interfere with the merge() function, 
+    # data.frame columns of the same name interfere with the merge() function,
     # so that the first column needs removing.
     isoform_diff <-
       diffData(
@@ -1468,7 +1471,7 @@ for (i in 1:length(sample_pairs[1, ])) {
         y = sample_pairs[2, i],
         features = FALSE
       )
-    isoform_diff <- isoform_diff[, -1]
+    isoform_diff <- isoform_diff[,-1]
     # Calculate ranks for the effect size (log2_fold_change), absolute level and statistical significance (q_value).
     isoform_diff$rank_log2_fold_change <-
       rank(
