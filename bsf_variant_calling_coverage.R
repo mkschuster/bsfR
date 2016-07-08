@@ -215,18 +215,52 @@ overlap_ranges <- GRanges(
   end = pmin(
     end(x = overlap_frame$non_callable_ranges),
     end(x = overlap_frame$constrained_ranges)
-  ))
+  )),
+  mapping_status = overlap_frame$name
 )
-summary_frame[i, "non_callable_number_constrained"] <-
+summary_frame[i, "non_callable_number_constrained.TOTAL"] <-
   length(x = overlap_ranges)
-message(paste0("Number of non-callable constrained ranges: ", summary_frame[i, "non_callable_number_constrained"]))
-summary_frame[i, "non_callable_width_constrained"] <-
+message(paste0(
+  "Number of non-callable constrained ranges: ",
+  summary_frame[i, "non_callable_number_constrained.TOTAL"]))
+summary_frame[i, "non_callable_width_constrained.TOTAL"] <-
   sum(width(x = overlap_ranges))
-message(paste0("Cumulative width of non-callable constrained ranges: ", summary_frame[i, "non_callable_width_constrained"]))
-summary_frame[i, "non_callable_constrained_fraction"] <-
-  summary_frame[i, "non_callable_width_constrained"] / summary_frame[i, "target_width_constrained"]
+message(paste0(
+  "Cumulative width of non-callable constrained ranges: ",
+  summary_frame[i, "non_callable_width_constrained.TOTAL"]
+))
+# summary_frame[i, "non_callable_constrained_fraction.TOTAL"] <-
+#   summary_frame[i, "non_callable_width_constrained.TOTAL"] / summary_frame[i, "target_width_constrained"]
 
-rm(overlap_ranges, overlap_frame)
+# Summarise also separately by mapping status.
+# Populate the summary frame with columns for each mapping status level,
+# regardless of whether it is associated with data or not.
+for (level in levels(x = mcols(x = overlap_ranges)$mapping_status)) {
+  summary_frame[i, paste("non_callable_number_constrained", level, sep = ".")] <- 0
+  summary_frame[i, paste("non_callable_width_constrained", level, sep = ".")] <- 0
+}
+rm(level)
+# Count the number of entries for each mapping status level.
+aggregate_frame <-
+  as.data.frame(x = table(mcols(x = overlap_ranges)$mapping_status))
+# Assign the result levels (rows) as summary frame columns.
+for (j in 1:nrow(x = aggregate_frame)) {
+  summary_frame[i, paste("non_callable_number_constrained", aggregate_frame[j, 1], sep = ".")] <-
+    aggregate_frame[j, 2]
+}
+# Sum the widths of entries for each mapping_status level.
+aggregate_frame <-
+  aggregate.data.frame(
+    x = data.frame(width = width(x = overlap_ranges)),
+    by = list(mapping_status = mcols(x = overlap_ranges)$mapping_status),
+    FUN = "sum"
+  )
+# Assign the result levels (rows) as summary frame columns.
+for (j in 1:nrow(x = aggregate_frame)) {
+  summary_frame[i, paste("non_callable_width_constrained", aggregate_frame[j, 1], sep = ".")] <-
+    aggregate_frame[j, 2]
+}
+rm(j, aggregate_frame, overlap_ranges, overlap_frame)
 
 # Annotate the table of non-callable GRanges with target region names if available.
 diagnose_ranges <- NULL

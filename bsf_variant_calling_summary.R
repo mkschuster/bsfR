@@ -29,6 +29,7 @@
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 suppressPackageStartupMessages(expr = library(package = "ggplot2"))
+suppressPackageStartupMessages(expr = library(package = "reshape2"))
 
 # Get command line options, if help option encountered print help and exit,
 # otherwise if options not found on command line then set defaults.
@@ -614,7 +615,7 @@ for (file_name in file_names) {
       stringsAsFactors = FALSE
     )
   
-  # To support numeric sample names the redd.table(stringsAsFactors = FALSE) is turned off.
+  # To support numeric sample names the read.table(stringsAsFactors = FALSE) is turned off.
   # Manually convert the sample_name column into factors, which are handy for plotting.
   non_callable_metrics_sample$sample_name <-
     as.factor(x = non_callable_metrics_sample$sample_name)
@@ -645,14 +646,46 @@ if (!is.null(x = combined_metrics_sample)) {
   
   # Plot the number of non-callable loci per sample.
   message("Plotting the number of non-callable loci per sample")
-  plot_object <-
-    ggplot(data = combined_metrics_sample)
+  plotting_frame <- data.frame(
+    sample_name = combined_metrics_sample$sample_name,
+    target_number_constrained = combined_metrics_sample$target_number_constrained
+  )
+  # Only columns that begin with "^non_callable_number_constrained\." are required, the remainder is the mapping status.
+  column_names <- names(x = combined_metrics_sample)
+  mapping_status <-
+    gsub(pattern = "^non_callable_number_constrained\\.(.*)$",
+         replacement = "\\1",
+         x = column_names)
+  # Extract only those columns which had a match and set the mapping status as their new name.
+  for (i in which(x = grepl(pattern = "^non_callable_number_constrained\\.", x = column_names))) {
+    plotting_frame[, mapping_status[i]] <-
+      combined_metrics_sample[, column_names[i]]
+  }
+  rm(i, mapping_status, column_names)
+  
+  # Now, melt the data frame, but keep sample_name and target_width_constrained as identifiers.
+  plotting_frame <- melt(
+    data = plotting_frame,
+    id.vars = c("sample_name", "target_number_constrained"),
+    variable.name = "mapping_status",
+    value.name = "number"
+  )
+  # Calculate the fractions on the basis of the constrained target number.
+  plotting_frame[, "fraction"] <-
+    plotting_frame$number / plotting_frame$target_number_constrained
+  # For the moment remove lines with "TOTAL".
+  plotting_frame <-
+    plotting_frame[plotting_frame$mapping_status != "TOTAL",]
+  
+  plot_object <- ggplot(data = plotting_frame)
   plot_object <-
     plot_object + ggtitle(label = "Number of Non-Callable Loci per Sample")
   plot_object <-
-    plot_object + geom_point(mapping = aes(x = sample_name, y = non_callable_number_constrained))
-  plot_object <-
-    plot_object + guides(color = guide_legend(nrow = 24))
+    plot_object + geom_point(mapping = aes(x = sample_name, y = number, colour = mapping_status))
+  # plot_object <- plot_object + geom_bar(mapping = aes(x = sample_name, y = number, fill = mapping_status), stat = "identity")
+  # plot_object <- plot_object + geom_text(mapping = aes(x = sample_name, y = number, label = number), size = 3, hjust = 0.5, vjust = 3, position = "stack")
+  # plot_object <-
+  #   plot_object + guides(color = guide_legend(nrow = 24))
   plot_object <-
     plot_object + theme(axis.text.x = element_text(
       angle = -90,
@@ -673,18 +706,51 @@ if (!is.null(x = combined_metrics_sample)) {
     height = argument_list$plot_height,
     limitsize = FALSE
   )
-  rm(plot_object)
+  rm(plot_object, plotting_frame)
   
   # Plot the fraction of non-callable loci per sample.
   message("Plotting the fraction of non-callable loci per sample")
-  plot_object <-
-    ggplot(data = combined_metrics_sample)
+  # Reorganise the combined_metrics_sample data frame for plotting non-callable target widths.
+  plotting_frame <- data.frame(
+    sample_name = combined_metrics_sample$sample_name,
+    target_width_constrained = combined_metrics_sample$target_width_constrained
+  )
+  # Only columns that begin with "^non_callable_width_constrained\." are required, the remainder is the mapping status.
+  column_names <- names(x = combined_metrics_sample)
+  mapping_status <-
+    gsub(pattern = "^non_callable_width_constrained\\.(.*)$",
+         replacement = "\\1",
+         x = column_names)
+  # Extract only those columns which had a match and set the mapping status as their new name.
+  for (i in which(x = grepl(pattern = "^non_callable_width_constrained\\.", x = column_names))) {
+    plotting_frame[, mapping_status[i]] <-
+      combined_metrics_sample[, column_names[i]]
+  }
+  rm(i, mapping_status, column_names)
+  
+  # Now, melt the data frame, but keep sample_name and target_width_constrained as identifiers.
+  plotting_frame <- melt(
+    data = plotting_frame,
+    id.vars = c("sample_name", "target_width_constrained"),
+    variable.name = "mapping_status",
+    value.name = "width"
+  )
+  # Calculate the fractions on the basis of the constrained target width.
+  plotting_frame[, "fraction"] <-
+    plotting_frame$width / plotting_frame$target_width_constrained
+  # For the moment remove lines with "TOTAL".
+  plotting_frame <-
+    plotting_frame[plotting_frame$mapping_status != "TOTAL",]
+  
+  plot_object <- ggplot(data = plotting_frame)
   plot_object <-
     plot_object + ggtitle(label = "Fraction of Non-Callable Loci per Sample")
   plot_object <-
-    plot_object + geom_point(mapping = aes(x = sample_name, y = non_callable_constrained_fraction))
-  plot_object <-
-    plot_object + guides(color = guide_legend(nrow = 24))
+    plot_object + geom_point(mapping = aes(x = sample_name, y = fraction, colour = mapping_status))
+  # plot_object <- plot_object + geom_bar(mapping = aes(x = sample_name, y = fraction, fill = mapping_status), stat = "identity")
+  # plot_object <- plot_object + geom_text(mapping = aes(x = sample_name, y = fraction, label = round(x = fraction, digits = 3)), size = 3, hjust = 0.5, vjust = 3, position = "stack")
+  # plot_object <-
+  #   plot_object + guides(color = guide_legend(nrow = 24))
   plot_object <-
     plot_object + theme(axis.text.x = element_text(
       angle = -90,
@@ -705,7 +771,7 @@ if (!is.null(x = combined_metrics_sample)) {
     height = argument_list$plot_height,
     limitsize = FALSE
   )
-  rm(plot_object)
+  rm(plot_object, plotting_frame)
   
   rm(plot_width_sample)
 }
