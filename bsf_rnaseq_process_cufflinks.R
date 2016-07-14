@@ -506,12 +506,12 @@ if (is.null(x = argument_list$sample)) {
     ggplot_object + geom_point(mapping = aes(
       x = mapped,
       y = mapped / input,
-      color = replicate
+      colour = replicate
     ))
   # Reduce the label font size and the legend key size and allow a maximum of 24
   # guide legend rows.
   ggplot_object <-
-    ggplot_object + guides(color = guide_legend(
+    ggplot_object + guides(colour = guide_legend(
       keywidth = rel(x = 0.8),
       keyheight = rel(x = 0.8),
       nrow = 24

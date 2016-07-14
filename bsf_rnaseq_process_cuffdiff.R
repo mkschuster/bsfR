@@ -1152,7 +1152,7 @@ if (sample_number > 2) {
       ggplot_object <-
         ggplot_object + theme_bw()  # Add theme black and white.
       ggplot_object <-
-        ggplot_object + geom_point(mapping = aes(x = M1, y = M2, color = names))  # Draw points in any case.
+        ggplot_object + geom_point(mapping = aes(x = M1, y = M2, colour = names))  # Draw points in any case.
       if (replicate_number <= 24) {
         # Only add text for a sensible number of replicates i.e. less than or
         # equal to 24.
@@ -1161,13 +1161,13 @@ if (sample_number > 2) {
             x = M1,
             y = M2,
             label = names,
-            color = names
+            colour = names
           ),
           size = 4)
       }
       # Arrange a maximum of 24 replicates in each guide column.
       ggplot_object <-
-        ggplot_object + guides(color = guide_legend(nrow = 24))
+        ggplot_object + guides(colour = guide_legend(nrow = 24))
       # Use the base plot_witdh and add a quarter of the width for each additional guide legend column.
       plot_width <-
         argument_list$plot_width + (ceiling(x = replicate_number / 24) - 1) * argument_list$plot_width * 0.25

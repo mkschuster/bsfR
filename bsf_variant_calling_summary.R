@@ -124,7 +124,7 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_object <-
     plot_object + geom_point(mapping = aes(x = SAMPLE, y = PERCENT_DUPLICATION))
   plot_object <-
-    plot_object + guides(color = guide_legend(nrow = 24))
+    plot_object + guides(colour = guide_legend(nrow = 24))
   ggsave(
     filename = "variant_calling_summary_duplication_sample.png",
     plot = plot_object,
@@ -264,9 +264,9 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_object <-
     plot_object + ggtitle(label = "Aligned Pass-Filter Reads per Sample")
   plot_object <-
-    plot_object + geom_point(mapping = aes(x = CATEGORY, y = PF_READS, color = SAMPLE))
+    plot_object + geom_point(mapping = aes(x = CATEGORY, y = PF_READS, colour = SAMPLE))
   plot_object <-
-    plot_object + guides(color = guide_legend(nrow = 24))
+    plot_object + guides(colour = guide_legend(nrow = 24))
   ggsave(
     filename = "variant_calling_summary_alignment_reads_sample.png",
     plot = plot_object,
@@ -288,9 +288,9 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_object <-
     plot_object + ggtitle(label = "Aligned Pass-Filter Reads per Aliquot")
   plot_object <-
-    plot_object + geom_point(mapping = aes(x = CATEGORY, y = PF_READS, color = ALIQUOT))
+    plot_object + geom_point(mapping = aes(x = CATEGORY, y = PF_READS, colour = ALIQUOT))
   plot_object <-
-    plot_object + guides(color = guide_legend(nrow = 24))
+    plot_object + guides(colour = guide_legend(nrow = 24))
   plot_object <-
     plot_object + theme(legend.text = element_text(size = rel(x = 0.5)))
   ggsave(
@@ -316,9 +316,9 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_object <-
     plot_object + ggtitle(label = "Aligned Pass-Filter Reads per Sample")
   plot_object <-
-    plot_object + geom_point(mapping = aes(x = CATEGORY, y = PCT_PF_READS_ALIGNED, color = SAMPLE))
+    plot_object + geom_point(mapping = aes(x = CATEGORY, y = PCT_PF_READS_ALIGNED, colour = SAMPLE))
   plot_object <-
-    plot_object + guides(color = guide_legend(nrow = 24))
+    plot_object + guides(colour = guide_legend(nrow = 24))
   ggsave(
     filename = "variant_calling_summary_alignment_percentage_sample.png",
     plot = plot_object,
@@ -340,9 +340,9 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_object <-
     plot_object + ggtitle(label = "Aligned Pass-Filter Reads per Aliquot")
   plot_object <-
-    plot_object + geom_point(mapping = aes(x = CATEGORY, y = PCT_PF_READS_ALIGNED, color = ALIQUOT))
+    plot_object + geom_point(mapping = aes(x = CATEGORY, y = PCT_PF_READS_ALIGNED, colour = ALIQUOT))
   plot_object <-
-    plot_object + guides(color = guide_legend(nrow = 24))
+    plot_object + guides(colour = guide_legend(nrow = 24))
   plot_object <-
     plot_object + theme(legend.text = element_text(size = rel(x = 0.5)))
   ggsave(
@@ -475,7 +475,7 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_object <-
     plot_object + geom_point(mapping = aes(x = SAMPLE, y = PCT_PF_UQ_READS))
   plot_object <-
-    plot_object + guides(color = guide_legend(nrow = 24))
+    plot_object + guides(colour = guide_legend(nrow = 24))
   plot_object <-
     plot_object + theme(axis.text.x = element_text(
       angle = -90,
@@ -505,7 +505,7 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_object <-
     plot_object + geom_point(mapping = aes(x = ALIQUOT, y = PCT_PF_UQ_READS))
   plot_object <-
-    plot_object + guides(color = guide_legend(nrow = 24))
+    plot_object + guides(colour = guide_legend(nrow = 24))
   plot_object <-
     plot_object + theme(axis.text.x = element_text(
       angle = -90,
@@ -537,7 +537,7 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_object <-
     plot_object + geom_point(mapping = aes(x = SAMPLE, y = MEAN_TARGET_COVERAGE))
   plot_object <-
-    plot_object + guides(color = guide_legend(nrow = 24))
+    plot_object + guides(colour = guide_legend(nrow = 24))
   plot_object <-
     plot_object + theme(axis.text.x = element_text(
       angle = -90,
@@ -567,7 +567,7 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_object <-
     plot_object + geom_point(mapping = aes(x = ALIQUOT, y = MEAN_TARGET_COVERAGE))
   plot_object <-
-    plot_object + guides(color = guide_legend(nrow = 24))
+    plot_object + guides(colour = guide_legend(nrow = 24))
   plot_object <-
     plot_object + theme(axis.text.x = element_text(
       angle = -90,
@@ -685,7 +685,7 @@ if (!is.null(x = combined_metrics_sample)) {
   # plot_object <- plot_object + geom_bar(mapping = aes(x = sample_name, y = number, fill = mapping_status), stat = "identity")
   # plot_object <- plot_object + geom_text(mapping = aes(x = sample_name, y = number, label = number), size = 3, hjust = 0.5, vjust = 3, position = "stack")
   # plot_object <-
-  #   plot_object + guides(color = guide_legend(nrow = 24))
+  #   plot_object + guides(colour = guide_legend(nrow = 24))
   plot_object <-
     plot_object + theme(axis.text.x = element_text(
       angle = -90,
@@ -750,7 +750,7 @@ if (!is.null(x = combined_metrics_sample)) {
   # plot_object <- plot_object + geom_bar(mapping = aes(x = sample_name, y = fraction, fill = mapping_status), stat = "identity")
   # plot_object <- plot_object + geom_text(mapping = aes(x = sample_name, y = fraction, label = round(x = fraction, digits = 3)), size = 3, hjust = 0.5, vjust = 3, position = "stack")
   # plot_object <-
-  #   plot_object + guides(color = guide_legend(nrow = 24))
+  #   plot_object + guides(colour = guide_legend(nrow = 24))
   plot_object <-
     plot_object + theme(axis.text.x = element_text(
       angle = -90,
