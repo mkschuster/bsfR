@@ -1161,9 +1161,9 @@ if (sample_number > 2) {
             x = M1,
             y = M2,
             label = names,
-            color = names,
-            size = 4
-          ))
+            color = names
+          ),
+          size = 4)
       }
       # Arrange a maximum of 24 replicates in each guide column.
       ggplot_object <-
