@@ -4,7 +4,7 @@
 # package. This script creates a cummeRbund SQLite database, writes a set of QC
 # plots in PDF and PNG format, splits the large and unwieldy differential data
 # tables into pairwise comparisons and creates symbolic links to the original
-# Cuffdiff differential tables.-
+# Cuffdiff differential tables.
 #
 #
 # Copyright 2013 -2015 Michael K. Schuster
@@ -1152,7 +1152,11 @@ if (sample_number > 2) {
       ggplot_object <-
         ggplot_object + theme_bw()  # Add theme black and white.
       ggplot_object <-
-        ggplot_object + geom_point(mapping = aes(x = M1, y = M2, colour = names))  # Draw points in any case.
+        ggplot_object + geom_point(mapping = aes(
+          x = M1,
+          y = M2,
+          colour = names
+        ))  # Draw points in any case.
       if (replicate_number <= 24) {
         # Only add text for a sensible number of replicates i.e. less than or
         # equal to 24.
@@ -1251,7 +1255,7 @@ reference_frame <- unique(
 )
 rm(reference_granges)
 
-# Read the assmbly GTF, which does no longer have information about Ensembl gene
+# Read the assembly GTF, which does no longer have information about Ensembl gene
 # identifiers, as loci may have been merged or split by Cuffmerge.
 message("Read assembled transcriptome information")
 assembly_granges <- import(con = argument_list$gtf_assembly)
@@ -1273,25 +1277,30 @@ ensembl_frame <-
   merge(x = reference_frame, y = assembly_frame, by = "ensembl_transcript_id")
 rm(reference_frame, assembly_frame)
 
-# Annotate Ensembl gene and transcript identifiers as independent,
-# comma-separated lists. Find unique gene (XLOC) identifiers and correlate them
-# with Ensembl gene and transcript identifiers.
+# Create a new Ensembl annotation data frame that correlates gene (XLOC) identifiers
+# with independent, comma-separated lists of Ensembl Gene and Transcript Identifiers.
+# Find unique gene (XLOC) identifiers as the base for the data frame and correlate them
+# with Ensembl Gene and Transcript Identifiers.
 unique_gene_identifiers <- unique(x = ensembl_frame$gene_id)
+ensembl_annotation <-
+  data.frame(
+    gene_id = unique_gene_identifiers,
+    ensembl_gene_id = character(length = length(x = unique_gene_identifiers)),
+    ensembl_transcript_id = character(length = length(unique_gene_identifiers)),
+    stringsAsFactors = FALSE
+  )
+rm(unique_gene_identifiers)
 message(paste(
   "Create Ensembl annotation information for",
-  length(x = unique_gene_identifiers),
+  nrow(x = ensembl_annotation),
   "genes"
 ))
-ensembl_gene_identifiers <-
-  character(length = length(x = unique_gene_identifiers))
-ensembl_transcript_identifiers <-
-  character(length = length(x = unique_gene_identifiers))
-for (i in 1:length(x = unique_gene_identifiers)) {
+for (i in 1:nrow(x = ensembl_annotation)) {
   gene_frame <-
-    ensembl_frame[ensembl_frame$gene_id == unique_gene_identifiers[i],]
-  ensembl_gene_identifiers[i] <-
+    ensembl_frame[ensembl_frame$gene_id == ensembl_annotation$gene_id[i], ]
+  ensembl_annotation$ensembl_gene_id[i] <-
     paste(unique(x = gene_frame$ensembl_gene_id), collapse = ',')
-  ensembl_transcript_identifiers[i] <-
+  ensembl_annotation$ensembl_transcript_id[i] <-
     paste(unique(x = gene_frame$ensembl_transcript_id), collapse = ',')
   rm(gene_frame)
 }
@@ -1309,24 +1318,15 @@ gene_frame <- merge(
     locus = gene_annotation$locus,
     stringsAsFactors = FALSE
   ),
-  # Create a new Ensembl data frame that correlates gene (XLOC) identifiers with
-  # comma-separated lists of Ensembl Gene and Transcript Identifiers.
-  y = data.frame(
-    gene_id = unique_gene_identifiers,
-    ensembl_gene_id = ensembl_gene_identifiers,
-    ensembl_transcript_id = ensembl_transcript_identifiers,
-    stringsAsFactors = FALSE
-  ),
-  # Merge on gene (XLOC) identifiers.
-  by = "gene_id"
+  # Ensembl annotation data frame that correlates gene (XLOC) identifiers with
+  # comma-separated lists of Ensembl Gene and Transcript identifiers.
+  y = ensembl_annotation,
+  # Merge on gene (XLOC) identifiers, but also keep all rows of the gene_annotation frame,
+  # or else, locus information would be lost.
+  by = "gene_id",
+  all.x = TRUE
 )
-
-rm(
-  gene_annotation,
-  unique_gene_identifiers,
-  ensembl_gene_identifiers,
-  ensembl_transcript_identifiers
-)
+rm(ensembl_annotation, gene_annotation)
 
 # Create a new, simpler data frame for isoform annotation ready for merging with
 # other data frames. The CDS_id and coverage fields seem to be empty by design.
@@ -1403,8 +1403,12 @@ for (i in 1:length(sample_pairs[1,])) {
     gene_diff$rank_q_value <-
       rank(x = gene_diff$q_value, ties.method = c("min"))
     # Calculate the rank sum for the three ranks.
-    gene_diff$rank_sum <-
-      gene_diff$rank_log2_fold_change + gene_diff$rank_value + gene_diff$rank_q_value
+    # gene_diff$rank_sum <-
+    #   gene_diff$rank_log2_fold_change + gene_diff$rank_value + gene_diff$rank_q_value
+    # Calculate the maximum rank of value and q-value, as rank_log2_fold_change
+    # is dominated by +/- infinity resulting from genes measured only once.
+    gene_diff$max_rank <-
+      max(gene_diff$rank_value, gene_diff$rank_q_value)
     gene_merge <-
       merge(
         x = gene_frame,
@@ -1486,8 +1490,12 @@ for (i in 1:length(sample_pairs[1,])) {
     isoform_diff$rank_q_value <-
       rank(x = isoform_diff$q_value, ties.method = c("min"))
     # Calculate the rank sum for the three ranks.
-    isoform_diff$rank_sum <-
-      isoform_diff$rank_log2_fold_change + isoform_diff$rank_value + isoform_diff$rank_q_value
+    # isoform_diff$rank_sum <-
+    #   isoform_diff$rank_log2_fold_change + isoform_diff$rank_value + isoform_diff$rank_q_value
+    # Calculate the maximum rank of value and q-value, as rank_log2_fold_change
+    # is dominated by +/- infinity resulting from genes measured only once.
+    isoform_diff$max_rank <-
+      max(isoform_diff$rank_value, isoform_diff$rank_q_value)
     isoform_merge <-
       merge(
         x = isoform_frame,
