@@ -33,6 +33,18 @@ suppressPackageStartupMessages(expr = library(package = "cummeRbund"))
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
 
+
+#' Apply unique() and sort(), before collapsing a character vector
+#' into a single element, comma-separated value.
+#'
+#' @param x: Character vector
+#' @return: Single element character vector of comma-sepatated values
+
+character_to_csv <- function(x) {
+  return(paste(sort(x = unique(x = x)), collapse = ","))
+}
+
+
 # Get command line options, if help option encountered print help and exit,
 # otherwise if options not found on command line then set defaults.
 
@@ -109,16 +121,18 @@ output_directory <-
 
 prefix <- output_directory
 
-# Read and index Cuffdiff output and create a CuffSet object. The CuffSet object
-# has slots genes, isoforms, TSS and CDS that are each instances of the CuffData
-# class. By default, CuffData accessor methods applied to a CuffSet class will
-# operate on the ’genes’ slot.
+# Read and index Cuffdiff output and create a CuffSet object.
+# Load also the GTF file assembled by Cuffmerge, which fulfills foreign
+# key constraints between the "features", "genes" and "isoforms" SQL tables.
+# The CuffSet object has slots "genes", "isoforms", "TSS" and "CDS" that each
+# are instances of the CuffData class. By default, CuffData accessor methods
+# applied to a CuffSet class will operate on the "genes" slot.
 
-message("Create or load the cummeRbund database")
+message("Creating or loading a cummeRbund database")
 cuff_set <-
   readCufflinks(
     dir = cuffdiff_directory,
-    gtfFile = argument_list$gtf_reference,
+    gtfFile = argument_list$gtf_assembly,
     genome = argument_list$genome_version
   )
 
@@ -135,9 +149,9 @@ if (!file.exists(output_directory)) {
 frame_path <-
   file.path(output_directory, paste0(prefix, "_run_information.tsv"))
 if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
-  message("Skipping run information table")
+  message("Skipping a run information table")
 } else {
-  message("Creating run information table")
+  message("Creating a run information table")
   write.table(
     x = runInfo(object = cuff_set),
     file = frame_path,
@@ -158,9 +172,9 @@ sample_number <- nrow(x = sample_frame)
 frame_path <-
   file.path(output_directory, paste0(prefix, "_samples.tsv"))
 if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
-  message("Skipping sample table")
+  message("Skipping a sample table")
 } else {
-  message("Creating sample table")
+  message("Creating a sample table")
   write.table(
     x = sample_frame,
     file = frame_path,
@@ -178,9 +192,9 @@ sample_pairs <- combn(x = sample_frame$sample_name, m = 2)
 frame_path <-
   file.path(output_directory, paste0(prefix, "_sample_pairs.tsv"))
 if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
-  message("Skipping sample pairs table")
+  message("Skipping a sample pairs table")
 } else {
-  message("Create sample pairs table")
+  message("Creating a sample pairs table")
   write.table(
     x = aperm(a = sample_pairs),
     file = frame_path,
@@ -200,14 +214,14 @@ replicate_number <- nrow(x = replicate_frame)
 # Some plots require replicates. Check whether at least one row has a replicate
 # column value greater than 0.
 have_replicates <-
-  (nrow(x = replicate_frame[replicate_frame$replicate > 0,]) > 0)
+  (nrow(x = replicate_frame[replicate_frame$replicate > 0, ]) > 0)
 # Write the replicate_frame.
 frame_path <-
   file.path(output_directory, paste0(prefix, "_replicates.tsv"))
 if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
-  message("Skipping replicate table")
+  message("Skipping a replicate table")
 } else {
-  message("Creating replicate table")
+  message("Creating a replicate table")
   write.table(
     x = replicate_frame,
     file = frame_path,
@@ -255,7 +269,7 @@ rm(plot_path_pdf, plot_path_png, replicate_frame)
 
 # Create a set of QC plots.
 
-message("Started QC plotting")
+message("Starting QC plotting")
 
 # Create a Dispersion Plot on Genes.
 
@@ -299,7 +313,7 @@ if (file.exists(plot_path_pdf) &&
     (file.info(plot_path_png)$size > 0)) {
   message("Skipping a Dispersion Plot on Isoforms")
 } else {
-  message("Creating Dispersion Plot on Isoforms")
+  message("Creating a Dispersion Plot on Isoforms")
   tryCatch({
     ggplot_object <-
       dispersionPlot(object = isoforms(object = cuff_set))
@@ -833,7 +847,7 @@ if (sample_number <= 20) {
 
 # Create a Scatter Plot on Genes for each sample pair.
 
-for (i in 1:length(sample_pairs[1,])) {
+for (i in 1:length(sample_pairs[1, ])) {
   plot_path_pdf <-
     file.path(
       output_directory,
@@ -935,7 +949,7 @@ rm(plot_path_png)
 
 # Create a MA Plot on genes for each sample pair based on FPKM values.
 
-for (i in 1:length(sample_pairs[1,])) {
+for (i in 1:length(sample_pairs[1, ])) {
   plot_path_pdf <-
     file.path(
       output_directory,
@@ -1021,7 +1035,7 @@ rm(plot_path_pdf, plot_path_png)
 
 # Create a Volcano Plot on genes for each sample pair.
 
-for (i in 1:length(sample_pairs[1,])) {
+for (i in 1:length(sample_pairs[1, ])) {
   plot_path_pdf <-
     file.path(
       output_directory,
@@ -1067,7 +1081,7 @@ for (i in 1:length(sample_pairs[1,])) {
     )
     # FIXME: The definition of the generic function "csVolcano" does not include
     # the "alpha" and "showSignificant" options, although the function
-    # definition contains them. It doesn not seem that the option defaults are used.
+    # definition contains them. It does not seem that the option defaults are used.
     # In R/methods-CuffData.R:
     # .volcano<-function(object,x,y,alpha=0.05,showSignificant=TRUE,features=FALSE,xlimits=c(-20,20),...)
     # setMethod("csVolcano",signature(object="CuffData"), .volcano)
@@ -1143,9 +1157,9 @@ if (sample_number > 2) {
         k = 2)
       gene_rep_res <-
         data.frame(
-          names = rownames(gene_rep_fit$points),
-          M1 = gene_rep_fit$points[, 1],
-          M2 = gene_rep_fit$points[, 2],
+          "names" = rownames(gene_rep_fit$points),
+          "M1" = gene_rep_fit$points[, 1],
+          "M2" = gene_rep_fit$points[, 2],
           stringsAsFactors = FALSE
         )
       ggplot_object <- ggplot(data = gene_rep_res)
@@ -1234,122 +1248,146 @@ rm(plot_path_pdf, plot_path_png)
 
 # Finished plotting.
 
-message("Finished QC plotting")
+message("Finishing QC plotting")
 
 # TODO: Process gene and isoform sets and lists. Feature-level information can
 # be accessed directly from a CuffData object using the fpkm, repFpkm, count,
 # diffData, or annotation methods.
 
-# Unfortunately, there does not seem to be a simple way to correlate XLOC and
-# Ensembl gene identifiers within cummeRbund. Read the reference GTF to
-# correlate Ensembl gene and transcript identifiers, as well as official gene
-# symbols.
-message("Read reference transcriptome information")
+# Unfortunately, cummeRbund does not seem to offer a convenient way to correlate
+# Cufflinks (XLOC) gene identifiers with the original Ensembl (ENSG) gene identifiers.
+# Thus, the following steps are neccessary:
+#
+# 1. Read the reference GTF to correlate Ensembl (ENSG) gene and (ENST) transcript
+# identifiers, as well as official gene symbols.
+message("Reading reference transcriptome annotation")
 reference_granges <- import(con = argument_list$gtf_reference)
-reference_frame <- unique(
+reference_frame <- unique.data.frame(
   x = data.frame(
-    ensembl_gene_id = reference_granges$gene_id,
-    ensembl_transcript_id = reference_granges$transcript_id,
-    stringsAsFactors = FALSE
+    "ensembl_gene_id" = reference_granges$gene_id,
+    "ensembl_transcript_id" = reference_granges$transcript_id,
+    # "gene_name" = reference_granges$gene_name,
+    stringsAsFactors = TRUE
   )
 )
 rm(reference_granges)
 
-# Read the assembly GTF, which does no longer have information about Ensembl gene
-# identifiers, as loci may have been merged or split by Cuffmerge.
-message("Read assembled transcriptome information")
+# 2. Read the assembly GTF, which specifies Cufflinks (XLOC) gene and
+# Cufflinks (TCONS) transcript identifiers, but does no longer provide information
+# about Ensembl (ENSG) gene identifiers. Reference transcriptome loci may have been
+# merged or split by Cuffmerge.
+message("Reading assembled transcriptome annotation")
 assembly_granges <- import(con = argument_list$gtf_assembly)
-assembly_frame <- unique(
+assembly_frame <- unique.data.frame(
   x = data.frame(
-    gene_id = assembly_granges$gene_id,
-    transcript_id = assembly_granges$transcript_id,
-    gene_name = assembly_granges$gene_name,
-    ensembl_transcript_id = assembly_granges$nearest_ref,
-    stringsAsFactors = FALSE
+    "gene_id" = assembly_granges$gene_id,
+    "transcript_id" = assembly_granges$transcript_id,
+    "gene_name" = assembly_granges$gene_name,
+    "ensembl_transcript_id" = assembly_granges$nearest_ref,
+    stringsAsFactors = TRUE
   )
 )
 rm(assembly_granges)
 
-# Join the reference and assembly data frames to complement Ensembl gene
-# identifiers.
-message("Merge reference and assembled annotation information")
+# 3. Join the reference and assembly data frames to correlate
+# Cufflinks (XLOC) gene identifiers with Ensembl (ENSG) gene identifiers
+# via Ensembl (ENST) transcript identifiers.
+message("Merging reference and assembled transcriptome annotation")
 ensembl_frame <-
-  merge(x = reference_frame, y = assembly_frame, by = "ensembl_transcript_id")
+  merge(x = assembly_frame,
+        y = reference_frame,
+        by = "ensembl_transcript_id",
+        # Keep all XLOC entries.
+        all.x = TRUE)
 rm(reference_frame, assembly_frame)
 
-# Create a new Ensembl annotation data frame that correlates gene (XLOC) identifiers
-# with independent, comma-separated lists of Ensembl Gene and Transcript Identifiers.
-# Find unique gene (XLOC) identifiers as the base for the data frame and correlate them
-# with Ensembl Gene and Transcript Identifiers.
-unique_gene_identifiers <- unique(x = ensembl_frame$gene_id)
+# 4. Create a new, normalised Ensembl annotation data frame that correlates
+# each Cufflinks (XLOC) gene identifier with comma-separated lists of one or
+# more Ensembl (ENSG) gene and Ensembl (ENST) transcript identifiers.
+message("Aggregating Ensembl annotation by gene_id")
+aggregate_frame <-
+  aggregate.data.frame(x = ensembl_frame,
+                       by = list(ensembl_frame$gene_id),
+                       FUN = paste)
+rm(ensembl_frame)
+# The aggregate frame consists of list objects of character vectors
+# with one or more elements aggregated in each group.
+# For each character vector, the character_to_csv() function finds unique elements
+# and sorts them, before collapsing them into a single, comma-separated value.
+message("Collapsing aggregated Ensembl annotation")
 ensembl_annotation <-
   data.frame(
-    gene_id = unique_gene_identifiers,
-    ensembl_gene_id = character(length = length(x = unique_gene_identifiers)),
-    ensembl_transcript_id = character(length = length(unique_gene_identifiers)),
+    "gene_id" = unlist(x = lapply(X = aggregate_frame$gene_id, FUN = character_to_csv)),
+    "transcript_ids" = unlist(x = lapply(
+      X = aggregate_frame$transcript_id, FUN = character_to_csv
+    )),
+    # "gene_names" = unlist(x = lapply(X = aggregate_frame$gene_name, FUN = character_to_csv)),
+    "ensembl_gene_ids" = unlist(x = lapply(
+      X = aggregate_frame$ensembl_gene_id, FUN = character_to_csv
+    )),
+    "ensembl_transcript_ids" = unlist(
+      x = lapply(X = aggregate_frame$ensembl_transcript_id, FUN = character_to_csv)
+    ),
     stringsAsFactors = FALSE
   )
-rm(unique_gene_identifiers)
-message(paste(
-  "Create Ensembl annotation information for",
-  nrow(x = ensembl_annotation),
-  "genes"
-))
-for (i in 1:nrow(x = ensembl_annotation)) {
-  gene_frame <-
-    ensembl_frame[ensembl_frame$gene_id == ensembl_annotation$gene_id[i], ]
-  ensembl_annotation$ensembl_gene_id[i] <-
-    paste(unique(x = gene_frame$ensembl_gene_id), collapse = ',')
-  ensembl_annotation$ensembl_transcript_id[i] <-
-    paste(unique(x = gene_frame$ensembl_transcript_id), collapse = ',')
-  rm(gene_frame)
-}
-rm(ensembl_frame)
+rm(aggregate_frame)
 
-message("Create gene annotation information")
+# 5. Create a gene annotation frame, ready for enriching
+# cummeRbund gene information, by merging the "gene_id", "gene_short_name" and
+# "locus" fields of the gene annotation frame with the "transcript_ids",
+# "ensembl_gene_ids" and "ensembl_transcript_ids" of the Ensembl annotation frame.
+message("Creating gene annotation information")
 gene_annotation <- annotation(object = genes(object = cuff_set))
 gene_frame <- merge(
-  # Create a new, simpler data frame for gene annotation ready for merging with
-  # other data frames. The class_code, nearest_ref_id, length and coverage
-  # fields seem to be empty by design.
-  x = data.frame(
-    gene_id = gene_annotation$gene_id,
-    gene_short_name = gene_annotation$gene_short_name,
-    locus = gene_annotation$locus,
-    stringsAsFactors = FALSE
+  # Merge with a simplified cummeRbund gene annotation data frame, since fields
+  # "class_code", "nearest_ref_id", "length" and "coverage" seem empty by design.
+  # Remove hidden exon information by finding unique rows only.
+  x = unique.data.frame(
+    x = data.frame(
+      "gene_id" = gene_annotation$gene_id,
+      "gene_short_name" = gene_annotation$gene_short_name,
+      "locus" = gene_annotation$locus,
+      stringsAsFactors = FALSE
+    )
   ),
-  # Ensembl annotation data frame that correlates gene (XLOC) identifiers with
-  # comma-separated lists of Ensembl Gene and Transcript identifiers.
+  # Merge with the Ensembl annotation data frame that correlates gene (XLOC)
+  # identifiers with comma-separated lists of Ensembl Gene and Transcript
+  # identifiers.
   y = ensembl_annotation,
-  # Merge on gene (XLOC) identifiers, but also keep all rows of the gene_annotation frame,
-  # or else, locus information would be lost.
+  # Merge on gene (XLOC) identifiers, but also keep all rows of the
+  # gene_annotation frame, or else, locus information would be lost.
   by = "gene_id",
   all.x = TRUE
 )
 rm(ensembl_annotation, gene_annotation)
 
-# Create a new, simpler data frame for isoform annotation ready for merging with
-# other data frames. The CDS_id and coverage fields seem to be empty by design.
+# 6. Create an isoform annotation data frame, ready for enriching
+# cummeRbund isoform information.
+# Simplify the cummeRbund isoform annotation data frame, since fields
+# "CDS_id" and "coverage" seem empty by design.
+# Remove hidden exon information by finding unique rows only.
 
-message("Create isoform annotation information")
+message("Creating isoform annotation information")
 isoform_annotation <-
   annotation(object = isoforms(object = cuff_set))
-isoform_frame <- data.frame(
-  isoform_id = isoform_annotation$isoform_id,
-  gene_id = isoform_annotation$gene_id,
-  gene_short_name = isoform_annotation$gene_short_name,
-  TSS_group_id = isoform_annotation$TSS_group_id,
-  class_code = isoform_annotation$class_code,
-  nearest_ref_id = isoform_annotation$nearest_ref_id,
-  locus = isoform_annotation$locus,
-  length = isoform_annotation$length,
-  stringsAsFactors = FALSE
+isoform_frame <- unique.data.frame(
+  x = data.frame(
+    "isoform_id" = isoform_annotation$isoform_id,
+    "gene_id" = isoform_annotation$gene_id,
+    "gene_short_name" = isoform_annotation$gene_short_name,
+    "TSS_group_id" = isoform_annotation$TSS_group_id,
+    "class_code" = isoform_annotation$class_code,
+    "nearest_ref_id" = isoform_annotation$nearest_ref_id,
+    "locus" = isoform_annotation$locus,
+    "length" = isoform_annotation$length,
+    stringsAsFactors = FALSE
+  )
 )
 rm(isoform_annotation)
 
 # Split the large and unwieldy differential data tables into pairwise comparisons.-
 
-for (i in 1:length(sample_pairs[1,])) {
+for (i in 1:length(sample_pairs[1, ])) {
   frame_path <-
     file.path(
       output_directory,
@@ -1376,8 +1414,8 @@ for (i in 1:length(sample_pairs[1,])) {
     # The diffData function allows automatic merging with feature annotation,
     # but that includes some empty columns. For cleaner result tables, merge
     # with the smaller gene_frame established above. Unfortunately, the
-    # 'gene_id' column appears twice as a consequence of a SQL table join of the
-    # 'genes' table with the 'geneExpDiffData' table. Separate data.frame
+    # "gene_id" column appears twice as a consequence of a SQL table join of the
+    # "genes" table with the "geneExpDiffData" table. Separate data.frame
     # columns of the same name interfere with the merge() function, so that the
     # first column needs removing.
     gene_diff <-
@@ -1387,7 +1425,7 @@ for (i in 1:length(sample_pairs[1,])) {
         y = sample_pairs[2, i],
         features = FALSE
       )
-    gene_diff <- gene_diff[,-1]
+    gene_diff <- gene_diff[, -1]
     # Calculate ranks for the effect size (log2_fold_change), absolute level and
     # statistical significance (q_value).
     gene_diff$rank_log2_fold_change <-
@@ -1431,7 +1469,7 @@ for (i in 1:length(sample_pairs[1,])) {
   rm(frame_path)
 }
 
-for (i in 1:length(sample_pairs[1,])) {
+for (i in 1:length(sample_pairs[1, ])) {
   frame_path <-
     file.path(
       output_directory,
@@ -1464,8 +1502,8 @@ for (i in 1:length(sample_pairs[1,])) {
     # The diffData function allows automatic merging with feature annotation,
     # but that includes some empty columns. For cleaner result tables, merge
     # with the smaller isoform_frame estbalished above. Unfortunately, the
-    # 'isoform_id' column appears twice as a consequence of a SQL table join of
-    # the 'isoforms' table with the 'isoformsExpDiffData' table. Separate
+    # "isoform_id" column appears twice as a consequence of a SQL table join of
+    # the "isoforms" table with the "isoformsExpDiffData" table. Separate
     # data.frame columns of the same name interfere with the merge() function,
     # so that the first column needs removing.
     isoform_diff <-
@@ -1475,7 +1513,7 @@ for (i in 1:length(sample_pairs[1,])) {
         y = sample_pairs[2, i],
         features = FALSE
       )
-    isoform_diff <- isoform_diff[,-1]
+    isoform_diff <- isoform_diff[, -1]
     # Calculate ranks for the effect size (log2_fold_change), absolute level and statistical significance (q_value).
     isoform_diff$rank_log2_fold_change <-
       rank(
@@ -1660,7 +1698,7 @@ if (file.exists(plot_path_pdf) &&
     (file.info(plot_path_png)$size > 0)) {
   message("Skipping a significance matrix plot on Genes")
 } else {
-  message("Creating a a significance matrix plot on Genes")
+  message("Creating a significance matrix plot on Genes")
   ggplot_object <- sigMatrix(object = cuff_set, level = "genes")
   ggsave(
     filename = plot_path_pdf,
@@ -1690,7 +1728,7 @@ if (file.exists(plot_path_pdf) &&
     (file.info(plot_path_png)$size > 0)) {
   message("Skipping a significance matrix plot on Isoforms")
 } else {
-  message("Creating a a significance matrix plot on Isoforms")
+  message("Creating a significance matrix plot on Isoforms")
   ggplot_object <- sigMatrix(object = cuff_set, level = "isoforms")
   ggsave(
     filename = plot_path_pdf,
@@ -1726,7 +1764,7 @@ rm(gene_frame, isoform_frame)
 # results in the rnaseq_process_cuffdiff_* directory to avoid identical file
 # names between comparisons.
 
-message("Started creating symbolic links to cuffdiff results")
+message("Starting symbolic linking to cuffdiff results")
 
 link_path <-
   file.path(output_directory, paste0(prefix, "_cds_exp_diff.tsv"))
@@ -1788,7 +1826,7 @@ if (!file.exists(link_path)) {
 }
 rm(link_path)
 
-message("Finished creating symbolic links to cuffdiff results")
+message("Finishing symbolic linking to cuffdiff results")
 
 rm(
   cuff_set,
@@ -1800,7 +1838,8 @@ rm(
   have_replicates,
   prefix,
   i,
-  argument_list
+  argument_list,
+  character_to_csv
 )
 
 message("All done")
