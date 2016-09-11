@@ -235,7 +235,8 @@ message(paste0(
 # Summarise also separately by mapping status.
 # Populate the summary frame with columns for each mapping status level,
 # regardless of whether it is associated with data or not.
-for (level in levels(x = mcols(x = overlap_ranges)$mapping_status)) {
+# Use fixed mapping status levels emitted by GATK CallableLoci.
+for (level in c("REF_N", "NO_COVERAGE", "LOW_COVERAGE", "EXCESSIVE_COVERAGE", "POOR_MAPPING_QUALITY")) {
   summary_frame[i, paste("non_callable_number_constrained", level, sep = ".")] <- 0
   summary_frame[i, paste("non_callable_width_constrained", level, sep = ".")] <- 0
 }
