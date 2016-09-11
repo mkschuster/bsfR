@@ -104,6 +104,10 @@ for (file_name in file_names) {
 rm(file_name, file_names)
 
 if (!is.null(x = combined_metrics_sample)) {
+  # Convert the sample_name column into factors, which come more handy for plotting.
+  combined_metrics_sample$SAMPLE <-
+    as.factor(x = combined_metrics_sample$SAMPLE)
+  
   write.table(
     x = combined_metrics_sample,
     file = "variant_calling_summary_duplication.tsv",
@@ -125,6 +129,12 @@ if (!is.null(x = combined_metrics_sample)) {
     plot_object + geom_point(mapping = aes(x = SAMPLE, y = PERCENT_DUPLICATION))
   plot_object <-
     plot_object + guides(colour = guide_legend(nrow = 24))
+  plot_object <-
+    plot_object + theme(axis.text.x = element_text(
+      angle = -90,
+      hjust = 0,
+      size = rel(x = 0.8)
+    ))
   ggsave(
     filename = "variant_calling_summary_duplication_sample.png",
     plot = plot_object,
@@ -597,40 +607,110 @@ rm(combined_metrics_aliquot, combined_metrics_sample)
 # Process non-callable summary reports.
 
 message("Processing non-callable summary reports for sample:")
-combined_metrics_sample <- NULL
 
-file_names <-
-  list.files(pattern = "variant_calling_diagnose_sample_.*_non_callable_summary.tsv")
-for (file_name in file_names) {
+# Initialise a data frame with all possible columns and rows at once.
+combined_metrics_sample <- data.frame(
+  row.names = list.files(pattern = "variant_calling_diagnose_sample_.*_non_callable_summary.tsv")
+)
+combined_metrics_sample$file_name <-
+  row.names(x = combined_metrics_sample)
+combined_metrics_sample$exon_path <-
+  character(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample$exon_number <-
+  integer(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample$exon_width <-
+  integer(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample$transcribed_number <-
+  integer(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample$transcribed_width <-
+  integer(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample$target_path <-
+  character(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample$target_number_raw <-
+  integer(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample$target_width_raw <-
+  integer(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample$target_number_constrained <-
+  integer(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample$target_width_constrained <-
+  integer(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample$callable_loci_path <-
+  character(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample$sample_name <-
+  character(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample$non_callable_number_raw <-
+  integer(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample$non_callable_width_raw <-
+  integer(length = nrow(x = combined_metrics_sample))
+for (level in c(
+  "REF_N",
+  # "PASS" according to documentation, but should be "CALLABLE" in practice
+  "NO_COVERAGE",
+  "LOW_COVERAGE",
+  "EXCESSIVE_COVERAGE",
+  "POOR_MAPPING_QUALITY"
+)) {
+  combined_metrics_sample[, paste("non_callable_number_constrained", level, sep = ".")] <-
+    integer(length = nrow(x = combined_metrics_sample))
+  combined_metrics_sample[, paste("non_callable_width_constrained", level, sep = ".")] <-
+    integer(length = nrow(x = combined_metrics_sample))
+}
+rm(level)
+
+for (i in 1:nrow(x = combined_metrics_sample)) {
   sample_name <-
-    gsub(pattern = "variant_calling_diagnose_sample_(.*?)_non_callble_summary.tsv",
+    gsub(pattern = "variant_calling_diagnose_sample_(.*?)_non_callable_summary.tsv",
          replacement = "\\1",
-         x = file_name)
+         x = combined_metrics_sample[i, "file_name"])
   message(paste0("  ", sample_name))
   non_callable_metrics_sample <-
-    read.table(
-      file = file_name,
-      header = TRUE,
-      sep = "\t",
-      stringsAsFactors = FALSE
-    )
-  
-  # To support numeric sample names the read.table(stringsAsFactors = FALSE) is turned off.
-  # Manually convert the sample_name column into factors, which are handy for plotting.
-  non_callable_metrics_sample$sample_name <-
-    as.factor(x = non_callable_metrics_sample$sample_name)
-  
-  if (is.null(x = combined_metrics_sample)) {
-    combined_metrics_sample <- non_callable_metrics_sample
-  } else {
-    combined_metrics_sample <-
-      rbind(combined_metrics_sample, non_callable_metrics_sample)
+    read.table(file = combined_metrics_sample[i, "file_name"],
+               header = TRUE,
+               # colClasses = c(
+               #   "exon_path" = "character",
+               #   "exon_number" = "integer",
+               #   "exon_width" = "integer",
+               #   "transcribed_number" = "integer",
+               #   "transcribed_width" = "integer",
+               #   "target_path" = "character",
+               #   "target_number_raw" = "integer",
+               #   "target_width_raw" = "integer",
+               #   "target_number_constrained" = "integer",
+               #   "target_width_constrained" = "integer",
+               #   "callable_loci_path" = "character",
+               #   "sample_name" = "factor",
+               #   "non_callable_number_raw" = "integer",
+               #   "non_callable_width_raw" = "integer",
+               #   "non_callable_number_constrained.TOTAL" = "integer",
+               #   "non_callable_width_constrained.TOTAL" = "integer",
+               #   "non_callable_number_constrained.LOW_COVERAGE" = "integer",
+               #   "non_callable_width_constrained.LOW_COVERAGE" = "integer",
+               #   "non_callable_number_constrained.NO_COVERAGE" = "integer",
+               #   "non_callable_width_constrained.NO_COVERAGE" = "integer",
+               #   "non_callable_number_constrained.POOR_MAPPING_QUALITY" = "integer",
+               #   "non_callable_width_constrained.POOR_MAPPING_QUALITY" = "integer",
+               #   "non_callable_number_constrained.REF_N" = "integer",
+               #   "non_callable_width_constrained.REF_N" = "integer"
+               # )
+               # To support numeric sample names the read.table(stringsAsFactors = FALSE) is turned off.
+               stringsAsFactors = FALSE)
+  for (column_name in names(x = combined_metrics_sample)) {
+    if (column_name %in% names(x = non_callable_metrics_sample)) {
+      combined_metrics_sample[i, column_name] <- non_callable_metrics_sample[[1, column_name]]
+    } else {
+      combined_metrics_sample[i, column_name] <- NA
+    }
   }
-  rm(sample_name, non_callable_metrics_sample)
+  rm(column_name, non_callable_metrics_sample, sample_name)
 }
-rm(file_name, file_names)
+rm(i)
 
-if (!is.null(x = combined_metrics_sample)) {
+if (nrow(x = combined_metrics_sample) > 0) {
+  # To support numeric sample names the read.table(stringsAsFactors = FALSE) is turned off.
+  # Convert the sample_name column into factors, which come more handy for plotting.
+  combined_metrics_sample$sample_name <-
+    as.factor(x = combined_metrics_sample$sample_name)
+  
   # Adjust the plot width according to batches of 24 samples or aliquots.
   plot_width_sample <- argument_list$plot_width + (ceiling(x = (
     nlevels(x = combined_metrics_sample$sample_name) / 24
@@ -682,10 +762,6 @@ if (!is.null(x = combined_metrics_sample)) {
     plot_object + ggtitle(label = "Number of Non-Callable Loci per Sample")
   plot_object <-
     plot_object + geom_point(mapping = aes(x = sample_name, y = number, colour = mapping_status))
-  # plot_object <- plot_object + geom_bar(mapping = aes(x = sample_name, y = number, fill = mapping_status), stat = "identity")
-  # plot_object <- plot_object + geom_text(mapping = aes(x = sample_name, y = number, label = number), size = 3, hjust = 0.5, vjust = 3, position = "stack")
-  # plot_object <-
-  #   plot_object + guides(colour = guide_legend(nrow = 24))
   plot_object <-
     plot_object + theme(axis.text.x = element_text(
       angle = -90,
@@ -747,10 +823,6 @@ if (!is.null(x = combined_metrics_sample)) {
     plot_object + ggtitle(label = "Fraction of Non-Callable Loci per Sample")
   plot_object <-
     plot_object + geom_point(mapping = aes(x = sample_name, y = fraction, colour = mapping_status))
-  # plot_object <- plot_object + geom_bar(mapping = aes(x = sample_name, y = fraction, fill = mapping_status), stat = "identity")
-  # plot_object <- plot_object + geom_text(mapping = aes(x = sample_name, y = fraction, label = round(x = fraction, digits = 3)), size = 3, hjust = 0.5, vjust = 3, position = "stack")
-  # plot_object <-
-  #   plot_object + guides(colour = guide_legend(nrow = 24))
   plot_object <-
     plot_object + theme(axis.text.x = element_text(
       angle = -90,
