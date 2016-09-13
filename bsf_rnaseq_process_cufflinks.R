@@ -556,6 +556,7 @@ rm(file_path)
 
 # Alignment summary plot.
 ggplot_object <- ggplot(data = summary_frame)
+ggplot_object <- ggplot_object + ggtitle(label = "TopHat Alignment Summary")
 ggplot_object <-
   ggplot_object + geom_point(mapping = aes(
     x = mapped,
