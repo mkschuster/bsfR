@@ -193,7 +193,7 @@ for (file_name in file_names) {
     picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
                            (picard_metrics_total$SAMPLE != "") &
                            (picard_metrics_total$LIBRARY == "") &
-                           (picard_metrics_total$READ_GROUP == ""),]
+                           (picard_metrics_total$READ_GROUP == ""), ]
   if (is.null(x = combined_metrics_sample)) {
     combined_metrics_sample <- picard_metrics_sample
   } else {
@@ -204,7 +204,7 @@ for (file_name in file_names) {
   
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP information.
   picard_metrics_aliquot <-
-    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
+    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""), ]
   if (is.null(x = combined_metrics_aliquot)) {
     combined_metrics_aliquot <- picard_metrics_aliquot
   } else {
@@ -396,7 +396,7 @@ for (file_name in file_names) {
       sep = "\t",
       stringsAsFactors = FALSE
     )
-  # To support numeric sample names the redd.table(stringsAsFactors = FALSE) is turned off.
+  # To support numeric sample names the read.table(stringsAsFactors = FALSE) is turned off.
   # Manually convert BAIT_SET, SAMPLE, LIBRARY and READ_GROUP columns into factors, which are handy for plotting.
   picard_metrics_total$BAIT_SET <-
     as.factor(x = picard_metrics_total$BAIT_SET)
@@ -415,7 +415,7 @@ for (file_name in file_names) {
     picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
                            (picard_metrics_total$SAMPLE != "") &
                            (picard_metrics_total$LIBRARY == "") &
-                           (picard_metrics_total$READ_GROUP == ""),]
+                           (picard_metrics_total$READ_GROUP == ""), ]
   if (is.null(x = combined_metrics_sample)) {
     combined_metrics_sample <- picard_metrics_sample
   } else {
@@ -426,7 +426,7 @@ for (file_name in file_names) {
   
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP information.
   picard_metrics_aliquot <-
-    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
+    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""), ]
   if (is.null(x = combined_metrics_aliquot)) {
     combined_metrics_aliquot <- picard_metrics_aliquot
   } else {
@@ -513,7 +513,7 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_object <-
     plot_object + ggtitle(label = "Unique Pass-Filter Reads per Aliquot")
   plot_object <-
-    plot_object + geom_point(mapping = aes(x = ALIQUOT, y = PCT_PF_UQ_READS))
+    plot_object + geom_point(mapping = aes(x = ALIQUOT, y = PCT_PF_UQ_READS, shape = BAIT_SET))
   plot_object <-
     plot_object + guides(colour = guide_legend(nrow = 24))
   plot_object <-
@@ -575,7 +575,7 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_object <-
     plot_object + ggtitle(label = "Mean Target Coverage per Aliquot")
   plot_object <-
-    plot_object + geom_point(mapping = aes(x = ALIQUOT, y = MEAN_TARGET_COVERAGE))
+    plot_object + geom_point(mapping = aes(x = ALIQUOT, y = MEAN_TARGET_COVERAGE, shape = BAIT_SET))
   plot_object <-
     plot_object + guides(colour = guide_legend(nrow = 24))
   plot_object <-
@@ -599,6 +599,107 @@ if (!is.null(x = combined_metrics_sample)) {
     limitsize = FALSE
   )
   rm(plot_object)
+  
+  # Plot PCT_TARGET_BASES_2X, PCT_TARGET_BASES_10X, PCT_TARGET_BASES_20X, PCT_TARGET_BASES_30X,
+  # PCT_TARGET_BASES_40X, PCT_TARGET_BASES_50X, PCT_TARGET_BASES_100X per sample.
+  # TODO: Newer Picard tools versions seem to have an additional PCT_TARGET_BASES_1X field.
+  message("Plotting the coverage levels per sample")
+  molten_frame <- melt(
+    data = combined_metrics_sample,
+    id.vars = c("SAMPLE", "BAIT_SET"),
+    measure.vars = c(
+      "PCT_TARGET_BASES_2X",
+      "PCT_TARGET_BASES_10X",
+      "PCT_TARGET_BASES_20X",
+      "PCT_TARGET_BASES_30X",
+      "PCT_TARGET_BASES_40X",
+      "PCT_TARGET_BASES_50X",
+      "PCT_TARGET_BASES_100X"
+    ),
+    variable.name = "COVERAGE",
+    value.name = "value"
+  )
+  
+  plot_object <- ggplot(data = molten_frame)
+  plot_object <-
+    plot_object + ggtitle(label = "Coverage Levels per Sample")
+  plot_object <-
+    plot_object + geom_point(mapping = aes(
+      x = SAMPLE,
+      y = value,
+      colour = COVERAGE
+    ))
+  plot_object <-
+    plot_object + theme(axis.text.x = element_text(
+      angle = -90,
+      hjust = 0,
+      size = rel(x = 0.8)
+    ))
+  ggsave(
+    filename = "variant_calling_summary_hybrid_target_coverage_levels_sample.png",
+    plot = plot_object,
+    width = plot_width_sample,
+    height = argument_list$plot_height
+  )
+  ggsave(
+    filename = "variant_calling_summary_hybrid_target_coverage_levels_sample.pdf",
+    plot = plot_object,
+    width = plot_width_sample,
+    height = argument_list$plot_height
+  )
+  
+  rm(plot_object, molten_frame)
+  
+  # Plot PCT_TARGET_BASES_2X, PCT_TARGET_BASES_10X, PCT_TARGET_BASES_20X, PCT_TARGET_BASES_30X,
+  # PCT_TARGET_BASES_40X, PCT_TARGET_BASES_50X, PCT_TARGET_BASES_100X per aliquot.
+  # TODO: Newer Picard tools versions seem to have an additional PCT_TARGET_BASES_1X field.
+  message("Plotting the coverage levels per aliquot")
+  molten_frame <- melt(
+    data = combined_metrics_aliquot,
+    id.vars = c("ALIQUOT", "BAIT_SET"),
+    measure.vars = c(
+      "PCT_TARGET_BASES_2X",
+      "PCT_TARGET_BASES_10X",
+      "PCT_TARGET_BASES_20X",
+      "PCT_TARGET_BASES_30X",
+      "PCT_TARGET_BASES_40X",
+      "PCT_TARGET_BASES_50X",
+      "PCT_TARGET_BASES_100X"
+    ),
+    variable.name = "COVERAGE",
+    value.name = "value"
+  )
+  
+  plot_object <- ggplot(data = molten_frame)
+  plot_object <-
+    plot_object + ggtitle(label = "Coverage Levels per Aliquot")
+  plot_object <-
+    plot_object + geom_point(mapping = aes(
+      x = ALIQUOT,
+      y = value,
+      colour = COVERAGE,
+      shape = BAIT_SET
+    ))
+  plot_object <-
+    plot_object + theme(axis.text.x = element_text(
+      angle = -90,
+      hjust = 0,
+      size = rel(x = 0.8)
+    ))
+  ggsave(
+    filename = "variant_calling_summary_hybrid_target_coverage_levels_aliquot.png",
+    plot = plot_object,
+    width = plot_width_sample,
+    height = argument_list$plot_height
+  )
+  ggsave(
+    filename = "variant_calling_summary_hybrid_target_coverage_levels_aliquot.pdf",
+    plot = plot_object,
+    width = plot_width_sample,
+    height = argument_list$plot_height
+  )
+  
+  rm(plot_object, molten_frame)
   
   rm(plot_width_aliquot, plot_width_sample)
 }
@@ -683,20 +784,25 @@ for (i in 1:nrow(x = combined_metrics_sample)) {
                #   "non_callable_width_raw" = "integer",
                #   "non_callable_number_constrained.TOTAL" = "integer",
                #   "non_callable_width_constrained.TOTAL" = "integer",
-               #   "non_callable_number_constrained.LOW_COVERAGE" = "integer",
-               #   "non_callable_width_constrained.LOW_COVERAGE" = "integer",
+               #   "non_callable_number_constrained.REF_N" = "integer",
+               #   "non_callable_width_constrained.REF_N" = "integer",
+               #   "non_callable_number_constrained.CALLABLE" = "integer",
+               #   "non_callable_width_constrained.CALLABLE" = "integer",
                #   "non_callable_number_constrained.NO_COVERAGE" = "integer",
                #   "non_callable_width_constrained.NO_COVERAGE" = "integer",
+               #   "non_callable_number_constrained.LOW_COVERAGE" = "integer",
+               #   "non_callable_width_constrained.LOW_COVERAGE" = "integer",
+               #   "non_callable_number_constrained.EXCESSIVE_COVERAGE" = "integer",
+               #   "non_callable_width_constrained.EXCESSIVE_COVERAGE" = "integer",
                #   "non_callable_number_constrained.POOR_MAPPING_QUALITY" = "integer",
-               #   "non_callable_width_constrained.POOR_MAPPING_QUALITY" = "integer",
-               #   "non_callable_number_constrained.REF_N" = "integer",
-               #   "non_callable_width_constrained.REF_N" = "integer"
-               # )
+               #   "non_callable_width_constrained.POOR_MAPPING_QUALITY" = "integer"
+               # ),
                # To support numeric sample names the read.table(stringsAsFactors = FALSE) is turned off.
                stringsAsFactors = FALSE)
   for (column_name in names(x = combined_metrics_sample)) {
     if (column_name %in% names(x = non_callable_metrics_sample)) {
-      combined_metrics_sample[i, column_name] <- non_callable_metrics_sample[[1, column_name]]
+      combined_metrics_sample[i, column_name] <-
+        non_callable_metrics_sample[[1, column_name]]
     } else {
       combined_metrics_sample[i, column_name] <- NA
     }
@@ -755,7 +861,7 @@ if (nrow(x = combined_metrics_sample) > 0) {
     plotting_frame$number / plotting_frame$target_number_constrained
   # For the moment remove lines with "TOTAL".
   plotting_frame <-
-    plotting_frame[plotting_frame$mapping_status != "TOTAL",]
+    plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
   
   plot_object <- ggplot(data = plotting_frame)
   plot_object <-
@@ -816,7 +922,7 @@ if (nrow(x = combined_metrics_sample) > 0) {
     plotting_frame$width / plotting_frame$target_width_constrained
   # For the moment remove lines with "TOTAL".
   plotting_frame <-
-    plotting_frame[plotting_frame$mapping_status != "TOTAL",]
+    plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
   
   plot_object <- ggplot(data = plotting_frame)
   plot_object <-
