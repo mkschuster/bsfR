@@ -52,6 +52,12 @@ argument_list <- parse_args(object = OptionParser(
       type = "logical"
     ),
     make_option(
+      opt_str = c("--prefix"),
+      dest = "prefix",
+      help = "File name prefix",
+      type = "character"
+    ),
+    make_option(
       opt_str = c("--plot-width"),
       default = 7,
       dest = "plot_width",
@@ -68,16 +74,36 @@ argument_list <- parse_args(object = OptionParser(
   )
 ))
 
+prefix_summary <- "variant_calling_summary"
+if (is.null(x = argument_list$prefix)) {
+  # If a prefix was not provided, try to get it from a cohort-level file.
+  file_names <-
+    list.files(pattern = "^variant_calling_process_cohort_.*_annotated.vcf.gz$")
+  for (file_name in file_names) {
+    cohort_name <-
+      gsub(pattern = "^variant_calling_process_cohort_(.*?)_annotated.vcf.gz$",
+           replacement = "\\1",
+           x = file_name)
+    message(paste0("Cohort name: ", cohort_name))
+    prefix_summary <-
+      paste("variant_calling_summary", cohort_name, sep = "_")
+    rm(cohort_name)
+  }
+  rm(file_names)
+} else {
+  prefix_summary <- argument_list$prefix
+}
+
 # Process Picard Duplication Metrics reports.
 
 message("Processing Picard Duplication Metrics reports for sample:")
 combined_metrics_sample <- NULL
 
 file_names <-
-  list.files(pattern = "variant_calling_process_sample_.*_duplicate_metrics.tsv")
+  list.files(pattern = "^variant_calling_process_sample_.*_duplicate_metrics.tsv$")
 for (file_name in file_names) {
   sample_name <-
-    gsub(pattern = "variant_calling_process_sample_(.*?)_duplicate_metrics.tsv",
+    gsub(pattern = "^variant_calling_process_sample_(.*?)_duplicate_metrics.tsv$",
          replacement = "\\1",
          x = file_name)
   message(paste0("  ", sample_name))
@@ -110,7 +136,7 @@ if (!is.null(x = combined_metrics_sample)) {
   
   write.table(
     x = combined_metrics_sample,
-    file = "variant_calling_summary_duplication.tsv",
+    file = paste(prefix_summary, "duplication.tsv", sep = "_"),
     sep = "\t",
     row.names = FALSE,
     col.names = TRUE
@@ -136,13 +162,13 @@ if (!is.null(x = combined_metrics_sample)) {
       size = rel(x = 0.8)
     ))
   ggsave(
-    filename = "variant_calling_summary_duplication_sample.png",
+    filename = paste(prefix_summary, "duplication_sample.png", sep = "_"),
     plot = plot_object,
     width = plot_width,
     height = argument_list$plot_height
   )
   ggsave(
-    filename = "variant_calling_summary_duplication_sample.pdf",
+    filename = paste(prefix_summary, "duplication_sample.pdf", sep = "_"),
     plot = plot_object,
     width = plot_width,
     height = argument_list$plot_height
@@ -160,10 +186,10 @@ combined_metrics_sample <- NULL
 combined_metrics_aliquot <- NULL
 
 file_names <-
-  list.files(pattern = "variant_calling_process_sample_.*_alignment_summary_metrics.tsv")
+  list.files(pattern = "^variant_calling_process_sample_.*_alignment_summary_metrics.tsv$")
 for (file_name in file_names) {
   sample_name <-
-    gsub(pattern = "variant_calling_process_sample_(.*?)_alignment_summary_metrics.tsv",
+    gsub(pattern = "^variant_calling_process_sample_(.*?)_alignment_summary_metrics.tsv$",
          replacement = "\\1",
          x = file_name)
   message(paste0("  ", sample_name))
@@ -248,14 +274,14 @@ if (!is.null(x = combined_metrics_sample)) {
   
   write.table(
     x = combined_metrics_aliquot,
-    file = "variant_calling_summary_alignment_aliquot.tsv",
+    file = paste(prefix_summary, "alignment_aliquot.tsv", sep = "_"),
     sep = "\t",
     row.names = FALSE,
     col.names = TRUE
   )
   write.table(
     x = combined_metrics_sample,
-    file = "variant_calling_summary_alignment_sample.tsv",
+    file = paste(prefix_summary, "alignment_sample.tsv", sep = "_"),
     sep = "\t",
     row.names = FALSE,
     col.names = TRUE
@@ -278,13 +304,13 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_object <-
     plot_object + guides(colour = guide_legend(nrow = 24))
   ggsave(
-    filename = "variant_calling_summary_alignment_reads_sample.png",
+    filename = paste(prefix_summary, "alignment_reads_sample.png", sep = "_"),
     plot = plot_object,
     width = plot_width_sample,
     height = argument_list$plot_height
   )
   ggsave(
-    filename = "variant_calling_summary_alignment_reads_sample.pdf",
+    filename = paste(prefix_summary, "alignment_reads_sample.pdf", sep = "_"),
     plot = plot_object,
     width = plot_width_sample,
     height = argument_list$plot_height
@@ -304,14 +330,14 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_object <-
     plot_object + theme(legend.text = element_text(size = rel(x = 0.5)))
   ggsave(
-    filename = "variant_calling_summary_alignment_reads_read_group.png",
+    filename = paste(prefix_summary, "alignment_reads_read_group.png", sep = "_"),
     plot = plot_object,
     width = plot_width_aliquot,
     height = argument_list$plot_height,
     limitsize = FALSE
   )
   ggsave(
-    filename = "variant_calling_summary_alignment_reads_read_group.pdf",
+    filename = paste(prefix_summary, "alignment_reads_read_group.pdf", sep = "_"),
     plot = plot_object,
     width = plot_width_aliquot,
     height = argument_list$plot_height,
@@ -330,13 +356,13 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_object <-
     plot_object + guides(colour = guide_legend(nrow = 24))
   ggsave(
-    filename = "variant_calling_summary_alignment_percentage_sample.png",
+    filename = paste(prefix_summary, "alignment_percentage_sample.png", sep = "_"),
     plot = plot_object,
     width = plot_width_sample,
     height = argument_list$plot_height
   )
   ggsave(
-    filename = "variant_calling_summary_alignment_percentage_sample.pdf",
+    filename = paste(prefix_summary, "alignment_percentage_sample.pdf", sep = "_"),
     plot = plot_object,
     width = plot_width_sample,
     height = argument_list$plot_height
@@ -356,14 +382,22 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_object <-
     plot_object + theme(legend.text = element_text(size = rel(x = 0.5)))
   ggsave(
-    filename = "variant_calling_summary_alignment_percentage_read_group.png",
+    filename = paste(
+      prefix_summary,
+      "alignment_percentage_read_group.png",
+      sep = "_"
+    ),
     plot = plot_object,
     width = plot_width_aliquot,
     height = argument_list$plot_height,
     limitsize = FALSE
   )
   ggsave(
-    filename = "variant_calling_summary_alignment_percentage_read_group.pdf",
+    filename = paste(
+      prefix_summary,
+      "alignment_percentage_read_group.pdf",
+      sep = "_"
+    ),
     plot = plot_object,
     width = plot_width_aliquot,
     height = argument_list$plot_height,
@@ -382,10 +416,10 @@ combined_metrics_sample <- NULL
 combined_metrics_aliquot <- NULL
 
 file_names <-
-  list.files(pattern = "variant_calling_diagnose_sample_.*_hybrid_selection_metrics.tsv")
+  list.files(pattern = "^variant_calling_diagnose_sample_.*_hybrid_selection_metrics.tsv$")
 for (file_name in file_names) {
   sample_name <-
-    gsub(pattern = "variant_calling_diagnose_sample_(.*?)_hybrid_selection_metrics.tsv",
+    gsub(pattern = "^variant_calling_diagnose_sample_(.*?)_hybrid_selection_metrics.tsv$",
          replacement = "\\1",
          x = file_name)
   message(paste0("  ", sample_name))
@@ -463,14 +497,14 @@ if (!is.null(x = combined_metrics_sample)) {
   
   write.table(
     x = combined_metrics_sample,
-    file = "variant_calling_summary_hybrid_aliquot.tsv",
+    file = paste(prefix_summary, "hybrid_aliquot.tsv", sep = "_"),
     sep = "\t",
     row.names = FALSE,
     col.names = TRUE
   )
   write.table(
     x = combined_metrics_sample,
-    file = "variant_calling_summary_hybrid_sample.tsv",
+    file = paste(prefix_summary, "hybrid_sample.tsv", sep = "_"),
     sep = "\t",
     row.names = FALSE,
     col.names = TRUE
@@ -493,13 +527,21 @@ if (!is.null(x = combined_metrics_sample)) {
       size = rel(x = 0.8)
     ))
   ggsave(
-    filename = "variant_calling_summary_hybrid_unique_percentage_sample.png",
+    filename = paste(
+      prefix_summary,
+      "hybrid_unique_percentage_sample.png",
+      sep = "_"
+    ),
     plot = plot_object,
     width = plot_width_sample,
     height = argument_list$plot_height
   )
   ggsave(
-    filename = "variant_calling_summary_hybrid_unique_percentage_sample.pdf",
+    filename = paste(
+      prefix_summary,
+      "hybrid_unique_percentage_sample.pdf",
+      sep = "_"
+    ),
     plot = plot_object,
     width = plot_width_sample,
     height = argument_list$plot_height
@@ -523,14 +565,22 @@ if (!is.null(x = combined_metrics_sample)) {
       size = rel(x = 0.8)
     ))
   ggsave(
-    filename = "variant_calling_summary_hybrid_unique_percentage_read_group.png",
+    filename = paste(
+      prefix_summary,
+      "hybrid_unique_percentage_read_group.png",
+      sep = "_"
+    ),
     plot = plot_object,
     width = plot_width_aliquot,
     height = argument_list$plot_height,
     limitsize = FALSE
   )
   ggsave(
-    filename = "variant_calling_summary_hybrid_unique_percentage_read_group.pdf",
+    filename = paste(
+      prefix_summary,
+      "hybrid_unique_percentage_read_group.pdf",
+      sep = "_"
+    ),
     plot = plot_object,
     width = plot_width_aliquot,
     height = argument_list$plot_height,
@@ -555,13 +605,13 @@ if (!is.null(x = combined_metrics_sample)) {
       size = rel(x = 0.8)
     ))
   ggsave(
-    filename = "variant_calling_summary_hybrid_target_coverage_sample.png",
+    filename = paste(prefix_summary, "hybrid_target_coverage_sample.png", sep = "_"),
     plot = plot_object,
     width = plot_width_sample,
     height = argument_list$plot_height
   )
   ggsave(
-    filename = "variant_calling_summary_hybrid_target_coverage_sample.pdf",
+    filename = paste(prefix_summary, "hybrid_target_coverage_sample.pdf", sep = "_"),
     plot = plot_object,
     width = plot_width_sample,
     height = argument_list$plot_height
@@ -585,14 +635,22 @@ if (!is.null(x = combined_metrics_sample)) {
       size = rel(x = 0.8)
     ))
   ggsave(
-    filename = "variant_calling_summary_hybrid_target_coverage_read_group.png",
+    filename = paste(
+      prefix_summary,
+      "hybrid_target_coverage_read_group.png",
+      sep = "_"
+    ),
     plot = plot_object,
     width = plot_width_aliquot,
     height = argument_list$plot_height,
     limitsize = FALSE
   )
   ggsave(
-    filename = "variant_calling_summary_hybrid_target_coverage_read_group.pdf",
+    filename = paste(
+      prefix_summary,
+      "hybrid_target_coverage_read_group.pdf",
+      sep = "_"
+    ),
     plot = plot_object,
     width = plot_width_aliquot,
     height = argument_list$plot_height,
@@ -624,11 +682,9 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_object <-
     plot_object + ggtitle(label = "Coverage Levels per Sample")
   plot_object <-
-    plot_object + geom_point(mapping = aes(
-      x = SAMPLE,
-      y = value,
-      colour = COVERAGE
-    ))
+    plot_object + geom_point(mapping = aes(x = SAMPLE,
+                                           y = value,
+                                           colour = COVERAGE))
   plot_object <-
     plot_object + theme(axis.text.x = element_text(
       angle = -90,
@@ -636,13 +692,21 @@ if (!is.null(x = combined_metrics_sample)) {
       size = rel(x = 0.8)
     ))
   ggsave(
-    filename = "variant_calling_summary_hybrid_target_coverage_levels_sample.png",
+    filename = paste(
+      prefix_summary,
+      "hybrid_target_coverage_levels_sample.png",
+      sep = "_"
+    ),
     plot = plot_object,
     width = plot_width_sample,
     height = argument_list$plot_height
   )
   ggsave(
-    filename = "variant_calling_summary_hybrid_target_coverage_levels_sample.pdf",
+    filename = paste(
+      prefix_summary,
+      "hybrid_target_coverage_levels_sample.pdf",
+      sep = "_"
+    ),
     plot = plot_object,
     width = plot_width_sample,
     height = argument_list$plot_height
@@ -687,13 +751,21 @@ if (!is.null(x = combined_metrics_sample)) {
       size = rel(x = 0.8)
     ))
   ggsave(
-    filename = "variant_calling_summary_hybrid_target_coverage_levels_aliquot.png",
+    filename = paste(
+      prefix_summary,
+      "hybrid_target_coverage_levels_aliquot.png",
+      sep = "_"
+    ),
     plot = plot_object,
     width = plot_width_sample,
     height = argument_list$plot_height
   )
   ggsave(
-    filename = "variant_calling_summary_hybrid_target_coverage_levels_aliquot.pdf",
+    filename = paste(
+      prefix_summary,
+      "hybrid_target_coverage_levels_aliquot.pdf",
+      sep = "_"
+    ),
     plot = plot_object,
     width = plot_width_sample,
     height = argument_list$plot_height
@@ -711,7 +783,7 @@ message("Processing non-callable summary reports for sample:")
 
 # Initialise a data frame with all possible columns and rows at once.
 combined_metrics_sample <- data.frame(
-  row.names = list.files(pattern = "variant_calling_diagnose_sample_.*_non_callable_summary.tsv")
+  row.names = list.files(pattern = "^variant_calling_diagnose_sample_.*_non_callable_summary.tsv$")
 )
 combined_metrics_sample$file_name <-
   row.names(x = combined_metrics_sample)
@@ -760,7 +832,7 @@ rm(level)
 
 for (i in 1:nrow(x = combined_metrics_sample)) {
   sample_name <-
-    gsub(pattern = "variant_calling_diagnose_sample_(.*?)_non_callable_summary.tsv",
+    gsub(pattern = "^variant_calling_diagnose_sample_(.*?)_non_callable_summary.tsv$",
          replacement = "\\1",
          x = combined_metrics_sample[i, "file_name"])
   message(paste0("  ", sample_name))
@@ -824,7 +896,7 @@ if (nrow(x = combined_metrics_sample) > 0) {
   
   write.table(
     x = combined_metrics_sample,
-    file = "variant_calling_summary_non_callable.tsv",
+    file = paste(prefix_summary, "non_callable.tsv", sep = "_"),
     sep = "\t",
     row.names = FALSE,
     col.names = TRUE
@@ -875,14 +947,14 @@ if (nrow(x = combined_metrics_sample) > 0) {
       size = rel(x = 0.8)
     ))
   ggsave(
-    filename = "variant_calling_summary_non_callable_number.png",
+    filename = paste(prefix_summary, "non_callable_number.png", sep = "_"),
     plot = plot_object,
     width = plot_width_sample,
     height = argument_list$plot_height,
     limitsize = FALSE
   )
   ggsave(
-    filename = "variant_calling_summary_non_callable_number.pdf",
+    filename = paste(prefix_summary, "non_callable_number.pdf", sep = "_"),
     plot = plot_object,
     width = plot_width_sample,
     height = argument_list$plot_height,
@@ -936,14 +1008,14 @@ if (nrow(x = combined_metrics_sample) > 0) {
       size = rel(x = 0.8)
     ))
   ggsave(
-    filename = "variant_calling_summary_non_callable_percentage.png",
+    filename = paste(prefix_summary, "non_callable_percentage.png", sep = "_"),
     plot = plot_object,
     width = plot_width_sample,
     height = argument_list$plot_height,
     limitsize = FALSE
   )
   ggsave(
-    filename = "variant_calling_summary_non_callable_percentage.pdf",
+    filename = paste(prefix_summary, "non_callable_percentage.pdf", sep = "_"),
     plot = plot_object,
     width = plot_width_sample,
     height = argument_list$plot_height,
@@ -955,7 +1027,7 @@ if (nrow(x = combined_metrics_sample) > 0) {
 }
 rm(combined_metrics_sample)
 
-rm(argument_list)
+rm(prefix_summary, argument_list)
 
 message("All done")
 
