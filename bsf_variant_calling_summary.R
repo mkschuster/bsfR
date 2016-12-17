@@ -100,6 +100,10 @@ if (is.null(x = argument_list$prefix)) {
   prefix_summary <- argument_list$prefix
 }
 
+##############################
+# Picard Duplication Metrics #
+##############################
+
 # Process Picard Duplication Metrics reports.
 
 message("Processing Picard Duplication Metrics reports for sample:")
@@ -139,7 +143,7 @@ for (file_name in file_names) {
       skip = number_skip,
       fill = TRUE,
       comment.char = "",
-      stringsAsFactors = TRUE
+      stringsAsFactors = FALSE
     )
   rm(number_read,
      number_skip,
@@ -167,10 +171,12 @@ for (file_name in file_names) {
 rm(file_name, file_names)
 
 if (!is.null(x = combined_metrics_sample)) {
-  # Convert the sample_name column into factors, which come more handy for plotting.
+  # Order the sample frame by SAMPLE.
+  combined_metrics_sample <-
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
+  # Convert the SAMPLE column into factors, which come more handy for plotting.
   combined_metrics_sample$SAMPLE <-
     as.factor(x = combined_metrics_sample$SAMPLE)
-  
   # Add additional percentages into the table.
   combined_metrics_sample$PERCENT_UNPAIRED_READ_DUPLICATION <-
     combined_metrics_sample$UNPAIRED_READ_DUPLICATES / combined_metrics_sample$UNPAIRED_READS_EXAMINED
@@ -178,7 +184,6 @@ if (!is.null(x = combined_metrics_sample)) {
     combined_metrics_sample$READ_PAIR_DUPLICATES / combined_metrics_sample$READ_PAIRS_EXAMINED
   combined_metrics_sample$PERCENT_READ_PAIR_OPTICAL_DUPLICATION <-
     combined_metrics_sample$READ_PAIR_OPTICAL_DUPLICATES / combined_metrics_sample$READ_PAIRS_EXAMINED
-  
   write.table(
     x = combined_metrics_sample,
     file = paste(prefix_summary, "duplication_metrics_sample.tsv", sep = "_"),
@@ -186,6 +191,7 @@ if (!is.null(x = combined_metrics_sample)) {
     row.names = FALSE,
     col.names = TRUE
   )
+  
   # Adjust the plot width according to batches of 24 samples or read groups.
   plot_width <-
     argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample$SAMPLE) / 24) - 1) * argument_list$plot_width * 0.3
@@ -269,6 +275,10 @@ if (!is.null(x = combined_metrics_sample)) {
 }
 rm(combined_metrics_sample)
 
+####################################
+# Picard Alignment Summary Metrics #
+####################################
+
 # Process Picard Alignment Summary Metrics reports.
 
 message("Processing Picard Alignment Summary Metrics reports for sample:")
@@ -301,25 +311,20 @@ for (file_name in file_names) {
     )
   rm(metrics_line, metrics_lines)
   # To support numeric sample names the read.table(stringsAsFactors = FALSE) is turned off.
-  # Manually convert CATEGORY, SAMPLE, LIBRARY and READ_GROUP columns into factors, which are handy for plotting.
-  picard_metrics_total$CATEGORY <-
-    as.factor(x = picard_metrics_total$CATEGORY)
+  # Convert SAMPLE, LIBRARY and READ_GROUP into character vectors.
   picard_metrics_total$SAMPLE <-
-    as.factor(x = as.character(x = picard_metrics_total$SAMPLE))
+    as.character(x = picard_metrics_total$SAMPLE)
   picard_metrics_total$LIBRARY <-
-    as.factor(x = as.character(x = picard_metrics_total$LIBRARY))
+    as.character(x = picard_metrics_total$LIBRARY)
   picard_metrics_total$READ_GROUP <-
-    as.factor(x = picard_metrics_total$READ_GROUP)
-  
-  # Modify the row names so that the names do not clash.
-  # row.names(picard_metrics_total) <- paste(sample_name, row.names(x = picard_metrics_total), sep = "_")
+    as.character(x = picard_metrics_total$READ_GROUP)
   
   # Select only rows showing the SAMPLE summary, i.e. showing SAMPLE, but no LIBRARY and READ_GROUP information.
   picard_metrics_sample <-
     picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
                            (picard_metrics_total$SAMPLE != "") &
                            (picard_metrics_total$LIBRARY == "") &
-                           (picard_metrics_total$READ_GROUP == ""), ]
+                           (picard_metrics_total$READ_GROUP == ""),]
   if (is.null(x = combined_metrics_sample)) {
     combined_metrics_sample <- picard_metrics_sample
   } else {
@@ -330,7 +335,7 @@ for (file_name in file_names) {
   
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP information.
   picard_metrics_read_group <-
-    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""), ]
+    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
   if (is.null(x = combined_metrics_read_group)) {
     combined_metrics_read_group <- picard_metrics_read_group
   } else {
@@ -344,7 +349,15 @@ for (file_name in file_names) {
 rm(file_name, file_names)
 
 if (!is.null(x = combined_metrics_sample)) {
-  # Add an additional LABEL factor column defined as a concatenation of SAMPLE or READ_GROUP and CATEGORY.
+  # Order the data frame by SAMPLE.
+  combined_metrics_sample <-
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
+  # Manually convert CATEGORY and SAMPLE columns into factors, which are handy for plotting.
+  combined_metrics_sample$CATEGORY <-
+    as.factor(x = combined_metrics_sample$CATEGORY)
+  combined_metrics_sample$SAMPLE <-
+    as.factor(x = combined_metrics_sample$SAMPLE)
+  # Add an additional LABEL factor column defined as a concatenation of SAMPLE and CATEGORY.
   combined_metrics_sample$LABEL <-
     as.factor(x = paste(
       combined_metrics_sample$SAMPLE,
@@ -352,6 +365,23 @@ if (!is.null(x = combined_metrics_sample)) {
       sep =
         "_"
     ))
+  write.table(
+    x = combined_metrics_sample,
+    file = paste(prefix_summary, "alignment_metrics_sample.tsv", sep = "_"),
+    sep = "\t",
+    row.names = FALSE,
+    col.names = TRUE
+  )
+  
+  # Order the data frame by READ_GROUP
+  combined_metrics_read_group <-
+    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP), ]
+  # Manually convert CATEGORY and READ_GROUP columns into factors, which are handy for plotting.
+  combined_metrics_read_group$CATEGORY <-
+    as.factor(x = combined_metrics_read_group$CATEGORY)
+  combined_metrics_read_group$READ_GROUP <-
+    as.factor(x = combined_metrics_read_group$READ_GROUP)
+  # Add an additional LABEL factor column defined as a concatenation of READ_GROUP and CATEGORY.
   combined_metrics_read_group$LABEL <-
     as.factor(
       x = paste(
@@ -368,19 +398,12 @@ if (!is.null(x = combined_metrics_sample)) {
     row.names = FALSE,
     col.names = TRUE
   )
-  write.table(
-    x = combined_metrics_sample,
-    file = paste(prefix_summary, "alignment_metrics_sample.tsv", sep = "_"),
-    sep = "\t",
-    row.names = FALSE,
-    col.names = TRUE
-  )
   
   # Adjust the plot width according to batches of 24 samples or read groups.
-  plot_width_read_group <-
-    argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_read_group$READ_GROUP) / 24) - 1) * argument_list$plot_width * 0.35
   plot_width_sample <-
     argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample$SAMPLE) / 24) - 1) * argument_list$plot_width * 0.25
+  plot_width_read_group <-
+    argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_read_group$READ_GROUP) / 24) - 1) * argument_list$plot_width * 0.35
   
   # Plot the absolute number of aligned pass-filter reads per sample.
   message("Plotting the absolute number of aligned pass-filter reads per sample")
@@ -488,6 +511,10 @@ if (!is.null(x = combined_metrics_sample)) {
 }
 rm(combined_metrics_read_group, combined_metrics_sample)
 
+###################################
+# Picard Hybrid Selection Metrics #
+###################################
+
 # Process Picard Hybrid Selection Metrics reports.
 
 message("Processing Picard Hybrid Selection Metrics reports for sample:")
@@ -526,6 +553,7 @@ for (file_name in file_names) {
       nrows = number_read,
       skip = number_skip,
       fill = TRUE,
+      comment.char = "",
       stringsAsFactors = FALSE
     )
   rm(number_read,
@@ -534,15 +562,13 @@ for (file_name in file_names) {
      metrics_line,
      metrics_lines)
   # To support numeric sample names the read.table(stringsAsFactors = FALSE) is turned off.
-  # Manually convert BAIT_SET, SAMPLE, LIBRARY and READ_GROUP columns into factors, which are handy for plotting.
-  picard_metrics_total$BAIT_SET <-
-    as.factor(x = picard_metrics_total$BAIT_SET)
+  # Convert SAMPLE, LIBRARY and READ_GROUP into character vectors.
   picard_metrics_total$SAMPLE <-
-    as.factor(x = as.character(x = picard_metrics_total$SAMPLE))
+    as.character(x = picard_metrics_total$SAMPLE)
   picard_metrics_total$LIBRARY <-
-    as.factor(x = as.character(x = picard_metrics_total$LIBRARY))
+    as.character(x = picard_metrics_total$LIBRARY)
   picard_metrics_total$READ_GROUP <-
-    as.factor(x = picard_metrics_total$READ_GROUP)
+    as.character(x = picard_metrics_total$READ_GROUP)
   
   # The Picard Hybrid Selection Metrics report has changed format through versions.
   # Column PCT_TARGET_BASES_1X was added at a later stage.
@@ -550,15 +576,12 @@ for (file_name in file_names) {
     picard_metrics_total$PCT_TARGET_BASES_1X <- 0.0
   }
   
-  # Modify the row names so that the names do not clash.
-  # row.names(picard_metrics_total) <- paste(sample_name, row.names(x = picard_metrics_total), sep = "_")
-  
   # Select only rows showing the SAMPLE summary, i.e. showing SAMPLE, but no LIBRARY and READ_GROUP information.
   picard_metrics_sample <-
     picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
                            (picard_metrics_total$SAMPLE != "") &
                            (picard_metrics_total$LIBRARY == "") &
-                           (picard_metrics_total$READ_GROUP == ""), ]
+                           (picard_metrics_total$READ_GROUP == ""),]
   if (is.null(x = combined_metrics_sample)) {
     combined_metrics_sample <- picard_metrics_sample
   } else {
@@ -569,7 +592,7 @@ for (file_name in file_names) {
   
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP information.
   picard_metrics_read_group <-
-    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""), ]
+    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
   if (is.null(x = combined_metrics_read_group)) {
     combined_metrics_read_group <- picard_metrics_read_group
   } else {
@@ -585,21 +608,14 @@ rm(file_name, file_names)
 # The Picard Hybrid Selection Metrics is currently optional.
 
 if (!is.null(x = combined_metrics_sample)) {
-  # Adjust the plot width according to batches of 24 samples or read groups.
-  plot_width_read_group <- argument_list$plot_width + (ceiling(x = (
-    nlevels(x = combined_metrics_read_group$READ_GROUP) / 24
-  )) - 1) * argument_list$plot_width * 0.25
-  plot_width_sample <- argument_list$plot_width + (ceiling(x = (
-    nlevels(x = combined_metrics_sample$SAMPLE) / 24
-  )) - 1) * argument_list$plot_width * 0.25
-  
-  write.table(
-    x = combined_metrics_sample,
-    file = paste(prefix_summary, "hybrid_metrics_read_group.tsv", sep = "_"),
-    sep = "\t",
-    row.names = FALSE,
-    col.names = TRUE
-  )
+  # Sort the data frame by SAMPLE.
+  combined_metrics_sample <-
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
+  # Manually convert BAIT_SET and SAMPLE columns into factors, which are handy for plotting.
+  combined_metrics_sample$BAIT_SET <-
+    as.factor(x = combined_metrics_sample$BAIT_SET)
+  combined_metrics_sample$SAMPLE <-
+    as.factor(x = combined_metrics_sample$SAMPLE)
   write.table(
     x = combined_metrics_sample,
     file = paste(prefix_summary, "hybrid_metrics_sample.tsv", sep = "_"),
@@ -607,6 +623,30 @@ if (!is.null(x = combined_metrics_sample)) {
     row.names = FALSE,
     col.names = TRUE
   )
+  
+  # Sort the data frame by READ_GROUP.
+  combined_metrics_read_group <-
+    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP),]
+  # Manually convert BAIT_SET and READ_GROUP columns into factors, which are handy for plotting.
+  combined_metrics_read_group$BAIT_SET <-
+    as.factor(x = combined_metrics_read_group$BAIT_SET)
+  combined_metrics_read_group$READ_GROUP <-
+    as.factor(x = combined_metrics_read_group$READ_GROUP)
+  write.table(
+    x = combined_metrics_read_group,
+    file = paste(prefix_summary, "hybrid_metrics_read_group.tsv", sep = "_"),
+    sep = "\t",
+    row.names = FALSE,
+    col.names = TRUE
+  )
+  
+  # Adjust the plot width according to batches of 24 samples or read groups.
+  plot_width_sample <- argument_list$plot_width + (ceiling(x = (
+    nlevels(x = combined_metrics_sample$SAMPLE) / 24
+  )) - 1) * argument_list$plot_width * 0.25
+  plot_width_read_group <- argument_list$plot_width + (ceiling(x = (
+    nlevels(x = combined_metrics_read_group$READ_GROUP) / 24
+  )) - 1) * argument_list$plot_width * 0.25
   
   # Plot the percentage of unique pass-filter reads per sample.
   message("Plotting the percentage of unique pass-filter reads per sample")
@@ -847,6 +887,10 @@ if (!is.null(x = combined_metrics_sample)) {
 }
 rm(combined_metrics_read_group, combined_metrics_sample)
 
+################################
+# Non-callable Summary Reports #
+################################
+
 # Process non-callable summary reports.
 
 message("Processing non-callable summary reports for sample:")
@@ -959,6 +1003,9 @@ for (i in 1:nrow(x = combined_metrics_sample)) {
 rm(i)
 
 if (nrow(x = combined_metrics_sample) > 0) {
+  # Sort the data frame by sample_name.
+  combined_metrics_sample <-
+    combined_metrics_sample[order(combined_metrics_sample$sample_name),]
   # Convert the sample_name column into factors, which come more handy for plotting.
   combined_metrics_sample$sample_name <-
     as.factor(x = combined_metrics_sample$sample_name)
@@ -1007,7 +1054,7 @@ if (nrow(x = combined_metrics_sample) > 0) {
     plotting_frame$number / plotting_frame$target_number_constrained
   # For the moment remove lines with "TOTAL".
   plotting_frame <-
-    plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
+    plotting_frame[plotting_frame$mapping_status != "TOTAL",]
   
   plot_object <- ggplot(data = plotting_frame)
   plot_object <-
@@ -1067,7 +1114,7 @@ if (nrow(x = combined_metrics_sample) > 0) {
     plotting_frame$width / plotting_frame$target_width_constrained
   # For the moment remove lines with "TOTAL".
   plotting_frame <-
-    plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
+    plotting_frame[plotting_frame$mapping_status != "TOTAL",]
   
   plot_object <- ggplot(data = plotting_frame)
   plot_object <-
