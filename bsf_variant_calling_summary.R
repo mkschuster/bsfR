@@ -173,7 +173,7 @@ rm(file_name, file_names)
 if (!is.null(x = combined_metrics_sample)) {
   # Order the sample frame by SAMPLE.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
   # Convert the SAMPLE column into factors, which come more handy for plotting.
   combined_metrics_sample$SAMPLE <-
     as.factor(x = combined_metrics_sample$SAMPLE)
@@ -324,7 +324,7 @@ for (file_name in file_names) {
     picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
                            (picard_metrics_total$SAMPLE != "") &
                            (picard_metrics_total$LIBRARY == "") &
-                           (picard_metrics_total$READ_GROUP == ""),]
+                           (picard_metrics_total$READ_GROUP == ""), ]
   if (is.null(x = combined_metrics_sample)) {
     combined_metrics_sample <- picard_metrics_sample
   } else {
@@ -335,7 +335,7 @@ for (file_name in file_names) {
   
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP information.
   picard_metrics_read_group <-
-    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
+    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""), ]
   if (is.null(x = combined_metrics_read_group)) {
     combined_metrics_read_group <- picard_metrics_read_group
   } else {
@@ -351,7 +351,7 @@ rm(file_name, file_names)
 if (!is.null(x = combined_metrics_sample)) {
   # Order the data frame by SAMPLE.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
   # Manually convert CATEGORY and SAMPLE columns into factors, which are handy for plotting.
   combined_metrics_sample$CATEGORY <-
     as.factor(x = combined_metrics_sample$CATEGORY)
@@ -375,7 +375,7 @@ if (!is.null(x = combined_metrics_sample)) {
   
   # Order the data frame by READ_GROUP
   combined_metrics_read_group <-
-    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP), ]
+    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP),]
   # Manually convert CATEGORY and READ_GROUP columns into factors, which are handy for plotting.
   combined_metrics_read_group$CATEGORY <-
     as.factor(x = combined_metrics_read_group$CATEGORY)
@@ -581,7 +581,7 @@ for (file_name in file_names) {
     picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
                            (picard_metrics_total$SAMPLE != "") &
                            (picard_metrics_total$LIBRARY == "") &
-                           (picard_metrics_total$READ_GROUP == ""),]
+                           (picard_metrics_total$READ_GROUP == ""), ]
   if (is.null(x = combined_metrics_sample)) {
     combined_metrics_sample <- picard_metrics_sample
   } else {
@@ -592,7 +592,7 @@ for (file_name in file_names) {
   
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP information.
   picard_metrics_read_group <-
-    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
+    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""), ]
   if (is.null(x = combined_metrics_read_group)) {
     combined_metrics_read_group <- picard_metrics_read_group
   } else {
@@ -610,7 +610,7 @@ rm(file_name, file_names)
 if (!is.null(x = combined_metrics_sample)) {
   # Sort the data frame by SAMPLE.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
   # Manually convert BAIT_SET and SAMPLE columns into factors, which are handy for plotting.
   combined_metrics_sample$BAIT_SET <-
     as.factor(x = combined_metrics_sample$BAIT_SET)
@@ -626,7 +626,7 @@ if (!is.null(x = combined_metrics_sample)) {
   
   # Sort the data frame by READ_GROUP.
   combined_metrics_read_group <-
-    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP),]
+    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP), ]
   # Manually convert BAIT_SET and READ_GROUP columns into factors, which are handy for plotting.
   combined_metrics_read_group$BAIT_SET <-
     as.factor(x = combined_metrics_read_group$BAIT_SET)
@@ -686,13 +686,16 @@ if (!is.null(x = combined_metrics_sample)) {
     plot_object + ggtitle(label = "Unique Pass-Filter Reads per Read Group")
   plot_object <-
     plot_object + geom_point(mapping = aes(x = READ_GROUP, y = PCT_PF_UQ_READS, shape = BAIT_SET))
+  # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
+  plot_object <-
+    plot_object + scale_shape_manual(values = 1:nlevels(x = combined_metrics_read_group$BAIT_SET))
   plot_object <-
     plot_object + guides(colour = guide_legend(nrow = 24))
   plot_object <-
     plot_object + theme(axis.text.x = element_text(
       angle = 90,
       hjust = 0,
-      size = rel(x = 0.8)
+      size = rel(x = 0.5)
     ))
   for (graphics_format in graphics_formats) {
     ggsave(
@@ -751,13 +754,16 @@ if (!is.null(x = combined_metrics_sample)) {
     plot_object + ggtitle(label = "Mean Target Coverage per Read Group")
   plot_object <-
     plot_object + geom_point(mapping = aes(x = READ_GROUP, y = MEAN_TARGET_COVERAGE, shape = BAIT_SET))
+  # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
+  plot_object <-
+    plot_object + scale_shape_manual(values = 1:nlevels(x = combined_metrics_read_group$BAIT_SET))
   plot_object <-
     plot_object + guides(colour = guide_legend(nrow = 24))
   plot_object <-
     plot_object + theme(axis.text.x = element_text(
       angle = 90,
       hjust = 0,
-      size = rel(x = 0.8)
+      size = rel(x = 0.5)
     ))
   for (graphics_format in graphics_formats) {
     ggsave(
@@ -859,11 +865,14 @@ if (!is.null(x = combined_metrics_sample)) {
       colour = COVERAGE,
       shape = BAIT_SET
     ))
+  # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
+  plot_object <-
+    plot_object + scale_shape_manual(values = 1:nlevels(x = combined_metrics_read_group$BAIT_SET))
   plot_object <-
     plot_object + theme(axis.text.x = element_text(
       angle = 90,
       hjust = 0,
-      size = rel(x = 0.8)
+      size = rel(x = 0.5)
     ))
   for (graphics_format in graphics_formats) {
     ggsave(
@@ -1005,7 +1014,7 @@ rm(i)
 if (nrow(x = combined_metrics_sample) > 0) {
   # Sort the data frame by sample_name.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$sample_name),]
+    combined_metrics_sample[order(combined_metrics_sample$sample_name), ]
   # Convert the sample_name column into factors, which come more handy for plotting.
   combined_metrics_sample$sample_name <-
     as.factor(x = combined_metrics_sample$sample_name)
@@ -1054,7 +1063,7 @@ if (nrow(x = combined_metrics_sample) > 0) {
     plotting_frame$number / plotting_frame$target_number_constrained
   # For the moment remove lines with "TOTAL".
   plotting_frame <-
-    plotting_frame[plotting_frame$mapping_status != "TOTAL",]
+    plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
   
   plot_object <- ggplot(data = plotting_frame)
   plot_object <-
@@ -1114,7 +1123,7 @@ if (nrow(x = combined_metrics_sample) > 0) {
     plotting_frame$width / plotting_frame$target_width_constrained
   # For the moment remove lines with "TOTAL".
   plotting_frame <-
-    plotting_frame[plotting_frame$mapping_status != "TOTAL",]
+    plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
   
   plot_object <- ggplot(data = plotting_frame)
   plot_object <-
