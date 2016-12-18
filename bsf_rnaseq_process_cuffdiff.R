@@ -105,7 +105,8 @@ argument_list <- parse_args(object = OptionParser(
   )
 ))
 
-# Define CuffDiff and output directory names relative to the working directory.
+# Define CuffDiff and output directory names relative to the
+# working directory.
 
 cuffdiff_directory <-
   paste("rnaseq", "cuffdiff", argument_list$comparison_name, sep = "_")
@@ -116,8 +117,8 @@ output_directory <-
         argument_list$comparison_name,
         sep = "_")
 
-# To avoid name clashes when downloading files, use the output directory name
-# also as a prefix for all files therein.
+# To avoid name clashes when downloading files, use the output directory
+# name also as a prefix for all files therein.
 
 prefix <- output_directory
 
@@ -211,8 +212,8 @@ rm(frame_path, sample_frame)
 replicate_frame <- replicates(object = cuff_set)
 # Get the number of replicates.
 replicate_number <- nrow(x = replicate_frame)
-# Some plots require replicates. Check whether at least one row has a replicate
-# column value greater than 0.
+# Some plots require replicates. Check whether at least one row has a
+# replicate column value greater than 0.
 have_replicates <-
   (nrow(x = replicate_frame[replicate_frame$replicate > 0, ]) > 0)
 # Write the replicate_frame.
@@ -232,7 +233,8 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0) {
   )
 }
 rm(frame_path)
-# Plot the log10(internal_scale) of the replicate_frame to visualise outliers.
+# Plot the log10(internal_scale) of the replicate_frame to
+# visualise outliers.
 plot_path_pdf <-
   file.path(output_directory, paste0(prefix, "_replicate_scale.pdf"))
 plot_path_png <-
@@ -554,9 +556,11 @@ if (file.exists(plot_path_pdf) &&
 } else {
   message("Creating a Box Plot on Genes with replicates")
   # By default, the csBoxplot function adds a pseudocount of 1e-04 for log10
-  # transformed fpkms. In case of a large number of missing values in shallowly
-  # sequenced samples, this affects the plot. Hence reproduce the plot here.
-  # ggplot_object <- csBoxplot(object = genes(object = cuff_set), replicates = TRUE)
+  # transformed fpkms. In case of a large number of missing values in
+  # shallowly sequenced samples, this affects the plot.
+  # Hence reproduce the plot here.
+  # ggplot_object <-
+  #   csBoxplot(object = genes(object = cuff_set), replicates = TRUE)
   rep_fpkm_genes <- repFpkm(object = genes(object = cuff_set))
   # Rename the "rep_name" column into "condition".
   colnames(x = rep_fpkm_genes)[colnames(x = rep_fpkm_genes) == "rep_name"] <-
@@ -575,13 +579,14 @@ if (file.exists(plot_path_pdf) &&
   ggplot_object <-
     ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
   ggplot_object <-
-    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))  # Reduce the legend text
+    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))
   ggplot_object <-
     ggplot_object + scale_fill_hue(l = 50, h.start = 200)
   # Arrange a maximum of 24 replicates in each guide column.
   # ggplot_object <-
   #   ggplot_object + guides(fill = guide_legend(nrow = 24))
-  # Use the base plot_witdh and add a quarter of the width for each additional guide legend column.
+  # Use the base plot_witdh and add a quarter of the width for each additional
+  # guide legend column.
   plot_width <-
     argument_list$plot_width + (ceiling(x = replicate_number / 24) - 1) * argument_list$plot_width * 0.25
   ggsave(
@@ -613,7 +618,8 @@ if (file.exists(plot_path_pdf) &&
   message("Skipping a Box Plot on Genes without replicates")
 } else {
   message("Creating a Box Plot on Genes without replicates")
-  # ggplot_object <- csBoxplot(object = genes(object = cuff_set), replicates = FALSE)
+  # ggplot_object <- 
+  #   csBoxplot(object = genes(object = cuff_set), replicates = FALSE)
   fpkm_genes <- fpkm(object = genes(object = cuff_set))
   # Rename the "sample_name" column into "condition".
   colnames(fpkm_genes)[colnames(fpkm_genes) == "sample_name"] <-
@@ -632,13 +638,14 @@ if (file.exists(plot_path_pdf) &&
   ggplot_object <-
     ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
   ggplot_object <-
-    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))  # Reduce the legend text
+    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))
   ggplot_object <-
     ggplot_object + scale_fill_hue(l = 50, h.start = 200)
   # Arrange a maximum of 24 samples in each guide column.
   # ggplot_object <-
   #   ggplot_object + guides(fill = guide_legend(nrow = 24))
-  # Use the base plot_witdh and add a quarter of the width for each additional guide legend column.
+  # Use the base plot_witdh and add a quarter of the width for each additional
+  # guide legend column.
   plot_width <-
     argument_list$plot_width + (ceiling(x = sample_number / 24) - 1) * argument_list$plot_width * 0.25
   ggsave(
@@ -673,9 +680,11 @@ if (file.exists(plot_path_pdf) &&
 } else {
   message("Creating a Box Plot on Isoforms with replicates")
   # By default, the csBoxplot function adds a pseudocount of 1e-04 for log10
-  # transformed fpkms. In case of a large number of missing values in shallowly
-  # sequenced samples, this affects the plot. Hence reproduce the plot here.
-  # ggplot_object <- csBoxplot(object = isoforms(object = cuff_set), replicates = TRUE)
+  # transformed fpkms. In case of a large number of missing values in
+  # shallowly sequenced samples, this affects the plot.
+  # Hence reproduce the plot here.
+  # ggplot_object <-
+  #   csBoxplot(object = isoforms(object = cuff_set), replicates = TRUE)
   rep_fpkm_isoforms <- repFpkm(object = isoforms(object = cuff_set))
   # Rename the "rep_name" column into "condition".
   colnames(rep_fpkm_isoforms)[colnames(rep_fpkm_isoforms) == "rep_name"] <-
@@ -694,13 +703,14 @@ if (file.exists(plot_path_pdf) &&
   ggplot_object <-
     ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
   ggplot_object <-
-    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))  # Reduce the legend text
+    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))
   ggplot_object <-
     ggplot_object + scale_fill_hue(l = 50, h.start = 200)
   # Arrange a maximum of 24 replicates in each guide column.
   # ggplot_object <-
   #   ggplot_object + guides(fill = guide_legend(nrow = 24))
-  # Use the base plot_witdh and add a quarter of the width for each additional guide legend column.
+  # Use the base plot_witdh and add a quarter of the width for each additional
+  # guide legend column.
   plot_width <-
     argument_list$plot_width + (ceiling(x = replicate_number / 24) - 1) * argument_list$plot_width * 0.25
   ggsave(
@@ -732,7 +742,8 @@ if (file.exists(plot_path_pdf) &&
   message("Skipping a Box Plot on Isoforms without replicates")
 } else {
   message("Creating a Box Plot on Isoforms without replicates")
-  # ggplot_object <- csBoxplot(object = isoforms(object = cuff_set), replicates = FALSE)
+  # ggplot_object <-
+  #   csBoxplot(object = isoforms(object = cuff_set), replicates = FALSE)
   fpkm_isoforms <- fpkm(object = isoforms(object = cuff_set))
   # Rename the "sample_name" column into "condition".
   colnames(fpkm_isoforms)[colnames(fpkm_isoforms) == "sample_name"] <-
@@ -751,13 +762,14 @@ if (file.exists(plot_path_pdf) &&
   ggplot_object <-
     ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
   ggplot_object <-
-    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))  # Reduce the legend text
+    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))
   ggplot_object <-
     ggplot_object + scale_fill_hue(l = 50, h.start = 200)
   # Arrange a maximum of 24 replicates in each guide column.
   # ggplot_object <-
   #   ggplot_object + guides(fill = guide_legend(nrow = 24))
-  # Use the base plot_witdh and add a quarter of the with for each additional guide legend column.
+  # Use the base plot_witdh and add a quarter of the with for each additional
+  # guide legend column.
   plot_width <-
     argument_list$plot_width + (ceiling(x = sample_number / 24) - 1) * argument_list$plot_width * 0.25
   ggsave(
@@ -891,13 +903,128 @@ for (i in 1:length(sample_pairs[1, ])) {
         sample_pairs[2, i]
       )
     )
-    ggplot_object <-
-      csScatter(
+    
+    # Unfortunately, the standard cummeRbund csScatter() function
+    # does not allow colouring by significance.
+    # ggplot_object <-
+    #   csScatter(
+    #     object = genes(object = cuff_set),
+    #     x = sample_pairs[1, i],
+    #     y = sample_pairs[2, i],
+    #     colorByStatus = TRUE
+    #   )
+    
+    # Re-implement scatter plots here.
+    diff_data_gene <-
+      diffData(
         object = genes(object = cuff_set),
         x = sample_pairs[1, i],
         y = sample_pairs[2, i],
-        colorByStatus = TRUE
+        features = FALSE
       )
+    ggplot_object <-
+      ggplot(data = diff_data_gene,
+             mapping = aes(x = value_1, y = value_2))
+    ggplot_object <- ggplot_object + theme_light()
+    ggplot_object <-
+      ggplot_object + labs(x = sample_pairs[1, i], y = sample_pairs[2, i])
+    if (TRUE) {
+      # Plot the non-significant genes with geom_hex(),
+      # which performs much better with typical numbers of genes.
+      ggplot_object <-
+        ggplot_object + geom_hex(
+          data = diff_data_gene[diff_data_gene$significant == "no",],
+          alpha = I(1 / 3),
+          show.legend = TRUE,
+          bins = 50
+        )
+      # Manually set scale colours.
+      ggplot_object <-
+        ggplot_object +
+        scale_fill_continuous(low = "#e6f0ff", high = "#0066ff")
+      # Plot the significant genes with geom_point() in red.
+      ggplot_object <-
+        ggplot_object + geom_point(
+          data = diff_data_gene[diff_data_gene$significant == "yes",],
+          colour = "red",
+          size = 1.2,
+          alpha = I(1 / 3)
+        )
+    } else {
+      # Plot significant and non-significant genes with geom_point().
+      ggplot_object <-
+        ggplot_object + geom_point(
+          mapping = aes(colour = significant),
+          size = 1.2,
+          alpha = I(1 / 3)
+        )
+      # Manually set scale colours.
+      ggplot_object <-
+        ggplot_object + scale_colour_manual(values = c("black", "red"))
+    }
+    ggplot_object <-
+      ggplot_object + geom_abline(intercept = 0,
+                                  slope = 1,
+                                  linetype = 2)
+    ggplot_object <-
+      ggplot_object + geom_rug(size = 0.8, alpha = 0.01)
+    # ggplot_object <-
+    #   ggplot_object + stat_smooth(method = "lm", fill = "blue", alpha = 0.2)
+    ggplot_object <-
+      ggplot_object + scale_y_log10() + scale_x_log10()
+    
+    # Annotate the plot with the (Pearson) correlation coefficient and the
+    # number of significantly up and downregulated genes.
+    # For defining the data range for label placement,
+    # eliminate rows with value 0.
+    range_value_1 <-
+      range(diff_data_gene[diff_data_gene$value_1 > 0, ]$value_1)
+    range_value_2 <-
+      range(diff_data_gene[diff_data_gene$value_2 > 0, ]$value_2)
+    
+    # Calculate the (Pearson) correlation coefficient and place it on the plot
+    # in the lower right corner at 95% x and 5% y.
+    ggplot_object <-
+      ggplot_object + annotate(
+        geom = "text",
+        x = 10 ^ (log10(x = range_value_1[1]) + (
+          log10(x = range_value_1[2]) - log10(x = range_value_1[1])
+        ) * 0.95),
+        y = 10 ^ (log10(x = range_value_2[1]) + (
+          log10(x = range_value_2[2]) - log10(x = range_value_2[1])
+        ) * 0.05),
+        label = paste0("r = ", round(
+          x = cor(x = diff_data_gene$value_1, y = diff_data_gene$value_2),
+          digits = 3
+        ))
+      )
+    
+    # Calculate the numbers of up and down regulated genes and place them
+    # on the plot in the upper left corner at 5%x and 95% y.
+    ggplot_object <-
+      ggplot_object + annotate(
+        geom = "text",
+        x = 10 ^ (log10(x = range_value_1[1]) + (
+          log10(x = range_value_1[2]) - log10(x = range_value_1[1])
+        ) * 0.05),
+        y = 10 ^ (log10(x = range_value_2[1]) + (
+          log10(x = range_value_2[2]) - log10(x = range_value_2[1])
+        ) * 0.95),
+        colour = "red",
+        label = paste0(
+          "Up: ",
+          nrow(x = diff_data_gene[diff_data_gene$log2_fold_change > 0 &
+                                    diff_data_gene$significant == "yes",]),
+          "\n",
+          "Down: ",
+          nrow(x = diff_data_gene[diff_data_gene$log2_fold_change < 0 &
+                                    diff_data_gene$significant == "yes",])
+        ),
+        hjust = 0
+      )
+    
+    rm(range_value_1, range_value_2)
+    
     ggsave(
       filename = plot_path_pdf,
       plot = ggplot_object,
@@ -910,7 +1037,7 @@ for (i in 1:length(sample_pairs[1, ])) {
       width = argument_list$plot_width,
       height = argument_list$plot_height
     )
-    rm(ggplot_object)
+    rm(ggplot_object, diff_data_gene)
   }
   rm(plot_path_pdf, plot_path_png)
 }
@@ -1079,14 +1206,18 @@ for (i in 1:length(sample_pairs[1, ])) {
         sample_pairs[2, i]
       )
     )
-    # FIXME: The definition of the generic function "csVolcano" does not include
-    # the "alpha" and "showSignificant" options, although the function
-    # definition contains them. It does not seem that the option defaults are used.
+    # FIXME: The definition of the generic function "csVolcano" does not
+    # include the "alpha" and "showSignificant" options, although the function
+    # definition contains them. It does not seem that the option defaults are
+    # used.
     # In R/methods-CuffData.R:
-    # .volcano<-function(object,x,y,alpha=0.05,showSignificant=TRUE,features=FALSE,xlimits=c(-20,20),...)
-    # setMethod("csVolcano",signature(object="CuffData"), .volcano)
+    # .volcano <-
+    #   function(object, x, y, alpha = 0.05, showSignificant = TRUE,
+    #            features = FALSE, xlimits = c(-20, 20), ...)
+    # setMethod("csVolcano", signature(object = "CuffData"), .volcano)
     # In R/AllGenerics.R:
-    # setGeneric("csVolcano",function(object, x, y, features=F, ...) standardGeneric("csVolcano"))
+    # setGeneric("csVolcano",
+    #            function(object, x, y, features=F, ...) standardGeneric("csVolcano"))
     ggplot_object <-
       csVolcano(
         object = genes(object = cuff_set),
@@ -1128,8 +1259,8 @@ if (sample_number > 2) {
   } else {
     # if (have_replicates) {
     message("Creating a Multidimensional Scaling Plot on Genes")
-    # Nothing ever is simple. If the set has too many replicates, the standard
-    # cummeRbund MDSplot() falls down.
+    # Nothing ever is simple. If the set has too many replicates, the
+    # standard cummeRbund MDSplot() falls down.
     if (replicate_number <= 24) {
       ggplot_object <-
         MDSplot(object = genes(object = cuff_set),
@@ -1186,7 +1317,8 @@ if (sample_number > 2) {
       # Arrange a maximum of 24 replicates in each guide column.
       ggplot_object <-
         ggplot_object + guides(colour = guide_legend(nrow = 24))
-      # Use the base plot_witdh and add a quarter of the width for each additional guide legend column.
+      # Use the base plot_witdh and add a quarter of the width for each
+      # additional guide legend column.
       plot_width <-
         argument_list$plot_width + (ceiling(x = replicate_number / 24) - 1) * argument_list$plot_width * 0.25
       ggsave(
@@ -1210,7 +1342,8 @@ if (sample_number > 2) {
 }
 
 # Create a Principal Component Analysis (PCA) Plot on Genes.
-# TODO: Add also other principal components or even better use plots of the PCA package?
+# TODO: Add also other principal components or even better,
+# use plots of the PCA package?
 
 plot_path_pdf <-
   file.path(output_directory, paste0(prefix, "_genes_pca.pdf"))
@@ -1254,12 +1387,13 @@ message("Finishing QC plotting")
 # be accessed directly from a CuffData object using the fpkm, repFpkm, count,
 # diffData, or annotation methods.
 
-# Unfortunately, cummeRbund does not seem to offer a convenient way to correlate
-# Cufflinks (XLOC) gene identifiers with the original Ensembl (ENSG) gene identifiers.
+# Unfortunately, cummeRbund does not seem to offer a convenient way to
+# correlate Cufflinks (XLOC) gene identifiers with the original 
+# Ensembl (ENSG) gene identifiers.
 # Thus, the following steps are neccessary:
 #
-# 1. Read the reference GTF to correlate Ensembl (ENSG) gene and (ENST) transcript
-# identifiers, as well as official gene symbols.
+# 1. Read the reference GTF to correlate Ensembl (ENSG) gene and
+# (ENST) transcript identifiers, as well as official gene symbols.
 message("Reading reference transcriptome annotation")
 reference_granges <- import(con = argument_list$gtf_reference)
 reference_frame <- unique.data.frame(
@@ -1273,9 +1407,9 @@ reference_frame <- unique.data.frame(
 rm(reference_granges)
 
 # 2. Read the assembly GTF, which specifies Cufflinks (XLOC) gene and
-# Cufflinks (TCONS) transcript identifiers, but does no longer provide information
-# about Ensembl (ENSG) gene identifiers. Reference transcriptome loci may have been
-# merged or split by Cuffmerge.
+# Cufflinks (TCONS) transcript identifiers, but does no longer provide
+# information about Ensembl (ENSG) gene identifiers. Reference transcriptome
+# loci may have been merged or split by Cuffmerge.
 message("Reading assembled transcriptome annotation")
 assembly_granges <- import(con = argument_list$gtf_assembly)
 assembly_frame <- unique.data.frame(
@@ -1312,8 +1446,9 @@ aggregate_frame <-
 rm(ensembl_frame)
 # The aggregate frame consists of list objects of character vectors
 # with one or more elements aggregated in each group.
-# For each character vector, the character_to_csv() function finds unique elements
-# and sorts them, before collapsing them into a single, comma-separated value.
+# For each character vector, the character_to_csv() function finds unique
+# elements and sorts them, before collapsing them into a single,
+# comma-separated value.
 message("Collapsing aggregated Ensembl annotation")
 ensembl_annotation <-
   data.frame(
@@ -1333,15 +1468,17 @@ ensembl_annotation <-
 rm(aggregate_frame)
 
 # 5. Create a gene annotation frame, ready for enriching
-# cummeRbund gene information, by merging the "gene_id", "gene_short_name" and
-# "locus" fields of the gene annotation frame with the "transcript_ids",
-# "ensembl_gene_ids" and "ensembl_transcript_ids" of the Ensembl annotation frame.
+# cummeRbund gene information, by merging the "gene_id", "gene_short_name"
+# and "locus" fields of the gene annotation frame with the "transcript_ids",
+# "ensembl_gene_ids" and "ensembl_transcript_ids" of the 
+# Ensembl annotation frame.
 message("Creating gene annotation information")
 gene_annotation <- annotation(object = genes(object = cuff_set))
 gene_frame <- merge(
-  # Merge with a simplified cummeRbund gene annotation data frame, since fields
-  # "class_code", "nearest_ref_id", "length" and "coverage" seem empty by design.
-  # Remove hidden exon information by finding unique rows only.
+  # Merge with a simplified cummeRbund gene annotation data frame, since
+  # fields "class_code", "nearest_ref_id", "length" and "coverage" seem
+  # empty by design. Remove hidden exon information by finding unique
+  # rows only.
   x = unique.data.frame(
     x = data.frame(
       "gene_id" = gene_annotation$gene_id,
@@ -1385,7 +1522,8 @@ isoform_frame <- unique.data.frame(
 )
 rm(isoform_annotation)
 
-# Split the large and unwieldy differential data tables into pairwise comparisons.-
+# Split the large and unwieldy differential data tables into
+# pairwise comparisons.-
 
 for (i in 1:length(sample_pairs[1, ])) {
   frame_path <-
@@ -1414,43 +1552,45 @@ for (i in 1:length(sample_pairs[1, ])) {
     # The diffData function allows automatic merging with feature annotation,
     # but that includes some empty columns. For cleaner result tables, merge
     # with the smaller gene_frame established above. Unfortunately, the
-    # "gene_id" column appears twice as a consequence of a SQL table join of the
-    # "genes" table with the "geneExpDiffData" table. Separate data.frame
-    # columns of the same name interfere with the merge() function, so that the
-    # first column needs removing.
-    gene_diff <-
+    # "gene_id" column appears twice as a consequence of a SQL table join of
+    # the "genes" table with the "geneExpDiffData" table. Separate data.frame
+    # columns of the same name interfere with the merge() function, so that
+    # the first column needs removing.
+    diff_data_gene <-
       diffData(
         object = genes(object = cuff_set),
         x = sample_pairs[1, i],
         y = sample_pairs[2, i],
         features = FALSE
       )
-    gene_diff <- gene_diff[, -1]
-    # Calculate ranks for the effect size (log2_fold_change), absolute level and
-    # statistical significance (q_value).
-    gene_diff$rank_log2_fold_change <-
+    diff_data_gene <- diff_data_gene[, -1]
+    # Calculate ranks for the effect size (log2_fold_change), absolute level
+    # and statistical significance (q_value).
+    diff_data_gene$rank_log2_fold_change <-
       rank(
-        x = -abs(x = gene_diff$log2_fold_change),
+        x = -abs(x = diff_data_gene$log2_fold_change),
         ties.method = c("min")
       )
-    gene_diff$rank_value <-
+    diff_data_gene$rank_value <-
       rank(
-        x = -abs(x = gene_diff$value_2 - gene_diff$value_1),
+        x = -abs(x = diff_data_gene$value_2 - diff_data_gene$value_1),
         ties.method = c("min")
       )
-    gene_diff$rank_q_value <-
-      rank(x = gene_diff$q_value, ties.method = c("min"))
+    diff_data_gene$rank_q_value <-
+      rank(x = diff_data_gene$q_value, ties.method = c("min"))
     # Calculate the rank sum for the three ranks.
-    # gene_diff$rank_sum <-
-    #   gene_diff$rank_log2_fold_change + gene_diff$rank_value + gene_diff$rank_q_value
-    # Calculate the maximum rank of value and q-value, as rank_log2_fold_change
-    # is dominated by +/- infinity resulting from genes measured only once.
-    gene_diff$max_rank <-
-      max(gene_diff$rank_value, gene_diff$rank_q_value)
+    # diff_data_gene$rank_sum <-
+    #   diff_data_gene$rank_log2_fold_change + diff_data_gene$rank_value +
+    #   diff_data_gene$rank_q_value
+    # Calculate the maximum rank of value and q-value, as
+    # rank_log2_fold_change is dominated by +/- infinity resulting from genes
+    # measured only once.
+    diff_data_gene$max_rank <-
+      pmax(diff_data_gene$rank_value, diff_data_gene$rank_q_value)
     gene_merge <-
       merge(
         x = gene_frame,
-        y = gene_diff,
+        y = diff_data_gene,
         by.x = "gene_id",
         by.y = "gene_id",
         all = TRUE,
@@ -1464,7 +1604,7 @@ for (i in 1:length(sample_pairs[1, ])) {
       row.names = FALSE,
       col.names = TRUE
     )
-    rm(gene_diff, gene_merge)
+    rm(diff_data_gene, gene_merge)
   }
   rm(frame_path)
 }
@@ -1502,42 +1642,45 @@ for (i in 1:length(sample_pairs[1, ])) {
     # The diffData function allows automatic merging with feature annotation,
     # but that includes some empty columns. For cleaner result tables, merge
     # with the smaller isoform_frame estbalished above. Unfortunately, the
-    # "isoform_id" column appears twice as a consequence of a SQL table join of
-    # the "isoforms" table with the "isoformsExpDiffData" table. Separate
+    # "isoform_id" column appears twice as a consequence of a SQL table join
+    # of the "isoforms" table with the "isoformsExpDiffData" table. Separate
     # data.frame columns of the same name interfere with the merge() function,
     # so that the first column needs removing.
-    isoform_diff <-
+    diff_data_isoform <-
       diffData(
         object = isoforms(object = cuff_set),
         x = sample_pairs[1, i],
         y = sample_pairs[2, i],
         features = FALSE
       )
-    isoform_diff <- isoform_diff[, -1]
-    # Calculate ranks for the effect size (log2_fold_change), absolute level and statistical significance (q_value).
-    isoform_diff$rank_log2_fold_change <-
+    diff_data_isoform <- diff_data_isoform[, -1]
+    # Calculate ranks for the effect size (log2_fold_change), absolute level
+    # and statistical significance (q_value).
+    diff_data_isoform$rank_log2_fold_change <-
       rank(
-        x = -abs(x = isoform_diff$log2_fold_change),
+        x = -abs(x = diff_data_isoform$log2_fold_change),
         ties.method = c("min")
       )
-    isoform_diff$rank_value <-
+    diff_data_isoform$rank_value <-
       rank(
-        x = -abs(x = isoform_diff$value_2 - isoform_diff$value_1),
+        x = -abs(x = diff_data_isoform$value_2 - diff_data_isoform$value_1),
         ties.method = c("min")
       )
-    isoform_diff$rank_q_value <-
-      rank(x = isoform_diff$q_value, ties.method = c("min"))
+    diff_data_isoform$rank_q_value <-
+      rank(x = diff_data_isoform$q_value, ties.method = c("min"))
     # Calculate the rank sum for the three ranks.
-    # isoform_diff$rank_sum <-
-    #   isoform_diff$rank_log2_fold_change + isoform_diff$rank_value + isoform_diff$rank_q_value
+    # diff_data_isoform$rank_sum <-
+    #   diff_data_isoform$rank_log2_fold_change + diff_data_isoform$rank_value +
+    #   diff_data_isoform$rank_q_value
     # Calculate the maximum rank of value and q-value, as rank_log2_fold_change
     # is dominated by +/- infinity resulting from genes measured only once.
-    isoform_diff$max_rank <-
-      max(isoform_diff$rank_value, isoform_diff$rank_q_value)
+    diff_data_isoform$max_rank <-
+      pmax(diff_data_isoform$rank_value,
+           diff_data_isoform$rank_q_value)
     isoform_merge <-
       merge(
         x = isoform_frame,
-        y = isoform_diff,
+        y = diff_data_isoform,
         by.x = "isoform_id",
         by.y = "isoform_id",
         all = TRUE,
@@ -1551,7 +1694,7 @@ for (i in 1:length(sample_pairs[1, ])) {
       row.names = FALSE,
       col.names = TRUE
     )
-    rm(isoform_diff, isoform_merge)
+    rm(diff_data_isoform, isoform_merge)
   }
   rm(frame_path)
 }
@@ -1751,10 +1894,13 @@ rm(gene_frame, isoform_frame)
 # Get a CuffFeatureSet or CuffGeneSet of significant genes.
 
 # TODO: Comment-out for the moment, as the data is currently not used.
-# significant_gene_ids <- getSig(object = cuff_set, level = "genes")
-# significant_genes <- getGenes(object = cuff_set, geneIdList = significant_gene_ids)
+# significant_gene_ids <-
+#   getSig(object = cuff_set, level = "genes")
+# significant_genes <-
+#   getGenes(object = cuff_set, geneIdList = significant_gene_ids)
 
-# The csHeatmap plot does not seem to be a sensible option for larger sets of significant genes.
+# The csHeatmap plot does not seem to be a sensible option for larger sets
+# of significant genes.
 # for (i in 1:length(sample_pairs[1,])) {
 
 # significant_genes_diff <-
