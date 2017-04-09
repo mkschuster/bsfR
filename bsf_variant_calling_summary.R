@@ -5,7 +5,7 @@
 # reports are read for each sample and plotted at the read group or sample level.
 #
 #
-# Copyright 2013 -2015 Michael K. Schuster
+# Copyright 2013 - 2017 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -63,16 +63,16 @@ argument_list <- parse_args(object = OptionParser(
     ),
     make_option(
       opt_str = c("--plot-width"),
-      default = 7,
+      default = 7.0,
       dest = "plot_width",
-      help = "Plot width in inches",
+      help = "Plot width in inches [7.0]",
       type = "numeric"
     ),
     make_option(
       opt_str = c("--plot-height"),
-      default = 7,
+      default = 7.0,
       dest = "plot_height",
-      help = "Plot height in inches",
+      help = "Plot height in inches [7.0]",
       type = "numeric"
     )
   )
@@ -198,16 +198,16 @@ if (!is.null(x = combined_metrics_sample)) {
   
   # Plot the percent duplication per sample.
   message("Plotting the percent duplication per sample")
-  plot_object <-
+  ggplot_object <-
     ggplot(data = combined_metrics_sample)
-  plot_object <-
-    plot_object + ggtitle(label = "Percent Duplication per Sample")
-  plot_object <-
-    plot_object + geom_point(mapping = aes(x = SAMPLE, y = PERCENT_DUPLICATION))
-  plot_object <-
-    plot_object + guides(colour = guide_legend(nrow = 24))
-  plot_object <-
-    plot_object + theme(axis.text.x = element_text(
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Percent Duplication per Sample")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(x = SAMPLE, y = PERCENT_DUPLICATION))
+  ggplot_object <-
+    ggplot_object + guides(colour = guide_legend(nrow = 24))
+  ggplot_object <-
+    ggplot_object + theme(axis.text.x = element_text(
       angle = 90,
       hjust = 0,
       size = rel(x = 0.8)
@@ -219,12 +219,12 @@ if (!is.null(x = combined_metrics_sample)) {
         paste("duplication_percentage_sample", graphics_format, sep = "."),
         sep = "_"
       ),
-      plot = plot_object,
+      plot = ggplot_object,
       width = plot_width,
       height = argument_list$plot_height
     )
   }
-  rm(graphics_format, plot_object)
+  rm(graphics_format, ggplot_object)
   
   # Plot PERCENT_UNPAIRED_READ_DUPLICATION, PERCENT_READ_PAIR_DUPLICATION,
   # PERCENT_READ_PAIR_OPTICAL_DUPLICATION and PERCENT_DUPLICATION per sample.
@@ -243,15 +243,15 @@ if (!is.null(x = combined_metrics_sample)) {
     value.name = "fraction"
   )
   
-  plot_object <- ggplot(data = plotting_frame)
-  plot_object <-
-    plot_object + ggtitle(label = "Duplication Levels per Sample")
-  plot_object <-
-    plot_object + geom_point(mapping = aes(x = SAMPLE,
+  ggplot_object <- ggplot(data = plotting_frame)
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Duplication Levels per Sample")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(x = SAMPLE,
                                            y = fraction,
                                            colour = DUPLICATION))
-  plot_object <-
-    plot_object + theme(axis.text.x = element_text(
+  ggplot_object <-
+    ggplot_object + theme(axis.text.x = element_text(
       angle = 90,
       hjust = 0,
       size = rel(x = 0.8)
@@ -263,13 +263,13 @@ if (!is.null(x = combined_metrics_sample)) {
         paste("duplication_levels_sample", graphics_format, sep = "."),
         sep = "_"
       ),
-      plot = plot_object,
+      plot = ggplot_object,
       width = plot_width,
       height = argument_list$plot_height
     )
   }
   
-  rm(graphics_format, plot_object, plotting_frame)
+  rm(graphics_format, ggplot_object, plotting_frame)
   
   rm(plot_width)
 }
@@ -407,14 +407,14 @@ if (!is.null(x = combined_metrics_sample)) {
   
   # Plot the absolute number of aligned pass-filter reads per sample.
   message("Plotting the absolute number of aligned pass-filter reads per sample")
-  plot_object <-
+  ggplot_object <-
     ggplot(data = combined_metrics_sample)
-  plot_object <-
-    plot_object + ggtitle(label = "Aligned Pass-Filter Reads per Sample")
-  plot_object <-
-    plot_object + geom_point(mapping = aes(x = CATEGORY, y = PF_READS, colour = SAMPLE))
-  plot_object <-
-    plot_object + guides(colour = guide_legend(nrow = 24))
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Aligned Pass-Filter Reads per Sample")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(x = CATEGORY, y = PF_READS, colour = SAMPLE))
+  ggplot_object <-
+    ggplot_object + guides(colour = guide_legend(nrow = 24))
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
@@ -422,25 +422,25 @@ if (!is.null(x = combined_metrics_sample)) {
         paste("alignment_absolute_sample", graphics_format, sep = "."),
         sep = "_"
       ),
-      plot = plot_object,
+      plot = ggplot_object,
       width = plot_width_sample,
       height = argument_list$plot_height
     )
   }
-  rm(graphics_format, plot_object)
+  rm(graphics_format, ggplot_object)
   
   # Plot the absolute number of aligned pass-filter reads per read group.
   message("Plotting the absolute number of aligned pass-filter reads per read group")
-  plot_object <-
+  ggplot_object <-
     ggplot(data = combined_metrics_read_group)
-  plot_object <-
-    plot_object + ggtitle(label = "Aligned Pass-Filter Reads per Read Group")
-  plot_object <-
-    plot_object + geom_point(mapping = aes(x = CATEGORY, y = PF_READS, colour = READ_GROUP))
-  plot_object <-
-    plot_object + guides(colour = guide_legend(nrow = 24))
-  plot_object <-
-    plot_object + theme(legend.text = element_text(size = rel(x = 0.5)))
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Aligned Pass-Filter Reads per Read Group")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(x = CATEGORY, y = PF_READS, colour = READ_GROUP))
+  ggplot_object <-
+    ggplot_object + guides(colour = guide_legend(nrow = 24))
+  ggplot_object <-
+    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.5)))
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
@@ -448,24 +448,24 @@ if (!is.null(x = combined_metrics_sample)) {
         paste("alignment_absolute_read_group", graphics_format, sep = "."),
         sep = "_"
       ),
-      plot = plot_object,
+      plot = ggplot_object,
       width = plot_width_read_group,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
   }
-  rm(graphics_format, plot_object)
+  rm(graphics_format, ggplot_object)
   
   # Plot the percentage of aligned pass-filter reads per sample.
   message("Plotting the percentage of aligned pass-filter reads per sample")
-  plot_object <-
+  ggplot_object <-
     ggplot(data = combined_metrics_sample)
-  plot_object <-
-    plot_object + ggtitle(label = "Aligned Pass-Filter Reads per Sample")
-  plot_object <-
-    plot_object + geom_point(mapping = aes(x = CATEGORY, y = PCT_PF_READS_ALIGNED, colour = SAMPLE))
-  plot_object <-
-    plot_object + guides(colour = guide_legend(nrow = 24))
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Aligned Pass-Filter Reads per Sample")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(x = CATEGORY, y = PCT_PF_READS_ALIGNED, colour = SAMPLE))
+  ggplot_object <-
+    ggplot_object + guides(colour = guide_legend(nrow = 24))
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
@@ -473,25 +473,25 @@ if (!is.null(x = combined_metrics_sample)) {
         paste("alignment_percentage_sample", graphics_format, sep = "."),
         sep = "_"
       ),
-      plot = plot_object,
+      plot = ggplot_object,
       width = plot_width_sample,
       height = argument_list$plot_height
     )
   }
-  rm(graphics_format, plot_object)
+  rm(graphics_format, ggplot_object)
   
   # Plot the percentage of aligned pass-filter reads per read group.
   message("Plotting the percentage of aligned pass-filter reads per read group")
-  plot_object <-
+  ggplot_object <-
     ggplot(data = combined_metrics_read_group)
-  plot_object <-
-    plot_object + ggtitle(label = "Aligned Pass-Filter Reads per Read Group")
-  plot_object <-
-    plot_object + geom_point(mapping = aes(x = CATEGORY, y = PCT_PF_READS_ALIGNED, colour = READ_GROUP))
-  plot_object <-
-    plot_object + guides(colour = guide_legend(nrow = 24))
-  plot_object <-
-    plot_object + theme(legend.text = element_text(size = rel(x = 0.5)))
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Aligned Pass-Filter Reads per Read Group")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(x = CATEGORY, y = PCT_PF_READS_ALIGNED, colour = READ_GROUP))
+  ggplot_object <-
+    ggplot_object + guides(colour = guide_legend(nrow = 24))
+  ggplot_object <-
+    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.5)))
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
@@ -499,13 +499,13 @@ if (!is.null(x = combined_metrics_sample)) {
         paste("alignment_percentage_read_group", graphics_format, sep = "."),
         sep = "_"
       ),
-      plot = plot_object,
+      plot = ggplot_object,
       width = plot_width_read_group,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
   }
-  rm(graphics_format, plot_object)
+  rm(graphics_format, ggplot_object)
   
   rm(plot_width_read_group, plot_width_sample)
 }
@@ -650,16 +650,16 @@ if (!is.null(x = combined_metrics_sample)) {
   
   # Plot the percentage of unique pass-filter reads per sample.
   message("Plotting the percentage of unique pass-filter reads per sample")
-  plot_object <-
+  ggplot_object <-
     ggplot(data = combined_metrics_sample)
-  plot_object <-
-    plot_object + ggtitle(label = "Unique Pass-Filter Reads per Sample")
-  plot_object <-
-    plot_object + geom_point(mapping = aes(x = SAMPLE, y = PCT_PF_UQ_READS))
-  plot_object <-
-    plot_object + guides(colour = guide_legend(nrow = 24))
-  plot_object <-
-    plot_object + theme(axis.text.x = element_text(
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Unique Pass-Filter Reads per Sample")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(x = SAMPLE, y = PCT_PF_UQ_READS))
+  ggplot_object <-
+    ggplot_object + guides(colour = guide_legend(nrow = 24))
+  ggplot_object <-
+    ggplot_object + theme(axis.text.x = element_text(
       angle = 90,
       hjust = 0,
       size = rel(x = 0.8)
@@ -671,28 +671,28 @@ if (!is.null(x = combined_metrics_sample)) {
         paste("hybrid_unique_percentage_sample", graphics_format, sep = "."),
         sep = "_"
       ),
-      plot = plot_object,
+      plot = ggplot_object,
       width = plot_width_sample,
       height = argument_list$plot_height
     )
   }
-  rm(graphics_format, plot_object)
+  rm(graphics_format, ggplot_object)
   
   # Plot the percentage of unique pass-filter reads per read group.
   message("Plotting the percentage of unique pass-filter reads per read group")
-  plot_object <-
+  ggplot_object <-
     ggplot(data = combined_metrics_read_group)
-  plot_object <-
-    plot_object + ggtitle(label = "Unique Pass-Filter Reads per Read Group")
-  plot_object <-
-    plot_object + geom_point(mapping = aes(x = READ_GROUP, y = PCT_PF_UQ_READS, shape = BAIT_SET))
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Unique Pass-Filter Reads per Read Group")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(x = READ_GROUP, y = PCT_PF_UQ_READS, shape = BAIT_SET))
   # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
-  plot_object <-
-    plot_object + scale_shape_manual(values = 1:nlevels(x = combined_metrics_read_group$BAIT_SET))
-  plot_object <-
-    plot_object + guides(colour = guide_legend(nrow = 24))
-  plot_object <-
-    plot_object + theme(axis.text.x = element_text(
+  ggplot_object <-
+    ggplot_object + scale_shape_manual(values = 1:nlevels(x = combined_metrics_read_group$BAIT_SET))
+  ggplot_object <-
+    ggplot_object + guides(colour = guide_legend(nrow = 24))
+  ggplot_object <-
+    ggplot_object + theme(axis.text.x = element_text(
       angle = 90,
       hjust = 0,
       size = rel(x = 0.5)
@@ -708,26 +708,26 @@ if (!is.null(x = combined_metrics_sample)) {
         ),
         sep = "_"
       ),
-      plot = plot_object,
+      plot = ggplot_object,
       width = plot_width_read_group,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
   }
-  rm(graphics_format, plot_object)
+  rm(graphics_format, ggplot_object)
   
   # Plot the mean target coverage per sample.
   message("Plotting the mean target coverage per sample")
-  plot_object <-
+  ggplot_object <-
     ggplot(data = combined_metrics_sample)
-  plot_object <-
-    plot_object + ggtitle(label = "Mean Target Coverage per Sample")
-  plot_object <-
-    plot_object + geom_point(mapping = aes(x = SAMPLE, y = MEAN_TARGET_COVERAGE))
-  plot_object <-
-    plot_object + guides(colour = guide_legend(nrow = 24))
-  plot_object <-
-    plot_object + theme(axis.text.x = element_text(
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Mean Target Coverage per Sample")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(x = SAMPLE, y = MEAN_TARGET_COVERAGE))
+  ggplot_object <-
+    ggplot_object + guides(colour = guide_legend(nrow = 24))
+  ggplot_object <-
+    ggplot_object + theme(axis.text.x = element_text(
       angle = 90,
       hjust = 0,
       size = rel(x = 0.8)
@@ -739,28 +739,28 @@ if (!is.null(x = combined_metrics_sample)) {
         paste("hybrid_target_coverage_sample", graphics_format, sep = "."),
         sep = "_"
       ),
-      plot = plot_object,
+      plot = ggplot_object,
       width = plot_width_sample,
       height = argument_list$plot_height
     )
   }
-  rm(graphics_format, plot_object)
+  rm(graphics_format, ggplot_object)
   
   # Plot the mean target coverage per read group.
   message("Plotting the mean target coverage per read group")
-  plot_object <-
+  ggplot_object <-
     ggplot(data = combined_metrics_read_group)
-  plot_object <-
-    plot_object + ggtitle(label = "Mean Target Coverage per Read Group")
-  plot_object <-
-    plot_object + geom_point(mapping = aes(x = READ_GROUP, y = MEAN_TARGET_COVERAGE, shape = BAIT_SET))
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Mean Target Coverage per Read Group")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(x = READ_GROUP, y = MEAN_TARGET_COVERAGE, shape = BAIT_SET))
   # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
-  plot_object <-
-    plot_object + scale_shape_manual(values = 1:nlevels(x = combined_metrics_read_group$BAIT_SET))
-  plot_object <-
-    plot_object + guides(colour = guide_legend(nrow = 24))
-  plot_object <-
-    plot_object + theme(axis.text.x = element_text(
+  ggplot_object <-
+    ggplot_object + scale_shape_manual(values = 1:nlevels(x = combined_metrics_read_group$BAIT_SET))
+  ggplot_object <-
+    ggplot_object + guides(colour = guide_legend(nrow = 24))
+  ggplot_object <-
+    ggplot_object + theme(axis.text.x = element_text(
       angle = 90,
       hjust = 0,
       size = rel(x = 0.5)
@@ -776,13 +776,13 @@ if (!is.null(x = combined_metrics_sample)) {
         ),
         sep = "_"
       ),
-      plot = plot_object,
+      plot = ggplot_object,
       width = plot_width_read_group,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
   }
-  rm(graphics_format, plot_object)
+  rm(graphics_format, ggplot_object)
   
   # Plot PCT_TARGET_BASES_1X, PCT_TARGET_BASES_2X, PCT_TARGET_BASES_10X, PCT_TARGET_BASES_20X,
   # PCT_TARGET_BASES_30X, PCT_TARGET_BASES_40X, PCT_TARGET_BASES_50X, PCT_TARGET_BASES_100X per sample.
@@ -804,15 +804,15 @@ if (!is.null(x = combined_metrics_sample)) {
     value.name = "fraction"
   )
   
-  plot_object <- ggplot(data = plotting_frame)
-  plot_object <-
-    plot_object + ggtitle(label = "Coverage Levels per Sample")
-  plot_object <-
-    plot_object + geom_point(mapping = aes(x = SAMPLE,
+  ggplot_object <- ggplot(data = plotting_frame)
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Coverage Levels per Sample")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(x = SAMPLE,
                                            y = fraction,
                                            colour = COVERAGE))
-  plot_object <-
-    plot_object + theme(axis.text.x = element_text(
+  ggplot_object <-
+    ggplot_object + theme(axis.text.x = element_text(
       angle = 90,
       hjust = 0,
       size = rel(x = 0.8)
@@ -828,12 +828,12 @@ if (!is.null(x = combined_metrics_sample)) {
         ),
         sep = "_"
       ),
-      plot = plot_object,
+      plot = ggplot_object,
       width = plot_width_sample,
       height = argument_list$plot_height
     )
   }
-  rm(graphics_format, plot_object, plotting_frame)
+  rm(graphics_format, ggplot_object, plotting_frame)
   
   # Plot PCT_TARGET_BASES_1X, PCT_TARGET_BASES_2X, PCT_TARGET_BASES_10X, PCT_TARGET_BASES_20X,
   # PCT_TARGET_BASES_30X, PCT_TARGET_BASES_40X, PCT_TARGET_BASES_50X, PCT_TARGET_BASES_100X per read group.
@@ -855,21 +855,21 @@ if (!is.null(x = combined_metrics_sample)) {
     value.name = "fraction"
   )
   
-  plot_object <- ggplot(data = plotting_frame)
-  plot_object <-
-    plot_object + ggtitle(label = "Coverage Levels per Read Group")
-  plot_object <-
-    plot_object + geom_point(mapping = aes(
+  ggplot_object <- ggplot(data = plotting_frame)
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Coverage Levels per Read Group")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(
       x = READ_GROUP,
       y = fraction,
       colour = COVERAGE,
       shape = BAIT_SET
     ))
   # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
-  plot_object <-
-    plot_object + scale_shape_manual(values = 1:nlevels(x = combined_metrics_read_group$BAIT_SET))
-  plot_object <-
-    plot_object + theme(axis.text.x = element_text(
+  ggplot_object <-
+    ggplot_object + scale_shape_manual(values = 1:nlevels(x = combined_metrics_read_group$BAIT_SET))
+  ggplot_object <-
+    ggplot_object + theme(axis.text.x = element_text(
       angle = 90,
       hjust = 0,
       size = rel(x = 0.5)
@@ -885,12 +885,12 @@ if (!is.null(x = combined_metrics_sample)) {
         ),
         sep = "_"
       ),
-      plot = plot_object,
+      plot = ggplot_object,
       width = plot_width_sample,
       height = argument_list$plot_height
     )
   }
-  rm(graphics_format, plot_object, plotting_frame)
+  rm(graphics_format, ggplot_object, plotting_frame)
   
   rm(plot_width_read_group, plot_width_sample)
 }
@@ -915,6 +915,8 @@ combined_metrics_sample$exon_path <-
 combined_metrics_sample$exon_number <-
   integer(length = nrow(x = combined_metrics_sample))
 combined_metrics_sample$exon_width <-
+  integer(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample$exon_flank_width <-
   integer(length = nrow(x = combined_metrics_sample))
 combined_metrics_sample$transcribed_number <-
   integer(length = nrow(x = combined_metrics_sample))
@@ -965,8 +967,12 @@ for (i in 1:nrow(x = combined_metrics_sample)) {
       header = TRUE,
       colClasses = c(
         "exon_path" = "character",
+        # Raw exons before filtering processed_transcripts, etc. via 'tag "basic";'
+        # "exon_number_raw" = "integer",
+        # "exon_width_raw" = "integer",
         "exon_number" = "integer",
         "exon_width" = "integer",
+        "exon_flank_width" = "integer",
         "transcribed_number" = "integer",
         "transcribed_width" = "integer",
         "target_path" = "character",
@@ -1065,13 +1071,13 @@ if (nrow(x = combined_metrics_sample) > 0) {
   plotting_frame <-
     plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
   
-  plot_object <- ggplot(data = plotting_frame)
-  plot_object <-
-    plot_object + ggtitle(label = "Number of Non-Callable Loci per Sample")
-  plot_object <-
-    plot_object + geom_point(mapping = aes(x = sample_name, y = number, colour = mapping_status))
-  plot_object <-
-    plot_object + theme(axis.text.x = element_text(
+  ggplot_object <- ggplot(data = plotting_frame)
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Number of Non-Callable Loci per Sample")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(x = sample_name, y = number, colour = mapping_status))
+  ggplot_object <-
+    ggplot_object + theme(axis.text.x = element_text(
       angle = 90,
       hjust = 0,
       size = rel(x = 0.8)
@@ -1083,13 +1089,13 @@ if (nrow(x = combined_metrics_sample) > 0) {
         paste("non_callable_absolute_sample", graphics_format, sep = "."),
         sep = "_"
       ),
-      plot = plot_object,
+      plot = ggplot_object,
       width = plot_width_sample,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
   }
-  rm(graphics_format, plot_object, plotting_frame)
+  rm(graphics_format, ggplot_object, plotting_frame)
   
   # Plot the fraction of non-callable loci per sample.
   message("Plotting the fraction of non-callable loci per sample")
@@ -1125,13 +1131,13 @@ if (nrow(x = combined_metrics_sample) > 0) {
   plotting_frame <-
     plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
   
-  plot_object <- ggplot(data = plotting_frame)
-  plot_object <-
-    plot_object + ggtitle(label = "Fraction of Non-Callable Loci per Sample")
-  plot_object <-
-    plot_object + geom_point(mapping = aes(x = sample_name, y = fraction, colour = mapping_status))
-  plot_object <-
-    plot_object + theme(axis.text.x = element_text(
+  ggplot_object <- ggplot(data = plotting_frame)
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Fraction of Non-Callable Loci per Sample")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(x = sample_name, y = fraction, colour = mapping_status))
+  ggplot_object <-
+    ggplot_object + theme(axis.text.x = element_text(
       angle = 90,
       hjust = 0,
       size = rel(x = 0.8)
@@ -1143,13 +1149,13 @@ if (nrow(x = combined_metrics_sample) > 0) {
         paste("non_callable_percentage_sample", graphics_format, sep = "."),
         sep = "_"
       ),
-      plot = plot_object,
+      plot = ggplot_object,
       width = plot_width_sample,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
   }
-  rm(graphics_format, plot_object, plotting_frame)
+  rm(graphics_format, ggplot_object, plotting_frame)
   
   rm(plot_width_sample)
 }
@@ -1163,3 +1169,5 @@ message("All done")
 if (length(x = ls())) {
   print(x = ls())
 }
+
+print(x = sessionInfo())

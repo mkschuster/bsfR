@@ -1,16 +1,17 @@
 #! /usr/bin/env Rscript
 #
 # BSF R script to refine the GATK Callable Loci analyis.
+#
 # The coverage assessment loads (Ensembl) exon information, collates (or projects)
 # all (overlapping) exons into transcribed regions on the genome, overlaps those with
 # the target regions to get transcribed target regions and finally overlaps those with
 # non-callable loci to get the minimal set of problematic regions.
-# Each problematic region is annotated with teh target name and the exon, transcript and
+# Each problematic region is annotated with target name, as well as exon, transcript and
 # gene information. A summary data frame of metrics collected along the procedure is also
 # written to disk.
 #
 #
-# Copyright 2013 -2015 Michael K. Schuster
+# Copyright 2013 - 2017 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -54,8 +55,23 @@ argument_list <- parse_args(object = OptionParser(
     make_option(
       opt_str = c("--exons"),
       dest = "exon_path",
-      help = "File path to the gene transcript an exon annotation GTF",
+      help = "File path to the gene, transcript and exon annotation GTF",
       type = "character"
+    ),
+    make_option(
+      opt_str = c("--exon-flanks"),
+      default = 0L,
+      dest = "exon_flanks",
+      help = "Exon flanking regions [0]",
+      type = "integer"
+    ),
+    make_option(
+      opt_str = c("--no-filter"),
+      action = "store_true",
+      default = FALSE,
+      dest = "no_filter",
+      help = "Do not filter GTF annotation by 'tag \"basic\";' [FALSE]",
+      type = "logical"
     ),
     make_option(
       opt_str = c("--callable-loci"),
@@ -71,16 +87,16 @@ argument_list <- parse_args(object = OptionParser(
     ),
     make_option(
       opt_str = c("--plot-width"),
-      default = 7,
+      default = 7.0,
       dest = "plot_width",
-      help = "Plot width in inches",
+      help = "Plot width in inches [7.0]",
       type = "numeric"
     ),
     make_option(
       opt_str = c("--plot-height"),
-      default = 7,
+      default = 7.0,
       dest = "plot_height",
-      help = "Plot height in inches",
+      help = "Plot height in inches [7.0]",
       type = "numeric"
     )
   )
@@ -90,7 +106,7 @@ suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
 
 # Keep overall statistics in a summary data frame.
 summary_frame <- data.frame(stringsAsFactors = FALSE)
-i <- 1
+i <- 1L
 
 # Import Ensembl gene, transcript and exon annotation as GRanges vector object,
 # where only exon components are relevant for this analysis.
@@ -100,11 +116,40 @@ exon_ranges <-
   import(con = summary_frame[i, "exon_path"],
          genome = "hs37d5",
          feature.type = "exon")
+# Ensembl now annotates a "tag" in GFF files with value "basic" indicating standard (basic) transcript models.
+# Can the exon ranges be subset by such a tag?
+if ("tag" %in% names(x = mcols(x = exon_ranges)) & !argument_list$no_filter) {
+  summary_frame[i, "exon_number_raw"] <- length(x = exon_ranges)
+  message(paste0("Number of raw exon ranges: ", summary_frame[i, "exon_number_raw"]))
+  summary_frame[i, "exon_width_raw"] <- sum(width(x = exon_ranges))
+  message(paste0("Cumulative width of raw exon ranges: ", summary_frame[i, "exon_width_raw"]))
+  # Use the %in% operator for character matching as it sets NA values to FALSE, automatically.
+  basic_exon_ranges <- exon_ranges[mcols(x = exon_ranges)$tag %in% "basic", ]
+  if (length(x = basic_exon_ranges) > 0L) {
+    # Only replace the original Exon ranges if there were any "basic" matches.
+    exon_ranges <- basic_exon_ranges
+  }
+  rm(basic_exon_ranges)
+}
 summary_frame[i, "exon_number"] <- length(x = exon_ranges)
 message(paste0("Number of exon ranges: ", summary_frame[i, "exon_number"]))
 summary_frame[i, "exon_width"] <- sum(width(x = exon_ranges))
 message(paste0("Cumulative width of exon ranges: ", summary_frame[i, "exon_width"]))
-
+# Apply flanking regions, by default 0L, to the exon ranges.
+exon_ranges <-
+  resize(
+    x = exon_ranges,
+    width = width(x = exon_ranges) + argument_list$exon_flanks,
+    fix = "end"
+  )
+exon_ranges <-
+  resize(
+    x = exon_ranges,
+    width = width(x = exon_ranges) + argument_list$exon_flanks,
+    fix = "start"
+  )
+summary_frame[i, "exon_flank_width"] <- sum(width(x = exon_ranges))
+message(paste0("Cumulative width of exon ranges with flanks:", summary_frame[i, "exon_flank_width"]))
 # Reduce the non-redundant Ensembl exons to their footprint on the genome to get
 # transcribed regions. The revmap column contains the mapping to original
 # exon_ranges components.
@@ -168,7 +213,7 @@ if (!is.null(x = argument_list$target_path)) {
   target_ranges <- transcribed_ranges
   summary_frame[i, "target_width_raw"] <-
     summary_frame[i, "transcribed_width"]
-  summary_frame[i, "target_number_raw"] <- 0
+  summary_frame[i, "target_number_raw"] <- 0L
   constrained_ranges <- transcribed_ranges
 }
 summary_frame[i, "target_number_constrained"] <-
@@ -190,7 +235,7 @@ message(paste0("Processing sample name: ", summary_frame[i, "sample_name"]))
 callable_ranges <-
   import(con = summary_frame[i, "callable_loci_path"])
 non_callable_ranges <-
-  callable_ranges[callable_ranges$name != "CALLABLE",]
+  callable_ranges[callable_ranges$name != "CALLABLE", ]
 non_callable_ranges$name <-
   as.factor(x = non_callable_ranges$name)
 summary_frame[i, "non_callable_number_raw"] <-
@@ -220,9 +265,8 @@ overlap_ranges <- GRanges(
 )
 summary_frame[i, "non_callable_number_constrained.TOTAL"] <-
   length(x = overlap_ranges)
-message(paste0(
-  "Number of non-callable constrained ranges: ",
-  summary_frame[i, "non_callable_number_constrained.TOTAL"]))
+message(paste0("Number of non-callable constrained ranges: ",
+               summary_frame[i, "non_callable_number_constrained.TOTAL"]))
 summary_frame[i, "non_callable_width_constrained.TOTAL"] <-
   sum(width(x = overlap_ranges))
 message(paste0(
@@ -236,18 +280,26 @@ message(paste0(
 # Populate the summary frame with columns for each mapping status level,
 # regardless of whether it is associated with data or not.
 # Use fixed mapping status levels emitted by GATK CallableLoci.
-for (level in c("REF_N", "NO_COVERAGE", "LOW_COVERAGE", "EXCESSIVE_COVERAGE", "POOR_MAPPING_QUALITY")) {
-  summary_frame[i, paste("non_callable_number_constrained", level, sep = ".")] <- 0
-  summary_frame[i, paste("non_callable_width_constrained", level, sep = ".")] <- 0
+for (level in c(
+  "REF_N",
+  "NO_COVERAGE",
+  "LOW_COVERAGE",
+  "EXCESSIVE_COVERAGE",
+  "POOR_MAPPING_QUALITY"
+)) {
+  summary_frame[i, paste("non_callable_number_constrained", level, sep = ".")] <-
+    0L
+  summary_frame[i, paste("non_callable_width_constrained", level, sep = ".")] <-
+    0L
 }
 rm(level)
 # Count the number of entries for each mapping status level.
 aggregate_frame <-
   as.data.frame(x = table(mcols(x = overlap_ranges)$mapping_status))
 # Assign the result levels (rows) as summary frame columns.
-for (j in 1:nrow(x = aggregate_frame)) {
-  summary_frame[i, paste("non_callable_number_constrained", aggregate_frame[j, 1], sep = ".")] <-
-    aggregate_frame[j, 2]
+for (j in 1L:nrow(x = aggregate_frame)) {
+  summary_frame[i, paste("non_callable_number_constrained", aggregate_frame[j, 1L], sep = ".")] <-
+    aggregate_frame[j, 2L]
 }
 # Sum the widths of entries for each mapping_status level.
 aggregate_frame <-
@@ -257,9 +309,9 @@ aggregate_frame <-
     FUN = "sum"
   )
 # Assign the result levels (rows) as summary frame columns.
-for (j in 1:nrow(x = aggregate_frame)) {
-  summary_frame[i, paste("non_callable_width_constrained", aggregate_frame[j, 1], sep = ".")] <-
-    aggregate_frame[j, 2]
+for (j in 1L:nrow(x = aggregate_frame)) {
+  summary_frame[i, paste("non_callable_width_constrained", aggregate_frame[j, 1L], sep = ".")] <-
+    aggregate_frame[j, 2L]
 }
 rm(j, aggregate_frame, overlap_ranges, overlap_frame)
 
@@ -335,3 +387,5 @@ message("All done")
 if (length(x = ls())) {
   print(x = ls())
 }
+
+print(x = sessionInfo())
