@@ -11,7 +11,7 @@
 # directory.
 #
 #
-# Copyright 2013 -2015 Michael K. Schuster
+# Copyright 2013 - 2017 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -36,6 +36,7 @@
 suppressPackageStartupMessages(expr = library(package = "biomaRt"))
 suppressPackageStartupMessages(expr = library(package = "ggplot2"))
 suppressPackageStartupMessages(expr = library(package = "optparse"))
+suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
 
 
 #' Process Tophat and Cufflinks directories for each sample.
@@ -47,12 +48,12 @@ suppressPackageStartupMessages(expr = library(package = "optparse"))
 #' @param summary_frame: Data frame with alignment summary statistics
 #' @return: Data frame with alignment summary statistics
 
-process_sample <- function(summary_frame) {
+process_sample <- function(summary_frame = NULL) {
   if (is.null(x = summary_frame)) {
     stop("Missing summary_frame argument")
   }
   
-  for (i in 1:nrow(x = summary_frame)) {
+  for (i in seq_len(length.out = nrow(x = summary_frame))) {
     message(paste0("Processing sample ", summary_frame[i, "sample"]))
     
     # Construct sample-specific prefixes for Cufflinks and Tophat directories.
@@ -86,14 +87,14 @@ process_sample <- function(summary_frame) {
         )
       )
     
-    # Collect aggregate statistics for the FPKM_status field.
+    # Collect aggregate statistics for the "FPKM_status" variable.
     aggregate_frame <-
       as.data.frame(x = table(cufflinks_genes$FPKM_status))
     
-    # Assign the aggregate FPKM_status levels (rows) as summary frame columns.
-    for (j in 1:nrow(x = aggregate_frame)) {
-      summary_frame[i, paste("FPKM_status_gene", aggregate_frame[j, 1], sep = ".")] <-
-        aggregate_frame[j, 2]
+    # Assign the aggregate "FPKM_status" levels (rows) as summary frame columns.
+    for (j in seq_len(length.out = nrow(x = aggregate_frame))) {
+      summary_frame[i, paste("FPKM_status_gene", aggregate_frame[j, 1L], sep = ".")] <-
+        aggregate_frame[j, 2L]
     }
     rm(aggregate_frame, j)
     
@@ -101,13 +102,14 @@ process_sample <- function(summary_frame) {
       file.path(prefix_cufflinks,
                 paste(prefix_cufflinks, "genes_fpkm_tracking.tsv", sep = "_"))
     if (!(file.exists(file_path) &&
-          (file.info(file_path)$size > 0))) {
+          (file.info(file_path)$size > 0L))) {
       cufflinks_ensembl <-
         merge(
-          x = ensembl_genes,
+          x = gene_annotation_frame,
           y = cufflinks_genes,
           by.x = "ensembl_gene_id",
           by.y = "tracking_id",
+          all.x = FALSE,
           all.y = TRUE,
           sort = TRUE
         )
@@ -147,14 +149,14 @@ process_sample <- function(summary_frame) {
         )
       )
     
-    # Collect aggregate statistics for the FPKM_status field.
+    # Collect aggregate statistics for the "FPKM_status" variable.
     aggregate_frame <-
       as.data.frame(x = table(cufflinks_transcripts$FPKM_status))
     
-    # Assign the aggregate FPKM_status levels (rows) as summary frame columns.
-    for (j in 1:nrow(x = aggregate_frame)) {
-      summary_frame[i, paste("FPKM_status_isoforms", aggregate_frame[j, 1], sep = ".")] <-
-        aggregate_frame[j, 2]
+    # Assign the aggregate "FPKM_status" levels (rows) as summary frame columns.
+    for (j in seq_len(length.out = nrow(x = aggregate_frame))) {
+      summary_frame[i, paste("FPKM_status_isoforms", aggregate_frame[j, 1L], sep = ".")] <-
+        aggregate_frame[j, 2L]
     }
     rm(aggregate_frame, j)
     
@@ -164,13 +166,14 @@ process_sample <- function(summary_frame) {
         paste(prefix_cufflinks, "isoforms_fpkm_tracking.tsv", sep = "_")
       )
     if (!(file.exists(file_path) &&
-          (file.info(file_path)$size > 0))) {
+          (file.info(file_path)$size > 0L))) {
       cufflinks_ensembl <-
         merge(
-          x = ensembl_transcripts,
+          x = isoform_annotation_frame,
           y = cufflinks_transcripts,
           by.x = "ensembl_transcript_id",
           by.y = "tracking_id",
+          all.x = FALSE,
           all.y = TRUE,
           sort = TRUE
         )
@@ -232,6 +235,17 @@ process_sample <- function(summary_frame) {
     }
     rm(file_path, link_path)
     
+    file_path <- "transcripts.bb"
+    link_path <-
+      file.path(prefix_cufflinks,
+                paste(prefix_cufflinks, "transcripts.bb", sep = "_"))
+    if (!file.exists(link_path)) {
+      if (!file.symlink(from = file_path, to = link_path)) {
+        warning("Encountered an error linking the transcripts.bb file.")
+      }
+    }
+    rm(file_path, link_path)
+    
     file_path <- "transcripts.gtf"
     link_path <-
       file.path(prefix_cufflinks,
@@ -286,7 +300,7 @@ process_align_summary <- function(summary_frame) {
   summary_frame$threshold = integer(length = frame_length)
   rm(frame_length)
   
-  for (i in 1:nrow(x = summary_frame)) {
+  for (i in seq_len(length.out = nrow(x = summary_frame))) {
     prefix_tophat <-
       paste("rnaseq", "tophat", summary_frame[i, "sample"], sep = "_")
     file_path <- file.path(prefix_tophat, "align_summary.txt")
@@ -312,7 +326,7 @@ process_align_summary <- function(summary_frame) {
       x = sub(
         pattern = "[[:space:]]+Input[[:space:]]+:[[:space:]]+([[:digit:]]+)",
         replacement = "\\1",
-        x = align_summary[2]
+        x = align_summary[2L]
       )
     )
     
@@ -321,7 +335,7 @@ process_align_summary <- function(summary_frame) {
       x = sub(
         pattern = "[[:space:]]+Mapped[[:space:]]+:[[:space:]]+([[:digit:]]+) .*",
         replacement = "\\1",
-        x = align_summary[3]
+        x = align_summary[3L]
       )
     )
     
@@ -330,7 +344,7 @@ process_align_summary <- function(summary_frame) {
       x = sub(
         pattern = ".+:[[:space:]]+([[:digit:]]+) .*",
         replacement = "\\1",
-        x = align_summary[4]
+        x = align_summary[4L]
       )
     )
     
@@ -339,7 +353,7 @@ process_align_summary <- function(summary_frame) {
       x = sub(
         pattern = ".+alignments \\(([[:digit:]]+) have.+",
         replacement = "\\1",
-        x = align_summary[4]
+        x = align_summary[4L]
       )
     )
     
@@ -347,7 +361,7 @@ process_align_summary <- function(summary_frame) {
     summary_frame[i, "threshold"] <- as.integer(x = sub(
       pattern = ".+ >([[:digit:]]+)\\)",
       replacement = "\\1",
-      x = align_summary[4]
+      x = align_summary[4L]
     ))
     
     rm(align_summary, prefix_tophat)
@@ -379,10 +393,24 @@ argument_list <- parse_args(object = OptionParser(
       type = "logical"
     ),
     make_option(
+      opt_str = c("--gtf-reference"),
+      default = NULL,
+      dest = "gtf_reference",
+      help = "GTF file specifying a reference transcriptome",
+      type = "character"
+    ),
+    make_option(
+      opt_str = c("--genome-version"),
+      default = NULL,
+      dest = "genome_version",
+      help = "Genome version",
+      type = "character"
+    ),
+    make_option(
       opt_str = c("--biomart-instance"),
       default = "ENSEMBL_MART_ENSEMBL",
       dest = "biomart_instance",
-      help = "BioMart instance",
+      help = "BioMart instance [ENSEMBL_MART_ENSEMBL]",
       type = "character"
     ),
     make_option(
@@ -395,128 +423,195 @@ argument_list <- parse_args(object = OptionParser(
       opt_str = c("--biomart-host"),
       dest = "biomart_host",
       default = "www.ensembl.org",
-      help = "BioMart host",
+      help = "BioMart host [www.ensembl.org]",
       type = "character"
     ),
     make_option(
       opt_str = c("--biomart-port"),
-      default = 80,
+      default = 80L,
       dest = "biomart_port",
-      help = "BioMart port",
+      help = "BioMart port [80]",
       type = "integer"
     ),
     make_option(
       opt_str = c("--biomart-path"),
+      default = "/biomart/martservice",
       dest = "biomart_path",
-      help = "BioMart path",
+      help = "BioMart path [/biomart/martservice]",
       type = "character"
     ),
     make_option(
       opt_str = c("--plot-width"),
-      default = 7,
+      default = 7.0,
       dest = "plot_width",
-      help = "Plot width in inches",
+      help = "Plot width in inches [7.0]",
       type = "numeric"
     ),
     make_option(
       opt_str = c("--plot-height"),
-      default = 7,
+      default = 7.0,
       dest = "plot_height",
-      help = "Plot height in inches",
+      help = "Plot height in inches [7.0]",
       type = "numeric"
     )
   )
 ))
 
+# Validate the argument_list.
+
 if (is.null(x = argument_list$biomart_data_set)) {
-  stop("Missing --biomart-data-set option")
+  # If a --biomart-data-set was not specified, ...
+  if (is.null(x = argument_list$gtf_reference)) {
+    # ... a --gtf-reference option must be specified.
+    stop("Missing --gtf-reference or --biomart-data-set option")
+  }
 }
 
-# Connect to the Ensembl BioMart.
+gene_annotation_frame <- NULL
+isoform_annotation_frame <- NULL
 
-ensembl_mart <- useMart(
-  biomart = argument_list$biomart_instance,
-  dataset = argument_list$biomart_data_set,
-  host = argument_list$biomart_host,
-  port = argument_list$biomart_port
-)
-
-message("Loading attribute data from BioMart")
-
-ensembl_attributes <- listAttributes(
-  mart = ensembl_mart,
-  page = "feature_page",
-  what = c("name", "description", "page")
-)
-
-# Get Ensembl Gene information. From Ensembl version e75, the attributes
-# "external_gene_id" and "external_gene_db" are called "external_gene_name" and
-# "external_gene_source", respectively.
-
-if (any(ensembl_attributes$name == "external_gene_id")) {
-  # Pre e75.
-  ensembl_gene_attributes <- c("ensembl_gene_id",
-                               "external_gene_id",
-                               "external_gene_db",
-                               "gene_biotype")
-} else if (any(ensembl_attributes$name == "external_gene_name")) {
-  # Post e75.
-  ensembl_gene_attributes <- c("ensembl_gene_id",
-                               "external_gene_name",
-                               "external_gene_db",
-                               "gene_biotype")
+if (is.null(x = argument_list$biomart_data_set)) {
+  # GTF file-based annotation.
+  if (is.null(x = argument_list$gtf_reference)) {
+    stop("Missing --gtf-reference option")
+  }
+  # If a --genome-version option was not provided, set it to NA.
+  if (is.null(x = argument_list$genome_version)) {
+    argument_list$genome_version <- NA
+  }
+  message("Import GTF annotation file")
+  reference_granges <- import(
+    con = argument_list$gtf_reference,
+    format = "gtf",
+    genome = argument_list$genome_version,
+    feature.type = "transcript"
+  )
+  reference_mcols <- mcols(x = reference_granges)
+  
+  gene_annotation_frame <-
+    unique.data.frame(
+      x = data.frame(
+        "ensembl_gene_id" = reference_mcols$gene_id,
+        "ensembl_gene_version" = reference_mcols$gene_version,
+        "ensembl_gene_name" = reference_mcols$gene_name,
+        "ensembl_gene_source" = reference_mcols$gene_source,
+        "ensembl_gene_biotype" = reference_mcols$gene_biotype,
+        "havana_gene_id" = reference_mcols$havana_gene,
+        "havana_gene_version" = reference_mcols$havana_gene_version
+      )
+    )
+  
+  isoform_annotation_frame <- data.frame(
+    "ensembl_transcript_id" = reference_mcols$transcript_id,
+    "ensembl_transcript_version" = reference_mcols$transcript_version,
+    "ensembl_transcript_name" = reference_mcols$transcript_name,
+    "ensembl_transcript_source" = reference_mcols$transcript_source,
+    "ensembl_transcript_biotype" = reference_mcols$transcript_biotype,
+    "havana_transcript_id" = reference_mcols$havana_transcript,
+    "havana_transcript_version" = reference_mcols$havana_transcript_version,
+    "havana_transcript_support_level" = reference_mcols$transcript_support_level,
+    "ensembl_gene_id" = reference_mcols$gene_id,
+    "ensembl_gene_version" = reference_mcols$gene_version,
+    "ensembl_gene_name" = reference_mcols$gene_name,
+    "ensembl_gene_source" = reference_mcols$gene_source,
+    "ensembl_gene_biotype" = reference_mcols$gene_biotype,
+    "havana_gene_id" = reference_mcols$havana_gene,
+    "havana_gene_version" = reference_mcols$havana_gene_version,
+    "ccds_id" = reference_mcols$ccds_id,
+    "tag" = reference_mcols$tag
+  )
+  
+  rm(reference_mcols, reference_granges)
 } else {
-  stop(
-    "Neither external_gene_id nor external_gene_name are available as BioMart attributes."
+  # BioMart-based annotation.
+  # Connect to the Ensembl BioMart.
+  message("Connect to BioMart")
+  
+  ensembl_mart <- useMart(
+    biomart = argument_list$biomart_instance,
+    dataset = argument_list$biomart_data_set,
+    host = argument_list$biomart_host,
+    path = argument_list$biomart_path,
+    port = argument_list$biomart_port
   )
+  
+  message("Loading attribute data from BioMart")
+  
+  ensembl_attributes <- listAttributes(
+    mart = ensembl_mart,
+    page = "feature_page",
+    what = c("name", "description", "page")
+  )
+  
+  # Get Ensembl Gene information. From Ensembl version e75, the attributes
+  # "external_gene_id" and "external_gene_db" are called "external_gene_name" and
+  # "external_gene_source", respectively.
+  
+  if ("external_gene_id" %in% ensembl_attributes$name) {
+    # Pre e75.
+    ensembl_gene_attributes <- c("ensembl_gene_id",
+                                 "external_gene_id",
+                                 "external_gene_db",
+                                 "gene_biotype")
+  } else if ("external_gene_name" %in% ensembl_attributes$name) {
+    # Post e75.
+    ensembl_gene_attributes <- c("ensembl_gene_id",
+                                 "external_gene_name",
+                                 "external_gene_db",
+                                 "gene_biotype")
+  } else {
+    stop(
+      "Neither external_gene_id nor external_gene_name are available as BioMart attributes."
+    )
+  }
+  
+  message("Loading gene data from BioMart")
+  
+  gene_annotation_frame <-
+    getBM(attributes = ensembl_gene_attributes, mart = ensembl_mart)
+  rm(ensembl_gene_attributes)
+  
+  # Get Ensembl Transcript information.
+  
+  if ("external_gene_id" %in% ensembl_attributes$name) {
+    # Pre e75.
+    ensembl_transcript_attributes <- c(
+      "ensembl_transcript_id",
+      "external_transcript_id",
+      "transcript_db_name",
+      "transcript_biotype",
+      "ensembl_gene_id",
+      "external_gene_id",
+      "external_gene_db",
+      "gene_biotype"
+    )
+  } else if ("external_gene_name" %in% ensembl_attributes$name) {
+    # Post e75.
+    ensembl_transcript_attributes <- c(
+      "ensembl_transcript_id",
+      "external_transcript_name",
+      "transcript_db_name",
+      "transcript_biotype",
+      "ensembl_gene_id",
+      "external_gene_name",
+      "external_gene_db",
+      "gene_biotype"
+    )
+  } else {
+    stop(
+      "Neither external_gene_id nor external_gene_name are available as BioMart attributes."
+    )
+  }
+  
+  message("Loading transcript data from BioMart")
+  isoform_annotation_frame <-
+    getBM(attributes = ensembl_transcript_attributes, mart = ensembl_mart)
+  rm(ensembl_transcript_attributes)
+  
+  # Destroy and thus discconnect the Ensembl BioMart connection already here.
+  
+  rm(ensembl_mart, ensembl_attributes)
 }
-
-message("Loading gene data from BioMart")
-
-ensembl_genes <-
-  getBM(attributes = ensembl_gene_attributes, mart = ensembl_mart)
-rm(ensembl_gene_attributes)
-
-# Get Ensembl Transcript information.
-
-if (any(ensembl_attributes$name == "external_gene_id")) {
-  # Pre e75.
-  ensembl_transcript_attributes <- c(
-    "ensembl_transcript_id",
-    "external_transcript_id",
-    "transcript_db_name",
-    "transcript_biotype",
-    "ensembl_gene_id",
-    "external_gene_id",
-    "external_gene_db",
-    "gene_biotype"
-  )
-} else if (any(ensembl_attributes$name == "external_gene_name")) {
-  # Post e75.
-  ensembl_transcript_attributes <- c(
-    "ensembl_transcript_id",
-    "external_transcript_name",
-    "transcript_db_name",
-    "transcript_biotype",
-    "ensembl_gene_id",
-    "external_gene_name",
-    "external_gene_db",
-    "gene_biotype"
-  )
-} else {
-  stop(
-    "Neither external_gene_id nor external_gene_name are available as BioMart attributes."
-  )
-}
-
-message("Loading transcript data from BioMart")
-ensembl_transcripts <-
-  getBM(attributes = ensembl_transcript_attributes, mart = ensembl_mart)
-rm(ensembl_transcript_attributes)
-
-# Destroy and thus discconnect the Ensembl BioMart connection already here.
-
-rm(ensembl_mart)
 
 # Process all "rnaseq_cufflinks_*" directories in the current working directory.
 # Initialise a data frame with row names of all "rnaseq_cufflinks_*" directories
@@ -540,7 +635,8 @@ summary_frame <- data.frame(
 summary_frame$sample <- row.names(x = summary_frame)
 summary_frame <-
   process_align_summary(summary_frame = summary_frame)
-summary_frame <- process_sample(summary_frame = summary_frame)
+summary_frame <-
+  process_sample(summary_frame = summary_frame)
 
 # Write the alignment summary frame to disk and create plots.
 
@@ -556,7 +652,8 @@ rm(file_path)
 
 # Alignment summary plot.
 ggplot_object <- ggplot(data = summary_frame)
-ggplot_object <- ggplot_object + ggtitle(label = "TopHat Alignment Summary")
+ggplot_object <-
+  ggplot_object + ggtitle(label = "TopHat Alignment Summary")
 ggplot_object <-
   ggplot_object + geom_point(mapping = aes(
     x = mapped,
@@ -569,14 +666,14 @@ ggplot_object <-
   ggplot_object + guides(colour = guide_legend(
     keywidth = rel(x = 0.8),
     keyheight = rel(x = 0.8),
-    nrow = 24
+    nrow = 24L
   ))
 ggplot_object <-
   ggplot_object + theme(legend.text = element_text(size = rel(x = 0.7)))
 # Scale the plot width with the number of samples, by adding a quarter of
 # the original width for each 24 samples.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24) - 1) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
 ggsave(
   filename = "rnaseq_tophat_alignment_summary.png",
   plot = ggplot_object,
@@ -592,9 +689,8 @@ ggsave(
 rm(ggplot_object, plot_width, summary_frame)
 
 rm(
-  ensembl_attributes,
-  ensembl_transcripts,
-  ensembl_genes,
+  isoform_annotation_frame,
+  gene_annotation_frame,
   argument_list,
   process_sample,
   process_align_summary
@@ -606,3 +702,5 @@ message("All done")
 if (length(x = ls())) {
   print(x = ls())
 }
+
+print(x = sessionInfo())
