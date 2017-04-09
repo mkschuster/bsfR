@@ -3,7 +3,7 @@
 # BSF R script to quickly setup the BSF environment after an R upgrade.
 #
 #
-# Copyright 2013 -2015 Michael K. Schuster
+# Copyright 2013 - 2017 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -43,8 +43,6 @@ update.packages()
 biocUpdatePackages(pkgs = c())
 
 # CRAN packages for BSF R scripts.
-# optparse: option parsing
-# ggplot2: for eveything graphics, really
 #
 # CRAN packages for GATK
 # https://github.com/broadgsa/gatk-protected/blob/master/public/gatk-engine/src/main/resources/org/broadinstitute/gatk/engine/recalibration/BQSR.R
@@ -52,14 +50,16 @@ biocUpdatePackages(pkgs = c())
 # reshape:
 # grid: R system library, no need to install explicitly
 # tools: R system library, no need to install explicitly
-# gsalib:
 
 install.packages(pkgs = c(
-  "optparse",
-  "ggplot2",
-  "gplots",
-  "reshape",
-  "gsalib"
+  "devtools",  # Development tools, including installation from GitHub repositories, etc.
+  "ggplot2",  # for almost eveything plot related, really ...
+  "ggrepel",  # for ggplot2 extension functions geom_text_repel() and geom_label_repel() to repel labes form data points.
+  "gplots",  # for GATK
+  "gsalib",  # for GATK
+  "hexbin",  # for ggplot2 functions geom_binhex() and stat_bin_hex()
+  "optparse",  # for option parsing
+  "reshape"  # for GATK
 ))
 
 # For the BSF RNA-Seq pipeline
@@ -69,14 +69,30 @@ install.packages(pkgs = c(
 # For the BSF ChIP-Seq pipeline
 # DiffBind
 
-biocLite(pkgs = c("DESeq", "cummeRbund", "DiffBind", "VariantAnnotation"))
-
-# For RnBeads
-# The IlluminaHumanMethylation450k.db is > 60 MB
-# TODO: This should be taken care of by an eventual RnBeads package.
-# biocLite(pkgs = c("foreach", "mclust", "RPMM", "fields",
-#                   "matrixStats", "IlluminaHumanMethylation450k.db", "methylumi",
-#                   "ggbio", "GEOquery", "GOstats", "wordcloud"))
+biocLite(pkgs = c(
+  "BiocParallel",
+  # Biostrings genomes
+  "BSgenome.Hsapiens.1000genomes.hs37d5", # For bsf_variant_calling_coverage.R
+  "BSgenome.Hsapiens.UCSC.hg19",
+  "BSgenome.Hsapiens.UCSC.hg19.masked",
+  "BSgenome.Hsapiens.UCSC.hg38",
+  "BSgenome.Hsapiens.UCSC.hg38.masked",
+  "BSgenome.Mmusculus.UCSC.mm10",
+  "BSgenome.Mmusculus.UCSC.mm10.masked",
+  "ChIPpeakAnno",
+  "ComplexHeatmap",
+  "cummeRbund",  # for Cufflinks data processing
+  "DESeq2",  # for RNA-seq analysis
+  "DiffBind",  # for differential ChIP-seq analysis
+  "goseq",  # for Gene Ontology annotation
+  "RnBeads",  # For Meth-seq anaylsis
+  "TxDb.Hsapiens.UCSC.hg19.knownGene", # UCSC gene set
+  "TxDb.Hsapiens.UCSC.hg19.lincRNAsTranscripts",  # UCSC gene set
+  "TxDb.Hsapiens.UCSC.hg38.knownGene",  # UCSC gene set
+  "TxDb.Mmusculus.UCSC.mm10.ensGene",  # Ensembl gene set
+  "TxDb.Mmusculus.UCSC.mm10.knownGene",  # UCSC gene set
+  "VariantAnnotation"
+  ))
 
 message("All done")
 
@@ -84,3 +100,5 @@ message("All done")
 if (length(x = ls())) {
   print(x = ls())
 }
+
+print(x = sessionInfo())
