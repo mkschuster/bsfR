@@ -5,14 +5,14 @@
 # consistent tables for genes (rnaseq_cufflinks_isoforms_fpkm_tracking.tsv) and
 # isoforms (rnaseq_cufflinks_isoforms_fpkm_tracking.tsv).
 #
-# Since FPKM values have not been normalised at this stage, a direct comprison
+# Since FPKM values have not been normalised at this stage, a direct comparison
 # between replicates is strictly not possible. Hence, this script is for special
 # purposes only and not part of the standard pipeline. Please see the data
 # frames after the Cuffdiff RNA-seq analysis stage that provide normalised and
 # thus perfectly comaprable data.
 #
 #
-# Copyright 2013 -2015 Michael K. Schuster
+# Copyright 2013 - 2017 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -216,3 +216,5 @@ message("All done")
 if (length(x = ls())) {
   print(x = ls())
 }
+
+print(x = sessionInfo())
