@@ -118,13 +118,16 @@ exon_ranges <-
          feature.type = "exon")
 # Ensembl now annotates a "tag" in GFF files with value "basic" indicating standard (basic) transcript models.
 # Can the exon ranges be subset by such a tag?
-if ("tag" %in% names(x = mcols(x = exon_ranges)) & !argument_list$no_filter) {
+if ("tag" %in% names(x = mcols(x = exon_ranges)) &
+    !argument_list$no_filter) {
+  message("Filtering by GTF 'tag = \"basic\"' annotation")
   summary_frame[i, "exon_number_raw"] <- length(x = exon_ranges)
   message(paste0("Number of raw exon ranges: ", summary_frame[i, "exon_number_raw"]))
   summary_frame[i, "exon_width_raw"] <- sum(width(x = exon_ranges))
   message(paste0("Cumulative width of raw exon ranges: ", summary_frame[i, "exon_width_raw"]))
   # Use the %in% operator for character matching as it sets NA values to FALSE, automatically.
-  basic_exon_ranges <- exon_ranges[mcols(x = exon_ranges)$tag %in% "basic", ]
+  basic_exon_ranges <-
+    exon_ranges[mcols(x = exon_ranges)$tag %in% "basic", ]
   if (length(x = basic_exon_ranges) > 0L) {
     # Only replace the original Exon ranges if there were any "basic" matches.
     exon_ranges <- basic_exon_ranges
@@ -149,7 +152,7 @@ exon_ranges <-
     fix = "start"
   )
 summary_frame[i, "exon_flank_width"] <- sum(width(x = exon_ranges))
-message(paste0("Cumulative width of exon ranges with flanks:", summary_frame[i, "exon_flank_width"]))
+message(paste0("Cumulative width of exon ranges with flanks: ", summary_frame[i, "exon_flank_width"]))
 # Reduce the non-redundant Ensembl exons to their footprint on the genome to get
 # transcribed regions. The revmap column contains the mapping to original
 # exon_ranges components.
@@ -337,11 +340,12 @@ if (!is.null(x = summary_frame[i, "target_path"])) {
 # To annotate non-callable regions, merge by overlap with the exon GRanges.
 overlap_frame <-
   mergeByOverlaps(query = diagnose_ranges, subject = exon_ranges)
-# Remove redundant columns, as the GRanges objects contain some of the columns internally.
-overlap_frame <-
-  overlap_frame[, c("diagnose_ranges", "exon_ranges")]
+# The mergeByOverlaps() function returns a DataFrame of query (diagnose GRanges) and
+# subject (exon GRanges) variables, as well as all mcols() variables that were present
+# in either GRanges object. To remove these redundant mcols() variables, keep only the
+# GRanges objects themselves.
 write.table(
-  x = overlap_frame,
+  x = overlap_frame[, c("diagnose_ranges", "exon_ranges")],
   file = paste(
     "variant_calling_diagnose_sample",
     summary_frame[i, "sample_name"],
@@ -353,10 +357,80 @@ write.table(
   row.names = FALSE,
   col.names = TRUE
 )
-rm(overlap_frame,
-   diagnose_ranges,
-   callable_ranges,
-   non_callable_ranges)
+
+# Since the mergeByOverlaps() function provides the cartesian product of diagnosis and exon GRanges,
+# the table can be rather long and unwieldy. Annotate the diagnosis GRanges with exon GRanges meta
+# information before grouping by diagnosis GRanges so that there is a single observation for each problematic region.
+# Gene and transcript identifiers and names are turned into comma-separated lists.
+message("Annotate the diagnostic ranges.")
+overlap_diagnose_ranges <- overlap_frame$diagnose_ranges
+overlap_diagnose_frame <- mcols(x = overlap_diagnose_ranges)
+overlap_diagnose_frame$gene_id <-
+  mcols(x = overlap_frame$exon_ranges)$gene_id
+overlap_diagnose_frame$gene_name <-
+  mcols(x = overlap_frame$exon_ranges)$gene_name
+overlap_diagnose_frame$transcript_id <-
+  mcols(x = overlap_frame$exon_ranges)$transcript_id
+overlap_diagnose_frame$transcript_name <-
+  mcols(x = overlap_frame$exon_ranges)$transcript_name
+overlap_diagnose_frame$exon_id <-
+  mcols(x = overlap_frame$exon_ranges)$exon_id
+mcols(x = overlap_diagnose_ranges) <- overlap_diagnose_frame
+# This returns a Grouping object (CompressedManyToOneGrouping) of the IRanges package,
+# specifying which groups contain which indices to the original object.
+message("Group annotated diagnose ranges by region.")
+overlap_diagnose_grouping <-
+  as(object = overlap_diagnose_ranges, "Grouping")
+
+grouped_ranges <- unlist(x = GRangesList(lapply(
+  X = overlap_diagnose_grouping,
+  FUN = function(x) {
+    sub_ranges <- overlap_diagnose_ranges[x]
+    sub_mcols <- mcols(x = sub_ranges)
+    selected_range <- sub_ranges[1L]
+    
+    mcols(x = selected_range) <- DataFrame(
+      "mapping_status" = sub_mcols[1L, "mapping_status"],
+      
+      "gene_ids" = paste(unique(x = sort(x = sub_mcols$gene_id)), collapse = ","),
+      
+      "gene_names" = paste(unique(x = sort(x = sub_mcols$gene_name)), collapse = ","),
+      
+      "transcript_ids" = paste(unique(x = sort(x = sub_mcols$transcript_id)), collapse = ","),
+      
+      "transcript_names" = paste(unique(x = sort(
+        x = sub_mcols$transcript_name
+      )), collapse = ","),
+      
+      "exon_ids" = paste(unique(x = sort(x = sub_mcols$exon_id)), collapse = ",")
+    )
+    return(selected_range)
+  }
+)))
+write.table(
+  x = grouped_ranges,
+  file = paste(
+    "variant_calling_diagnose_sample",
+    summary_frame[i, "sample_name"],
+    "non_callable_regions.tsv",
+    sep = "_"
+  ),
+  quote = TRUE,
+  sep = "\t",
+  row.names = FALSE,
+  col.names = TRUE
+)
+
+rm(
+  grouped_ranges,
+  overlap_diagnose_grouping,
+  overlap_diagnose_frame,
+  overlap_diagnose_ranges,
+  overlap_frame,
+  diagnose_ranges,
+  callable_ranges,
+  non_callable_ranges
+)
 
 write.table(
   x = summary_frame,
