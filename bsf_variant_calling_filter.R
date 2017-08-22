@@ -397,7 +397,7 @@ while (nrow(
         collapse = ",")
       }
     ))
-  # Reorder columns, but drop"strand" and "paramRangeID".
+  # Reorder columns, but drop "strand" and "paramRangeID".
   row_ranges_frame <-
     row_ranges_frame[c("seqnames",
                        "start",
