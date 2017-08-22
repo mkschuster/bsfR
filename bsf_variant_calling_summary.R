@@ -784,6 +784,119 @@ if (!is.null(x = combined_metrics_sample)) {
   }
   rm(graphics_format, ggplot_object)
   
+  # Plot the percentage of exluded bases per sample.
+  
+  message("Plotting the percentage of excluded bases per sample")
+  plotting_frame <- melt(
+    data = combined_metrics_sample,
+    id.vars = c("SAMPLE", "BAIT_SET"),
+    measure.vars = c(
+      "PCT_EXC_DUPE",
+      "PCT_EXC_MAPQ",
+      "PCT_EXC_BASEQ",
+      "PCT_EXC_OVERLAP",
+      "PCT_EXC_OFF_TARGET"
+    ),
+    variable.name = "EXCLUDED",
+    value.name = "fraction"
+  )
+  
+  ggplot_object <- ggplot(data = plotting_frame)
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Excluded Bases per Sample")
+  # ggplot_object <-
+  #   ggplot_object + geom_point(mapping = aes(x = SAMPLE,
+  #                                            y = fraction,
+  #                                            colour = EXCLUDED))
+  ggplot_object <-
+    ggplot_object + geom_col(mapping = aes(x = SAMPLE, y = fraction, fill = EXCLUDED),
+                             alpha = I(1 / 3))
+  ggplot_object <-
+    ggplot_object + theme(axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      size = rel(x = 0.8)
+    ))
+  for (graphics_format in graphics_formats) {
+    ggsave(
+      filename = paste(
+        prefix_summary,
+        paste(
+          "hybrid_excluded_bases_sample",
+          graphics_format,
+          sep = "."
+        ),
+        sep = "_"
+      ),
+      plot = ggplot_object,
+      width = plot_width_sample,
+      height = argument_list$plot_height
+    )
+  }
+  rm(graphics_format, ggplot_object, plotting_frame)
+  
+  # Plot the percentage of exluded bases per read group.
+  
+  message("Plotting the percentage of excluded bases per read group")
+  plotting_frame <- melt(
+    data = combined_metrics_read_group,
+    id.vars = c("READ_GROUP", "BAIT_SET"),
+    measure.vars = c(
+      "PCT_EXC_DUPE",
+      "PCT_EXC_MAPQ",
+      "PCT_EXC_BASEQ",
+      "PCT_EXC_OVERLAP",
+      "PCT_EXC_OFF_TARGET"
+    ),
+    variable.name = "EXCLUDED",
+    value.name = "fraction"
+  )
+  
+  ggplot_object <- ggplot(data = plotting_frame)
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Excluded Bases per Read Group")
+  # ggplot_object <-
+  #   ggplot_object + geom_point(mapping = aes(
+  #     x = READ_GROUP,
+  #     y = fraction,
+  #     colour = EXCLUDED,
+  #     shape = BAIT_SET
+  #   ))
+  ggplot_object <-
+    ggplot_object + geom_col(mapping = aes(
+      x = READ_GROUP,
+      y = fraction,
+      fill = EXCLUDED,
+      colour = BAIT_SET
+    ),
+    alpha = I(1 / 3))
+  # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
+  ggplot_object <-
+    ggplot_object + scale_shape_manual(values = 1:nlevels(x = combined_metrics_read_group$BAIT_SET))
+  ggplot_object <-
+    ggplot_object + theme(axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      size = rel(x = 0.5)
+    ))
+  for (graphics_format in graphics_formats) {
+    ggsave(
+      filename = paste(
+        prefix_summary,
+        paste(
+          "hybrid_excluded_bases_read_group",
+          graphics_format,
+          sep = "."
+        ),
+        sep = "_"
+      ),
+      plot = ggplot_object,
+      width = plot_width_sample,
+      height = argument_list$plot_height
+    )
+  }
+  rm(graphics_format, ggplot_object, plotting_frame)
+  
   # Plot PCT_TARGET_BASES_1X, PCT_TARGET_BASES_2X, PCT_TARGET_BASES_10X, PCT_TARGET_BASES_20X,
   # PCT_TARGET_BASES_30X, PCT_TARGET_BASES_40X, PCT_TARGET_BASES_50X, PCT_TARGET_BASES_100X per sample.
   message("Plotting the coverage levels per sample")
@@ -888,6 +1001,86 @@ if (!is.null(x = combined_metrics_sample)) {
       plot = ggplot_object,
       width = plot_width_sample,
       height = argument_list$plot_height
+    )
+  }
+  rm(graphics_format, ggplot_object, plotting_frame)
+  
+  # Plot the nominal coverage (i.e. PF_BASES_ALIGNED / TARGET_TERRITORY) per sample.
+  
+  message("Plotting the nominal coverage per sample")
+  plotting_frame <- combined_metrics_sample[, c("SAMPLE", "READ_GROUP", "BAIT_SET", "PF_BASES_ALIGNED", "TARGET_TERRITORY")]
+  plotting_frame$NOMINAL_COVERAGE <- plotting_frame$PF_BASES_ALIGNED / plotting_frame$TARGET_TERRITORY
+  
+  ggplot_object <- ggplot(data = plotting_frame)
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Nominal Coverage per Sample")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(x = SAMPLE,
+                                             y = NOMINAL_COVERAGE))
+  ggplot_object <-
+    ggplot_object + theme(axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      size = rel(x = 0.8)
+    ))
+  for (graphics_format in graphics_formats) {
+    ggsave(
+      filename = paste(
+        prefix_summary,
+        paste(
+          "hybrid_nominal_coverage_sample",
+          graphics_format,
+          sep = "."
+        ),
+        sep = "_"
+      ),
+      plot = ggplot_object,
+      width = plot_width_sample,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(graphics_format, ggplot_object, plotting_frame)
+  
+  # Plot the nominal coverage (i.e. PF_BASES_ALIGNED / TARGET_TERRITORY) per read group.
+  
+  message("Plotting the nominal coverage per read group")
+  plotting_frame <- combined_metrics_read_group[, c("SAMPLE", "READ_GROUP", "BAIT_SET", "PF_BASES_ALIGNED", "TARGET_TERRITORY")]
+  plotting_frame$NOMINAL_COVERAGE <- plotting_frame$PF_BASES_ALIGNED / plotting_frame$TARGET_TERRITORY
+  
+  ggplot_object <- ggplot(data = plotting_frame)
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Nominal Coverage per Read Group")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(
+      x = READ_GROUP,
+      y = NOMINAL_COVERAGE,
+      shape = BAIT_SET
+    ))
+  # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
+  ggplot_object <-
+    ggplot_object + scale_shape_manual(values = 1:nlevels(x = combined_metrics_read_group$BAIT_SET))
+  ggplot_object <-
+    ggplot_object + theme(axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      size = rel(x = 0.5)
+    ))
+  for (graphics_format in graphics_formats) {
+    ggsave(
+      filename = paste(
+        prefix_summary,
+        paste(
+          "hybrid_nominal_coverage_read_group",
+          graphics_format,
+          sep = "."
+        ),
+        sep = "_"
+      ),
+      plot = ggplot_object,
+      width = plot_width_read_group,
+      height = argument_list$plot_height,
+      limitsize = FALSE
     )
   }
   rm(graphics_format, ggplot_object, plotting_frame)
