@@ -1268,7 +1268,7 @@ for (i in 1L:length(sample_pairs[1L, ])) {
 # Create a Multidimensional Scaling (MDS) Plot on genes,
 # but only if the CuffData object contains more than two samples.
 
-if (sample_number > 2L) {
+if (replicate_number > 2L) {
   plot_path_pdf <-
     file.path(output_directory, paste0(prefix, "_genes_mds.pdf"))
   plot_path_png <-
@@ -1360,7 +1360,7 @@ if (sample_number > 2L) {
   }
   rm(plot_path_pdf, plot_path_png)
 } else {
-  message("Skipping Multidimensional Scaling Plot on genes in lack of sufficient samples")
+  message("Skipping Multidimensional Scaling Plot on genes in lack of sufficient replicates")
 }
 
 # Create a Principal Component Analysis (PCA) Plot on Genes.
@@ -1592,6 +1592,26 @@ if (file.exists(frame_path_genes) &&
 }
 rm(frame_path_genes, frame_path_isoforms)
 
+# Push the aggregated Ensembl gene annotation back into the SQLite database.
+
+if (any("ensembl_gene_ids" %in% names(x = annotation(object = genes(object = cuff_set))))) {
+  message("Skipping Ensembl annotation for the SQLite database")
+} else {
+  message("Creating Ensembl annotation for the SQLite database")
+  addFeatures(
+    object = cuff_set,
+    features = data.frame(
+      gene_id = gene_annotation_frame$gene_id,
+      ensembl_gene_ids = gene_annotation_frame$ensembl_gene_ids,
+      ensembl_transcript_ids = gene_annotation_frame$ensembl_transcript_ids,
+      stringsAsFactors = FALSE
+    ),
+    level = "genes"
+  )
+}
+
+# Create an annotated differential genes data frame for each sample pair.
+
 for (i in 1L:length(sample_pairs[1L, ])) {
   frame_path <-
     file.path(
@@ -1676,6 +1696,8 @@ for (i in 1L:length(sample_pairs[1L, ])) {
   }
   rm(frame_path)
 }
+
+# Create an annotated differential isoforms data frame for each sample pair.
 
 for (i in 1L:length(sample_pairs[1L, ])) {
   frame_path <-
@@ -1821,7 +1843,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
         status_frame[i, status] <- status_integer[status]
       }
     }
-    rm(status_integer, diff_data_genes)
+    rm(status, status_integer, diff_data_genes)
     status_frame[i, "SUM"] <- sum(status_frame[i, 2L:6L])
   }
   write.table(
@@ -1883,7 +1905,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
         status_frame[i, status] <- status_integer[status]
       }
     }
-    rm(status_integer, diff_data_isoforms)
+    rm(status, status_integer, diff_data_isoforms)
     status_frame[i, "SUM"] <- sum(status_frame[i, 2L:6L])
   }
   write.table(
