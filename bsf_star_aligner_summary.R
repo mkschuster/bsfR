@@ -290,7 +290,7 @@ for (graphics_format in graphics_formats) {
   ggsave(
     filename = paste(
       paste(argument_list$prefix,
-            "dot",
+            "alignment",
             "read_group",
             sep = "_"),
       graphics_format,
@@ -306,7 +306,7 @@ rm(graphics_format, plot_width, ggplot_object, plotting_frame)
 
 # Create a column plot of absolute numbers of unique, mutli and unmapped reads per read group.
 
-message("Creating mapped reads per read group plot")
+message("Creating mapped read numbers per read group column plot")
 plotting_frame <-
   melt(
     data = data.frame(
@@ -324,7 +324,7 @@ plotting_frame <-
 
 ggplot_object <- ggplot(data = plotting_frame)
 ggplot_object <-
-  ggplot_object + ggtitle(label = "STAR Aligner Mapped Numbers")
+  ggplot_object + ggtitle(label = "STAR Aligner Mapped Numbers per Read Group")
 ggplot_object <-
   ggplot_object + geom_col(mapping = aes(x = read_group, y = number, fill = status),
                            alpha = I(1 / 3))
@@ -370,7 +370,7 @@ rm(graphics_format, plot_width, ggplot_object, plotting_frame)
 
 # Create a column plot of fractions of unique, multi and unmapped reads per read group.
 
-message("Creating mapped reads per read group column plot")
+message("Creating mapped read fractions per read group column plot")
 plotting_frame <- melt(
   data = data.frame(
     "read_group" = summary_frame$read_group_name,
@@ -389,7 +389,7 @@ plotting_frame <- melt(
 
 ggplot_object <- ggplot(data = plotting_frame)
 ggplot_object <-
-  ggplot_object + ggtitle(label = "STAR Aliger Mapped Fractions")
+  ggplot_object + ggtitle(label = "STAR Aliger Mapped Fractions per Read Group")
 ggplot_object <-
   ggplot_object + geom_col(mapping = aes(x = read_group, y = fraction, fill = status),
                            alpha = I(1 / 3))
@@ -435,9 +435,9 @@ for (graphics_format in graphics_formats) {
 }
 rm(graphics_format, plot_width, ggplot_object, plotting_frame)
 
-# Create a column plot of splice junctions per read group.
+# Create a column plot of absolute numbers of splice junctions per read group.
 
-message("Creating splice junction per read group column plot")
+message("Creating splice junction numbers per read group column plot")
 plotting_frame <- melt(
   data = data.frame(
     "read_group" = summary_frame$read_group_name,
@@ -455,7 +455,7 @@ plotting_frame <- melt(
 
 ggplot_object <- ggplot(data = plotting_frame)
 ggplot_object <-
-  ggplot_object + ggtitle(label = "STAR Aliger Splice Junctions")
+  ggplot_object + ggtitle(label = "STAR Aliger Splice Junction Numbers per Read Group")
 ggplot_object <-
   ggplot_object + geom_col(
     mapping = aes(x = read_group, y = number, fill = splice_junction),
@@ -489,6 +489,71 @@ for (graphics_format in graphics_formats) {
         argument_list$prefix,
         "junction",
         "number",
+        "read_group",
+        sep = "_"
+      ),
+      graphics_format,
+      sep = "."
+    ),
+    plot = ggplot_object,
+    width = plot_width,
+    height = argument_list$plot_height,
+    limitsize = FALSE
+  )
+}
+rm(graphics_format, plot_width, ggplot_object, plotting_frame)
+
+# Create a column plot of fractions of splice junctions per read group.
+
+message("Creating splice junction fractions per read group column plot")
+plotting_frame <- data.frame(
+  "read_group" = summary_frame$read_group_name,
+  "gtag" = summary_frame$number_splice_gtag / summary_frame$number_splice_total,
+  "gcag" = summary_frame$number_splice_gcag / summary_frame$number_splice_total,
+  "atac" = summary_frame$number_splice_atac / summary_frame$number_splice_total,
+  "non_canonical" = summary_frame$number_splice_non_canonical / summary_frame$number_splice_total
+)
+plotting_frame <- melt(
+  data = plotting_frame,
+  id.vars = c("read_group"),
+  measure.vars = c("non_canonical", "atac", "gcag", "gtag"),
+  variable.name = "junction",
+  value.name = "fraction"
+)
+ggplot_object <- ggplot(data = plotting_frame)
+ggplot_object <-
+  ggplot_object + ggtitle(label = "STAR Aliger Splice Junction Fractions per Read Group")
+ggplot_object <-
+  ggplot_object + geom_col(mapping = aes(x = read_group, y = fraction, fill = junction),
+                           alpha = I(1 / 3))
+# Reduce the label font size and the legend key size and allow a maximum of 24
+# guide legend rows.
+ggplot_object <-
+  ggplot_object + guides(colour = guide_legend(
+    keywidth = rel(x = 0.8),
+    keyheight = rel(x = 0.8),
+    nrow = 24L
+  ))
+ggplot_object <-
+  ggplot_object + theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      size = rel(x = 0.7)
+    ),
+    legend.text = element_text(size = rel(x = 0.7))
+  )
+# Scale the plot width with the number of read groups, by adding a quarter of
+# the original width for each 24 samples.
+plot_width <-
+  argument_list$plot_width + (ceiling(x = nrow(x = plotting_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+for (graphics_format in graphics_formats) {
+  ggsave(
+    filename = paste(
+      paste(
+        argument_list$prefix,
+        "junction",
+        "fraction",
         "read_group",
         sep = "_"
       ),
@@ -613,7 +678,7 @@ if (file.exists(file_path)) {
     ggsave(
       filename = paste(
         paste(argument_list$prefix,
-              "dot",
+              "alignment",
               "sample",
               sep = "_"),
         graphics_format,
@@ -694,7 +759,7 @@ if (file.exists(file_path)) {
   )
   ggplot_object <- ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggtitle(label = "STAR Aliger Mapped Numbers")
+    ggplot_object + ggtitle(label = "STAR Aliger Mapped Numbers per Sample")
   ggplot_object <-
     ggplot_object + geom_col(mapping = aes(x = sample, y = number, fill = status),
                              alpha = I(1 / 3))
@@ -754,7 +819,7 @@ if (file.exists(file_path)) {
   )
   ggplot_object <- ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggtitle(label = "STAR Aliger Mapped Fractions")
+    ggplot_object + ggtitle(label = "STAR Aliger Mapped Fractions per Sample")
   ggplot_object <-
     ggplot_object + geom_col(mapping = aes(x = sample, y = fraction, fill = status),
                              alpha = I(1 / 3))
@@ -798,8 +863,8 @@ if (file.exists(file_path)) {
   }
   rm(graphics_format, plot_width, ggplot_object, plotting_frame)
   
-  # Create a column plot of absolute number of splice junctions by sample.
-  message("Create a splice junction numbers plot per sample")
+  # Create a column plot of absolute numbers of splice junctions by sample.
+  message("Creating splice junction numbers column plot per sample")
   plotting_frame <- data.frame(
     "sample" = aggregate_frame$sample,
     "gtag" = aggregate_frame$junctions_gtag,
@@ -816,7 +881,7 @@ if (file.exists(file_path)) {
   )
   ggplot_object <- ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggtitle(label = "STAR Aliger Splice Junction Numbers")
+    ggplot_object + ggtitle(label = "STAR Aliger Splice Junction Numbers per Sample")
   ggplot_object <-
     ggplot_object + geom_col(mapping = aes(x = sample, y = number, fill = junction),
                              alpha = I(1 / 3))
@@ -861,7 +926,7 @@ if (file.exists(file_path)) {
   rm(graphics_format, plot_width, ggplot_object, plotting_frame)
   
   # Create a column plot of fractions of splice junctions per sample.
-  message("Create a splice junction fractions plot per sample")
+  message("Creating splice junction fractions column plot per sample")
   plotting_frame <- data.frame(
     "sample" = aggregate_frame$sample,
     "gtag" = aggregate_frame$junctions_gtag / aggregate_frame$junctions_total,
@@ -878,7 +943,7 @@ if (file.exists(file_path)) {
   )
   ggplot_object <- ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggtitle(label = "STAR Aliger Splice Junction Fractions")
+    ggplot_object + ggtitle(label = "STAR Aliger Splice Junction Fractions per Sample")
   ggplot_object <-
     ggplot_object + geom_col(mapping = aes(x = sample, y = fraction, fill = junction),
                              alpha = I(1 / 3))
@@ -924,7 +989,7 @@ if (file.exists(file_path)) {
   }
   rm(graphics_format, plot_width, ggplot_object, plotting_frame)
   
-  rm(plotting_frame, aggregate_frame, merged_frame)
+  rm(aggregate_frame, merged_frame)
 }
 rm(file_path)
 
