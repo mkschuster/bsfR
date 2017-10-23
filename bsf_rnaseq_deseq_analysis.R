@@ -36,9 +36,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
-# Get command line options, if help option encountered print help and exit,
-# otherwise if options not found on command line then set defaults.
-
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <- parse_args(object = OptionParser(
@@ -195,18 +192,16 @@ aes_list_to_character <- function(aes_list) {
 #'
 #' @examples
 plot_rin_scores <- function(object) {
-  plot_paths <- file.path(
-    output_directory,
-    paste(
-      paste(prefix,
-            "rin_density",
-            sep = "_"),
-      graphics_formats,
-      sep = "."
-    )
-  )
+  plot_paths <- file.path(output_directory,
+                          paste(
+                            paste(prefix,
+                                  "rin_density",
+                                  sep = "_"),
+                            graphics_formats,
+                            sep = "."
+                          ))
   if (all(file.exists(plot_paths) &&
-      file.info(plot_paths)$size > 0L)) {
+          file.info(plot_paths)$size > 0L)) {
     message("Skipping a RIN score density plot")
   } else {
     if ("RIN" %in% colnames(x = colData(x = object))) {
@@ -525,7 +520,7 @@ plot_pca <- function(object, plot_list = list()) {
   
   # Perform a PCA on the data in assay(x) for the selected genes
   pca_object <-
-    prcomp(x = t(x = assay(x = object)[selected_rows, ]))
+    prcomp(x = t(x = assay(x = object)[selected_rows,]))
   rm(selected_rows)
   
   # The pca_object$x matrix has as many columns and rows as there are samples.
@@ -715,7 +710,7 @@ design_frame <-
     Class = "DataFrame"
   )
 design_frame <-
-  design_frame[design_frame$design == argument_list$design_name, ]
+  design_frame[design_frame$design == argument_list$design_name,]
 
 if (nrow(design_frame) == 0L) {
   stop("No design remaining after selection for design name.")
@@ -762,7 +757,8 @@ if (file.exists(file_path) &&
                                "gene_biotype",
                                "gene_source")]
   # Add the location as an Ensembl-like location, lacking the coordinate system name and version.
-  annotation_frame$location <- as(object = gene_ranges, Class = "character")
+  annotation_frame$location <-
+    as(object = gene_ranges, Class = "character")
   rm(gene_ranges)
   write.table(
     x = annotation_frame,
@@ -817,7 +813,7 @@ if (file.exists(file_path) &&
         return(any(argument_list$design_name %in% character_1))
       }
     ))
-  sample_frame <- sample_frame[index_logical, ]
+  sample_frame <- sample_frame[index_logical,]
   rm(index_logical)
   
   if (nrow(x = sample_frame) == 0L) {
@@ -926,6 +922,7 @@ if (file.exists(file_path) &&
       features = gene_ranges_list,
       reads = bam_file_list,
       mode = "Union",
+      ignore.strand = FALSE,
       # Exclude reads that represent secondary alignments or fail the vendor quality filter.
       param = ScanBamParam(
         flag = scanBamFlag(
@@ -983,36 +980,32 @@ plot_rin_scores(object = deseq_data_set)
 ###############################
 # The "reduced_formulas" variable of the "design" data frame encodes reduced formulas for LRT.
 # Example: "name_1:~genotype + gender;name_2:~1"
-temporary_list <-
-  stri_split(str = stri_split(str = design_frame[1L, "reduced_formulas"], fixed = ";")[[1L]],
-             fixed = ":")
 reduced_formula_list <-
   lapply(
-    X = temporary_list,
-    FUN = function(x) {
-      reduced_formula <- x[2L]
-      attr(x = reduced_formula, which = "reduced_name") <- x[1L]
+    X = stri_split_fixed(
+      str = stri_split_fixed(str = design_frame[1L, "reduced_formulas"], pattern = ";")[[1L]],
+      pattern = ":"
+    ),
+    FUN = function(character_1) {
+      reduced_formula <- character_1[2L]
+      attr(x = reduced_formula, which = "reduced_name") <-
+        character_1[1L]
       return(reduced_formula)
     }
   )
-names(x = reduced_formula_list) <-
-  unlist(x = lapply(
-    X = temporary_list,
-    FUN = function(x) {
-      return(x[1L])
-    }
-  ))
-rm(temporary_list)
 
 temporary_list <- lapply(
   X = reduced_formula_list,
-  FUN = function(x) {
+  FUN = function(reduced_formula) {
+    if (all(nzchar(x = reduced_formula))) {
+      return()
+    } # Skip empty character vectors.
     file_path <-
       file.path(output_directory,
                 paste(paste(
                   prefix,
                   "lrt",
-                  attr(x = x, which = "reduced_name"),
+                  attr(x = reduced_formula, which = "reduced_name"),
                   sep = "_"
                 ),
                 "tsv",
@@ -1022,18 +1015,20 @@ temporary_list <- lapply(
         file.info(file_path)$size > 0L) {
       message(paste0(
         "Skipping reduced formula: ",
-        attr(x = x, which = "reduced_name")
+        attr(x = reduced_formula, which = "reduced_name")
       ))
     } else {
       message(paste0(
         "Processing reduced formula: ",
-        attr(x = x, which = "reduced_name")
+        attr(x = reduced_formula, which = "reduced_name")
       ))
       deseq_data_set_lrt <-
-        DESeq(object = deseq_data_set,
-              test = "LRT",
-              reduced = as.formula(object = x))
-      # print(x = paste("DESeqDataSet LRT result names for", attr(x = x, which = "reduced_name")))
+        DESeq(
+          object = deseq_data_set,
+          test = "LRT",
+          reduced = as.formula(object = reduced_formula)
+        )
+      # print(x = paste("DESeqDataSet LRT result names for", attr(x = reduced_formula, which = "reduced_name")))
       # print(x = resultsNames(object = deseq_data_set_lrt))
       deseq_results_lrt <-
         results(
@@ -1079,7 +1074,7 @@ temporary_list <- lapply(
                     paste(
                       prefix,
                       "lrt",
-                      attr(x = x, which = "reduced_name"),
+                      attr(x = reduced_formula, which = "reduced_name"),
                       "significant",
                       sep = "_"
                     ),
