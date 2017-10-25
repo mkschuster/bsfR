@@ -108,6 +108,9 @@ suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
 summary_frame <- data.frame(stringsAsFactors = FALSE)
 i <- 1L
 
+# Import Ensembl annotation -----------------------------------------------
+
+
 # Import Ensembl gene, transcript and exon annotation as GRanges vector object,
 # where only exon components are relevant for this analysis.
 summary_frame[i, "exon_path"] <- argument_list$exon_path
@@ -138,6 +141,10 @@ summary_frame[i, "exon_number"] <- length(x = exon_ranges)
 message(paste0("Number of exon ranges: ", summary_frame[i, "exon_number"]))
 summary_frame[i, "exon_width"] <- sum(width(x = exon_ranges))
 message(paste0("Cumulative width of exon ranges: ", summary_frame[i, "exon_width"]))
+
+# Apply flanking regions --------------------------------------------------
+
+
 # Apply flanking regions, by default 0L, to the exon ranges.
 exon_ranges <-
   resize(
@@ -153,6 +160,10 @@ exon_ranges <-
   )
 summary_frame[i, "exon_flank_width"] <- sum(width(x = exon_ranges))
 message(paste0("Cumulative width of exon ranges with flanks: ", summary_frame[i, "exon_flank_width"]))
+
+# Reduce non-redundant Ensembl exons --------------------------------------
+
+
 # Reduce the non-redundant Ensembl exons to their footprint on the genome to get
 # transcribed regions. The revmap column contains the mapping to original
 # exon_ranges components.
@@ -170,6 +181,9 @@ message(paste0("Number of transcribed ranges: ", summary_frame[i, "transcribed_n
 summary_frame[i, "transcribed_width"] <-
   sum(width(x = transcribed_ranges))
 message(paste0("Cumulative width of transcribed ranges: ", summary_frame[i, "transcribed_width"]))
+
+# Read target regions -----------------------------------------------------
+
 
 # Read the file of targeted regions, if available. Although the GATK Callable
 # Loci analysis is generally only run on these target regions, this file
@@ -226,6 +240,9 @@ summary_frame[i, "target_width_constrained"] <-
   sum(width(x = constrained_ranges))
 message(paste0("Cumulative width of transcribed target ranges: ", summary_frame[i, "target_width_constrained"]))
 
+# Read callable loci ------------------------------------------------------
+
+
 # Import the callable loci BED file produced by the GATK CallableLoci analysis.
 summary_frame[i, "callable_loci_path"] <-
   argument_list$callable_loci_path
@@ -247,6 +264,9 @@ message(paste0("Number of non-callable raw ranges: ", summary_frame[i, "non_call
 summary_frame[i, "non_callable_width_raw"] <-
   sum(width(x = non_callable_ranges))
 message(paste0("Cumulative width of non-callable raw ranges: ", summary_frame[i, "non_callable_width_raw"]))
+
+# Overlap constrained GRanges ---------------------------------------------
+
 
 # To get accurate non-callable statistics with regards to the target regions
 # that are transcribed, non-callable GRanges need overlapping with the
@@ -279,6 +299,9 @@ message(paste0(
 # summary_frame[i, "non_callable_constrained_fraction.TOTAL"] <-
 #   summary_frame[i, "non_callable_width_constrained.TOTAL"] / summary_frame[i, "target_width_constrained"]
 
+# Summarise by mapping status ---------------------------------------------
+
+
 # Summarise also separately by mapping status.
 # Populate the summary frame with columns for each mapping status level,
 # regardless of whether it is associated with data or not.
@@ -300,7 +323,7 @@ rm(level)
 aggregate_frame <-
   as.data.frame(x = table(mcols(x = overlap_ranges)$mapping_status))
 # Assign the result levels (rows) as summary frame columns.
-for (j in 1L:nrow(x = aggregate_frame)) {
+for (j in seq_len(length.out = nrow(x = aggregate_frame))) {
   summary_frame[i, paste("non_callable_number_constrained", aggregate_frame[j, 1L], sep = ".")] <-
     aggregate_frame[j, 2L]
 }
@@ -312,11 +335,14 @@ aggregate_frame <-
     FUN = "sum"
   )
 # Assign the result levels (rows) as summary frame columns.
-for (j in 1L:nrow(x = aggregate_frame)) {
+for (j in seq_len(length.out = nrow(x = aggregate_frame))) {
   summary_frame[i, paste("non_callable_width_constrained", aggregate_frame[j, 1L], sep = ".")] <-
     aggregate_frame[j, 2L]
 }
 rm(j, aggregate_frame, overlap_ranges, overlap_frame)
+
+# Annotate non-callable GRanges with target region names ------------------
+
 
 # Annotate the table of non-callable GRanges with target region names if available.
 diagnose_ranges <- NULL
@@ -357,6 +383,9 @@ write.table(
   row.names = FALSE,
   col.names = TRUE
 )
+
+# Group GRanges by non-callable regions -----------------------------------
+
 
 # Since the mergeByOverlaps() function provides the cartesian product of diagnosis and exon GRanges,
 # the table can be rather long and unwieldy. Annotate the diagnosis GRanges with exon GRanges meta
