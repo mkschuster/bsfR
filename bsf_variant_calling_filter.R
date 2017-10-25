@@ -32,8 +32,6 @@
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
-# Parse command line options.
-
 argument_list <- parse_args(object = OptionParser(
   option_list = list(
     make_option(
@@ -229,6 +227,9 @@ filter_info_COMMON <- function(x) {
   return(logical_vector)
 }
 
+# Filter the VCF file by SNPEFF_IMPACT and CAF ----------------------------
+
+
 # Write the filtered VCF file into the current working directory.
 filtered_vcf_path <-
   sub(
@@ -267,6 +268,9 @@ if (!(file.exists(filtered_tbi_path) &&
 
 # The filterVcf() method reindexes the filtered VCF file so that "gz" gets reappended.
 filtered_vcf_path <- paste(filtered_vcf_path, "gz", sep = ".")
+
+# Iterate over the filtered VCF file --------------------------------------
+
 
 # Now, read the filtered VCF file in chunks and optionally select for samples.
 message(
