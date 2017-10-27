@@ -3,7 +3,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --distribution=block
-#SBATCH --mem=65536
+#SBATCH --mem=131072
 #SBATCH --time=2-00:00:00
 #SBATCH --partition=mediumq
 #SBATCH --export=NONE
@@ -12,6 +12,37 @@
 #SBATCH --output=.bsf_rnaseq_deseq_analysis_%j.out
 #
 # BSF R script to run a DESeq2 analysis.
+#
+# Sample Annotation DataFrame Description ---------------------------------
+#
+#
+# The rnaseq_deseq_PREFIX_samples.tsv sample annotation DataFrame supports
+# the following variables.
+#
+#   "bam_path":
+#      A "character" vector of BAM file paths.
+#
+#   "bai_path":
+#      A "character" vector of BAI file paths.
+#
+#   "designs":
+#      A "character" vector of comma-separated values of designs,
+#      a particular sample should be part of.
+#
+#   "library_type":
+#      A "factor" vector with levels "unstranded", "first" and "second" to
+#      indicate the strandedness of the RNA-seq protocol and whether the
+#      first or second strand get sequenced. Illumina TruSeq standed mRNA
+#      sequences the second strand so that reads need inverting before
+#      counting strand-specifically.
+#
+#   "sequencing_type":
+#      A factor with levels "SE" and "PE" to indicate single-end or
+#      paired-end sequencing and thus counting as read pairs or not.
+#
+#   "RIN":
+#      A numeric vector providing the RNA integrity number (RIN) score
+#      per sample. If available, the RIN score distribution will be plotted.
 #
 #
 # Copyright 2013 - 2017 Michael K. Schuster
@@ -153,6 +184,308 @@ prefix <-
 
 output_directory <- prefix
 
+
+# Initialise Gene Annotation ----------------------------------------------
+
+
+#' Initialise or load a gene annotation DataFrame.
+#'
+#' @return DataFrame
+#' @export
+#'
+#' @examples
+initialise_annotation_frame <- function() {
+  # Load pre-existing gene annotation data frame or create it from the reference GTF file.
+  local_annotation_frame <- NULL
+  
+  file_path <-
+    file.path(output_directory,
+              paste(prefix, "annotation.tsv", sep = "_"))
+  if (file.exists(file_path) &&
+      file.info(file_path)$size > 0L) {
+    message("Loading annotation frame")
+    local_annotation_frame <-
+      read.table(
+        file = file_path,
+        header = TRUE,
+        sep = "\t",
+        comment.char = "",
+        stringsAsFactors = FALSE
+      )
+  } else {
+    # Extracting a list of gene names from the GrangesList object
+    # inside the DESeqDataSet object seemingly takes forever.
+    # Therefore, import the GTF file once more, but this time only the "gene" features.
+    # gene_name_list <- lapply(X = rowRanges(x = deseq_data_set), FUN = function(x) { mcols(x = x)[1L, "gene_name"] })
+    message("Reading reference GTF gene features")
+    gene_ranges <-
+      import(
+        con = argument_list$gtf_reference,
+        format = "gtf",
+        genome = argument_list$genome_version,
+        feature.type = "gene"
+      )
+    message("Creating annotation frame")
+    local_annotation_frame <-
+      mcols(x = gene_ranges)[, c("gene_id",
+                                 "gene_version",
+                                 "gene_name",
+                                 "gene_biotype",
+                                 "gene_source")]
+    # Add the location as an Ensembl-like location, lacking the coordinate system name and version.
+    local_annotation_frame$location <-
+      as(object = gene_ranges, Class = "character")
+    rm(gene_ranges)
+    write.table(
+      x = local_annotation_frame,
+      file = file_path,
+      sep = "\t",
+      col.names = TRUE,
+      row.names = FALSE
+    )
+  }
+  rm(file_path)
+  return(local_annotation_frame)
+}
+
+# Initialise a RangedSummarizedExperiment ---------------------------------
+
+
+#' Initialise or load a RangedSummarizedExperiment object.
+#'
+#' @return RangedSummarizedExperiment
+#' @export
+#'
+#' @examples
+initialise_ranged_summarized_experiment <- function() {
+  # Load a pre-existing RangedSummarizedExperiment object or create it by counting BAM files.
+  ranged_summarized_experiment <- NULL
+  
+  file_path <-
+    file.path(output_directory,
+              paste0(prefix, "_ranged_summarized_experiment.Rdata"))
+  if (file.exists(file_path) &&
+      file.info(file_path)$size > 0L) {
+    message("Loading a RangedSummarizedExperiment object")
+    load(file = file_path)
+  } else {
+    # Read the BSF Python sample TSV file as a data.frame and convert into a DataFrame.
+    # Import strings as factors and cast to character vectors where required.
+    message("Loading sample DataFrame")
+    sample_frame <-
+      as(
+        object = read.table(
+          file = file.path(output_directory, paste(prefix, 'samples.tsv', sep = '_')),
+          header = TRUE,
+          sep = "\t",
+          comment.char = "",
+          stringsAsFactors = TRUE
+        ),
+        "DataFrame"
+      )
+    rownames(x = sample_frame) <- sample_frame$sample
+    
+    # Select only those samples, which have the design name annotated in the designs variable.
+    index_logical <-
+      unlist(x = lapply(
+        X = strsplit(
+          x = as.character(sample_frame$designs),
+          split = ",",
+          fixed = TRUE
+        ),
+        FUN = function(character_1) {
+          # character_1 is a character vector resulting from the split on ",".
+          return(any(argument_list$design_name %in% character_1))
+        }
+      ))
+    sample_frame <- sample_frame[index_logical,]
+    rm(index_logical)
+    
+    if (nrow(x = sample_frame) == 0L) {
+      stop("No sample remaining after selection for design name.")
+    }
+    
+    # The 'factor_levels' variable of the design data frame specifies the order of factor levels.
+    # Turn the factor_levels variable into a list of character vectors, where the factor names are set
+    # as attributes of the list components.
+    # factor_levels='factor_1:level_1,level_2;factor_2:level_A,level_B'
+    factor_list <-
+      lapply(
+        X = strsplit(
+          x = design_frame[1L, "factor_levels"],
+          split = ";",
+          fixed = TRUE
+        ),
+        FUN = function(character_1) {
+          # character_1 is a list component resulting from the split on ";" and a character vector.
+          list_1 <- lapply(
+            X = strsplit(
+              x = character_1,
+              split = ":",
+              fixed = TRUE
+            ),
+            FUN = function(character_2) {
+              # Split the second componenent of character_2, the factor levels, on ",".
+              character_3 <-
+                unlist(x = strsplit(
+                  x = character_2[2],
+                  split = ",",
+                  fixed = TRUE
+                ))
+              # Set the first component of character_2, the factor name, as attribute.
+              attr(x = character_3, which = "factor") <-
+                character_2[1]
+              return(character_3)
+            }
+          )
+          return(list_1)
+        }
+      )
+    
+    # Select only the first list component, since variable "factor_levels" is a character vector with also a single component.
+    factor_list <- factor_list[[1]]
+    
+    # Apply the factor levels to each factor.
+    design_variables <- names(x = sample_frame)
+    for (i in seq_along(along.with = factor_list)) {
+      factor_name <- attr(x = factor_list[[i]], which = "factor")
+      if (factor_name %in% design_variables) {
+        sample_frame[, factor_name] <-
+          factor(x = as.character(x = sample_frame[, factor_name]), levels = factor_list[[i]])
+        # Check for NA values in case a factor level was missing.
+        if (any(is.na(x = sample_frame[, factor_name]))) {
+          stop(
+            paste0(
+              "Missing values after assigning factor levels for factor name ",
+              factor_name
+            )
+          )
+        }
+      } else {
+        stop(
+          paste0(
+            "Factor name ",
+            factor_name,
+            " does not resemble a variable of the design frame."
+          )
+        )
+      }
+      rm(factor_name)
+    }
+    rm(i, design_variables, factor_list)
+    
+    message("Reading reference GTF exon features")
+    # The DESeq2 and RNA-seq vignettes suggest using TcDB objects, but for the moment,
+    # we need extra annotation provided by Ensembl GTF files.
+    exon_ranges <-
+      import(
+        con = argument_list$gtf_reference,
+        format = "gtf",
+        genome = argument_list$genome_version,
+        feature.type = "exon"
+      )
+    # Convert (i.e. split) the GRanges object into a GRangesList object
+    # by gene identifiers.
+    gene_ranges_list <-
+      split(x = exon_ranges, f = mcols(x = exon_ranges)$gene_id)
+    
+    # Process per library_type and sequencing_type
+    
+    if (!any("sequencing_type" %in% names(x = sample_frame))) {
+      stop("A sequencing_type variable is missing from the sample annotation frame.")
+    }
+    
+    if (!any("library_type" %in% names(x = sample_frame))) {
+      stop("A library_type variable is missing from the sample annotation frame.")
+    }
+    
+    # Re-level the library_type and sequencing_type variables.
+    sample_frame$library_type <-
+      factor(x = sample_frame$library_type,
+             levels = c("unstranded", "first", "second"))
+    sample_frame$sequencing_type <-
+      factor(x = sample_frame$sequencing_type,
+             levels = c("SE", "PE"))
+    
+    ranged_summarized_experiment <- NULL
+    
+    for (library_type in levels(x = sample_frame$library_type)) {
+      for (sequencing_type in levels(x = sample_frame$sequencing_type)) {
+        message(
+          paste0(
+            "Processing library_type: ",
+            library_type,
+            " sequencing_type: ",
+            sequencing_type
+          )
+        )
+        sub_sample_frame <-
+          sample_frame[(sample_frame$library_type == library_type) &
+                         (sample_frame$sequencing_type == sequencing_type), ]
+        
+        if (nrow(x = sub_sample_frame) == 0L) {
+          rm(sub_sample_frame)
+          next()
+        }
+        
+        # Create a BamFileList object and set the samples as names.
+        message("Creating a BamFileList object")
+        bam_file_list <- BamFileList(
+          file = as.character(x = sub_sample_frame$bam_path),
+          index = as.character(x = sub_sample_frame$bai_path),
+          yieldSize = 2000000L,
+          asMates = (sequencing_type == "PE")
+        )
+        names(x = bam_file_list) <-
+          as.character(x = sub_sample_frame$sample)
+        
+        message("Creating a RangedSummarizedExperiment object")
+        sub_ranged_summarized_experiment <-
+          summarizeOverlaps(
+            features = gene_ranges_list,
+            reads = bam_file_list,
+            mode = "Union",
+            ignore.strand = (library_type == "unstranded"),
+            # Exclude reads that represent secondary alignments or fail the vendor quality filter.
+            param = ScanBamParam(
+              flag = scanBamFlag(
+                isSecondaryAlignment = FALSE,
+                isNotPassingQualityControls = FALSE
+              )
+            ),
+            # Invert the strand for protocols that sequence the second strand.
+            preprocess.reads = if (library_type == "second")
+              invertStrand
+          )
+        colData(x = sub_ranged_summarized_experiment) <-
+          sub_sample_frame
+        # Combine RangedSummarizedExperiment objects with the same ranges,
+        # but different samples via cbind().
+        if (is.null(x = ranged_summarized_experiment)) {
+          ranged_summarized_experiment <- sub_ranged_summarized_experiment
+        } else {
+          ranged_summarized_experiment <-
+            cbind(ranged_summarized_experiment,
+                  sub_ranged_summarized_experiment)
+        }
+        rm(sub_ranged_summarized_experiment,
+           sub_sample_frame,
+           bam_file_list)
+      }
+      rm(sequencing_type)
+    }
+    rm(library_type)
+    
+    rm(gene_ranges_list,
+       exon_ranges,
+       sample_frame)
+    save(ranged_summarized_experiment, file = file_path)
+  }
+  rm(file_path)
+  
+  return(ranged_summarized_experiment)
+}
+
 #' Convert the aes_list into a simple character string for file and plot naming.
 #'
 #' @param aes_list
@@ -182,6 +515,10 @@ aes_list_to_character <- function(aes_list) {
     aes_character
   ), collapse = "__"))
 }
+
+
+# Plot RIN scores ---------------------------------------------------------
+
 
 #' Plot RIN scores.
 #'
@@ -241,9 +578,12 @@ plot_rin_scores <- function(object) {
   rm(plot_paths)
 }
 
-#' Plot a Multi Dimensional Scaling (MDS) analysis
+# Plot Multi-Dimensional Scaling (MDS) ------------------------------------
+
+
+#' Plot a Multi-Dimensional Scaling (MDS) analysis
 #'
-#' The MDS plot is based on Classical (Metric) Multidimensional Scaling of
+#' The MDS plot is based on Classical (Metric) Multi-Dimensional Scaling of
 #'"Euclidean" distances of transformed counts for each gene.
 #'
 #' @param object DESeqTransform object
@@ -404,6 +744,10 @@ plot_mds <- function(object, plot_list = list()) {
      dist_object)
 }
 
+
+# Plot Heatmap ------------------------------------------------------------
+
+
 #' Plot a heatmap
 #'
 #' The heatmap plot is based on hierarchical clustering of
@@ -500,7 +844,10 @@ plot_heatmap <- function(object, aes_list = list()) {
   )
 }
 
-#' Plot a Principal Component Analysis
+# Plot Principal Component Analysis (PCA) ---------------------------------
+
+
+#' Plot a Principal Component Analysis (PCA)
 #'
 #' @param object DESeqTransform object
 #' @param plot_list List of lists configuring plots and their ggplot2 aesthetic mappings
@@ -675,7 +1022,9 @@ plot_pca <- function(object, plot_list = list()) {
   )
 }
 
-# Start of main script.
+# Start of main script ----------------------------------------------------
+
+
 message(paste0("Processing design '", argument_list$design_name, "'"))
 
 # Set the number of parallel threads in the MulticoreParam instance.
@@ -688,6 +1037,9 @@ if (!file.exists(output_directory)) {
              showWarnings = TRUE,
              recursive = FALSE)
 }
+
+# Design DataFrame --------------------------------------------------------
+
 
 # Read the BSF Python design TSV file as a data.frame and convert into a DataFrame.
 message("Loading design DataFrame")
@@ -705,6 +1057,7 @@ design_frame <-
         "plot_aes" = "character"
       ),
       fill = TRUE,
+      comment.char = "",
       stringsAsFactors = FALSE
     ),
     Class = "DataFrame"
@@ -716,235 +1069,14 @@ if (nrow(design_frame) == 0L) {
   stop("No design remaining after selection for design name.")
 }
 
-######################################
-# Initialise a gene annotation frame #
-######################################
+# Gene Annotation DataFrame -----------------------------------------------
 
-# Load pre-existing gene annotation data frame or create it from the reference GTF file.
-annotation_frame <- NULL
 
-file_path <-
-  file.path(output_directory,
-            paste(prefix, "annotation.tsv", sep = "_"))
-if (file.exists(file_path) &&
-    file.info(file_path)$size > 0L) {
-  message("Loading annotation frame")
-  annotation_frame <-
-    read.table(
-      file = file_path,
-      header = TRUE,
-      sep = "\t",
-      stringsAsFactors = FALSE
-    )
-} else {
-  # Extracting a list of gene names from the GrangesList object
-  # inside the DESeqDataSet object seemingly takes forever.
-  # Therefore, import the GTF file once more, but this time only the "gene" features.
-  # gene_name_list <- lapply(X = rowRanges(x = deseq_data_set), FUN = function(x) { mcols(x = x)[1L, "gene_name"] })
-  message("Reading reference GTF gene features")
-  gene_ranges <-
-    import(
-      con = argument_list$gtf_reference,
-      format = "gtf",
-      genome = argument_list$genome_version,
-      feature.type = "gene"
-    )
-  message("Creating annotation frame")
-  annotation_frame <-
-    mcols(x = gene_ranges)[, c("gene_id",
-                               "gene_version",
-                               "gene_name",
-                               "gene_biotype",
-                               "gene_source")]
-  # Add the location as an Ensembl-like location, lacking the coordinate system name and version.
-  annotation_frame$location <-
-    as(object = gene_ranges, Class = "character")
-  rm(gene_ranges)
-  write.table(
-    x = annotation_frame,
-    file = file_path,
-    sep = "\t",
-    col.names = TRUE,
-    row.names = FALSE
-  )
-}
-rm(file_path)
+annotation_frame <- initialise_annotation_frame()
 
-##################################################
-# Initialise a RangedSummarizedExperiment object #
-##################################################
 
-# Load a pre-existing RangedSummarizedExperiment object or create it by counting BAM files.
-ranged_summarized_experiment <- NULL
+# DESeqDataSet ------------------------------------------------------------
 
-file_path <-
-  file.path(output_directory,
-            paste0(prefix, "_ranged_summarized_experiment.Rdata"))
-if (file.exists(file_path) &&
-    file.info(file_path)$size > 0L) {
-  message("Loading a RangedSummarizedExperiment object")
-  load(file = file_path)
-} else {
-  # Read the BSF Python sample TSV file as a data.frame and convert into a DataFrame.
-  # Import strings as factors and cast to character vectors where required.
-  message("Loading sample DataFrame")
-  sample_frame <-
-    as(
-      object = read.table(
-        file = file.path(output_directory, paste(prefix, 'samples.tsv', sep = '_')),
-        header = TRUE,
-        sep = "\t",
-        stringsAsFactors = TRUE
-      ),
-      "DataFrame"
-    )
-  rownames(x = sample_frame) <- sample_frame$sample
-  
-  # Select only those samples, which have the design name annotated in the designs variable.
-  index_logical <-
-    unlist(x = lapply(
-      X = strsplit(
-        x = as.character(sample_frame$designs),
-        split = ",",
-        fixed = TRUE
-      ),
-      FUN = function(character_1) {
-        # character_1 is a character vector resulting from the split on ",".
-        return(any(argument_list$design_name %in% character_1))
-      }
-    ))
-  sample_frame <- sample_frame[index_logical,]
-  rm(index_logical)
-  
-  if (nrow(x = sample_frame) == 0L) {
-    stop("No sample remaining after selection for design name.")
-  }
-  
-  # The 'factor_levels' variable fo the design data frame specifies the order of factor levels.
-  # Turn the factor_levels variable into a list of character vectors, where the factor names are set
-  # as attributes of the list components.
-  # factor_levels='factor_1:level_1,level_2;factor_2:level_A,level_B'
-  factor_list <-
-    lapply(
-      X = strsplit(
-        x = design_frame[1L, "factor_levels"],
-        split = ";",
-        fixed = TRUE
-      ),
-      FUN = function(character_1) {
-        # character_1 is a list component resulting from the split on ";" and a character vector.
-        list_1 <- lapply(
-          X = strsplit(
-            x = character_1,
-            split = ":",
-            fixed = TRUE
-          ),
-          FUN = function(character_2) {
-            # Split the second componenent of character_2, the factor levels, on ",".
-            character_3 <-
-              unlist(x = strsplit(
-                x = character_2[2],
-                split = ",",
-                fixed = TRUE
-              ))
-            # Set the first component of character_2, the factor name, as attribute.
-            attr(x = character_3, which = "factor") <-
-              character_2[1]
-            return(character_3)
-          }
-        )
-        return(list_1)
-      }
-    )
-  
-  # Select only the first list component, since variable "factor_levels" is a character vector with also a single component.
-  factor_list <- factor_list[[1]]
-  
-  # Apply the factor levels to each factor.
-  design_variables <- names(x = sample_frame)
-  for (i in seq_along(along.with = factor_list)) {
-    factor_name <- attr(x = factor_list[[i]], which = "factor")
-    if (factor_name %in% design_variables) {
-      sample_frame[, factor_name] <-
-        factor(x = as.character(x = sample_frame[, factor_name]), levels = factor_list[[i]])
-      # Check for NA values in case a factor level was missing.
-      if (any(is.na(x = sample_frame[, factor_name]))) {
-        stop(
-          paste0(
-            "Missing values after assigning factor levels for factor name ",
-            factor_name
-          )
-        )
-      }
-    } else {
-      stop(
-        paste0(
-          "Factor name ",
-          factor_name,
-          " does not resemble a variable of the design frame."
-        )
-      )
-    }
-    rm(factor_name)
-  }
-  rm(i, design_variables, factor_list)
-  
-  message("Reading reference GTF exon features")
-  # The DESeq2 and RNA-seq vignettes suggest using TcDB objects, but for the moment,
-  # we need extra annotation provided by Ensembl GTF files.
-  exon_ranges <-
-    import(
-      con = argument_list$gtf_reference,
-      format = "gtf",
-      genome = argument_list$genome_version,
-      feature.type = "exon"
-    )
-  # Convert (i.e. split) the GRanges object into a GRangesList object
-  # by gene identifiers.
-  gene_ranges_list <-
-    split(x = exon_ranges, f = mcols(x = exon_ranges)$gene_id)
-  # Create a BamFileList object and set the samples as names.
-  message("Creating BamFileList object")
-  bam_file_list <- BamFileList(
-    file = as.character(x = sample_frame$bam_path),
-    index = as.character(x = sample_frame$bai_path),
-    yieldSize = 2000000L
-  )
-  names(x = bam_file_list) <-
-    as.character(x = sample_frame$sample)
-  message("Creating a RangedSummarizedExperiment object")
-  # TODO: Allow for setting the summarizeOverlaps(ignore.strand) option?
-  # This may require sample-specific counting and merging of counting results.
-  # TODO: Allow for setting of the invertStrand() function,
-  # which is specififc to the RNA-seq protocol.
-  ranged_summarized_experiment <-
-    summarizeOverlaps(
-      features = gene_ranges_list,
-      reads = bam_file_list,
-      mode = "Union",
-      ignore.strand = FALSE,
-      # Exclude reads that represent secondary alignments or fail the vendor quality filter.
-      param = ScanBamParam(
-        flag = scanBamFlag(
-          isSecondaryAlignment = FALSE,
-          isNotPassingQualityControls = FALSE
-        )
-      ),
-      preprocess.reads = invertStrand
-    )
-  colData(x = ranged_summarized_experiment) <-
-    sample_frame
-  rm(bam_file_list,
-     gene_ranges_list,
-     exon_ranges,
-     sample_frame)
-  save(ranged_summarized_experiment, file = file_path)
-}
-rm(file_path)
-
-####################################
-# Initialise a DESeqDataSet object #
-####################################
 
 # Load a pre-existing DESeqDataSet object or create it.
 deseq_data_set <- NULL
@@ -957,6 +1089,8 @@ if (file.exists(file_path) &&
   message("Loading a DESeqDataSet object")
   load(file = file_path)
 } else {
+  ranged_summarized_experiment <-
+    initialise_ranged_summarized_experiment()
   message("Creating a DESeqDataSet object")
   deseq_data_set <-
     DESeqDataSet(se = ranged_summarized_experiment,
@@ -964,6 +1098,7 @@ if (file.exists(file_path) &&
   # Set betaPrior = FALSE for consistent result names for designs regardless of interaction terms.
   # DESeq2 seems to set betaPrior = FALSE upon interaction terms, automatically.
   # See: https://support.bioconductor.org/p/84366/
+  rm(ranged_summarized_experiment)
   deseq_data_set <-
     DESeq(object = deseq_data_set,
           betaPrior = FALSE,
@@ -972,12 +1107,16 @@ if (file.exists(file_path) &&
 }
 rm(file_path)
 
+# RIN Score Plot ----------------------------------------------------------
+
+
 # If RIN scores are annotated in the sample frame, plot their distribution.
 plot_rin_scores(object = deseq_data_set)
 
-###############################
-# Likelihood Ratio Test (LRT) #
-###############################
+
+# Likelihood Ratio Test (LRT) ---------------------------------------------
+
+
 # The "reduced_formulas" variable of the "design" data frame encodes reduced formulas for LRT.
 # Example: "name_1:~genotype + gender;name_2:~1"
 reduced_formula_list <-
@@ -1102,9 +1241,9 @@ temporary_list <- lapply(
 )
 rm(temporary_list, reduced_formula_list)
 
-######################################
-# Initialise a DESeqTransform object #
-######################################
+
+# DESeqTransform ----------------------------------------------------------
+
 
 # Load a pre-existing DESeqTransform object or create it.
 deseq_transform <- NULL
@@ -1124,17 +1263,16 @@ if (file.exists(file_path) &&
 }
 rm(file_path)
 
-###########################
-# Process Plot Aesthetics #
-###########################
-#
+
+# Plot Aesthetics ---------------------------------------------------------
+
+
 # The plot_aes variable of the design data frame supplies a semi-colon-separated list of
 # geometric objects and their associated aestethics for each plot,
 # which is a comma-separared list of aestethics=variable mappings.
 # plot_aes='colour=group,shape=gender;colour=group,shape=extraction'
 # geom_point:colour=test_1,shape=test_2;geom_line:colour=test_3,group=test_4|geom_point:colour=test_a,shape=test_b;geom_line:colour=test_c,group=test_d
 # Convert into a list of list objects with variables and aesthetics as names.
-
 plot_list <-
   lapply(
     X = stri_split_fixed(str = design_frame[1L, "plot_aes"], pattern = "|")[[1L]],
@@ -1195,14 +1333,16 @@ plot_list <-
     }
   )
 
-############
-# MDS Plot #
-############
+
+# MDS Plot ----------------------------------------------------------------
+
+
 plot_mds(object = deseq_transform, plot_list = plot_list)
 
-################
-# Heatmap Plot #
-################
+
+# Heatmap Plot ------------------------------------------------------------
+
+
 dummy_list <-
   lapply(
     X = plot_list,
@@ -1211,17 +1351,18 @@ dummy_list <-
     }
   )
 
-############
-# PCA plot #
-############
+
+# PCA plot ----------------------------------------------------------------
+
+
 # Unfortunately, the standard plotPCA function does only provide PC1 and PC2.
 plot_pca(object = deseq_transform, plot_list = plot_list)
 
 rm(dummy_list, plot_list)
 
-###########################
-# Differential Expression #
-###########################
+
+# Differential Expression -------------------------------------------------
+
 
 print(x = "DESeqDataSet result names:")
 print(x = resultsNames(object = deseq_data_set))
@@ -1229,8 +1370,10 @@ print(x = resultsNames(object = deseq_data_set))
 # Save an R image for project-specific post-processing later.
 # save.image()
 
-# Export the raw counts table for the DESeqDataSet object.
+# Export RAW counts -------------------------------------------------------
 
+
+# Export the raw counts from the DESeqDataSet object.
 counts_frame <-
   as(object = assays(x = deseq_data_set)$counts,
      Class = "DataFrame")
@@ -1252,8 +1395,10 @@ write.table(
 )
 rm(file_path, counts_frame)
 
-# Export the vst counts from the DESeqTransform object.
+# Export VST counts -------------------------------------------------------
 
+
+# Export the vst counts from the DESeqTransform object
 counts_frame <-
   as(object = assay(x = deseq_transform, i = 1), Class = "DataFrame")
 counts_frame$gene_id <- row.names(x = counts_frame)
@@ -1274,8 +1419,10 @@ write.table(
 )
 rm(file_path, counts_frame)
 
-# Export FPKM values from the DESeqDataSet object.
+# Export FPKM values ------------------------------------------------------
 
+
+# Export FPKM values from the DESeqDataSet object
 counts_frame <-
   as(object = fpkm(object = deseq_data_set), Class = "DataFrame")
 counts_frame$gene_id <- row.names(x = counts_frame)
@@ -1300,7 +1447,6 @@ rm(
   annotation_frame,
   deseq_transform,
   deseq_data_set,
-  ranged_summarized_experiment,
   design_frame,
   output_directory,
   prefix,
