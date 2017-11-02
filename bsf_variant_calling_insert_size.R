@@ -25,13 +25,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
-suppressPackageStartupMessages(expr = library(package = "ggplot2"))
 suppressPackageStartupMessages(expr = library(package = "optparse"))
-suppressPackageStartupMessages(expr = library(package = "Rsamtools"))
-
-# Save plots in the following formats.
-
-graphics_formats <- c("pdf", "png")
 
 argument_list <-
   parse_args(object = OptionParser(
@@ -93,14 +87,20 @@ if (is.null(x = argument_list$file_path)) {
   stop("Missing --file-path option")
 }
 
-prefix <- "variant_calling_diagnose_sample"
+suppressPackageStartupMessages(expr = library(package = "ggplot2"))
+suppressPackageStartupMessages(expr = library(package = "Rsamtools"))
 
+graphics_formats <- c("pdf", "png")
+prefix <- "variant_calling_diagnose_sample"
 sample_name <-
   gsub(
     pattern = "^variant_calling_process_sample_(.*)_realigned.bam$",
     replacement = "\\1",
     x = basename(path = argument_list$file_path)
   )
+
+# Scan BAM files ----------------------------------------------------------
+
 
 records_read_total <- 0L
 records_read_chunk <- 0L
@@ -170,6 +170,9 @@ write.table(
   row.names = FALSE,
   col.names = TRUE
 )
+
+# Plot insert size distribution -------------------------------------------
+
 
 ggplot_object <- ggplot(data = summary_frame)
 ggplot_object <-
