@@ -29,24 +29,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
-suppressPackageStartupMessages(expr = library(package = "cummeRbund"))
 suppressPackageStartupMessages(expr = library(package = "optparse"))
-suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
-
-
-#' Apply unique() and sort(), before collapsing a character vector
-#' into a single element, comma-separated value.
-#'
-#' @param x: Character vector
-#' @return: Single element character vector of comma-sepatated values
-
-character_to_csv <- function(x) {
-  return(paste(sort(x = unique(x = x)), collapse = ","))
-}
-
-
-# Get command line options, if help option encountered print help and exit,
-# otherwise if options not found on command line then set defaults.
 
 argument_list <- parse_args(object = OptionParser(
   option_list = list(
@@ -127,11 +110,26 @@ if (is.null(x = argument_list$genome_version)) {
   stop("Missing --genome_version option")
 }
 
+suppressPackageStartupMessages(expr = library(package = "cummeRbund"))
+suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
+
+#' Convert character vector into a comma-separated value (CSV).
+#' Apply unique() and sort(), before collapsing a character vector
+#' into a single element, comma-separated value.
+#'
+#' @param x: Character vector
+#' @return: Single element character vector of comma-sepatated values
+
+character_to_csv <- function(x) {
+  return(paste(sort(x = unique(x = x)), collapse = ","))
+}
+
 # Define CuffDiff and output directory names relative to the
 # working directory.
 
 cuffdiff_directory <-
   paste("rnaseq", "cuffdiff", argument_list$comparison_name, sep = "_")
+
 output_directory <-
   paste("rnaseq",
         "process",
@@ -143,6 +141,9 @@ output_directory <-
 # name also as a prefix for all files therein.
 
 prefix <- output_directory
+
+# Create a cummeRbund database --------------------------------------------
+
 
 # Read and index Cuffdiff output and create a CuffSet object.
 # Load also the GTF file assembled by Cuffmerge, which fulfills foreign
@@ -167,7 +168,8 @@ if (!file.exists(output_directory)) {
              recursive = FALSE)
 }
 
-# Process Cuffdiff run information.
+# Process Cuffdiff run information ----------------------------------------
+
 
 frame_path <-
   file.path(output_directory, paste0(prefix, "_run_information.tsv"))
@@ -186,7 +188,8 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
 }
 rm(frame_path)
 
-# Process Cuffdiff sample information.
+# Process Cuffdiff sample information -------------------------------------
+
 
 sample_frame <- samples(object = cuff_set)
 # Get the number of samples.
@@ -229,7 +232,8 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
 }
 rm(frame_path, sample_frame)
 
-# Process Cuffdiff replicate information.
+# Process Cuffdiff replicate information ----------------------------------
+
 
 replicate_frame <- replicates(object = cuff_set)
 # Get the number of replicates.
@@ -291,11 +295,13 @@ if (file.exists(plot_path_pdf) &&
 }
 rm(plot_path_pdf, plot_path_png, replicate_frame)
 
-# Create a set of QC plots.
+# Starting QC plotting ----------------------------------------------------
+
 
 message("Starting QC plotting")
 
-# Create a Dispersion Plot on Genes.
+# Dispersion Plot on Genes ------------------------------------------------
+
 
 plot_path_pdf <-
   file.path(output_directory, paste0(prefix, "_genes_dispersion.pdf"))
@@ -325,7 +331,8 @@ if (file.exists(plot_path_pdf) &&
 }
 rm(plot_path_pdf, plot_path_png)
 
-# Create a Dispersion Plot on Isoforms.
+# Dispersion Plot on Isoforms ---------------------------------------------
+
 
 plot_path_pdf <-
   file.path(output_directory, paste0(prefix, "_isoforms_dispersion.pdf"))
@@ -363,8 +370,8 @@ if (file.exists(plot_path_pdf) &&
 }
 rm(plot_path_pdf, plot_path_png)
 
-# Create a Squared Coefficient of Variation (SCV) Plot on Genes.
-# The plot requires replicates.
+# Squared Coefficient of Variation (SCV) Plot on Genes --------------------
+
 
 plot_path_pdf <-
   file.path(output_directory, paste0(prefix, "_genes_scv.pdf"))
@@ -376,6 +383,7 @@ if (file.exists(plot_path_pdf) &&
     (file.info(plot_path_png)$size > 0L)) {
   message("Skipping a SCV Plot on Genes")
 } else {
+  # The plot requires replicates.
   if (have_replicates) {
     message("Creating a SCV Plot on Genes")
     ggplot_object <- fpkmSCVPlot(object = genes(object = cuff_set))
@@ -398,8 +406,8 @@ if (file.exists(plot_path_pdf) &&
 }
 rm(plot_path_pdf, plot_path_png)
 
-# Create a Squared Coefficient of Variation (SCV) Plot on Isoforms.
-# The plot requires replicates.
+# Squared Coefficient of Variation (SCV) Plot on Isoforms -----------------
+
 
 plot_path_pdf <-
   file.path(output_directory, paste0(prefix, "_isoforms_scv.pdf"))
@@ -411,6 +419,7 @@ if (file.exists(plot_path_pdf) &&
     (file.info(plot_path_png)$size > 0L)) {
   message("Skipping a SCV Plot on Isoforms")
 } else {
+  # The plot requires replicates.
   if (have_replicates) {
     message("Creating a SCV Plot on Isoforms")
     ggplot_object <-
@@ -434,7 +443,8 @@ if (file.exists(plot_path_pdf) &&
 }
 rm(plot_path_pdf, plot_path_png)
 
-# Create a Density Plot on Genes with and without replicates.
+# Density Plot on Genes without replicates --------------------------------
+
 
 plot_path_pdf <-
   file.path(output_directory,
@@ -467,6 +477,9 @@ if (file.exists(plot_path_pdf) &&
 }
 rm(plot_path_pdf, plot_path_png)
 
+# Density Plot on Genes with replicates -----------------------------------
+
+
 plot_path_pdf <-
   file.path(output_directory,
             paste0(prefix, "_genes_density_w_replicates.pdf"))
@@ -498,7 +511,8 @@ if (file.exists(plot_path_pdf) &&
 }
 rm(plot_path_pdf, plot_path_png)
 
-# Create a Density Plot on Isoforms with and without replicates.
+# Density Plot on Isoforms without replicates -----------------------------
+
 
 plot_path_pdf <-
   file.path(output_directory,
@@ -531,6 +545,9 @@ if (file.exists(plot_path_pdf) &&
 }
 rm(plot_path_pdf, plot_path_png)
 
+# Density Plot on Isoforms with replicates --------------------------------
+
+
 plot_path_pdf <-
   file.path(output_directory,
             paste0(prefix, "_isoforms_density_w_replicates.pdf"))
@@ -562,7 +579,8 @@ if (file.exists(plot_path_pdf) &&
 }
 rm(plot_path_pdf, plot_path_png)
 
-# Create a Box Plot on Genes with and without replicates.
+# Box Plot on Genes with replicates ---------------------------------------
+
 
 plot_path_pdf <-
   file.path(output_directory,
@@ -627,6 +645,9 @@ if (file.exists(plot_path_pdf) &&
 }
 rm(plot_path_pdf, plot_path_png)
 
+# Box Plot on Genes without replicates ------------------------------------
+
+
 plot_path_pdf <-
   file.path(output_directory,
             paste0(prefix, "_genes_box_wo_replicates.pdf"))
@@ -686,7 +707,8 @@ if (file.exists(plot_path_pdf) &&
 }
 rm(plot_path_pdf, plot_path_png)
 
-# Create a Box Plot on Isoforms with and without replicates.
+# Box Plot on Isoforms with replicates ------------------------------------
+
 
 plot_path_pdf <-
   file.path(output_directory,
@@ -751,6 +773,9 @@ if (file.exists(plot_path_pdf) &&
 }
 rm(plot_path_pdf, plot_path_png)
 
+# Box Plot on Isoforms without replicates ---------------------------------
+
+
 plot_path_pdf <-
   file.path(output_directory,
             paste0(prefix, "_isoforms_box_wo_replicates.pdf"))
@@ -810,9 +835,10 @@ if (file.exists(plot_path_pdf) &&
 }
 rm(plot_path_pdf, plot_path_png)
 
-# Create a Scatter Matrix Plot on Genes and Isoforms for less than or equal to
-# 20 samples.
+# Scatter Matrix Plot on Genes --------------------------------------------
 
+
+# Only include the plot for less than or equal to 20 samples.
 if (sample_number <= 20L) {
   plot_path_pdf <-
     file.path(output_directory,
@@ -845,6 +871,9 @@ if (sample_number <= 20L) {
   }
   rm(plot_path_pdf, plot_path_png)
 }
+
+# Scatter Matrix Plot on Isoforms -----------------------------------------
+
 
 if (sample_number <= 20L) {
   plot_path_pdf <-
@@ -879,9 +908,10 @@ if (sample_number <= 20L) {
   rm(plot_path_pdf, plot_path_png)
 }
 
-# Create a Scatter Plot on Genes for each sample pair.
+# Scatter Plot on Genes for each sample pair ------------------------------
 
-for (i in 1L:length(sample_pairs[1L, ])) {
+
+for (i in seq_along(along.with = sample_pairs[1L, ])) {
   plot_path_pdf <-
     file.path(
       output_directory,
@@ -1064,10 +1094,11 @@ for (i in 1L:length(sample_pairs[1L, ])) {
   rm(plot_path_pdf, plot_path_png)
 }
 
-# Create a Dendrogram Plot on Genes for time-series analyses. The csDendro
-# function returns a dendrogram object that cannot be saved with the ggsave
-# function.
+# Dendrogram Plot on Genes ------------------------------------------------
 
+
+# The csDendro function returns a dendrogram object that cannot be saved with
+# the ggsave function.
 plot_path_pdf <-
   file.path(output_directory, paste0(prefix, "_genes_dendrogram.pdf"))
 if (file.exists(plot_path_pdf) &&
@@ -1096,9 +1127,10 @@ if (file.exists(plot_path_png) &&
 }
 rm(plot_path_png)
 
-# Create a MA Plot on genes for each sample pair based on FPKM values.
+# MA Plot on Genes for each sample pair based on FPKM values --------------
 
-for (i in 1L:length(sample_pairs[1L, ])) {
+
+for (i in seq_along(along.with = sample_pairs[1L, ])) {
   plot_path_pdf <-
     file.path(
       output_directory,
@@ -1149,7 +1181,8 @@ for (i in 1L:length(sample_pairs[1L, ])) {
 
 # TODO: Create a MAplot on genes for each sample pair based on count data.
 
-# Create a Volcano Matrix Plot on Genes.
+# Volcano Matrix Plot on Genes --------------------------------------------
+
 
 plot_path_pdf <-
   file.path(output_directory,
@@ -1182,9 +1215,10 @@ if (file.exists(plot_path_pdf) &&
 }
 rm(plot_path_pdf, plot_path_png)
 
-# Create a Volcano Plot on genes for each sample pair.
+# Volcano Plot on Genes for each sample pair ------------------------------
 
-for (i in 1L:length(sample_pairs[1L, ])) {
+
+for (i in seq_along(along.with = sample_pairs[1L, ])) {
   plot_path_pdf <-
     file.path(
       output_directory,
@@ -1265,9 +1299,10 @@ for (i in 1L:length(sample_pairs[1L, ])) {
   rm(plot_path_pdf, plot_path_png)
 }
 
-# Create a Multidimensional Scaling (MDS) Plot on genes,
-# but only if the CuffData object contains more than two samples.
+# Multidimensional Scaling (MDS) Plot on Genes ----------------------------
 
+
+# Plot only, if the CuffData object contains more than two replicates.
 if (replicate_number > 2L) {
   plot_path_pdf <-
     file.path(output_directory, paste0(prefix, "_genes_mds.pdf"))
@@ -1363,10 +1398,11 @@ if (replicate_number > 2L) {
   message("Skipping Multidimensional Scaling Plot on genes in lack of sufficient replicates")
 }
 
-# Create a Principal Component Analysis (PCA) Plot on Genes.
+# Principal Component Analysis (PCA) Plot on Genes ------------------------
+
+
 # TODO: Add also other principal components or even better,
 # use plots of the PCA package?
-
 plot_path_pdf <-
   file.path(output_directory, paste0(prefix, "_genes_pca.pdf"))
 plot_path_png <-
@@ -1401,9 +1437,13 @@ if (file.exists(plot_path_pdf) &&
 }
 rm(plot_path_pdf, plot_path_png)
 
-# Finished plotting.
+# Finishing QC plotting ---------------------------------------------------
+
 
 message("Finishing QC plotting")
+
+# Starting data table splitting -------------------------------------------
+
 
 # TODO: Process gene and isoform sets and lists. Feature-level information can
 # be accessed directly from a CuffData object using the fpkm, repFpkm, count,
@@ -1412,6 +1452,9 @@ message("Finishing QC plotting")
 # Split the large and unwieldy differential data tables into
 # pairwise comparisons, but read or assemble gene and isoform
 # annotation first.
+
+# Gene and Isoform Annotation ---------------------------------------------
+
 
 gene_annotation_frame <- NULL
 isoform_annotation_frame <- NULL
@@ -1592,8 +1635,10 @@ if (file.exists(frame_path_genes) &&
 }
 rm(frame_path_genes, frame_path_isoforms)
 
-# Push the aggregated Ensembl gene annotation back into the SQLite database.
+# Update the cummeRbund SQLite database -----------------------------------
 
+
+# Push the aggregated Ensembl gene annotation back into the SQLite database.
 if (any("ensembl_gene_ids" %in% names(x = annotation(object = genes(object = cuff_set))))) {
   message("Skipping Ensembl annotation for the SQLite database")
 } else {
@@ -1610,9 +1655,11 @@ if (any("ensembl_gene_ids" %in% names(x = annotation(object = genes(object = cuf
   )
 }
 
-# Create an annotated differential genes data frame for each sample pair.
+# Differential Genes per sample pair --------------------------------------
 
-for (i in 1L:length(sample_pairs[1L, ])) {
+
+# Create an annotated differential genes data frame for each sample pair.
+for (i in seq_along(along.with = sample_pairs[1L, ])) {
   frame_path <-
     file.path(
       output_directory,
@@ -1697,9 +1744,11 @@ for (i in 1L:length(sample_pairs[1L, ])) {
   rm(frame_path)
 }
 
-# Create an annotated differential isoforms data frame for each sample pair.
+# Differential Isoforms per sample pair -----------------------------------
 
-for (i in 1L:length(sample_pairs[1L, ])) {
+
+# Create an annotated differential isoforms data frame for each sample pair.
+for (i in seq_along(along.with = sample_pairs[1L, ])) {
   frame_path <-
     file.path(
       output_directory,
@@ -1789,7 +1838,10 @@ for (i in 1L:length(sample_pairs[1L, ])) {
   rm(frame_path)
 }
 
-# Aggreagte the "status" variable of differential data frames to inform about
+# Aggregate status information --------------------------------------------
+
+
+# Aggregate the "status" variable of differential data frames to inform about
 # the number of NOTEST, HIDATA, LOWDATA and FAIL states.
 # It is silly to redo this outside of the loops spltting the results, but if
 # files above were partially written, the status frame would not be complete.
@@ -1813,12 +1865,12 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
           paste(x, collapse = "__")
         }
       ),
-      "OK" = integer(length = length(sample_pairs[1L,])),
-      "NOTEST" = integer(length = length(sample_pairs[1L,])),
-      "HIDATA" = integer(length = length(sample_pairs[1L,])),
-      "LOWDATA" = integer(length = length(sample_pairs[1L,])),
-      "FAIL" = integer(length = length(sample_pairs[1L,])),
-      "SUM" = integer(length = length(sample_pairs[1L,])),
+      "OK" = integer(length = length(x = sample_pairs[1L,])),
+      "NOTEST" = integer(length = length(x = sample_pairs[1L,])),
+      "HIDATA" = integer(length = length(x = sample_pairs[1L,])),
+      "LOWDATA" = integer(length = length(x = sample_pairs[1L,])),
+      "FAIL" = integer(length = length(x = sample_pairs[1L,])),
+      "SUM" = integer(length = length(x = sample_pairs[1L,])),
       row.names = apply(
         X = sample_pairs,
         MARGIN = 2L,
@@ -1828,7 +1880,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
       )
     )
   
-  for (i in 1L:length(sample_pairs[1L,])) {
+  for (i in seq_along(along.with = sample_pairs[1L,])) {
     diff_data_genes <-
       diffData(
         object = genes(object = cuff_set),
@@ -1875,12 +1927,12 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
           paste(x, collapse = "__")
         }
       ),
-      "OK" = integer(length = length(sample_pairs[1L,])),
-      "NOTEST" = integer(length = length(sample_pairs[1L,])),
-      "HIDATA" = integer(length = length(sample_pairs[1L,])),
-      "LOWDATA" = integer(length = length(sample_pairs[1L,])),
-      "FAIL" = integer(length = length(sample_pairs[1L,])),
-      "SUM" = integer(length = length(sample_pairs[1L,])),
+      "OK" = integer(length = length(x = sample_pairs[1L,])),
+      "NOTEST" = integer(length = length(x = sample_pairs[1L,])),
+      "HIDATA" = integer(length = length(x = sample_pairs[1L,])),
+      "LOWDATA" = integer(length = length(x = sample_pairs[1L,])),
+      "FAIL" = integer(length = length(x = sample_pairs[1L,])),
+      "SUM" = integer(length = length(x = sample_pairs[1L,])),
       row.names = apply(
         X = sample_pairs,
         MARGIN = 2L,
@@ -1890,7 +1942,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
       )
     )
   
-  for (i in 1L:length(sample_pairs[1L,])) {
+  for (i in seq_along(along.with = sample_pairs[1L,])) {
     diff_data_isoforms <-
       diffData(
         object = isoforms(object = cuff_set),
@@ -1918,7 +1970,8 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
 }
 rm(frame_path)
 
-# Matrix of FPKM values per replicate on genes.
+# Matrix of FPKM values per replicate on Genes ----------------------------
+
 
 frame_path <-
   file.path(output_directory,
@@ -1982,7 +2035,8 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
 }
 rm(frame_path)
 
-# Matrix of FPKM values per replicate on isoforms
+# Matrix of FPKM values per replicate on Isoforms -------------------------
+
 
 frame_path <-
   file.path(output_directory,
@@ -2014,7 +2068,8 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
 }
 rm(frame_path)
 
-# Matrix of count values per replicate on isoforms.
+# Matrix of count values per replicate on Isoforms ------------------------
+
 
 frame_path <-
   file.path(output_directory,
@@ -2046,8 +2101,9 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
 }
 rm(frame_path)
 
-# TODO: Deal with sets of significantly regulated genes, including a sigMatrix
-# ggplot plot.
+# Significance Matrix on Genes --------------------------------------------
+
+
 plot_path_pdf <-
   file.path(output_directory,
             paste0(prefix, "_genes_significance_matrix.pdf"))
@@ -2077,6 +2133,9 @@ if (file.exists(plot_path_pdf) &&
   rm(ggplot_object)
 }
 rm(plot_path_pdf, plot_path_png)
+
+# Significance Matrix on Isoforms -----------------------------------------
+
 
 plot_path_pdf <-
   file.path(output_directory,
@@ -2120,10 +2179,13 @@ rm(gene_annotation_frame, isoform_annotation_frame)
 
 # The csHeatmap plot does not seem to be a sensible option for larger sets
 # of significant genes.
-# for (i in 1L:length(sample_pairs[1L,])) {
+# for (i in seq_along(along.with = sample_pairs[1L,])) {
 
 # significant_genes_diff <-
 # }
+
+# Starting symbolic linking -----------------------------------------------
+
 
 # Finally, create comparison-specific relative symbolic links for cuffdiff
 # results in the rnaseq_process_cuffdiff_* directory to avoid identical file
@@ -2190,6 +2252,9 @@ if (!file.exists(link_path)) {
   }
 }
 rm(link_path)
+
+# Finishing symbolic linking ----------------------------------------------
+
 
 message("Finishing symbolic linking to cuffdiff results")
 

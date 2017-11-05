@@ -26,15 +26,6 @@
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
-suppressPackageStartupMessages(expr = library(package = "ggplot2"))
-suppressPackageStartupMessages(expr = library(package = "reshape2"))
-
-# Save plots in the following formats.
-
-graphics_formats <- c("pdf", "png")
-
-# Get command line options, if help option encountered print help and exit,
-# otherwise if options not found on command line then set defaults.
 
 argument_list <- parse_args(object = OptionParser(
   option_list = list(
@@ -91,6 +82,15 @@ argument_list <- parse_args(object = OptionParser(
   )
 ))
 
+suppressPackageStartupMessages(expr = library(package = "ggplot2"))
+suppressPackageStartupMessages(expr = library(package = "reshape2"))
+
+# Save plots in the following formats.
+graphics_formats <- c("pdf", "png")
+
+# Parse STAR aligner log files --------------------------------------------
+
+
 summary_frame <- data.frame(
   file_name =
     list.files(pattern = argument_list$pattern_file),
@@ -103,7 +103,7 @@ message(paste0(
 
 star_frame <- NULL
 
-for (i in 1:nrow(x = summary_frame)) {
+for (i in seq_len(length.out = nrow(x = summary_frame))) {
   summary_frame[i, "read_group_name"] <-
     gsub(
       pattern = argument_list$pattern_sample,
@@ -246,9 +246,9 @@ write.table(
   col.names = TRUE
 )
 
-# Plot reads mapping per read group.
+# Scatter plot of read numbers per read group -----------------------------
 
-message("Creating alignment rate vs read number plot per read group")
+
 plotting_frame <-
   data.frame(
     "read_group" = summary_frame$read_group_name,
@@ -262,10 +262,10 @@ plotting_frame$mapped <-
 plotting_frame$unmapped <-
   plotting_frame$input - plotting_frame$mapped
 
-# Create a scatter plot of alignment rate and number of mapped reads per read group.
+message("Creating a scatter plot of read number versus alignment rate per read group")
 ggplot_object <- ggplot(data = plotting_frame)
 ggplot_object <-
-  ggplot_object + ggtitle(label = "STAR Alignment Summary")
+  ggplot_object + ggtitle(label = "STAR Alignment per Read Group")
 ggplot_object <-
   ggplot_object + geom_point(mapping = aes(
     x = mapped,
@@ -304,9 +304,9 @@ for (graphics_format in graphics_formats) {
 }
 rm(graphics_format, plot_width, ggplot_object, plotting_frame)
 
-# Create a column plot of absolute numbers of unique, mutli and unmapped reads per read group.
+# Column plot of read numbers per read group ------------------------------
 
-message("Creating mapped read numbers per read group column plot")
+
 plotting_frame <-
   melt(
     data = data.frame(
@@ -322,6 +322,7 @@ plotting_frame <-
     value.name = "number"
   )
 
+message("Creating a column plot of read numbers per read group")
 ggplot_object <- ggplot(data = plotting_frame)
 ggplot_object <-
   ggplot_object + ggtitle(label = "STAR Aligner Mapped Numbers per Read Group")
@@ -368,9 +369,9 @@ for (graphics_format in graphics_formats) {
 }
 rm(graphics_format, plot_width, ggplot_object, plotting_frame)
 
-# Create a column plot of fractions of unique, multi and unmapped reads per read group.
+# Column plot of read fractions per read group ----------------------------
 
-message("Creating mapped read fractions per read group column plot")
+
 plotting_frame <- melt(
   data = data.frame(
     "read_group" = summary_frame$read_group_name,
@@ -387,6 +388,7 @@ plotting_frame <- melt(
   value.name = "fraction"
 )
 
+message("Creating a column plot of read fractions per read group")
 ggplot_object <- ggplot(data = plotting_frame)
 ggplot_object <-
   ggplot_object + ggtitle(label = "STAR Aliger Mapped Fractions per Read Group")
@@ -435,9 +437,9 @@ for (graphics_format in graphics_formats) {
 }
 rm(graphics_format, plot_width, ggplot_object, plotting_frame)
 
-# Create a column plot of absolute numbers of splice junctions per read group.
+# Column plot of splice junction numbers per read group -------------------
 
-message("Creating splice junction numbers per read group column plot")
+
 plotting_frame <- melt(
   data = data.frame(
     "read_group" = summary_frame$read_group_name,
@@ -453,6 +455,7 @@ plotting_frame <- melt(
   value.name = "number"
 )
 
+message("Creating a column plot of splice junction numbers per read group")
 ggplot_object <- ggplot(data = plotting_frame)
 ggplot_object <-
   ggplot_object + ggtitle(label = "STAR Aliger Splice Junction Numbers per Read Group")
@@ -503,29 +506,32 @@ for (graphics_format in graphics_formats) {
 }
 rm(graphics_format, plot_width, ggplot_object, plotting_frame)
 
-# Create a column plot of fractions of splice junctions per read group.
+# Column plot of splice junction fractions per read group -----------------
 
-message("Creating splice junction fractions per read group column plot")
-plotting_frame <- data.frame(
-  "read_group" = summary_frame$read_group_name,
-  "gtag" = summary_frame$number_splice_gtag / summary_frame$number_splice_total,
-  "gcag" = summary_frame$number_splice_gcag / summary_frame$number_splice_total,
-  "atac" = summary_frame$number_splice_atac / summary_frame$number_splice_total,
-  "non_canonical" = summary_frame$number_splice_non_canonical / summary_frame$number_splice_total
-)
+
 plotting_frame <- melt(
-  data = plotting_frame,
+  data = data.frame(
+    "read_group" = summary_frame$read_group_name,
+    "gtag" = summary_frame$number_splice_gtag / summary_frame$number_splice_total,
+    "gcag" = summary_frame$number_splice_gcag / summary_frame$number_splice_total,
+    "atac" = summary_frame$number_splice_atac / summary_frame$number_splice_total,
+    "non_canonical" = summary_frame$number_splice_non_canonical / summary_frame$number_splice_total
+  ),
   id.vars = c("read_group"),
   measure.vars = c("non_canonical", "atac", "gcag", "gtag"),
   variable.name = "junction",
   value.name = "fraction"
 )
+
+message("Creating a column plot of splice junction fractions per read group")
 ggplot_object <- ggplot(data = plotting_frame)
 ggplot_object <-
   ggplot_object + ggtitle(label = "STAR Aliger Splice Junction Fractions per Read Group")
 ggplot_object <-
-  ggplot_object + geom_col(mapping = aes(x = read_group, y = fraction, fill = junction),
-                           alpha = I(1 / 3))
+  ggplot_object + geom_col(
+    mapping = aes(x = read_group, y = fraction, fill = junction),
+    alpha = I(1 / 3)
+  )
 # Reduce the label font size and the legend key size and allow a maximum of 24
 # guide legend rows.
 ggplot_object <-
@@ -568,6 +574,9 @@ for (graphics_format in graphics_formats) {
 }
 rm(graphics_format, plot_width, ggplot_object, plotting_frame)
 
+# Integrate read group data on sample level -------------------------------
+
+
 # Can the read group-level data be integrated on the sample level?
 
 file_path <-
@@ -583,7 +592,7 @@ if (file.exists(file_path)) {
         sep = "\t",
         stringsAsFactors = FALSE
       ),
-      # Create a sammler data frame for mapping and junction information and include the read group for merging.
+      # Create a smaller data frame for mapping and junction information and include the read group for merging.
       y = data.frame(
         "read_group" = summary_frame$read_group_name,
         "reads_input" = summary_frame$input_reads,
@@ -604,7 +613,8 @@ if (file.exists(file_path)) {
       ),
       by = "read_group"
     )
-  # Re-structure the plotting frame for aggregation. Keep only the numeric vectors and set the read group names
+  # Re-structure the plotting frame for aggregation.
+  # Keep only the numeric vectors and set the read group names
   # as the row names. Then aggregate by a list of sample names.
   # seq.int(from = 3L, to = ncol(x = merged_frame))
   column_names <- names(x = merged_frame)
@@ -617,7 +627,7 @@ if (file.exists(file_path)) {
     aggregate.data.frame(x = plotting_frame,
                          by = list(merged_frame$sample),
                          FUN = sum)
-  # Rename the "Group.1" column as the result of the aggreagtion by sample list into "sample"
+  # Rename the "Group.1" column as the result of the aggreagtion by sample list into "sample".
   names(x = aggregate_frame)[names(x = aggregate_frame) == "Group.1"] <-
     "sample"
   # Write the aggregated frame with mapping and junction information to disk.
@@ -636,9 +646,9 @@ if (file.exists(file_path)) {
   aggregate_frame$reads_unmapped <-
     aggregate_frame$reads_input - aggregate_frame$reads_mapped
   
-  # Plot mapped reads per sample.
+  # Scatter plot of read number versus alignment rate per sample ----------
   
-  message("Creating alignment rate vs read number plot per sample")
+  
   plotting_frame <-
     data.frame(
       "sample" = aggregate_frame$sample,
@@ -650,7 +660,7 @@ if (file.exists(file_path)) {
       stringsAsFactors = FALSE
     )
   
-  # Create a scatter plot of alignment rate and number of mapped reads per read group.
+  message("Creating a scatter plot of read number versus alignment rate per sample")
   ggplot_object <- ggplot(data = plotting_frame)
   ggplot_object <-
     ggplot_object + ggtitle(label = "STAR Alignment Summary per Sample")
@@ -691,7 +701,10 @@ if (file.exists(file_path)) {
     )
   }
   
-  # Repeat the plot, but melt the data frame first.
+  # Scatter plot of read number versus alignment rate per sample ----------
+  
+  
+  # Repeat the plot, but melt the data frame by status first.
   plotting_frame <- melt(
     data = plotting_frame,
     id.vars = c("sample", "input"),
@@ -699,6 +712,8 @@ if (file.exists(file_path)) {
     variable.name = "status",
     value.name = "mapped"
   )
+  
+  message("Creating a scatter plot of read number versus alignment rate per sample")
   ggplot_object <- ggplot(data = plotting_frame)
   ggplot_object <-
     ggplot_object + ggtitle(label = "STAR Alignment Summary per Sample")
@@ -742,21 +757,24 @@ if (file.exists(file_path)) {
   
   rm(graphics_format, plot_width, ggplot_object, plotting_frame)
   
-  # Create a column plot of the absolute number of mapped reads per sample.
-  plotting_frame <- data.frame(
-    "sample" = aggregate_frame$sample,
-    "unmapped" = aggregate_frame$reads_unmapped,
-    "multi" = aggregate_frame$reads_multi,
-    "unique" = aggregate_frame$reads_unique,
-    stringsAsFactors = FALSE
-  )
+  # Column plot of read numbers per sample --------------------------------
+  
+  
   plotting_frame <- melt(
-    data = plotting_frame,
+    data = data.frame(
+      "sample" = aggregate_frame$sample,
+      "unmapped" = aggregate_frame$reads_unmapped,
+      "multi" = aggregate_frame$reads_multi,
+      "unique" = aggregate_frame$reads_unique,
+      stringsAsFactors = FALSE
+    ),
     id.vars = c("sample"),
     measure.vars = c("unmapped", "multi", "unique"),
     variable.name = "status",
     value.name = "number"
   )
+  
+  message("Creating a column plot of read numbers per sample")
   ggplot_object <- ggplot(data = plotting_frame)
   ggplot_object <-
     ggplot_object + ggtitle(label = "STAR Aliger Mapped Numbers per Sample")
@@ -803,20 +821,23 @@ if (file.exists(file_path)) {
   }
   rm(graphics_format, plot_width, ggplot_object, plotting_frame)
   
-  # Create a column plot of the fraction of mapped reads per sample.
-  plotting_frame <- data.frame(
-    "sample" = aggregate_frame$sample,
-    "unmapped" = aggregate_frame$reads_unmapped / aggregate_frame$reads_input,
-    "multi" = aggregate_frame$reads_multi / aggregate_frame$reads_input,
-    "unique" = aggregate_frame$reads_unique / aggregate_frame$reads_input
-  )
+  # Column plot of read fractions per sample ------------------------------
+  
+  
   plotting_frame <- melt(
-    data = plotting_frame,
+    data = data.frame(
+      "sample" = aggregate_frame$sample,
+      "unmapped" = aggregate_frame$reads_unmapped / aggregate_frame$reads_input,
+      "multi" = aggregate_frame$reads_multi / aggregate_frame$reads_input,
+      "unique" = aggregate_frame$reads_unique / aggregate_frame$reads_input
+    ),
     id.vars = c("sample"),
     measure.vars = c("unmapped", "multi", "unique"),
     variable.name = "status",
     value.name = "fraction"
   )
+  
+  message("Creating a column plot of read fractions per sample")
   ggplot_object <- ggplot(data = plotting_frame)
   ggplot_object <-
     ggplot_object + ggtitle(label = "STAR Aliger Mapped Fractions per Sample")
@@ -863,22 +884,24 @@ if (file.exists(file_path)) {
   }
   rm(graphics_format, plot_width, ggplot_object, plotting_frame)
   
-  # Create a column plot of absolute numbers of splice junctions by sample.
-  message("Creating splice junction numbers column plot per sample")
-  plotting_frame <- data.frame(
-    "sample" = aggregate_frame$sample,
-    "gtag" = aggregate_frame$junctions_gtag,
-    "gcag" = aggregate_frame$junctions_gcag,
-    "atac" = aggregate_frame$junctions_atac,
-    "non_canonical" = aggregate_frame$junctions_non_canonical
-  )
+  # Column plot of splice junction numbers per sample ---------------------
+  
+  
   plotting_frame <- melt(
-    data = plotting_frame,
+    data = data.frame(
+      "sample" = aggregate_frame$sample,
+      "gtag" = aggregate_frame$junctions_gtag,
+      "gcag" = aggregate_frame$junctions_gcag,
+      "atac" = aggregate_frame$junctions_atac,
+      "non_canonical" = aggregate_frame$junctions_non_canonical
+    ),
     id.vars = c("sample"),
     measure.vars = c("non_canonical", "atac", "gcag", "gtag"),
     variable.name = "junction",
     value.name = "number"
   )
+  
+  message("Creating a column plot of splice junction numbers per sample")
   ggplot_object <- ggplot(data = plotting_frame)
   ggplot_object <-
     ggplot_object + ggtitle(label = "STAR Aliger Splice Junction Numbers per Sample")
@@ -925,22 +948,24 @@ if (file.exists(file_path)) {
   }
   rm(graphics_format, plot_width, ggplot_object, plotting_frame)
   
-  # Create a column plot of fractions of splice junctions per sample.
-  message("Creating splice junction fractions column plot per sample")
-  plotting_frame <- data.frame(
-    "sample" = aggregate_frame$sample,
-    "gtag" = aggregate_frame$junctions_gtag / aggregate_frame$junctions_total,
-    "gcag" = aggregate_frame$junctions_gcag / aggregate_frame$junctions_total,
-    "atac" = aggregate_frame$junctions_atac / aggregate_frame$junctions_total,
-    "non_canonical" = aggregate_frame$junctions_non_canonical / aggregate_frame$junctions_total
-  )
+  # Column plot of splice junction fractions per sample -------------------
+  
+  
   plotting_frame <- melt(
-    data = plotting_frame,
+    data = data.frame(
+      "sample" = aggregate_frame$sample,
+      "gtag" = aggregate_frame$junctions_gtag / aggregate_frame$junctions_total,
+      "gcag" = aggregate_frame$junctions_gcag / aggregate_frame$junctions_total,
+      "atac" = aggregate_frame$junctions_atac / aggregate_frame$junctions_total,
+      "non_canonical" = aggregate_frame$junctions_non_canonical / aggregate_frame$junctions_total
+    ),
     id.vars = c("sample"),
     measure.vars = c("non_canonical", "atac", "gcag", "gtag"),
     variable.name = "junction",
     value.name = "fraction"
   )
+  
+  message("Creating a column plot of splice junction fractions per sample")
   ggplot_object <- ggplot(data = plotting_frame)
   ggplot_object <-
     ggplot_object + ggtitle(label = "STAR Aliger Splice Junction Fractions per Sample")
