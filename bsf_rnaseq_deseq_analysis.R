@@ -203,7 +203,7 @@ initialise_annotation_frame <- function() {
               paste(prefix, "annotation.tsv", sep = "_"))
   if (file.exists(file_path) &&
       file.info(file_path)$size > 0L) {
-    message("Loading annotation frame")
+    message("Loading an annotation frame")
     local_annotation_frame <-
       read.table(
         file = file_path,
@@ -298,7 +298,7 @@ initialise_ranged_summarized_experiment <- function() {
           return(any(argument_list$design_name %in% character_1))
         }
       ))
-    sample_frame <- sample_frame[index_logical,]
+    sample_frame <- sample_frame[index_logical, ]
     rm(index_logical)
     
     if (nrow(x = sample_frame) == 0L) {
@@ -421,7 +421,7 @@ initialise_ranged_summarized_experiment <- function() {
         )
         sub_sample_frame <-
           sample_frame[(sample_frame$library_type == library_type) &
-                         (sample_frame$sequencing_type == sequencing_type), ]
+                         (sample_frame$sequencing_type == sequencing_type),]
         
         if (nrow(x = sub_sample_frame) == 0L) {
           rm(sub_sample_frame)
@@ -867,7 +867,7 @@ plot_pca <- function(object, plot_list = list()) {
   
   # Perform a PCA on the data in assay(x) for the selected genes
   pca_object <-
-    prcomp(x = t(x = assay(x = object)[selected_rows,]))
+    prcomp(x = t(x = assay(x = object)[selected_rows, ]))
   rm(selected_rows)
   
   # The pca_object$x matrix has as many columns and rows as there are samples.
@@ -1042,7 +1042,7 @@ if (!file.exists(output_directory)) {
 
 
 # Read the BSF Python design TSV file as a data.frame and convert into a DataFrame.
-message("Loading design DataFrame")
+message("Loading a design DataFrame")
 design_frame <-
   as(
     object = read.table(
@@ -1063,7 +1063,7 @@ design_frame <-
     Class = "DataFrame"
   )
 design_frame <-
-  design_frame[design_frame$design == argument_list$design_name,]
+  design_frame[design_frame$design == argument_list$design_name, ]
 
 if (nrow(design_frame) == 0L) {
   stop("No design remaining after selection for design name.")
@@ -1091,18 +1091,100 @@ if (file.exists(file_path) &&
 } else {
   ranged_summarized_experiment <-
     initialise_ranged_summarized_experiment()
-  message("Creating a DESeqDataSet object")
-  deseq_data_set <-
-    DESeqDataSet(se = ranged_summarized_experiment,
-                 design = as.formula(object = design_frame[1L, "full_formula"]))
-  # Set betaPrior = FALSE for consistent result names for designs regardless of interaction terms.
-  # DESeq2 seems to set betaPrior = FALSE upon interaction terms, automatically.
-  # See: https://support.bioconductor.org/p/84366/
-  rm(ranged_summarized_experiment)
-  deseq_data_set <-
-    DESeq(object = deseq_data_set,
-          betaPrior = FALSE,
-          parallel = TRUE)
+  
+  # Create a model matrix and check whether it is full rank.
+  model_matrix <- stats::model.matrix.default(
+    object = as.formula(object = design_frame[1L, "full_formula"]),
+    data = colData(x = ranged_summarized_experiment)
+  )
+  # Write the unmodified model matrix to disk if argument "--verbose" was set.
+  if (argument_list$verbose) {
+    message("Writing model matrix")
+    model_frame <- as.data.frame(x = model_matrix)
+    model_path <-
+      file.path(output_directory, paste0(prefix, "_model_matrix.tsv"))
+    write.table(
+      x = model_frame,
+      file = model_path,
+      sep = "\t",
+      row.names = TRUE,
+      col.names = TRUE
+    )
+    rm(model_path, model_frame)
+  }
+  # Check already here, whether the model matrix is full rank.
+  # Based on the DESeq2::checkFullRank() function.
+  if (qr(x = model_matrix)$rank < ncol(x = model_matrix)) {
+    message("The model matrix is not full rank.")
+    model_all_zero <-
+      apply(
+        X = model_matrix,
+        MARGIN = 2,
+        FUN = function(model_matrix_column)
+          all(model_matrix_column == 0)
+      )
+    if (any(model_all_zero)) {
+      message("Levels or combinations of levels without any samples have resulted in column(s) of zeros in the model matrix.")
+      message(paste(colnames(x = model_matrix)[model_all_zero], collapse = ", "))
+      message("Attempting to fix the model matrix by removing empty columns.")
+      model_matrix <- model_matrix[, -which(x = model_all_zero)]
+      if (argument_list$verbose) {
+        message("Writing modified model matrix")
+        model_frame <- as.data.frame(x = model_matrix)
+        model_path <-
+          file.path(output_directory, paste0(prefix, "_model_matrix_modified.tsv"))
+        write.table(
+          x = model_frame,
+          file = model_path,
+          sep = "\t",
+          row.names = TRUE,
+          col.names = TRUE
+        )
+        rm(model_path, model_frame)
+      }
+      # Hopefully, the model matrix is now full rank.
+      # To initialise the DESeqDataSet we need to use the simplest possible design i.e. ~ 1
+      message("Creating a DESeqDataSet object with design ~ 1")
+      deseq_data_set <-
+        DESeqDataSet(se = ranged_summarized_experiment,
+                     design = ~ 1)
+      # Set betaPrior = FALSE for consistent result names for designs regardless of interaction terms.
+      # DESeq2 seems to set betaPrior = FALSE upon interaction terms, automatically.
+      # See: https://support.bioconductor.org/p/84366/
+      # betaPrior also has to be FALSE in case a user-supplied full model matrix is specified.
+      # Re assign the model formula
+      message("Resetting design formula")
+      design(object = deseq_data_set) <- as.formula(object = design_frame[1L, "full_formula"])
+      message("Started DESeq processing")
+      deseq_data_set <-
+        DESeq(object = deseq_data_set,
+              test = "Wald",
+              betaPrior = FALSE,
+              full = model_matrix,
+              parallel = TRUE)
+    } else {
+      stop("One or more variables or interaction terms in the design formula are linear combinations of the others and must be removed.")
+    }
+    rm(model_all_zero)
+  } else {
+    # The model matrix *is* full rank. Supply the design as formula.
+    message("Creating a DESeqDataSet object")
+    deseq_data_set <-
+      DESeqDataSet(se = ranged_summarized_experiment,
+                   design = as.formula(object = design_frame[1L, "full_formula"]))
+    # Set betaPrior = FALSE for consistent result names for designs regardless of interaction terms.
+    # DESeq2 seems to set betaPrior = FALSE upon interaction terms, automatically.
+    # See: https://support.bioconductor.org/p/84366/
+    # betaPrior also has to be FALSE in case a user-supplied full model matrix is specified.
+    message("Started DESeq processing")
+    deseq_data_set <-
+      DESeq(object = deseq_data_set,
+            test = "Wald",
+            betaPrior = FALSE,
+            parallel = TRUE)
+  }
+  
+  rm(ranged_summarized_experiment, model_matrix)
   save(deseq_data_set, file = file_path)
 }
 rm(file_path)
