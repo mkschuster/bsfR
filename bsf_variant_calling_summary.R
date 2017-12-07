@@ -318,6 +318,15 @@ for (file_name in file_names) {
   picard_metrics_total$READ_GROUP <-
     as.character(x = picard_metrics_total$READ_GROUP)
   
+  # The Picard Alignment Metrics report has changed format through versions.
+  # Columns PF_READS_IMPROPER_PAIRS and PCT_PF_READS_IMPROPER_PAIRS were added at a later stage.
+  if (is.null(x = picard_metrics_total$PF_READS_IMPROPER_PAIRS)) {
+    picard_metrics_total$PF_READS_IMPROPER_PAIRS <- 0L
+  }
+  if (is.null(x = picard_metrics_total$PCT_PF_READS_IMPROPER_PAIRS)) {
+    picard_metrics_total$PCT_PF_READS_IMPROPER_PAIRS <- 0.0
+  }
+  
   # Select only rows showing the SAMPLE summary, i.e. showing SAMPLE, but no LIBRARY and READ_GROUP information.
   picard_metrics_sample <-
     picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
