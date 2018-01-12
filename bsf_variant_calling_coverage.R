@@ -102,6 +102,12 @@ argument_list <- parse_args(object = OptionParser(
   )
 ))
 
+if (file.size(argument_list$callable_loci_path) > 1e+09) {
+  message("The file specified by the --callable-loci option is too large to process")
+  print(x = sessionInfo())
+  quit()
+}
+
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
 
 # Keep overall statistics in a summary data frame.
