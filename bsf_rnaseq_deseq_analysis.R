@@ -305,6 +305,25 @@ initialise_ranged_summarized_experiment <- function() {
       stop("No sample remaining after selection for design name.")
     }
     
+    # The sequencing_type and library_type variables are required to set options
+    # for the summarizeOverlaps() read counting function.
+    
+    if (!any("sequencing_type" %in% names(x = sample_frame))) {
+      stop("A sequencing_type variable is missing from the sample annotation frame.")
+    }
+    
+    if (!any("library_type" %in% names(x = sample_frame))) {
+      stop("A library_type variable is missing from the sample annotation frame.")
+    }
+    
+    # Re-level the library_type and sequencing_type variables.
+    sample_frame$library_type <-
+      factor(x = sample_frame$library_type,
+             levels = c("unstranded", "first", "second"))
+    sample_frame$sequencing_type <-
+      factor(x = sample_frame$sequencing_type,
+             levels = c("SE", "PE"))
+    
     # The 'factor_levels' variable of the design data frame specifies the order of factor levels.
     # Turn the factor_levels variable into a list of character vectors, where the factor names are set
     # as attributes of the list components.
@@ -374,6 +393,9 @@ initialise_ranged_summarized_experiment <- function() {
     }
     rm(i, design_variables, factor_list)
     
+    # Drop any unused levels from the sample data frame.
+    droplevels(x = sample_frame)
+    
     message("Reading reference GTF exon features")
     # The DESeq2 and RNA-seq vignettes suggest using TcDB objects, but for the moment,
     # we need extra annotation provided by Ensembl GTF files.
@@ -389,24 +411,7 @@ initialise_ranged_summarized_experiment <- function() {
     gene_ranges_list <-
       split(x = exon_ranges, f = mcols(x = exon_ranges)$gene_id)
     
-    # Process per library_type and sequencing_type
-    
-    if (!any("sequencing_type" %in% names(x = sample_frame))) {
-      stop("A sequencing_type variable is missing from the sample annotation frame.")
-    }
-    
-    if (!any("library_type" %in% names(x = sample_frame))) {
-      stop("A library_type variable is missing from the sample annotation frame.")
-    }
-    
-    # Re-level the library_type and sequencing_type variables.
-    sample_frame$library_type <-
-      factor(x = sample_frame$library_type,
-             levels = c("unstranded", "first", "second"))
-    sample_frame$sequencing_type <-
-      factor(x = sample_frame$sequencing_type,
-             levels = c("SE", "PE"))
-    
+    # Process per library_type and sequencing_type and merge the RangedSummarizedExperiment objects.
     ranged_summarized_experiment <- NULL
     
     for (library_type in levels(x = sample_frame$library_type)) {
@@ -1124,7 +1129,9 @@ if (file.exists(file_path) &&
           all(model_matrix_column == 0)
       )
     if (any(model_all_zero)) {
-      message("Levels or combinations of levels without any samples have resulted in column(s) of zeros in the model matrix.")
+      message(
+        "Levels or combinations of levels without any samples have resulted in column(s) of zeros in the model matrix."
+      )
       message(paste(colnames(x = model_matrix)[model_all_zero], collapse = ", "))
       message("Attempting to fix the model matrix by removing empty columns.")
       model_matrix <- model_matrix[, -which(x = model_all_zero)]
@@ -1132,7 +1139,8 @@ if (file.exists(file_path) &&
         message("Writing modified model matrix")
         model_frame <- as.data.frame(x = model_matrix)
         model_path <-
-          file.path(output_directory, paste0(prefix, "_model_matrix_modified.tsv"))
+          file.path(output_directory,
+                    paste0(prefix, "_model_matrix_modified.tsv"))
         write.table(
           x = model_frame,
           file = model_path,
@@ -1154,16 +1162,25 @@ if (file.exists(file_path) &&
       # betaPrior also has to be FALSE in case a user-supplied full model matrix is specified.
       # Re assign the model formula
       message("Resetting design formula")
-      design(object = deseq_data_set) <- as.formula(object = design_frame[1L, "full_formula"])
+      design(object = deseq_data_set) <-
+        as.formula(object = design_frame[1L, "full_formula"])
       message("Started DESeq processing")
       deseq_data_set <-
-        DESeq(object = deseq_data_set,
-              test = "Wald",
-              betaPrior = FALSE,
-              full = model_matrix,
-              parallel = TRUE)
+        DESeq(
+          object = deseq_data_set,
+          test = "Wald",
+          betaPrior = FALSE,
+          full = model_matrix,
+          parallel = TRUE
+        )
     } else {
-      stop("One or more variables or interaction terms in the design formula are linear combinations of the others and must be removed.")
+      suppressPackageStartupMessages(expr = library(package = "caret"))  # For caret::findLinearCombos()
+      linear_combinations_list <- findLinearCombos(x = model_matrix)
+      print(x = linear_combinations_list)
+      print(x = colnames(x = model_matrix)[linear_combinations_list$remove])
+      stop(
+        "One or more variables or interaction terms in the design formula are linear combinations of the others and must be removed."
+      )
     }
     rm(model_all_zero)
   } else {
@@ -1178,16 +1195,20 @@ if (file.exists(file_path) &&
     # betaPrior also has to be FALSE in case a user-supplied full model matrix is specified.
     message("Started DESeq processing")
     deseq_data_set <-
-      DESeq(object = deseq_data_set,
-            test = "Wald",
-            betaPrior = FALSE,
-            parallel = TRUE)
+      DESeq(
+        object = deseq_data_set,
+        test = "Wald",
+        betaPrior = FALSE,
+        parallel = TRUE
+      )
   }
   
   rm(ranged_summarized_experiment, model_matrix)
   save(deseq_data_set, file = file_path)
 }
 rm(file_path)
+
+# TODO: Write the matrix of gene versus model coefficients as a data.frame to disk.
 
 # RIN Score Plot ----------------------------------------------------------
 
@@ -1218,9 +1239,10 @@ reduced_formula_list <-
 temporary_list <- lapply(
   X = reduced_formula_list,
   FUN = function(reduced_formula) {
-    if (all(nzchar(x = reduced_formula))) {
+    # Skip empty character vectors.
+    if (!nzchar(x = reduced_formula)) {
       return()
-    } # Skip empty character vectors.
+    }
     file_path <-
       file.path(output_directory,
                 paste(paste(
