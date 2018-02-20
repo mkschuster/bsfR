@@ -591,6 +591,10 @@ for (file_name in file_names) {
     picard_metrics_total$PCT_TARGET_BASES_1X <- 0.0
   }
   
+  if (is.null(x = picard_metrics_total$MAX_TARGET_COVERAGE)) {
+    picard_metrics_total$MAX_TARGET_COVERAGE <- 0L
+  }
+  
   # Select only rows showing the SAMPLE summary, i.e. showing SAMPLE, but no LIBRARY and READ_GROUP information.
   picard_metrics_sample <-
     picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
