@@ -25,9 +25,53 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
-suppressPackageStartupMessages(expr = library(package = "ggplot2"))
 suppressPackageStartupMessages(expr = library(package = "optparse"))
+
+argument_list <-
+  parse_args(object = OptionParser(
+    option_list = list(
+      make_option(
+        opt_str = c("--verbose", "-v"),
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      make_option(
+        opt_str = c("--quiet", "-q"),
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      ),
+      make_option(
+        opt_str = c("--directory"),
+        help = "Trimmomatic directory",
+        type = "character"
+      ),
+      make_option(
+        opt_str = c("--file_path"),
+        help = "Trimmomatic trimlog file path",
+        type = "character"
+      ),
+      make_option(
+        opt_str = c("--number"),
+        help = "Maximum number of Trimmomatic trimlog lines, or -1 (default) for unlimited",
+        default = -1L,
+        type = "integer"
+      ),
+      make_option(
+        opt_str = c("--summary_path"),
+        help = "Trimmomatic summary data frame directory path",
+        type = "character"
+      )
+    )
+  ))
+
+suppressPackageStartupMessages(expr = library(package = "ggplot2"))
 suppressPackageStartupMessages(expr = library(package = "reshape2"))
+suppressPackageStartupMessages(expr = library(package = "stringi"))  # For stringi::stri_split_fixed()
 
 #' Process trimmomatic STDOUT files and return a named character vector.
 #' Names are: "line", "input", "both", "first", "second", "dropped"
@@ -57,12 +101,10 @@ process_stdout <- function(file_path) {
       }
     ))
   trimmomatic_filtered <- trimmomatic_strings[trimmomatic_filter]
-  # trimmomatic_frame = NULL
   if (length(x = trimmomatic_filtered) > 0) {
     # Annotate the list of strings with names.
     names(x = trimmomatic_filtered[[1]]) <-
       c("line", "input", "both", "first", "second", "dropped")
-    # trimmomatic_frame <- data.frame(trimmomatic_filtered[[1]], stringsAsFactors = FALSE)
   }
   rm(trimmomatic_lines,
      trimmomatic_matches,
@@ -133,39 +175,38 @@ process_trimlog <- function(file_path, number = -1L) {
       break()
     }
     trimlog_list <-
-      strsplit(x = trimlog_line, split = "[[:space:]]")
+      stri_split_fixed(str = trimlog_line, pattern = " ")
     # The read length is the sum of the end trimming position and the amount trimmed from the end.
     # The data frame length is one longer to store the end position.
     frame_length <-
       as.integer(x = trimlog_list[[1]][4]) + as.integer(x = trimlog_list[[1]][5]) + 1L
     
     # Check for read 1.
-    # TODO: The endsWith() function would be available in R base with version 3.3.0.
-    if (substr(
-      x = trimlog_list[[1]][1],
-      start = nchar(x = trimlog_list[[1]][1]) - 1,
-      stop = nchar(x = trimlog_list[[1]][1])
-    ) == "/1") {
+    if (endsWith(x = trimlog_list[[1]][1], "/1")) {
       counter_1 <- counter_1 + 1L  # Increment the counter for read 1.
       # Initialise only with meaningful coordinates.
       if (is.null(x = read_frame_1) && frame_length > 1) {
         read_frame_1 <-
           initialise_read_frame(length = frame_length, read_number = 1L)
       }
-    }
-    
-    # Check for read 2.
-    # TODO: The endsWith() function would be available in R base with version 3.3.0.
-    if (substr(
-      x = trimlog_list[[1]][1],
-      start = nchar(x = trimlog_list[[1]][1]) - 1,
-      stop = nchar(x = trimlog_list[[1]][1])
-    ) == "/2") {
-      counter_2 <- counter_2 + 1L  # Increment the counter for read 2.
-      # Initialise only with meaningful coordinates.
-      if (is.null(x = read_frame_2) && frame_length > 1) {
-        read_frame_2 <-
-          initialise_read_frame(length = frame_length, read_number = 2L)
+    } else {
+      # Check for read 2.
+      if (endsWith(x = trimlog_list[[1]][1], "/2")) {
+        counter_2 <- counter_2 + 1L  # Increment the counter for read 2.
+        # Initialise only with meaningful coordinates.
+        if (is.null(x = read_frame_2) && frame_length > 1) {
+          read_frame_2 <-
+            initialise_read_frame(length = frame_length, read_number = 2L)
+        }
+      } else {
+        # This must be Trimmomatic data in SE mode, which lacks /1 and /2 suffices.
+        counter_1 <-
+          counter_1 + 1L  # Increment the counter for read 1.
+        # Initialise only with meaningful coordinates.
+        if (is.null(x = read_frame_1) && frame_length > 1) {
+          read_frame_1 <-
+            initialise_read_frame(length = frame_length, read_number = 1L)
+        }
       }
     }
     
@@ -198,31 +239,26 @@ process_trimlog <- function(file_path, number = -1L) {
       break()
     }
     trimlog_list <-
-      strsplit(x = trimlog_line, split = "[[:space:]]")
+      stri_split_fixed(str = trimlog_line, pattern = " ")
     
-    # Check if first or second read.
-    # TODO: The endsWith() function would be available in R base with version 3.3.0.
-    # if (endsWith(x = trimlog_list[[1]][1], "/1")) {
-    if (substr(
-      x = trimlog_list[[1]][1],
-      start = nchar(x = trimlog_list[[1]][1]) - 1,
-      stop = nchar(x = trimlog_list[[1]][1])
-    ) == "/1") {
+    # Check for read 1.
+    if (endsWith(x = trimlog_list[[1]][1], "/1")) {
       counter_1 <- counter_1 + 1L  # Increment the counter for read 1.
       read_frame_1 <-
         update_read_frame(read_frame = read_frame_1, trimlog_list = trimlog_list)
-    }
-    
-    # TODO: The endsWith() function would be available in R base with version 3.3.0.
-    # if (endsWith(x = trimlog_list[[1]][1], "/2")) {
-    if (substr(
-      x = trimlog_list[[1]][1],
-      start = nchar(x = trimlog_list[[1]][1]) - 1,
-      stop = nchar(x = trimlog_list[[1]][1])
-    ) == "/2") {
-      counter_2 <- counter_2 + 1L  # Increment the counter for read 2.
-      read_frame_2 <-
-        update_read_frame(read_frame = read_frame_2, trimlog_list = trimlog_list)
+    } else {
+      # Check for read 2.
+      if (endsWith(x = trimlog_list[[1]][1], "/2")) {
+        counter_2 <- counter_2 + 1L  # Increment the counter for read 2.
+        read_frame_2 <-
+          update_read_frame(read_frame = read_frame_2, trimlog_list = trimlog_list)
+      } else {
+        # This must be Trimmomatic data in SE mode, which lacks /1 and /2 suffices.
+        counter_1 <-
+          counter_1 + 1L  # Increment the counter for read 1.
+        read_frame_1 <-
+          update_read_frame(read_frame = read_frame_1, trimlog_list = trimlog_list)
+      }
     }
     rm(trimlog_list, trimlog_line)
     
@@ -411,56 +447,6 @@ process_summary <- function(directory_path) {
   rm(file_list, summary_frame)
   return()
 }
-
-# Specify the desired options in a list.
-# By default OptionParser will add an help option equivalent to
-# make_option(c("-h", "--help"), action = "store_true", default = FALSE,
-# help = "Show this help message and exit").
-
-# Get command line options, if help option encountered print help and exit,
-# otherwise if options not found on command line then set defaults.
-
-argument_list <-
-  parse_args(object = OptionParser(
-    option_list = list(
-      make_option(
-        opt_str = c("--verbose", "-v"),
-        action = "store_true",
-        default = TRUE,
-        help = "Print extra output [default]",
-        type = "logical"
-      ),
-      make_option(
-        opt_str = c("--quiet", "-q"),
-        action = "store_false",
-        default = FALSE,
-        dest = "verbose",
-        help = "Print little output",
-        type = "logical"
-      ),
-      make_option(
-        opt_str = c("--directory"),
-        help = "Trimmomatic directory",
-        type = "character"
-      ),
-      make_option(
-        opt_str = c("--file_path"),
-        help = "Trimmomatic trimlog file path",
-        type = "character"
-      ),
-      make_option(
-        opt_str = c("--number"),
-        help = "Maximum number of Trimmomatic trimlog lines, or -1 (default) for unlimited",
-        default = -1L,
-        type = "integer"
-      ),
-      make_option(
-        opt_str = c("--summary_path"),
-        help = "Trimmomatic summary data frame directory path",
-        type = "character"
-      )
-    )
-  ))
 
 if (!is.null(x = argument_list$file_path)) {
   return_value <-
