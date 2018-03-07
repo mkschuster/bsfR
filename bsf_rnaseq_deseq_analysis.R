@@ -13,6 +13,28 @@
 #
 # BSF R script to run a DESeq2 analysis.
 #
+# Copyright 2013 - 2017 Michael K. Schuster
+#
+# Biomedical Sequencing Facility (BSF), part of the genomics core facility of
+# the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
+# Sciences and the Medical University of Vienna (MUW).
+#
+#
+# This file is part of BSF R.
+#
+# BSF R is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# BSF R is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
+#
 # Sample Annotation DataFrame Description ---------------------------------
 #
 #
@@ -45,27 +67,6 @@
 #      per sample. If available, the RIN score distribution will be plotted.
 #
 #
-# Copyright 2013 - 2017 Michael K. Schuster
-#
-# Biomedical Sequencing Facility (BSF), part of the genomics core facility of
-# the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
-# Sciences and the Medical University of Vienna (MUW).
-#
-#
-# This file is part of BSF R.
-#
-# BSF R is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# BSF R is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
@@ -118,9 +119,9 @@ argument_list <- parse_args(object = OptionParser(
     make_option(
       # This option is required for PCA plots
       opt_str = c("--pca-dimensions"),
-      default = 3L,
+      default = 4L,
       dest = "pca_dimensions",
-      help = "Principal components to plot [3]",
+      help = "Principal components to plot [4]",
       type = "integer"
     ),
     make_option(
@@ -164,6 +165,7 @@ suppressPackageStartupMessages(expr = library(package = "BiocParallel"))  # for 
 suppressPackageStartupMessages(expr = library(package = "GenomicAlignments"))  # for GenomicAlignments::summarizeOverlaps()
 suppressPackageStartupMessages(expr = library(package = "RColorBrewer"))  # for RColorBrewer::brewer.pal()
 suppressPackageStartupMessages(expr = library(package = "Rsamtools"))  # for Rsamtools::BamFileList()
+suppressPackageStartupMessages(expr = library(package = "caret"))  # For caret::findLinearCombos()
 suppressPackageStartupMessages(expr = library(package = "genefilter"))  # for genefilter::rowVars()
 suppressPackageStartupMessages(expr = library(package = "ggplot2"))  # for ggplot2::ggplot()
 suppressPackageStartupMessages(expr = library(package = "grid"))  # for grid::grid.newpage() and grid::grid.draw()
@@ -184,19 +186,25 @@ prefix <-
 
 output_directory <- prefix
 
+# Global variable for the Design list, assigned by the initialise_design_list() function.
+# FIXME: Remove the global variable and pass the list into R functions().
+global_design_list <- NULL
 
-# Initialise Gene Annotation ----------------------------------------------
+# Initialise Gene Annotation DataFrame object -----------------------------
 
 
 #' Initialise or load a gene annotation DataFrame.
 #'
+#' @references argument_list
+#' @references output_directory
+#' @references prefix
 #' @return DataFrame
 #' @export
 #'
 #' @examples
 initialise_annotation_frame <- function() {
   # Load pre-existing gene annotation data frame or create it from the reference GTF file.
-  local_annotation_frame <- NULL
+  data_frame <- NULL
   
   file_path <-
     file.path(output_directory,
@@ -204,7 +212,7 @@ initialise_annotation_frame <- function() {
   if (file.exists(file_path) &&
       file.info(file_path)$size > 0L) {
     message("Loading an annotation frame")
-    local_annotation_frame <-
+    data_frame <-
       read.table(
         file = file_path,
         header = TRUE,
@@ -226,18 +234,18 @@ initialise_annotation_frame <- function() {
         feature.type = "gene"
       )
     message("Creating annotation frame")
-    local_annotation_frame <-
+    data_frame <-
       mcols(x = gene_ranges)[, c("gene_id",
                                  "gene_version",
                                  "gene_name",
                                  "gene_biotype",
                                  "gene_source")]
     # Add the location as an Ensembl-like location, lacking the coordinate system name and version.
-    local_annotation_frame$location <-
+    data_frame$location <-
       as(object = gene_ranges, Class = "character")
     rm(gene_ranges)
     write.table(
-      x = local_annotation_frame,
+      x = data_frame,
       file = file_path,
       sep = "\t",
       col.names = TRUE,
@@ -245,19 +253,192 @@ initialise_annotation_frame <- function() {
     )
   }
   rm(file_path)
-  return(local_annotation_frame)
+  return(data_frame)
 }
 
-# Initialise a RangedSummarizedExperiment ---------------------------------
+# Initialise Sample Annotation Data Frame object --------------------------
+
+
+#' Initialise Sample Annotation
+#'
+#' @param factor_levels character vector with a packed string to assign factor levels
+#' @references argument_list
+#' @references output_directory
+#' @references prefix
+#' @return Sample DataFrame
+#' @export
+#'
+#' @examples initialise_sample_frame(factor_levels="factor_1:level_1,level_2;factor_2:level_A,level_B")
+initialise_sample_frame <- function(factor_levels) {
+  # Read the BSF Python sample TSV file as a data.frame and convert into a DataFrame.
+  # Import strings as factors and cast to character vectors where required.
+  message("Loading sample DataFrame")
+  data_frame <-
+    as(
+      object = read.table(
+        file = file.path(output_directory, paste(prefix, 'samples.tsv', sep = '_')),
+        header = TRUE,
+        sep = "\t",
+        comment.char = "",
+        stringsAsFactors = TRUE
+      ),
+      "DataFrame"
+    )
+  rownames(x = data_frame) <- data_frame$sample
+  
+  # Select only those samples, which have the design name annotated in the designs variable.
+  index_logical <-
+    unlist(x = lapply(
+      X = stri_split_fixed(str = as.character(data_frame$designs),
+                           pattern = ","),
+      FUN = function(character_1) {
+        # character_1 is a character vector resulting from the split on ",".
+        return(any(argument_list$design_name %in% character_1))
+      }
+    ))
+  data_frame <- data_frame[index_logical,]
+  rm(index_logical)
+  
+  if (nrow(x = data_frame) == 0L) {
+    stop("No sample remaining after selection for design name.")
+  }
+  
+  # The sequencing_type and library_type variables are required to set options
+  # for the summarizeOverlaps() read counting function.
+  
+  if (!any("sequencing_type" %in% names(x = data_frame))) {
+    stop("A sequencing_type variable is missing from the sample annotation frame.")
+  }
+  
+  if (!any("library_type" %in% names(x = data_frame))) {
+    stop("A library_type variable is missing from the sample annotation frame.")
+  }
+  
+  # Re-level the library_type and sequencing_type variables.
+  data_frame$library_type <-
+    factor(x = data_frame$library_type,
+           levels = c("unstranded", "first", "second"))
+  data_frame$sequencing_type <-
+    factor(x = data_frame$sequencing_type,
+           levels = c("SE", "PE"))
+  
+  # The 'factor_levels' variable of the design data frame specifies the order of factor levels.
+  # Turn the factor_levels variable into a list of character vectors, where the factor names are set
+  # as attributes of the list components.
+  # factor_levels='factor_1:level_1,level_2;factor_2:level_A,level_B'
+  factor_list <- lapply(
+    # The "factor_levels" variable is a character vector, always with just a single component.
+    # Split by ';' then by ':' character.
+    X = stri_split_fixed(
+      str = stri_split_fixed(str = factor_levels[1L],
+                             pattern = ";")[[1L]],
+      pattern = ":"
+    ),
+    FUN = function(character_1) {
+      # Split the second component of character_1, the factor levels, on ",".
+      character_2 <-
+        unlist(x = stri_split(str = character_1[2L],
+                              pattern = ","))
+      # Set the first component of character_1, the factor name, as attribute.
+      attr(x = character_2, which = "factor") <-
+        character_1[1L]
+      return(character_2)
+    }
+  )
+  
+  # Apply the factor levels to each factor.
+  design_variables <- names(x = data_frame)
+  for (i in seq_along(along.with = factor_list)) {
+    factor_name <- attr(x = factor_list[[i]], which = "factor")
+    if (factor_name %in% design_variables) {
+      data_frame[, factor_name] <-
+        factor(x = as.character(x = data_frame[, factor_name]),
+               levels = factor_list[[i]])
+      # Check for NA values in case a factor level was missing.
+      if (any(is.na(x = data_frame[, factor_name]))) {
+        stop(
+          paste0(
+            "Missing values after assigning factor levels for factor name ",
+            factor_name
+          )
+        )
+      }
+    } else {
+      stop(
+        paste0(
+          "Factor name ",
+          factor_name,
+          " does not resemble a variable of the design frame."
+        )
+      )
+    }
+    rm(factor_name)
+  }
+  rm(i, design_variables, factor_list)
+  
+  # Drop any unused levels from the sample data frame before retrning it.
+  return(droplevels(x = data_frame))
+}
+
+
+# Initialise a Design list object -----------------------------------------
+
+#' Initialise a Design list
+#'
+#' @references argument_list
+#' @references output_directory
+#' @references prefix
+#' @return Named list of the selected design
+#' @export
+#'
+#' @examples
+initialise_design_list <- function() {
+  # Read the BSF Python design TSV file as a data.frame and convert into a DataFrame.
+  message("Loading a design DataFrame")
+  data_frame <-
+    as(
+      object = read.table(
+        file = file.path(output_directory, paste(prefix, 'designs.tsv', sep = '_')),
+        header = TRUE,
+        sep = "\t",
+        colClasses = c(
+          "design" = "character",
+          "full_formula" = "character",
+          "reduced_formulas" = "character",
+          "factor_levels" = "character",
+          "plot_aes" = "character"
+        ),
+        fill = TRUE,
+        comment.char = "",
+        stringsAsFactors = FALSE
+      ),
+      Class = "DataFrame"
+    )
+  data_frame <-
+    data_frame[data_frame$design == argument_list$design_name,]
+  
+  if (nrow(data_frame) == 0L) {
+    stop("No design remaining after selection for design name.")
+  }
+  
+  return(as.list(x = data_frame))
+}
+
+
+# Initialise a RangedSummarizedExperiment object --------------------------
 
 
 #' Initialise or load a RangedSummarizedExperiment object.
 #'
-#' @return RangedSummarizedExperiment
+#' @param design_list Named list of design information
+#' @references argument_list
+#' @references output_directory
+#' @references prefix
+#' @return RangedSummarizedExperiment object
 #' @export
 #'
 #' @examples
-initialise_ranged_summarized_experiment <- function() {
+initialise_ranged_summarized_experiment <- function(design_list) {
   # Load a pre-existing RangedSummarizedExperiment object or create it by counting BAM files.
   ranged_summarized_experiment <- NULL
   
@@ -269,132 +450,8 @@ initialise_ranged_summarized_experiment <- function() {
     message("Loading a RangedSummarizedExperiment object")
     load(file = file_path)
   } else {
-    # Read the BSF Python sample TSV file as a data.frame and convert into a DataFrame.
-    # Import strings as factors and cast to character vectors where required.
-    message("Loading sample DataFrame")
     sample_frame <-
-      as(
-        object = read.table(
-          file = file.path(output_directory, paste(prefix, 'samples.tsv', sep = '_')),
-          header = TRUE,
-          sep = "\t",
-          comment.char = "",
-          stringsAsFactors = TRUE
-        ),
-        "DataFrame"
-      )
-    rownames(x = sample_frame) <- sample_frame$sample
-    
-    # Select only those samples, which have the design name annotated in the designs variable.
-    index_logical <-
-      unlist(x = lapply(
-        X = strsplit(
-          x = as.character(sample_frame$designs),
-          split = ",",
-          fixed = TRUE
-        ),
-        FUN = function(character_1) {
-          # character_1 is a character vector resulting from the split on ",".
-          return(any(argument_list$design_name %in% character_1))
-        }
-      ))
-    sample_frame <- sample_frame[index_logical, ]
-    rm(index_logical)
-    
-    if (nrow(x = sample_frame) == 0L) {
-      stop("No sample remaining after selection for design name.")
-    }
-    
-    # The sequencing_type and library_type variables are required to set options
-    # for the summarizeOverlaps() read counting function.
-    
-    if (!any("sequencing_type" %in% names(x = sample_frame))) {
-      stop("A sequencing_type variable is missing from the sample annotation frame.")
-    }
-    
-    if (!any("library_type" %in% names(x = sample_frame))) {
-      stop("A library_type variable is missing from the sample annotation frame.")
-    }
-    
-    # Re-level the library_type and sequencing_type variables.
-    sample_frame$library_type <-
-      factor(x = sample_frame$library_type,
-             levels = c("unstranded", "first", "second"))
-    sample_frame$sequencing_type <-
-      factor(x = sample_frame$sequencing_type,
-             levels = c("SE", "PE"))
-    
-    # The 'factor_levels' variable of the design data frame specifies the order of factor levels.
-    # Turn the factor_levels variable into a list of character vectors, where the factor names are set
-    # as attributes of the list components.
-    # factor_levels='factor_1:level_1,level_2;factor_2:level_A,level_B'
-    factor_list <-
-      lapply(
-        X = strsplit(
-          x = design_frame[1L, "factor_levels"],
-          split = ";",
-          fixed = TRUE
-        ),
-        FUN = function(character_1) {
-          # character_1 is a list component resulting from the split on ";" and a character vector.
-          list_1 <- lapply(
-            X = strsplit(
-              x = character_1,
-              split = ":",
-              fixed = TRUE
-            ),
-            FUN = function(character_2) {
-              # Split the second componenent of character_2, the factor levels, on ",".
-              character_3 <-
-                unlist(x = strsplit(
-                  x = character_2[2],
-                  split = ",",
-                  fixed = TRUE
-                ))
-              # Set the first component of character_2, the factor name, as attribute.
-              attr(x = character_3, which = "factor") <-
-                character_2[1]
-              return(character_3)
-            }
-          )
-          return(list_1)
-        }
-      )
-    
-    # Select only the first list component, since variable "factor_levels" is a character vector with also a single component.
-    factor_list <- factor_list[[1]]
-    
-    # Apply the factor levels to each factor.
-    design_variables <- names(x = sample_frame)
-    for (i in seq_along(along.with = factor_list)) {
-      factor_name <- attr(x = factor_list[[i]], which = "factor")
-      if (factor_name %in% design_variables) {
-        sample_frame[, factor_name] <-
-          factor(x = as.character(x = sample_frame[, factor_name]), levels = factor_list[[i]])
-        # Check for NA values in case a factor level was missing.
-        if (any(is.na(x = sample_frame[, factor_name]))) {
-          stop(
-            paste0(
-              "Missing values after assigning factor levels for factor name ",
-              factor_name
-            )
-          )
-        }
-      } else {
-        stop(
-          paste0(
-            "Factor name ",
-            factor_name,
-            " does not resemble a variable of the design frame."
-          )
-        )
-      }
-      rm(factor_name)
-    }
-    rm(i, design_variables, factor_list)
-    
-    # Drop any unused levels from the sample data frame.
-    droplevels(x = sample_frame)
+      initialise_sample_frame(factor_levels = design_list$factor_levels)
     
     message("Reading reference GTF exon features")
     # The DESeq2 and RNA-seq vignettes suggest using TcDB objects, but for the moment,
@@ -426,7 +483,7 @@ initialise_ranged_summarized_experiment <- function() {
         )
         sub_sample_frame <-
           sample_frame[(sample_frame$library_type == library_type) &
-                         (sample_frame$sequencing_type == sequencing_type),]
+                         (sample_frame$sequencing_type == sequencing_type), ]
         
         if (nrow(x = sub_sample_frame) == 0L) {
           rm(sub_sample_frame)
@@ -490,6 +547,257 @@ initialise_ranged_summarized_experiment <- function() {
   
   return(ranged_summarized_experiment)
 }
+
+# Initialise a DESeqDataSet object ----------------------------------------
+
+
+#' Fix a model matrix
+#'
+#' Attempt to fix a model matrix by removing empty columns or
+#' by removing linear combinations.
+#'
+#' @param model_matrix_local Model matrix
+#'
+#' @return
+#' @export
+#'
+#' @examples
+fix_model_matrix <- function(model_matrix_local) {
+  # Check, whether the model matrix is full rank.
+  # This is based on the DESeq2::checkFullRank() function.
+  full_rank <- TRUE
+  if (qr(x = model_matrix_local)$rank < ncol(x = model_matrix_local)) {
+    message("The model matrix is not full rank.")
+    full_rank <- FALSE
+    model_all_zero <-
+      apply(
+        X = model_matrix_local,
+        MARGIN = 2,
+        FUN = function(model_matrix_column) {
+          return(all(model_matrix_column == 0))
+        }
+      )
+    if (any(model_all_zero)) {
+      message(
+        "Levels or combinations of levels without any samples have resulted in column(s) of zeros in the model matrix."
+      )
+      message(paste(colnames(x = model_matrix_local)[model_all_zero], collapse = ", "))
+      message("Attempting to fix the model matrix by removing empty columns.")
+      model_matrix_local <-
+        model_matrix_local[,-which(x = model_all_zero)]
+    } else {
+      message(
+        "One or more variables or interaction terms in the design formula are linear combinations of the others."
+      )
+      message("Attempting to fix the model by removing linear combinations.")
+      linear_combinations_list <-
+        findLinearCombos(x = model_matrix_local)
+      # print(x = linear_combinations_list)
+      # print(x = colnames(x = model_matrix_local)[linear_combinations_list$remove])
+      model_matrix_local <-
+        model_matrix_local[, -linear_combinations_list$remove]
+    }
+    rm(model_all_zero)
+  }
+  return(list("model_matrix" = model_matrix_local, "full_rank" = full_rank))
+}
+
+#' Check a model matrix for being full rank.
+#'
+#' @param model_matrix Model matrix
+#'
+#' @return Named list of "model_matrix" and "formula_full_rank", a boolean to indicate
+#' whether the original formula was already full rank.
+#' @export
+#'
+#' @examples
+check_model_matrix <- function(model_matrix) {
+  # Write the unmodified model matrix to disk if argument "--verbose" was set.
+  if (FALSE) {
+    # FIXME: Writing out original model matrices no longer works,
+    # because this function is now used on full and reduced matrices.
+    if (argument_list$verbose) {
+      message("Writing model matrix")
+      model_frame <- as.data.frame(x = model_matrix)
+      model_path <-
+        file.path(output_directory,
+                  paste0(prefix, "_model_matrix_initial.tsv"))
+      write.table(
+        x = model_frame,
+        file = model_path,
+        sep = "\t",
+        row.names = TRUE,
+        col.names = TRUE
+      )
+      rm(model_path, model_frame)
+    }
+  }
+  
+  formula_full_rank <- NULL
+  matrix_full_rank <- FALSE
+  while (!matrix_full_rank) {
+    result_list <- fix_model_matrix(model_matrix_local = model_matrix)
+    model_matrix <- result_list$model_matrix
+    matrix_full_rank <- result_list$full_rank
+    if (is.null(x = formula_full_rank)) {
+      # Capture the intial state of the model matrix, which represents the formula.
+      formula_full_rank <- result_list$full_rank
+    }
+  }
+  
+  if (FALSE) {
+    # FIXME: Writing out modified model matrices no longer works,
+    # because this function is now used on full and reduced matrices.
+    if (argument_list$verbose) {
+      message("Writing modified model matrix")
+      model_frame <- as.data.frame(x = model_matrix)
+      model_path <-
+        file.path(output_directory,
+                  paste0(prefix, "_model_matrix_modified.tsv"))
+      write.table(
+        x = model_frame,
+        file = model_path,
+        sep = "\t",
+        row.names = TRUE,
+        col.names = TRUE
+      )
+      rm(model_path, model_frame)
+    }
+  }
+  
+  # Return the model matrix and indicate whether the original formula was full rank and
+  # the current model matrix is.
+  return(
+    list(
+      "model_matrix" = model_matrix,
+      "formula_full_rank" = formula_full_rank,
+      "matrix_full_rank" = matrix_full_rank
+    )
+  )
+}
+
+#' Initialise or load a DESeqDataSet object.
+#'
+#' @param design_list Named list of design information
+#'
+#' @return DESeqDataSet object
+#' @export
+#'
+#' @examples
+initialise_deseq_data_set <- function(design_list) {
+  deseq_data_set <- NULL
+  
+  file_path <-
+    file.path(output_directory,
+              paste0(prefix, "_deseq_data_set.Rdata"))
+  if (file.exists(file_path) &&
+      file.info(file_path)$size > 0L) {
+    message("Loading a DESeqDataSet object")
+    load(file = file_path)
+  } else {
+    ranged_summarized_experiment <-
+      initialise_ranged_summarized_experiment(design_list = design_list)
+    
+    # Create a model matrix based on the model formula and column (sample annotation) data
+    # and check whether it is full rank.
+    result_list <-
+      check_model_matrix(model_matrix = stats::model.matrix.default(
+        object = as.formula(object = design_list$full_formula),
+        data = colData(x = ranged_summarized_experiment)
+      ))
+    
+    if (result_list$formula_full_rank) {
+      # The design formula *is* full rank, so set it as "design" option directly.
+      message("Creating a DESeqDataSet object with a model formula")
+      deseq_data_set <-
+        DESeqDataSet(se = ranged_summarized_experiment,
+                     design = as.formula(object = design_list$full_formula))
+      # Start DESeq2 Wald testing.
+      # Set betaPrior = FALSE for consistent result names for designs, regardless of interaction terms.
+      # DESeq2 seems to set betaPrior = FALSE upon interaction terms, automatically.
+      # See: https://support.bioconductor.org/p/84366/
+      # betaPrior also has to be FALSE in case a user-supplied full model matrix is specified.
+      message("Started DESeq Wald testing with a model formula")
+      deseq_data_set <-
+        DESeq(
+          object = deseq_data_set,
+          test = "Wald",
+          betaPrior = FALSE,
+          parallel = TRUE
+        )
+    } else {
+      # The orignal design formula was not full rank.
+      # Unfortunately, to initialise the DESeqDataSet,
+      # a model matrix can apparently not be used directly.
+      # Thus, use the simplest possible design (i.e. ~ 1) for initialisation and
+      # peform Wald testing with the full model matrix.
+      message("Creating a DESeqDataSet object with design formula ~ 1")
+      deseq_data_set <-
+        DESeqDataSet(se = ranged_summarized_experiment,
+                     design = ~ 1)
+      message("Started DESeq Wald testing with a model matrix")
+      deseq_data_set <-
+        DESeq(
+          object = deseq_data_set,
+          test = "Wald",
+          betaPrior = FALSE,
+          full = result_list$model_matrix,
+          parallel = TRUE
+        )
+    }
+    
+    save(deseq_data_set, file = file_path)
+    rm(result_list, ranged_summarized_experiment)
+  }
+  rm(file_path)
+  
+  return(deseq_data_set)
+}
+
+# Initialise a DESeqTransform object --------------------------------------
+
+
+#' Initialise or load a DESeqTransform object.
+#'
+#' @param blind bool to create the DESeqTransform object blindly or based on
+#'              the model
+#' @return DESeqTransform object
+#' @export
+#'
+#' @examples
+initialise_deseq_transform <-
+  function(deseq_data_set, blind = FALSE) {
+    deseq_transform <- NULL
+    suffix <- if (blind)
+      "blind"
+    else
+      "model"
+    
+    file_path <-
+      file.path(output_directory,
+                paste(
+                  paste(prefix, "deseq", "transform", suffix, sep = "_"),
+                  "Rdata",
+                  sep = "."
+                ))
+    if (file.exists(file_path) &&
+        file.info(file_path)$size > 0L) {
+      message(paste("Loading a", suffix, "DESeqTransform object"))
+      load(file = file_path)
+    } else {
+      message(paste("Creating a", suffix, "DESeqTransform object"))
+      # Run variance stabilizing transformation (VST) to get homoskedastic data for PCA plots.
+      deseq_transform <-
+        varianceStabilizingTransformation(object = deseq_data_set, blind = blind)
+      save(deseq_transform, file = file_path)
+    }
+    rm(file_path, suffix)
+    
+    return(deseq_transform)
+  }
+
+# Convert aes_list into character -----------------------------------------
+
 
 #' Convert the aes_list into a simple character string for file and plot naming.
 #'
@@ -593,13 +901,22 @@ plot_rin_scores <- function(object) {
 #'
 #' @param object DESeqTransform object
 #' @param plot_list List of lists configuring plots and their ggplot2 aesthetic mappings
+#' @param blind bool to indicate a blind or model-based DESeqTransform object
 #'
 #' @return
 #' @export
 #'
 #' @examples
-plot_mds <- function(object, plot_list = list()) {
-  message("Creating MDS plots")
+plot_mds <- function(object,
+                     plot_list = list(),
+                     blind = FALSE) {
+  suffix <- if (blind)
+    "blind"
+  else
+    "model"
+  
+  message(paste("Creating", suffix, "MDS plots"))
+  
   dist_object <- dist(x = t(x = assay(x = object)))
   dist_matrix <- as.matrix(x = dist_object)
   mds_frame <-
@@ -621,16 +938,14 @@ plot_mds <- function(object, plot_list = list()) {
               mapping = aes_(
                 x = quote(expr = X1),
                 y = quote(expr = X2),
-                colour = base::ifelse(
-                  test = is.null(x = aes_list$geom_line$colour),
-                  yes = "black",
-                  no = as.name(x = aes_list$geom_line$colour)
-                ),
-                group = base::ifelse(
-                  test = is.null(x = aes_list$geom_line$group),
-                  yes = 1L,
-                  no = as.name(x = aes_list$geom_line$group)
-                )
+                colour = if (is.null(x = aes_list$geom_line$colour))
+                  "black"
+                else
+                  as.name(x = aes_list$geom_line$colour),
+                group = if (is.null(x = aes_list$geom_line$group))
+                  1L
+                else
+                  as.name(x = aes_list$geom_line$group)
               ),
               alpha = I(1 / 3)
             )
@@ -643,16 +958,14 @@ plot_mds <- function(object, plot_list = list()) {
               mapping = aes_(
                 x = quote(expr = X1),
                 y = quote(expr = X2),
-                colour = base::ifelse(
-                  test = is.null(x = aes_list$geom_point$colour),
-                  yes = "black",
-                  no = as.name(x = aes_list$geom_point$colour)
-                ),
-                shape = base::ifelse(
-                  test = is.null(x = aes_list$geom_point$shape),
-                  yes = 15L,
-                  no = as.name(x = aes_list$geom_point$shape)
-                )
+                colour = if (is.null(x = aes_list$geom_point$colour))
+                  "black"
+                else
+                  as.name(x = aes_list$geom_point$colour),
+                shape = if (is.null(x = aes_list$geom_point$shape))
+                  15L
+                else
+                  as.name(x = aes_list$geom_point$shape)
               ),
               size = 2.0,
               alpha = I(1 / 3)
@@ -670,16 +983,14 @@ plot_mds <- function(object, plot_list = list()) {
               mapping = aes_(
                 x = quote(expr = X1),
                 y = quote(expr = X2),
-                label = base::ifelse(
-                  test = is.null(x = aes_list$geom_text$label),
-                  yes = "x",
-                  no = as.name(x = aes_list$geom_text$label)
-                ),
-                colour = base::ifelse(
-                  test = is.null(x = aes_list$geom_text$colour),
-                  yes = "black",
-                  no = as.name(x = aes_list$geom_text$colour)
-                )
+                label = if (is.null(x = aes_list$geom_text$label))
+                  "x"
+                else
+                  as.name(x = aes_list$geom_text$label),
+                colour = if (is.null(x = aes_list$geom_text$colour))
+                  "black"
+                else
+                  as.name(x = aes_list$geom_text$colour)
               ),
               size = 2.0,
               alpha = I(1 / 3)
@@ -692,21 +1003,18 @@ plot_mds <- function(object, plot_list = list()) {
               mapping = aes_(
                 x = quote(expr = X1),
                 y = quote(expr = X2),
-                colour = base::ifelse(
-                  test = is.null(x = aes_list$geom_path$colour),
-                  yes = "black",
-                  no = as.name(x = aes_list$geom_path$colour)
-                ),
-                group = base::ifelse(
-                  test = is.null(x = aes_list$geom_path$group),
-                  yes = "black",
-                  no = as.name(x = aes_list$geom_path$group)
-                ),
-                linetype = base::ifelse(
-                  test = is.null(x = aes_list$geom_path$linetype),
-                  yes = "solid",
-                  no = as.name(x = aes_list$geom_path$linetype)
-                )
+                colour = if (is.null(x = aes_list$geom_path$colour))
+                  "black"
+                else
+                  as.name(x = aes_list$geom_path$colour),
+                group = if (is.null(x = aes_list$geom_path$group))
+                  "black"
+                else
+                  as.name(x = aes_list$geom_path$group),
+                linetype = if (is.null(x = aes_list$geom_path$linetype))
+                  "solid"
+                else
+                  as.name(x = aes_list$geom_path$linetype)
               ),
               arrow = arrow(
                 length = unit(x = 0.08, units = "inches"),
@@ -730,6 +1038,7 @@ plot_mds <- function(object, plot_list = list()) {
                 prefix,
                 "mds",
                 aes_list_to_character(aes_list = aes_list),
+                suffix,
                 sep = "_"
               ),
               graphics_format,
@@ -746,7 +1055,8 @@ plot_mds <- function(object, plot_list = list()) {
   rm(dummy_list,
      mds_frame,
      dist_matrix,
-     dist_object)
+     dist_object,
+     suffix)
 }
 
 
@@ -760,13 +1070,22 @@ plot_mds <- function(object, plot_list = list()) {
 #'
 #' @param object DESeqTransform object
 #' @param aes_list ggplot2 aesthethics list
+#' @param blind bool to indicate a blind or model-based DESeqTransform object
 #'
 #' @return
 #' @export
 #'
 #' @examples
-plot_heatmap <- function(object, aes_list = list()) {
-  message("Creating a Heatmap plot")
+plot_heatmap <- function(object,
+                         aes_list = list(),
+                         blind = FALSE) {
+  suffix <- if (blind)
+    "blind"
+  else
+    "model"
+  
+  message(paste("Creating a", suffix, "Heatmap plot"))
+  
   aes_character <-
     unique(x = unlist(x = aes_list, use.names = TRUE))
   if (!all(aes_character %in% names(x = colData(x = object)))) {
@@ -809,10 +1128,13 @@ plot_heatmap <- function(object, aes_list = list()) {
   pdf(
     file = file.path(output_directory,
                      paste(
-                       paste(prefix,
-                             "heatmap",
-                             paste(aes_character, collapse = "_"),
-                             sep = "_"), "pdf", sep = "."
+                       paste(
+                         prefix,
+                         "heatmap",
+                         paste(aes_character, collapse = "_"),
+                         suffix,
+                         sep = "_"
+                       ), "pdf", sep = "."
                      )),
     width = argument_list$plot_width,
     height = argument_list$plot_height
@@ -825,10 +1147,13 @@ plot_heatmap <- function(object, aes_list = list()) {
   png(
     file = file.path(output_directory,
                      paste(
-                       paste(prefix,
-                             "heatmap",
-                             paste(aes_character, collapse = "_"),
-                             sep = "_"), "png", sep = "."
+                       paste(
+                         prefix,
+                         "heatmap",
+                         paste(aes_character, collapse = "_"),
+                         suffix,
+                         sep = "_"
+                       ), "png", sep = "."
                      )),
     width = argument_list$plot_width,
     height = argument_list$plot_height,
@@ -845,7 +1170,8 @@ plot_heatmap <- function(object, aes_list = list()) {
     dist_object,
     group_factor,
     plotting_frame,
-    aes_character
+    aes_character,
+    suffix
   )
 }
 
@@ -856,13 +1182,21 @@ plot_heatmap <- function(object, aes_list = list()) {
 #'
 #' @param object DESeqTransform object
 #' @param plot_list List of lists configuring plots and their ggplot2 aesthetic mappings
+#' @param blind bool to indicate a blind or model-based DESeqTransform object
 #'
 #' @return
 #' @export
 #'
 #' @examples
-plot_pca <- function(object, plot_list = list()) {
-  message("Creating PCA plots")
+plot_pca <- function(object,
+                     plot_list = list(),
+                     blind = FALSE) {
+  suffix <- if (blind)
+    "blind"
+  else
+    "model"
+  
+  message(paste("Creating", suffix, "PCA plots"))
   
   # Calculate the variance for each gene.
   row_variance <- rowVars(assay(x = object))
@@ -872,7 +1206,7 @@ plot_pca <- function(object, plot_list = list()) {
   
   # Perform a PCA on the data in assay(x) for the selected genes
   pca_object <-
-    prcomp(x = t(x = assay(x = object)[selected_rows, ]))
+    prcomp(x = t(x = assay(x = object)[selected_rows,]))
   rm(selected_rows)
   
   # The pca_object$x matrix has as many columns and rows as there are samples.
@@ -972,16 +1306,8 @@ plot_pca <- function(object, plot_list = list()) {
         #   ggplot_object + geom_point(mapping = aes_(
         #     x = quote(x),
         #     y = quote(y),
-        #     colour = base::ifelse(
-        #       test = is.null(x = aes_list$colour),
-        #       yes = quote(black),
-        #       no = as.name(x = aes_list$colour)
-        #     ),
-        #     shape = base::ifelse(
-        #       test = is.null(x = aes_list$shape),
-        #       yes = quote(1L),
-        #       no = as.name(x = aes_list$shape)
-        #     )
+        #     colour = if (is.null(x = aes_list$colour) quote(black) else as.name(x = aes_list$colour),
+        #     shape = if (is.null(x = aes_list$shape)) quote(1L) else as.name(x = aes_list$shape)
         #   ),
         #   size = 2.0,
         #   alpha = I(2 / 3))
@@ -996,10 +1322,13 @@ plot_pca <- function(object, plot_list = list()) {
           ggsave(filename = file.path(
             output_directory,
             paste(
-              paste(prefix,
-                    "pca",
-                    paste(aes_character, collapse = "_"),
-                    sep = "_"),
+              paste(
+                prefix,
+                "pca",
+                paste(aes_character, collapse = "_"),
+                suffix,
+                sep = "_"
+              ),
               graphics_format,
               sep = "."
             )
@@ -1023,7 +1352,8 @@ plot_pca <- function(object, plot_list = list()) {
     pca_pair_matrix,
     pca_object,
     row_variance,
-    pca_dimensions
+    pca_dimensions,
+    suffix
   )
 }
 
@@ -1043,170 +1373,10 @@ if (!file.exists(output_directory)) {
              recursive = FALSE)
 }
 
-# Design DataFrame --------------------------------------------------------
-
-
-# Read the BSF Python design TSV file as a data.frame and convert into a DataFrame.
-message("Loading a design DataFrame")
-design_frame <-
-  as(
-    object = read.table(
-      file = file.path(output_directory, paste(prefix, 'designs.tsv', sep = '_')),
-      header = TRUE,
-      sep = "\t",
-      colClasses = c(
-        "design" = "character",
-        "full_formula" = "character",
-        "reduced_formulas" = "character",
-        "factor_levels" = "character",
-        "plot_aes" = "character"
-      ),
-      fill = TRUE,
-      comment.char = "",
-      stringsAsFactors = FALSE
-    ),
-    Class = "DataFrame"
-  )
-design_frame <-
-  design_frame[design_frame$design == argument_list$design_name, ]
-
-if (nrow(design_frame) == 0L) {
-  stop("No design remaining after selection for design name.")
-}
-
-# Gene Annotation DataFrame -----------------------------------------------
-
-
+global_design_list <- initialise_design_list()
 annotation_frame <- initialise_annotation_frame()
-
-
-# DESeqDataSet ------------------------------------------------------------
-
-
-# Load a pre-existing DESeqDataSet object or create it.
-deseq_data_set <- NULL
-
-file_path <-
-  file.path(output_directory,
-            paste0(prefix, "_deseq_data_set.Rdata"))
-if (file.exists(file_path) &&
-    file.info(file_path)$size > 0L) {
-  message("Loading a DESeqDataSet object")
-  load(file = file_path)
-} else {
-  ranged_summarized_experiment <-
-    initialise_ranged_summarized_experiment()
-  
-  # Create a model matrix and check whether it is full rank.
-  model_matrix <- stats::model.matrix.default(
-    object = as.formula(object = design_frame[1L, "full_formula"]),
-    data = colData(x = ranged_summarized_experiment)
-  )
-  # Write the unmodified model matrix to disk if argument "--verbose" was set.
-  if (argument_list$verbose) {
-    message("Writing model matrix")
-    model_frame <- as.data.frame(x = model_matrix)
-    model_path <-
-      file.path(output_directory, paste0(prefix, "_model_matrix.tsv"))
-    write.table(
-      x = model_frame,
-      file = model_path,
-      sep = "\t",
-      row.names = TRUE,
-      col.names = TRUE
-    )
-    rm(model_path, model_frame)
-  }
-  # Check already here, whether the model matrix is full rank.
-  # Based on the DESeq2::checkFullRank() function.
-  if (qr(x = model_matrix)$rank < ncol(x = model_matrix)) {
-    message("The model matrix is not full rank.")
-    model_all_zero <-
-      apply(
-        X = model_matrix,
-        MARGIN = 2,
-        FUN = function(model_matrix_column)
-          all(model_matrix_column == 0)
-      )
-    if (any(model_all_zero)) {
-      message(
-        "Levels or combinations of levels without any samples have resulted in column(s) of zeros in the model matrix."
-      )
-      message(paste(colnames(x = model_matrix)[model_all_zero], collapse = ", "))
-      message("Attempting to fix the model matrix by removing empty columns.")
-      model_matrix <- model_matrix[, -which(x = model_all_zero)]
-      if (argument_list$verbose) {
-        message("Writing modified model matrix")
-        model_frame <- as.data.frame(x = model_matrix)
-        model_path <-
-          file.path(output_directory,
-                    paste0(prefix, "_model_matrix_modified.tsv"))
-        write.table(
-          x = model_frame,
-          file = model_path,
-          sep = "\t",
-          row.names = TRUE,
-          col.names = TRUE
-        )
-        rm(model_path, model_frame)
-      }
-      # Hopefully, the model matrix is now full rank.
-      # To initialise the DESeqDataSet we need to use the simplest possible design i.e. ~ 1
-      message("Creating a DESeqDataSet object with design ~ 1")
-      deseq_data_set <-
-        DESeqDataSet(se = ranged_summarized_experiment,
-                     design = ~ 1)
-      # Set betaPrior = FALSE for consistent result names for designs regardless of interaction terms.
-      # DESeq2 seems to set betaPrior = FALSE upon interaction terms, automatically.
-      # See: https://support.bioconductor.org/p/84366/
-      # betaPrior also has to be FALSE in case a user-supplied full model matrix is specified.
-      # Re assign the model formula
-      message("Resetting design formula")
-      design(object = deseq_data_set) <-
-        as.formula(object = design_frame[1L, "full_formula"])
-      message("Started DESeq processing")
-      deseq_data_set <-
-        DESeq(
-          object = deseq_data_set,
-          test = "Wald",
-          betaPrior = FALSE,
-          full = model_matrix,
-          parallel = TRUE
-        )
-    } else {
-      suppressPackageStartupMessages(expr = library(package = "caret"))  # For caret::findLinearCombos()
-      linear_combinations_list <- findLinearCombos(x = model_matrix)
-      print(x = linear_combinations_list)
-      print(x = colnames(x = model_matrix)[linear_combinations_list$remove])
-      stop(
-        "One or more variables or interaction terms in the design formula are linear combinations of the others and must be removed."
-      )
-    }
-    rm(model_all_zero)
-  } else {
-    # The model matrix *is* full rank. Supply the design as formula.
-    message("Creating a DESeqDataSet object")
-    deseq_data_set <-
-      DESeqDataSet(se = ranged_summarized_experiment,
-                   design = as.formula(object = design_frame[1L, "full_formula"]))
-    # Set betaPrior = FALSE for consistent result names for designs regardless of interaction terms.
-    # DESeq2 seems to set betaPrior = FALSE upon interaction terms, automatically.
-    # See: https://support.bioconductor.org/p/84366/
-    # betaPrior also has to be FALSE in case a user-supplied full model matrix is specified.
-    message("Started DESeq processing")
-    deseq_data_set <-
-      DESeq(
-        object = deseq_data_set,
-        test = "Wald",
-        betaPrior = FALSE,
-        parallel = TRUE
-      )
-  }
-  
-  rm(ranged_summarized_experiment, model_matrix)
-  save(deseq_data_set, file = file_path)
-}
-rm(file_path)
+deseq_data_set <-
+  initialise_deseq_data_set(design_list = global_design_list)
 
 # TODO: Write the matrix of gene versus model coefficients as a data.frame to disk.
 
@@ -1225,22 +1395,22 @@ plot_rin_scores(object = deseq_data_set)
 reduced_formula_list <-
   lapply(
     X = stri_split_fixed(
-      str = stri_split_fixed(str = design_frame[1L, "reduced_formulas"], pattern = ";")[[1L]],
+      str = stri_split_fixed(str = global_design_list$reduced_formulas[1L], pattern = ";")[[1L]],
       pattern = ":"
     ),
     FUN = function(character_1) {
-      reduced_formula <- character_1[2L]
-      attr(x = reduced_formula, which = "reduced_name") <-
+      reduced_formula_character <- character_1[2L]
+      attr(x = reduced_formula_character, which = "reduced_name") <-
         character_1[1L]
-      return(reduced_formula)
+      return(reduced_formula_character)
     }
   )
 
 temporary_list <- lapply(
   X = reduced_formula_list,
-  FUN = function(reduced_formula) {
+  FUN = function(reduced_formula_character) {
     # Skip empty character vectors.
-    if (!nzchar(x = reduced_formula)) {
+    if (!nzchar(x = reduced_formula_character)) {
       return()
     }
     file_path <-
@@ -1248,7 +1418,7 @@ temporary_list <- lapply(
                 paste(paste(
                   prefix,
                   "lrt",
-                  attr(x = reduced_formula, which = "reduced_name"),
+                  attr(x = reduced_formula_character, which = "reduced_name"),
                   sep = "_"
                 ),
                 "tsv",
@@ -1258,20 +1428,49 @@ temporary_list <- lapply(
         file.info(file_path)$size > 0L) {
       message(paste0(
         "Skipping reduced formula: ",
-        attr(x = reduced_formula, which = "reduced_name")
+        attr(x = reduced_formula_character, which = "reduced_name")
       ))
     } else {
       message(paste0(
         "Processing reduced formula: ",
-        attr(x = reduced_formula, which = "reduced_name")
+        attr(x = reduced_formula_character, which = "reduced_name")
       ))
+      # DESeq LRT testing requires either two model formulas or two model matrices.
+      # Create a reduced model matrix and check whether it is full rank.
+      formula_full <-
+        as.formula(object = global_design_list$full_formula)
+      result_list_full <-
+        check_model_matrix(model_matrix = stats::model.matrix.default(object = formula_full,
+                                                                      data = colData(x = deseq_data_set)))
+      formula_reduced <-
+        as.formula(object = reduced_formula_character)
+      result_list_reduced <-
+        check_model_matrix(model_matrix = stats::model.matrix.default(object = formula_reduced,
+                                                                      data = colData(x = deseq_data_set)))
+      full_rank <-
+        result_list_full$formula_full_rank &
+        result_list_reduced$formula_full_rank
       deseq_data_set_lrt <-
         DESeq(
           object = deseq_data_set,
           test = "LRT",
-          reduced = as.formula(object = reduced_formula)
+          full = if (full_rank)
+            formula_full
+          else
+            result_list_full$model_matrix,
+          reduced = if (full_rank)
+            formula_reduced
+          else
+            result_list_reduced$model_matrix
         )
-      # print(x = paste("DESeqDataSet LRT result names for", attr(x = reduced_formula, which = "reduced_name")))
+      rm(
+        full_rank,
+        result_list_reduced,
+        result_list_full,
+        formula_reduced,
+        formula_full
+      )
+      # print(x = paste("DESeqDataSet LRT result names for", attr(x = reduced_formula_character, which = "reduced_name")))
       # print(x = resultsNames(object = deseq_data_set_lrt))
       deseq_results_lrt <-
         results(
@@ -1317,7 +1516,7 @@ temporary_list <- lapply(
                     paste(
                       prefix,
                       "lrt",
-                      attr(x = reduced_formula, which = "reduced_name"),
+                      attr(x = reduced_formula_character, which = "reduced_name"),
                       "significant",
                       sep = "_"
                     ),
@@ -1346,28 +1545,6 @@ temporary_list <- lapply(
 rm(temporary_list, reduced_formula_list)
 
 
-# DESeqTransform ----------------------------------------------------------
-
-
-# Load a pre-existing DESeqTransform object or create it.
-deseq_transform <- NULL
-
-file_path <-
-  file.path(output_directory,
-            paste0(prefix, "_deseq_transform.Rdata"))
-if (file.exists(file_path) &&
-    file.info(file_path)$size > 0L) {
-  message("Loading a DESeqTransform object")
-  load(file = file_path)
-} else {
-  message("Creating a DESeqTransform object")
-  # Run variance stabilizing transformation (VST) to get homoskedastic data for PCA plots.
-  deseq_transform <- vst(object = deseq_data_set, blind = FALSE)
-  save(deseq_transform, file = file_path)
-}
-rm(file_path)
-
-
 # Plot Aesthetics ---------------------------------------------------------
 
 
@@ -1375,15 +1552,16 @@ rm(file_path)
 # geometric objects and their associated aestethics for each plot,
 # which is a comma-separared list of aestethics=variable mappings.
 # plot_aes='colour=group,shape=gender;colour=group,shape=extraction'
-# geom_point:colour=test_1,shape=test_2;geom_line:colour=test_3,group=test_4|geom_point:colour=test_a,shape=test_b;geom_line:colour=test_c,group=test_d
+# geom_point:colour=test_1,shape=test_2;geom_line:colour=test_3,group=test_4|
+# geom_point:colour=test_a,shape=test_b;geom_line:colour=test_c,group=test_d
 # Convert into a list of list objects with variables and aesthetics as names.
 plot_list <-
   lapply(
-    X = stri_split_fixed(str = design_frame[1L, "plot_aes"], pattern = "|")[[1L]],
+    X = stri_split_fixed(str = global_design_list$plot_aes[1L], pattern = "|")[[1L]],
     FUN = function(plot_character) {
       single_geom_list <- lapply(
         X = stri_split_fixed(
-          str = stri_split_fixed(str = plot_character, pattern = ";")[[1L]],
+          str = stri_split_fixed(str = plot_character[1L], pattern = ";")[[1L]],
           pattern = ":"
         ),
         FUN = function(geom_aes_character) {
@@ -1438,41 +1616,11 @@ plot_list <-
   )
 
 
-# MDS Plot ----------------------------------------------------------------
-
-
-plot_mds(object = deseq_transform, plot_list = plot_list)
-
-
-# Heatmap Plot ------------------------------------------------------------
-
-
-dummy_list <-
-  lapply(
-    X = plot_list,
-    FUN = function(aes_list) {
-      plot_heatmap(object = deseq_transform, aes_list = aes_list)
-    }
-  )
-
-
-# PCA plot ----------------------------------------------------------------
-
-
-# Unfortunately, the standard plotPCA function does only provide PC1 and PC2.
-plot_pca(object = deseq_transform, plot_list = plot_list)
-
-rm(dummy_list, plot_list)
-
-
-# Differential Expression -------------------------------------------------
+# DESeqDataSet Results ----------------------------------------------------
 
 
 print(x = "DESeqDataSet result names:")
 print(x = resultsNames(object = deseq_data_set))
-
-# Save an R image for project-specific post-processing later.
-# save.image()
 
 # Export RAW counts -------------------------------------------------------
 
@@ -1489,30 +1637,6 @@ file_path <-
             paste(prefix,
                   "counts",
                   "raw.tsv",
-                  sep = "_"))
-write.table(
-  x = deseq_merge,
-  file = file_path,
-  sep = "\t",
-  col.names = TRUE,
-  row.names = FALSE
-)
-rm(file_path, counts_frame)
-
-# Export VST counts -------------------------------------------------------
-
-
-# Export the vst counts from the DESeqTransform object
-counts_frame <-
-  as(object = assay(x = deseq_transform, i = 1), Class = "DataFrame")
-counts_frame$gene_id <- row.names(x = counts_frame)
-deseq_merge <-
-  merge(x = annotation_frame, y = counts_frame, by = "gene_id")
-file_path <-
-  file.path(output_directory,
-            paste(prefix,
-                  "counts",
-                  "vst.tsv",
                   sep = "_"))
 write.table(
   x = deseq_merge,
@@ -1546,20 +1670,95 @@ write.table(
 )
 rm(file_path, counts_frame)
 
+# DESeqTransform ----------------------------------------------------------
+# MDS Plot ----------------------------------------------------------------
+# PCA plot ----------------------------------------------------------------
+# Heatmap Plot ------------------------------------------------------------
+# Export VST counts -------------------------------------------------------
+
+
+for (blind in c(FALSE, TRUE)) {
+  suffix <- if (blind)
+    "blind"
+  else
+    "model"
+  
+  deseq_transform <-
+    initialise_deseq_transform(deseq_data_set = deseq_data_set, blind = blind)
+  
+  plot_mds(object = deseq_transform,
+           plot_list = plot_list,
+           blind = blind)
+  
+  # Unfortunately, the standard plotPCA function does only provide PC1 and PC2.
+  plot_pca(object = deseq_transform,
+           plot_list = plot_list,
+           blind = blind)
+  
+  dummy_list <-
+    lapply(
+      X = plot_list,
+      FUN = function(aes_list) {
+        plot_heatmap(object = deseq_transform,
+                     aes_list = aes_list,
+                     blind = blind)
+      }
+    )
+  rm(dummy_list)
+  
+  # Export the vst counts from the DESeqTransform object
+  counts_frame <-
+    as(object = assay(x = deseq_transform, i = 1),
+       Class = "DataFrame")
+  counts_frame$gene_id <- row.names(x = counts_frame)
+  deseq_merge <-
+    merge(x = annotation_frame, y = counts_frame, by = "gene_id")
+  file_path <-
+    file.path(output_directory,
+              paste(paste(prefix,
+                          "counts",
+                          "vst",
+                          suffix,
+                          sep = "_"), "tsv", sep = "."))
+  write.table(
+    x = deseq_merge,
+    file = file_path,
+    sep = "\t",
+    col.names = TRUE,
+    row.names = FALSE
+  )
+  rm(file_path, counts_frame)
+  
+  rm(suffix)
+}
+rm(blind, plot_list)
+
+# Save an R image for project-specific post-processing later.
+# save.image()
+
 rm(
   deseq_merge,
   annotation_frame,
   deseq_transform,
   deseq_data_set,
-  design_frame,
+  global_design_list,
   output_directory,
   prefix,
+  graphics_formats,
   argument_list,
   plot_pca,
-  plot_mds,
   plot_heatmap,
+  plot_mds,
+  plot_rin_scores,
   aes_list_to_character,
-  graphics_formats
+  initialise_deseq_transform,
+  initialise_deseq_data_set,
+  check_model_matrix,
+  fix_model_matrix,
+  initialise_ranged_summarized_experiment,
+  initialise_design_list,
+  initialise_sample_frame,
+  initialise_annotation_frame
 )
 
 message("All done")
