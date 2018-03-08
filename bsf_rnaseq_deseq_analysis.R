@@ -997,6 +997,7 @@ plot_mds <- function(object,
             )
         }
         
+        # geom_path
         if (!is.null(x = aes_list$geom_path)) {
           ggplot_object <-
             ggplot_object + geom_path(
@@ -1217,7 +1218,7 @@ plot_pca <- function(object,
     combn(x = seq_len(length.out = pca_dimensions), m = 2L)
   
   # Calculate the contribution to the total variance for each principal component.
-  # Establish a label list with princiapl components and their respective percentage of the total variance.
+  # Establish a label list with principal components and their respective percentage of the total variance.
   label_list <-
     as.list(sprintf(
       fmt = "PC%i (%.3f%%)",
@@ -1235,42 +1236,16 @@ plot_pca <- function(object,
     lapply(
       X = plot_list,
       FUN = function(aes_list) {
-        # plot_pca(object = deseq_transform, aes_list = aes_list)
         aes_character <-
           unique(x = unlist(x = aes_list, use.names = TRUE))
         
         if (!all(aes_character %in% names(x = colData(x = object)))) {
           stop("the argument 'aes_character' should specify columns of colData(dds)")
         }
-        
-        # maybe pass all factors through to the plotting frame and then
-        # assign plot aesthetics similar to the plot_mds function above.
-        plotting_frame <-
-          as.data.frame(colData(x = object)[, aes_character, drop = FALSE])
-        
-        # Add the aes_character factors together to create a new grouping factor.
-        group_factor <- if (length(x = aes_character) > 1) {
-          factor(x = apply(
-            X = plotting_frame,
-            MARGIN = 1,
-            FUN = paste,
-            collapse = " : "
-          ))
-        } else {
-          colData(x = object)[[aes_character]]
-        }
-        
-        # TODO: Rather than combining factors in aes_character into a single one,
-        # Assemble the data for the plot
-        # Construct the plotting frame from the pca_object$x matrix of rotated data multiplied by the
-        # rotation matrix pca_object$rotation, the "group_factor" from above and the sample "name" from the
-        # initial DESeqTransform object.
-        pca_frame <- data.frame(pca_object$x,
-                                group = group_factor,
-                                name = colnames(x = object))
+        # Assemble the data for the plot.
+        pca_frame <- as.data.frame(pca_object$x)
         plotting_frame <-
           data.frame(
-            group = factor(levels = levels(x = group_factor)),
             component1 = factor(levels = paste0(
               "PC", seq_len(length.out = pca_dimensions)
             )),
@@ -1278,21 +1253,24 @@ plot_pca <- function(object,
               "PC", seq_len(length.out = pca_dimensions)
             )),
             x = numeric(),
-            y = numeric()
+            y = numeric(),
+            # Also initalise all variables of the column data, but do not include data (i.e. 0L rows).
+            colData(x = object)[0L, ]
           )
         
         for (column_number in seq_len(length.out = ncol(x = pca_pair_matrix))) {
-          pca_label_1 <- paste0("PC", pca_pair_matrix[1L, column_number])
+          pca_label_1 <-
+            paste0("PC", pca_pair_matrix[1L, column_number])
           pca_label_2 <-
             paste0("PC", pca_pair_matrix[2L, column_number])
           plotting_frame <- rbind.data.frame(
             plotting_frame,
             data.frame(
-              group = pca_frame[, "group"],
               component_1 = pca_label_1,
               component_2 = pca_label_2,
               x = pca_frame[, pca_label_1],
-              y = pca_frame[, pca_label_2]
+              y = pca_frame[, pca_label_2],
+              colData(x = object)
             )
           )
           rm(pca_label_1, pca_label_2)
@@ -1300,19 +1278,101 @@ plot_pca <- function(object,
         rm(column_number)
         
         ggplot_object <- ggplot(data = plotting_frame)
-        # TODO: Setting plot aesthetics automatically would only work, if
-        # factors would be passed through to the plotting_frame.
-        # ggplot_object <-
-        #   ggplot_object + geom_point(mapping = aes_(
-        #     x = quote(x),
-        #     y = quote(y),
-        #     colour = if (is.null(x = aes_list$colour) quote(black) else as.name(x = aes_list$colour),
-        #     shape = if (is.null(x = aes_list$shape)) quote(1L) else as.name(x = aes_list$shape)
-        #   ),
-        #   size = 2.0,
-        #   alpha = I(2 / 3))
-        ggplot_object <-
-          ggplot_object + geom_point(mapping = aes(x = x, y = y, colour = group))
+        
+        # geom_line
+        if (!is.null(x = aes_list$geom_line)) {
+          ggplot_object <-
+            ggplot_object +
+            geom_line(
+              mapping = aes_(
+                x = quote(expr = x),
+                y = quote(expr = y),
+                colour = if (is.null(x = aes_list$geom_line$colour))
+                  "black"
+                else
+                  as.name(x = aes_list$geom_line$colour),
+                group = if (is.null(x = aes_list$geom_line$group))
+                  1L
+                else
+                  as.name(x = aes_list$geom_line$group)
+              ),
+              alpha = I(1 / 3)
+            )
+        }
+        
+        # geom_point
+        if (!is.null(x = aes_list$geom_point)) {
+          ggplot_object <- ggplot_object +
+            geom_point(
+              mapping = aes_(
+                x = quote(expr = x),
+                y = quote(expr = y),
+                colour = if (is.null(x = aes_list$geom_point$colour))
+                  "black"
+                else
+                  as.name(x = aes_list$geom_point$colour),
+                shape = if (is.null(x = aes_list$geom_point$shape))
+                  15L
+                else
+                  as.name(x = aes_list$geom_point$shape)
+              ),
+              size = 2.0,
+              alpha = I(1 / 3)
+            )
+          if (is.null(x = aes_list$geom_point$shape)) {
+            # In case the shape is not mapped, use values without scaling.
+            ggplot_object <- ggplot_object + scale_shape_identity()
+          }
+        }
+        
+        # geom_text
+        if (!is.null(x = aes_list$geom_text)) {
+          ggplot_object <- ggplot_object +
+            geom_text(
+              mapping = aes_(
+                x = quote(expr = x),
+                y = quote(expr = y),
+                label = if (is.null(x = aes_list$geom_text$label))
+                  "x"
+                else
+                  as.name(x = aes_list$geom_text$label),
+                colour = if (is.null(x = aes_list$geom_text$colour))
+                  "black"
+                else
+                  as.name(x = aes_list$geom_text$colour)
+              ),
+              size = 2.0,
+              alpha = I(1 / 3)
+            )
+        }
+        
+        # geom_path
+        if (!is.null(x = aes_list$geom_path)) {
+          ggplot_object <-
+            ggplot_object + geom_path(
+              mapping = aes_(
+                x = quote(expr = x),
+                y = quote(expr = y),
+                colour = if (is.null(x = aes_list$geom_path$colour))
+                  "black"
+                else
+                  as.name(x = aes_list$geom_path$colour),
+                group = if (is.null(x = aes_list$geom_path$group))
+                  "black"
+                else
+                  as.name(x = aes_list$geom_path$group),
+                linetype = if (is.null(x = aes_list$geom_path$linetype))
+                  "solid"
+                else
+                  as.name(x = aes_list$geom_path$linetype)
+              ),
+              arrow = arrow(
+                length = unit(x = 0.08, units = "inches"),
+                type = "closed"
+              )
+            )
+        }
+        
         ggplot_object <-
           ggplot_object + facet_grid(
             facets = component_1 ~ component_2,
@@ -1339,7 +1399,6 @@ plot_pca <- function(object,
           ggplot_object,
           pca_frame,
           plotting_frame,
-          group_factor,
           aes_character
         )
       }
@@ -1690,7 +1749,6 @@ for (blind in c(FALSE, TRUE)) {
            plot_list = plot_list,
            blind = blind)
   
-  # Unfortunately, the standard plotPCA function does only provide PC1 and PC2.
   plot_pca(object = deseq_transform,
            plot_list = plot_list,
            blind = blind)
