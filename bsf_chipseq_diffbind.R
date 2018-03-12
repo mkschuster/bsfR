@@ -23,10 +23,6 @@
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
-suppressPackageStartupMessages(expr = library(package = "DiffBind"))
-
-# Get command line options, if help option encountered print help and exit,
-# otherwise if options not found on command line then set defaults,
 
 argument_list <- parse_args(object = OptionParser(
   option_list = list(
@@ -56,21 +52,19 @@ argument_list <- parse_args(object = OptionParser(
       dest = "sample_annotation",
       help = "Sample annotation sheet",
       type = "character"
-    ),
-    make_option(
-      opt_str = c("-g", "--genome-directory"),
-      dest = "genome_directory",
-      help = "Genome-specific analysis directory",
-      type = "character"
     )
   )
 ))
 
-prefix <-
-  paste("chipseq", "diffbind", argument_list$factor, sep = "_")
+# Start of main script ----------------------------------------------------
 
-output_directory <-
-  file.path(argument_list$genome_directory, prefix)
+
+suppressPackageStartupMessages(expr = library(package = "DiffBind"))
+
+prefix <-
+  paste("chipseq", "diff", "bind", argument_list$factor, sep = "_")
+
+output_directory <- prefix
 
 if (!file.exists(output_directory)) {
   dir.create(path = output_directory,
@@ -78,204 +72,283 @@ if (!file.exists(output_directory)) {
              recursive = FALSE)
 }
 
-setwd(dir = output_directory)
+# Initialise a DBA object -------------------------------------------------
 
-message("Create a DiffBind dba object.")
-diffbind_dba <-
-  dba(sampleSheet = argument_list$sample_annotation,
-      bCorPlot = FALSE)
 
-message("Plotting correlation heatmap based on peak caller score data.")
-file_name <-
-  paste(prefix, "correlation_peak_caller_score.png", sep = "_")
-png(filename = file.path(output_directory, file_name))
-return_value <- dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
-active_device <- dev.off()
-
-message("Counting reads.")
-diffbind_dba <- dba.count(DBA = diffbind_dba, bCorPlot = FALSE)
-
-message("Plotting correlation heatmap based on read counts.")
-file_name <- paste(prefix, "correlation_read_counts.png", sep = "_")
-png(filename = file.path(output_directory, file_name))
-return_value <- dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
-active_device <- dev.off()
-
-message("Establishing contrast by tissue.")
-# The categories default to DBA_TISSUE, DBA_FACTOR, DBA_CONDITION and DBA_TREATMENT.
-diffbind_dba <- dba.contrast(DBA = diffbind_dba, minMembers = 2)
-# Check if setting contrasts was successful. It may not be if less than two replicates were available.
-if (is.null(x = diffbind_dba$contrasts)) {
-  # Set the mask manually. For the moment this only works for two samples.
-  if (nrow(x = diffbind_dba$samples) == 2) {
-    message("In lack of replicates, setting contrasts on the basis of the first two conditions.")
-    diffbind_conditions <-
-      unique(x = diffbind_dba$class[DBA_CONDITION, ])
-    diffbind_dba <- dba.contrast(
-      DBA = diffbind_dba,
-      group1 = dba.mask(
+diffbind_dba <- NULL
+file_path <- file.path(prefix, paste0(prefix, '_dba.R'))
+if (file.exists(file_path) &&
+    file.info(file_path)$size > 0L) {
+  message("Loading a DiffBind DBA object")
+  load(file = file_path)
+} else {
+  # Create a DBA object ---------------------------------------------------
+  message("Creating a DiffBind DBA object")
+  diffbind_dba <-
+    dba(sampleSheet = argument_list$sample_annotation,
+        bCorPlot = FALSE)
+  
+  # Plot heatmap on peak caller scores ------------------------------------
+  message("Plotting a correlation heatmap based on peak caller score data")
+  png(filename = file.path(
+    prefix,
+    paste(prefix, "correlation_peak_caller_score.png", sep = "_")
+  ))
+  return_value <- dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
+  active_device <- dev.off()
+  
+  # Count reads -----------------------------------------------------------
+  message("Counting reads")
+  diffbind_dba <- dba.count(DBA = diffbind_dba, bCorPlot = FALSE)
+  
+  # Plot heatmap on read counts -------------------------------------------
+  message("Plotting a correlation heatmap based on read counts")
+  png(filename = file.path(prefix, paste(
+    prefix, "correlation_read_counts.png", sep = "_"
+  )))
+  return_value <- dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
+  active_device <- dev.off()
+  
+  # Establish contrasts -----------------------------------------------------
+  message("Establishing contrasts by tissue")
+  # The categories default to DBA_TISSUE, DBA_FACTOR, DBA_CONDITION and DBA_TREATMENT.
+  diffbind_dba <- dba.contrast(DBA = diffbind_dba, minMembers = 2)
+  # Check if setting contrasts was successful. It may not be, if less than two replicates were available.
+  if (is.null(x = diffbind_dba$contrasts)) {
+    # Set the mask manually. For the moment this only works for two samples.
+    if (nrow(x = diffbind_dba$samples) == 2) {
+      message("In lack of replicates, setting contrasts on the basis of the first two conditions")
+      diffbind_conditions <-
+        unique(x = diffbind_dba$class[DBA_CONDITION, ])
+      diffbind_dba <- dba.contrast(
         DBA = diffbind_dba,
-        attribute = DBA_CONDITION,
-        value = diffbind_conditions[1]
-      ),
-      group2 = dba.mask(
-        DBA = diffbind_dba,
-        attribute = DBA_CONDITION,
-        value = diffbind_conditions[2]
-      ),
-      name1 = diffbind_conditions[1],
-      name2 = diffbind_conditions[2]
-    )
-    rm(diffbind_conditions)
+        group1 = dba.mask(
+          DBA = diffbind_dba,
+          attribute = DBA_CONDITION,
+          value = diffbind_conditions[1]
+        ),
+        group2 = dba.mask(
+          DBA = diffbind_dba,
+          attribute = DBA_CONDITION,
+          value = diffbind_conditions[2]
+        ),
+        name1 = diffbind_conditions[1],
+        name2 = diffbind_conditions[2]
+      )
+      rm(diffbind_conditions)
+    }
   }
+  
+  # Run differential binding affinity analysis ----------------------------
+  message("Running differential binding affinity analysis")
+  diffbind_dba <- dba.analyze(DBA = diffbind_dba, bCorPlot = FALSE)
+  
+  # Plot heatmap on differential binding affinity -------------------------
+  message("Plotting correlation heatmap based on differential binding affinity analysis")
+  png(filename = file.path(prefix, paste(prefix, "correlation_analysis.png", sep = "_")))
+  return_value <- dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
+  active_device <- dev.off()
+  
+  # Save DBA object -------------------------------------------------------
+  message("Saving DBA object to disk")
+  save(diffbind_dba, file = file_path)
 }
 
-message("Running differential binding affinity analysis.")
-diffbind_dba <- dba.analyze(DBA = diffbind_dba, bCorPlot = FALSE)
-
-message("Plotting correlation heatmap based on differential binding affinity analysis.")
-file_name <- paste(prefix, "correlation_analysis.png", sep = "_")
-png(filename = file.path(output_directory, file_name))
-return_value <- dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
-active_device <- dev.off()
-
-process_per_contrast <- function(contrast, group1, group2) {
-  # Process per row of a contrasts data frame obtained via dba.show()
-  # contrast the row.names() string of the data frame indicating the contrast number
-  # group1 Group1 value
-  # group2 Group2 value
-  
-  message(
-    sprintf(
-      "Write differentially bound sites for factor %s and contrast %s versus %s to disk.",
-      argument_list$factor,
-      group1,
-      group2
+process_per_contrast <-
+  function(contrast, group1, group2, db_number) {
+    # Process per row of a contrasts data frame obtained via dba.show()
+    # contrast the row.names() string of the data frame indicating the contrast number
+    # group1 Group1 value
+    # group2 Group2 value
+    
+    # The working directory has been set to the output_directory.
+    
+    # Write differentially bound sites to disk ----------------------------
+    if (db_number == 0L) {
+      message(
+        sprintf(
+          "Skipping differentially bound sites for factor %s and contrast %s versus %s",
+          argument_list$factor,
+          group1,
+          group2
+        )
+      )
+    } else {
+      message(
+        sprintf(
+          "Writing differentially bound sites for factor %s and contrast %s versus %s to disk",
+          argument_list$factor,
+          group1,
+          group2
+        )
+      )
+      # The report function is quite peculiar in that it insists on a prefix DBA_
+      # for the file name.
+      file_path <-
+        sprintf("%s_report_%s__%s", argument_list$factor, group1, group2)
+      diffbind_report <- dba.report(
+        DBA = diffbind_dba,
+        contrast = as.integer(contrast),
+        bNormalized = TRUE,
+        bCalled = TRUE,
+        bCounts = TRUE,
+        bCalledDetail = TRUE,
+        file = file_path,
+        DataType = DBA_DATA_FRAME
+      )
+      # Create a symbolic link from the akward report file name to standard file names,
+      # used by this script.
+      file_path <-
+        sprintf("DBA_%s_report_%s__%s.csv", argument_list$factor, group1, group2)
+      link_path <-
+        sprintf("%s_report_%s__%s.csv",
+                prefix,
+                group1,
+                group2)
+      if (!file.exists(link_path)) {
+        if (!file.symlink(from = file_path,
+                          to = link_path)) {
+          warning(paste0("Encountered an error linking DBA report file: ", file_path))
+        }
+      }
+      rm(link_path, file_path)
+    }
+    
+    message(
+      sprintf(
+        "Creating MA plot for factor %s and contrast %s versus %s",
+        argument_list$factor,
+        group1,
+        group2
+      )
     )
-  )
-  # TODO: The report function is quite peculiar in that it insists on a prefix DBA_
-  # for the file name.
-  diffbind_report <- dba.report(
-    DBA = diffbind_dba,
-    contrast = as.integer(contrast),
-    bNormalized = TRUE,
-    bCalled = TRUE,
-    bCounts = TRUE,
-    bCalledDetail = TRUE,
-    file = sprintf("%s_report_%s__%s", argument_list$factor, group1, group2),
-    DataType = DBA_DATA_FRAME
-  )
-  
-  message(
-    sprintf(
-      "Creating MA plot for factor %s and contrast %s versus %s.",
-      argument_list$factor,
-      group1,
-      group2
+    png(filename = sprintf("%s_ma_plot_%s__%s.png", prefix, group1, group2))
+    dba.plotMA(
+      DBA = diffbind_dba,
+      bNormalized = TRUE,
+      bXY = FALSE,
+      contrast = as.integer(contrast)
     )
-  )
-  file_name <-
-    sprintf("%s_ma_plot_%s__%s.png", prefix, group1, group2)
-  png(filename = file.path(output_directory, file_name))
-  dba.plotMA(
-    DBA = diffbind_dba,
-    bNormalized = TRUE,
-    bXY = FALSE,
-    contrast = as.integer(contrast)
-  )
-  active_device <- dev.off()
-  
-  message(
-    sprintf(
-      "Creating scatter plot for factor %s and contrast %s versus %s.",
-      argument_list$factor,
-      group1,
-      group2
+    active_device <- dev.off()
+    
+    message(
+      sprintf(
+        "Creating scatter plot for factor %s and contrast %s versus %s",
+        argument_list$factor,
+        group1,
+        group2
+      )
     )
-  )
-  file_name <-
-    sprintf("%s_scatter_plot_%s__%s.png", prefix, group1, group2)
-  png(filename = file.path(output_directory, file_name))
-  dba.plotMA(
-    DBA = diffbind_dba,
-    bNormalized = TRUE,
-    bXY = TRUE,
-    contrast = as.integer(contrast)
-  )
-  active_device <- dev.off()
-  
-  message(
-    sprintf(
-      "Creating PCA plot for factor %s and contrast %s versus %s.",
-      argument_list$factor,
-      group1,
-      group2
+    png(filename = sprintf("%s_scatter_plot_%s__%s.png", prefix, group1, group2))
+    dba.plotMA(
+      DBA = diffbind_dba,
+      bNormalized = TRUE,
+      bXY = TRUE,
+      contrast = as.integer(contrast)
     )
-  )
-  file_name <-
-    sprintf("%s_pca_plot_%s__%s.png", prefix, group1, group2)
-  png(filename = file.path(output_directory, file_name))
-  dba.plotPCA(DBA = diffbind_dba, attributes = DBA_CONDITION)
-  active_device <- dev.off()
-  
-  message(
-    sprintf(
-      "Creating Box plot for factor %s and contrast %s versus %s.",
-      argument_list$factor,
-      group1,
-      group2
+    active_device <- dev.off()
+    
+    message(
+      sprintf(
+        "Creating PCA plot for factor %s and contrast %s versus %s",
+        argument_list$factor,
+        group1,
+        group2
+      )
     )
-  )
-  file_name <-
-    sprintf("%s_box_plot_%s__%s.png", prefix, group1, group2)
-  png(filename = file.path(output_directory, file_name))
-  diffbind_pvals <-
-    dba.plotBox(DBA = diffbind_dba, bNormalized = TRUE)
-  active_device <- dev.off()
-  
-  return(TRUE)
-}
+    png(filename = sprintf("%s_pca_plot_%s__%s.png", prefix, group1, group2))
+    dba.plotPCA(DBA = diffbind_dba, attributes = DBA_CONDITION)
+    active_device <- dev.off()
+    
+    if (db_number == 0L) {
+      message(
+        sprintf(
+          "Skipping Box plot for factor %s and contrast %s versus %s",
+          argument_list$factor,
+          group1,
+          group2
+        )
+      )
+    } else {
+      message(
+        sprintf(
+          "Creating Box plot for factor %s and contrast %s versus %s",
+          argument_list$factor,
+          group1,
+          group2
+        )
+      )
+      png(filename = sprintf("%s_box_plot_%s__%s.png", prefix, group1, group2))
+      diffbind_pvals <-
+        dba.plotBox(DBA = diffbind_dba, bNormalized = TRUE)
+      active_device <- dev.off()
+    }
+    
+    return(TRUE)
+  }
 
 # Get a data frame with all contrasts to apply the above function to each row.
-contrasts <- dba.show(DBA = diffbind_dba, bContrasts = TRUE)
+contrast_frame <- dba.show(DBA = diffbind_dba, bContrasts = TRUE)
 
 # Replace '!' characters with 'not_'.
-contrasts$Group1 <-
+contrast_frame$Group1 <-
   gsub(pattern = "!",
        replacement = "not_",
-       x = contrasts$Group1)
-contrasts$Group2 <-
+       x = contrast_frame$Group1)
+contrast_frame$Group2 <-
   gsub(pattern = "!",
        replacement = "not_",
-       x = contrasts$Group2)
+       x = contrast_frame$Group2)
 
-# Write the contrasts to disk.
+# Write the contrasts data frame to disk.
 write.csv(
-  x = contrasts,
-  file = paste(prefix, "contrasts.csv", sep = "_"),
+  x = contrast_frame,
+  file = file.path(prefix, paste(prefix, "contrasts.csv", sep = "_")),
   row.names = FALSE
 )
 
+# Since DiffBind is quite peculiar in writing report files,
+# set the output directory as new working directory. Sigh.
+original_directory <- setwd(dir = output_directory)
+
+# Filter out rows that have no significantly differentially occupied binding sites.
+# FIXME: The analysis in the 5th column depends on the algorithm used.
+# It seems available from DBA$config$AnalysisMethod.
 # Apply the function to each row and discard the return value.
+# print(x = "Contrast frame:")
+# print(x = head(x = contrast_frame))
+# print(x = str(object = contrast_frame))
+# print(x = "db_number:")
+# print(x = as.integer(x = as.character(x = contrast_frame[, 5L])))
 return_value <-
-  mapply(FUN = process_per_contrast,
-         row.names(contrasts),
-         contrasts$Group1,
-         contrasts$Group2)
+  mapply(
+    FUN = process_per_contrast,
+    row.names(contrast_frame),
+    contrast_frame$Group1,
+    contrast_frame$Group2,
+    # Since column 5 is a factor it needs converting into a character,
+    # before converting into an integer.
+    as.integer(x = as.character(x = contrast_frame[, 5L]))
+  )
 rm(return_value)
-rm(file_name)
 
 # dba.overlap(DBA = diffbind_dba, mode = DBA_OLAP_RATE)
 
 # message("Creating a Venn diagram")
-# file_name <- paste(prefix, "box_plot.png", sep = "_")
-# png(filename = file.path(output_directory, file_name))
-# file_name <- dba.plotVenn(DBA = diffbind_dba)
+# png(filename = paste(prefix, "box_plot.png", sep = "_"))
+# dba.plotVenn(DBA = diffbind_dba)
 # active_device <- dev.off()
 
-rm(argument_list)
+rm(
+  diffbind_dba,
+  process_per_contrast,
+  prefix,
+  output_directory,
+  original_directory,
+  argument_list
+)
 
-message("Save workspace image for manual post-processing.")
+message("Save workspace image for manual post-processing")
 save.image()
 
 message("All done")
