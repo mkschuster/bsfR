@@ -488,38 +488,67 @@ if (is.null(x = argument_list$biomart_data_set)) {
   )
   reference_mcols <- mcols(x = reference_granges)
   
-  gene_annotation_frame <-
-    unique.data.frame(
-      x = data.frame(
-        "ensembl_gene_id" = reference_mcols$gene_id,
-        "ensembl_gene_version" = reference_mcols$gene_version,
-        "ensembl_gene_name" = reference_mcols$gene_name,
-        "ensembl_gene_source" = reference_mcols$gene_source,
-        "ensembl_gene_biotype" = reference_mcols$gene_biotype,
-        "havana_gene_id" = reference_mcols$havana_gene,
-        "havana_gene_version" = reference_mcols$havana_gene_version
-      )
-    )
+  # Standard GTF attributes
+  gene_annotation_frame <- data.frame(
+    "ensembl_gene_id" = reference_mcols$gene_id,
+    "ensembl_gene_version" = reference_mcols$gene_version,
+    "ensembl_gene_name" = reference_mcols$gene_name,
+    "ensembl_gene_source" = reference_mcols$gene_source,
+    "ensembl_gene_biotype" = reference_mcols$gene_biotype
+  )
+  # Optional GTF attributes
+  if ("havana_gene_id" %in% names(x = reference_mcols)) {
+    gene_annotation_frame$havana_gene_id <-
+      reference_mcols$havana_gene_id
+  }
+  if ("havana_gene_version" %in% names(x = reference_mcols)) {
+    gene_annotation_frame$havana_gene_version <-
+      reference_mcols$havana_gene_version
+  }
   
+  # Gene information is available for each transcript.
+  gene_annotation_frame <-
+    unique.data.frame(x = gene_annotation_frame)
+  
+  # Standard GTF attributes
   isoform_annotation_frame <- data.frame(
     "ensembl_transcript_id" = reference_mcols$transcript_id,
     "ensembl_transcript_version" = reference_mcols$transcript_version,
     "ensembl_transcript_name" = reference_mcols$transcript_name,
     "ensembl_transcript_source" = reference_mcols$transcript_source,
     "ensembl_transcript_biotype" = reference_mcols$transcript_biotype,
-    "havana_transcript_id" = reference_mcols$havana_transcript,
-    "havana_transcript_version" = reference_mcols$havana_transcript_version,
-    "havana_transcript_support_level" = reference_mcols$transcript_support_level,
     "ensembl_gene_id" = reference_mcols$gene_id,
     "ensembl_gene_version" = reference_mcols$gene_version,
     "ensembl_gene_name" = reference_mcols$gene_name,
     "ensembl_gene_source" = reference_mcols$gene_source,
-    "ensembl_gene_biotype" = reference_mcols$gene_biotype,
-    "havana_gene_id" = reference_mcols$havana_gene,
-    "havana_gene_version" = reference_mcols$havana_gene_version,
-    "ccds_id" = reference_mcols$ccds_id,
-    "tag" = reference_mcols$tag
+    "ensembl_gene_biotype" = reference_mcols$gene_biotype
   )
+  # Optional GTF attributes
+  if ("havana_transcript_id" %in% names(x = reference_mcols)) {
+    isoform_annotation_frame$havana_transcript_id <- reference_mcols$havana_transcript_id
+  }
+  if ("havana_transcript_version" %in% names(x = reference_mcols)) {
+    isoform_annotation_frame$havana_transcript_version <- reference_mcols$havana_transcript_version
+  }
+  if ("havana_transcript_support_level" %in% names(x = reference_mcols)) {
+    isoform_annotation_frame$havana_transcript_support_level <- reference_mcols$havana_transcript_support_level
+  }
+  if ("havana_gene_id" %in% names(x = reference_mcols)) {
+    isoform_annotation_frame$havana_gene_id <-
+      reference_mcols$havana_gene_id
+  }
+  if ("havana_gene_version" %in% names(x = reference_mcols)) {
+    isoform_annotation_frame$havana_gene_version <-
+      reference_mcols$havana_gene_version
+  }
+  if ("ccds_id" %in% names(x = reference_mcols)) {
+    isoform_annotation_frame$ccds_id <-
+      reference_mcols$ccds_id
+  }
+  if ("tag" %in% names(x = reference_mcols)) {
+    isoform_annotation_frame$tag <-
+      reference_mcols$tag
+  }
   
   rm(reference_mcols, reference_granges)
 } else {
