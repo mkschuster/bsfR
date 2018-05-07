@@ -199,9 +199,8 @@ constrained_ranges <- NULL
 if (!is.null(x = argument_list$target_path)) {
   summary_frame[i, "target_path"] <- argument_list$target_path
   message(paste0("Importing target range annotation: ", summary_frame[i, "target_path"]))
+  # The rtrackayer::import() function reads the genome version from the "db" attribute of the BED "track" line.
   target_ranges <- import(con = summary_frame[i, "target_path"])
-  # TODO: Could the genome version be specified to get the sequence lengths from the
-  # sequence dictionary (*.dict) file.
   summary_frame[i, "target_number_raw"] <-
     length(x = target_ranges)
   message(paste0("Number of target ranges: ", summary_frame[i, "target_number_raw"]))
