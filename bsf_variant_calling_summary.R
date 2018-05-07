@@ -218,7 +218,8 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       plot = ggplot_object,
       width = plot_width,
-      height = argument_list$plot_height
+      height = argument_list$plot_height,
+      limitsize = FALSE
     )
   }
   rm(graphics_format, ggplot_object)
@@ -265,7 +266,8 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       plot = ggplot_object,
       width = plot_width,
-      height = argument_list$plot_height
+      height = argument_list$plot_height,
+      limitsize = FALSE
     )
   }
   
@@ -434,7 +436,8 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       plot = ggplot_object,
       width = plot_width_sample,
-      height = argument_list$plot_height
+      height = argument_list$plot_height,
+      limitsize = FALSE
     )
   }
   rm(graphics_format, ggplot_object)
@@ -489,7 +492,8 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       plot = ggplot_object,
       width = plot_width_sample,
-      height = argument_list$plot_height
+      height = argument_list$plot_height,
+      limitsize = FALSE
     )
   }
   rm(graphics_format, ggplot_object)
@@ -694,7 +698,8 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       plot = ggplot_object,
       width = plot_width_sample,
-      height = argument_list$plot_height
+      height = argument_list$plot_height,
+      limitsize = FALSE
     )
   }
   rm(graphics_format, ggplot_object)
@@ -766,7 +771,8 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       plot = ggplot_object,
       width = plot_width_sample,
-      height = argument_list$plot_height
+      height = argument_list$plot_height,
+      limitsize = FALSE
     )
   }
   rm(graphics_format, ggplot_object)
@@ -856,7 +862,8 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       plot = ggplot_object,
       width = plot_width_sample,
-      height = argument_list$plot_height
+      height = argument_list$plot_height,
+      limitsize = FALSE
     )
   }
   rm(graphics_format, ggplot_object, plotting_frame)
@@ -921,7 +928,8 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       plot = ggplot_object,
       width = plot_width_sample,
-      height = argument_list$plot_height
+      height = argument_list$plot_height,
+      limitsize = FALSE
     )
   }
   rm(graphics_format, ggplot_object, plotting_frame)
@@ -975,7 +983,8 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       plot = ggplot_object,
       width = plot_width_sample,
-      height = argument_list$plot_height
+      height = argument_list$plot_height,
+      limitsize = FALSE
     )
   }
   rm(graphics_format, ggplot_object, plotting_frame)
@@ -1035,7 +1044,8 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       plot = ggplot_object,
       width = plot_width_sample,
-      height = argument_list$plot_height
+      height = argument_list$plot_height,
+      limitsize = FALSE
     )
   }
   rm(graphics_format, ggplot_object, plotting_frame)
