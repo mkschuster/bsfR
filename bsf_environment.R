@@ -59,15 +59,9 @@ install.packages(pkgs = c(
   "gsalib",  # for GATK
   "hexbin",  # for ggplot2 functions geom_binhex() and stat_bin_hex()
   "optparse",  # for option parsing
-  "reshape"  # for GATK
+  "reshape",  # for GATK
+  "VGAM"  # for Bioconductor monocle
 ))
-
-# For the BSF RNA-Seq pipeline
-# cummeRbund
-# DESeq
-#
-# For the BSF ChIP-Seq pipeline
-# DiffBind
 
 biocLite(pkgs = c(
   "BiocParallel",
@@ -79,13 +73,15 @@ biocLite(pkgs = c(
   "BSgenome.Hsapiens.UCSC.hg38.masked",
   "BSgenome.Mmusculus.UCSC.mm10",
   "BSgenome.Mmusculus.UCSC.mm10.masked",
+  #
   "ChIPpeakAnno",
   "ComplexHeatmap",
-  "cummeRbund",  # for Cufflinks data processing
+  "cummeRbund",  # for Cufflinks mRNA-seq data processing
   "DESeq2",  # for RNA-seq analysis
   "DiffBind",  # for differential ChIP-seq analysis
   "goseq",  # for Gene Ontology annotation
-  "RnBeads",  # For Meth-seq anaylsis
+  "monocle",  # For single cell RNA-seq
+  "RnBeads",  # For Meth-seq anaylsis (FDb.InfiniumMethylation.hg19)
   "TxDb.Hsapiens.UCSC.hg19.knownGene", # UCSC gene set
   "TxDb.Hsapiens.UCSC.hg19.lincRNAsTranscripts",  # UCSC gene set
   "TxDb.Hsapiens.UCSC.hg38.knownGene",  # UCSC gene set
