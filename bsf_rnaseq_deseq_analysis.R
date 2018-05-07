@@ -62,6 +62,10 @@
 #      A factor with levels "SE" and "PE" to indicate single-end or
 #      paired-end sequencing and thus counting as read pairs or not.
 #
+#   "total_counts":
+#      Total counts per sample.
+#      Calculated automatically based on the colSums() of the counts() function.
+#
 #   "RIN":
 #      A numeric vector providing the RNA integrity number (RIN) score
 #      per sample. If available, the RIN score distribution will be plotted.
@@ -337,8 +341,8 @@ initialise_sample_frame <- function(factor_levels) {
     FUN = function(character_1) {
       # Split the second component of character_1, the factor levels, on ",".
       character_2 <-
-        unlist(x = stri_split(str = character_1[2L],
-                              pattern = ","))
+        unlist(x = stri_split_fixed(str = character_1[2L],
+                                    pattern = ","))
       # Set the first component of character_1, the factor name, as attribute.
       attr(x = character_2, which = "factor") <-
         character_1[1L]
@@ -537,6 +541,11 @@ initialise_ranged_summarized_experiment <- function(design_list) {
       rm(sequencing_type)
     }
     rm(library_type)
+    
+    # Calculate colSums() of assay() and add as total_count into the colData data frame.
+    sample_frame <- colData(x = ranged_summarized_experiment)
+    sample_frame$total_counts <- colSums(x = assay(x = ranged_summarized_experiment), na.rm = TRUE)
+    colData(x = ranged_summarized_experiment) <- sample_frame
     
     rm(gene_ranges_list,
        exon_ranges,
@@ -945,7 +954,11 @@ plot_mds <- function(object,
                 group = if (is.null(x = aes_list$geom_line$group))
                   1L
                 else
-                  as.name(x = aes_list$geom_line$group)
+                  as.name(x = aes_list$geom_line$group),
+                linetype = if (is.null(x = aes_list$geom_path$linetype))
+                  "solid"
+                else
+                  as.name(x = aes_list$geom_path$linetype)
               ),
               alpha = I(1 / 3)
             )
@@ -1009,7 +1022,7 @@ plot_mds <- function(object,
                 else
                   as.name(x = aes_list$geom_path$colour),
                 group = if (is.null(x = aes_list$geom_path$group))
-                  "black"
+                  1L
                 else
                   as.name(x = aes_list$geom_path$group),
                 linetype = if (is.null(x = aes_list$geom_path$linetype))
@@ -1017,7 +1030,10 @@ plot_mds <- function(object,
                 else
                   as.name(x = aes_list$geom_path$linetype)
               ),
-              arrow = arrow(
+              arrow = if (is.null(x = aes_list$geom_path$arrow))
+                NULL
+              else
+                arrow(
                 length = unit(x = 0.08, units = "inches"),
                 type = "closed"
               )
@@ -1089,6 +1105,7 @@ plot_heatmap <- function(object,
   
   aes_character <-
     unique(x = unlist(x = aes_list, use.names = TRUE))
+  message(paste("  Heat map plot:", aes_character))
   if (!all(aes_character %in% names(x = colData(x = object)))) {
     stop("the argument 'aes_character' should specify columns of colData(dds)")
   }
@@ -1238,7 +1255,7 @@ plot_pca <- function(object,
       FUN = function(aes_list) {
         aes_character <-
           unique(x = unlist(x = aes_list, use.names = TRUE))
-        
+        message(paste("  PCA plot:", aes_character, collapse = " "))
         if (!all(aes_character %in% names(x = colData(x = object)))) {
           stop("the argument 'aes_character' should specify columns of colData(dds)")
         }
