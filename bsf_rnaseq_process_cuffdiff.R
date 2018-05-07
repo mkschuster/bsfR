@@ -1509,62 +1509,91 @@ if (file.exists(frame_path_genes) &&
   assembly_granges <- import(
     con = argument_list$gtf_assembly,
     format = "gtf",
-    genome = argument_list$genome_version
+    genome = argument_list$genome_version,
+    feature.type = "exon"
   )
-  assembly_frame <- unique.data.frame(
-    x = data.frame(
-      "gene_id" = assembly_granges$gene_id,
-      "transcript_id" = assembly_granges$transcript_id,
-      "gene_name" = assembly_granges$gene_name,
-      "ensembl_transcript_id" = assembly_granges$nearest_ref,
-      stringsAsFactors = TRUE
+  if ("nearest_ref" %in% names(x = assembly_granges)) {
+    # If a "nearest_ref" variable is defined, the GTF is a Cuffmerge assembly.
+    #
+    # Example: gene_id "XLOC_000001"; transcript_id "TCONS_00000001"; exon_number "1";
+    #          gene_name "DDX11L1"; oId "CUFF.1.2"; nearest_ref "ENST00000450305";
+    #          class_code "="; tss_id "TSS1";
+    assembly_frame <- unique.data.frame(
+      x = data.frame(
+        "gene_id" = assembly_granges$gene_id,
+        "transcript_id" = assembly_granges$transcript_id,
+        "gene_name" = assembly_granges$gene_name,
+        "ensembl_transcript_id" = assembly_granges$nearest_ref,
+        stringsAsFactors = TRUE
+      )
     )
-  )
-  rm(assembly_granges)
-  
-  # 3. Join the reference and assembly data frames to correlate
-  # Cufflinks (XLOC) gene identifiers with Ensembl (ENSG) gene identifiers
-  # via Ensembl (ENST) transcript identifiers.
-  message("Merging reference and assembled transcriptome annotation")
-  ensembl_frame <-
-    merge(x = assembly_frame,
-          y = reference_frame,
-          by = "ensembl_transcript_id",
-          # Keep all XLOC entries.
-          all.x = TRUE)
-  rm(reference_frame, assembly_frame)
-  
-  # 4. Create a new, normalised Ensembl annotation data frame that correlates
-  # each Cufflinks (XLOC) gene identifier with comma-separated lists of one or
-  # more Ensembl (ENSG) gene and Ensembl (ENST) transcript identifiers.
-  message("Aggregating Ensembl annotation by gene_id")
-  aggregate_frame <-
-    aggregate.data.frame(x = ensembl_frame,
-                         by = list(ensembl_frame$gene_id),
-                         FUN = paste)
-  rm(ensembl_frame)
-  # The aggregate frame consists of list objects of character vectors
-  # with one or more elements aggregated in each group.
-  # For each character vector, the character_to_csv() function finds unique
-  # elements and sorts them, before collapsing them into a single,
-  # comma-separated value.
-  message("Collapsing aggregated Ensembl annotation")
-  ensembl_annotation <-
-    data.frame(
-      "gene_id" = unlist(x = lapply(X = aggregate_frame$gene_id, FUN = character_to_csv)),
-      "transcript_ids" = unlist(x = lapply(
-        X = aggregate_frame$transcript_id, FUN = character_to_csv
-      )),
-      # "gene_names" = unlist(x = lapply(X = aggregate_frame$gene_name, FUN = character_to_csv)),
-      "ensembl_gene_ids" = unlist(
-        x = lapply(X = aggregate_frame$ensembl_gene_id, FUN = character_to_csv)
-      ),
-      "ensembl_transcript_ids" = unlist(
-        x = lapply(X = aggregate_frame$ensembl_transcript_id, FUN = character_to_csv)
-      ),
-      stringsAsFactors = FALSE
-    )
-  rm(aggregate_frame)
+    
+    # 3. Join the reference and assembly data frames to correlate
+    # Cufflinks (XLOC) gene identifiers with Ensembl (ENSG) gene identifiers
+    # via Ensembl (ENST) transcript identifiers.
+    message("Merging reference and assembled transcriptome annotation")
+    ensembl_frame <-
+      merge(x = assembly_frame,
+            y = reference_frame,
+            by = "ensembl_transcript_id",
+            # Keep all XLOC entries.
+            all.x = TRUE)
+    rm(reference_frame, assembly_frame)
+    
+    # 4. Create a new, normalised Ensembl annotation data frame that correlates
+    # each Cufflinks (XLOC) gene identifier with comma-separated lists of one or
+    # more Ensembl (ENSG) gene and Ensembl (ENST) transcript identifiers.
+    message("Aggregating Ensembl annotation by gene_id")
+    aggregate_frame <-
+      aggregate.data.frame(x = ensembl_frame,
+                           by = list(ensembl_frame$gene_id),
+                           FUN = paste)
+    rm(ensembl_frame)
+    # The aggregate frame consists of list objects of character vectors
+    # with one or more elements aggregated in each group.
+    # For each character vector, the character_to_csv() function finds unique
+    # elements and sorts them, before collapsing them into a single,
+    # comma-separated value.
+    message("Collapsing aggregated Ensembl annotation")
+    ensembl_annotation <-
+      data.frame(
+        "gene_id" = unlist(x = lapply(X = aggregate_frame$gene_id, FUN = character_to_csv)),
+        "transcript_ids" = unlist(x = lapply(
+          X = aggregate_frame$transcript_id, FUN = character_to_csv
+        )),
+        # "gene_names" = unlist(x = lapply(X = aggregate_frame$gene_name, FUN = character_to_csv)),
+        "ensembl_gene_ids" = unlist(
+          x = lapply(X = aggregate_frame$ensembl_gene_id, FUN = character_to_csv)
+        ),
+        "ensembl_transcript_ids" = unlist(
+          x = lapply(X = aggregate_frame$ensembl_transcript_id, FUN = character_to_csv)
+        ),
+        stringsAsFactors = FALSE
+      )
+    rm(aggregate_frame)
+    
+  } else {
+    # If a "nearest_ref" variable is missing,
+    # the GTF is the original reference without de-novo transcript assembly.
+    #
+    # Example: gene_id "ENSG00000223972"; gene_version "5"; transcript_id "ENST00000456328"; transcript_version "2";
+    #          exon_number "1"; gene_name "DDX11L1"; gene_source "havana"; gene_biotype "transcribed_unprocessed_pseudogene";
+    #          havana_gene "OTTHUMG00000000961"; havana_gene_version "2";
+    #          transcript_name "DDX11L1-002"; transcript_source "havana"; transcript_biotype "processed_transcript";
+    #          havana_transcript "OTTHUMT00000362751"; havana_transcript_version "1";
+    #          exon_id "ENSE00002234944"; exon_version "1";
+    #          tag "basic"; transcript_support_level "1";
+    #
+    # 3. Joining reference and assembly frames is not required.
+    # 4. Create a new, normalised Ensembl annotation data frame.
+    ensembl_annotation <- data.frame(
+      "gene_id" = reference_frame$ensembl_gene_id,
+      "transcript_ids" = reference_frame$ensembl_transcript_id,
+      "ensembl_gene_ids" = reference_frame$ensembl_gene_id,
+      "ensembl_transcript_ids" = reference_frame$ensembl_transcript_id,
+      stringsAsFactors = FALSE)
+  }
+  rm(assembly_granges, reference_frame)
   
   # 5. Create a gene annotation frame, ready for enriching
   # cummeRbund gene information, by merging the "gene_id", "gene_short_name"
