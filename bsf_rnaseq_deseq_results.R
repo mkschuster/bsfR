@@ -203,109 +203,8 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
           },
           sep = "_")
   
-  message(paste0("Creating DESeqResults for ", contrast_character))
-  
-  deseq_results <-
-    results(
-      object = deseq_data_set,
-      contrast = contrast_list,
-      lfcThreshold = argument_list$lfc_threshold,
-      alpha = argument_list$padj_threshold,
-      format = "DataFrame",
-      tidy = FALSE,
-      # If tidy is TRUE, a classical data.frame is returned.
-      parallel = TRUE
-    )
-  
-  # print(x = summary(object = deseq_results))
-  
-  # MA Plot ---------------------------------------------------------------
-  
-  
-  # Create a MA plot.
-  file_path <-
-    file.path(output_directory,
-              paste(
-                paste(prefix,
-                      "contrast",
-                      contrast_character,
-                      "ma",
-                      sep = "_"),
-                "pdf",
-                sep = "."
-              ))
-  pdf(file = file_path)
-  plotMA(object = deseq_results)
-  return_value <- dev.off()
-  rm(return_value)
-  
-  file_path <-
-    file.path(output_directory,
-              paste(
-                paste(prefix,
-                      "contrast",
-                      contrast_character,
-                      "ma",
-                      sep = "_"),
-                "png",
-                sep = "."
-              ))
-  png(file = file_path)
-  plotMA(object = deseq_results)
-  return_value <- dev.off()
-  rm(return_value)
-  
-  # DESeqResults DataFrame ------------------------------------------------
-  
-  
-  # Re-adjust the DESeqResults DataFrame for merging with the annotation DataFrame.
-  deseq_results_frame <-
-    DataFrame(
-      gene_id = rownames(x = deseq_results),
-      deseq_results[, c("baseMean",
-                        "log2FoldChange",
-                        "lfcSE",
-                        "stat",
-                        "pvalue",
-                        "padj")],
-      significant = factor(x = "no", levels = c("no", "yes"))
-    )
-  deseq_results_frame[!is.na(x = deseq_results_frame$padj) &
-                        deseq_results_frame$padj <= argument_list$padj_threshold, "significant"] <-
-    "yes"
-  
-  deseq_merge <-
-    merge(x = annotation_frame, y = deseq_results_frame, by = "gene_id")
-  
-  file_path <-
-    file.path(output_directory,
-              paste(
-                paste(prefix,
-                      "contrast",
-                      contrast_character,
-                      "genes",
-                      sep = "_"),
-                "tsv",
-                sep = "."
-              ))
-  
-  write.table(
-    x = deseq_merge,
-    file = file_path,
-    sep = "\t",
-    col.names = TRUE,
-    row.names = FALSE
-  )
-  
-  # Significant DESeqResults DataFrame ------------------------------------
-  
-  
-  deseq_merge_significant <-
-    subset(x = deseq_merge, padj <= argument_list$padj_threshold)
-  
-  # Record the number of significant genes.
-  contrast_frame[i, "Significant"] <-
-    nrow(x = deseq_merge_significant)
+  # Check for the significant genes table and if it exist already,
+  # read it to get the number of significant genes for the summary data frame.
   
   file_path <-
     file.path(output_directory,
@@ -319,23 +218,153 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
                 sep = "."
               ))
   
-  write.table(
-    x = deseq_merge_significant,
-    file = file_path,
-    sep = "\t",
-    col.names = TRUE,
-    row.names = FALSE
-  )
-  
-  rm(
-    deseq_merge_significant,
-    deseq_merge,
-    deseq_results_frame,
-    deseq_results,
-    file_path,
-    contrast_character,
-    contrast_list
-  )
+  if (file.exists(file_path) &&
+      file.info(file_path)$size > 0L) {
+    message(paste0("Skipping DESeqResults for ", contrast_character))
+    
+    deseq_merge_significant <-
+      read.table(file = file_path, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+    
+    # Record the number of significant genes.
+    contrast_frame[i, "Significant"] <-
+      nrow(x = deseq_merge_significant)
+    
+    rm(deseq_merge_significant)
+  } else {
+    message(paste0("Creating DESeqResults for ", contrast_character))
+    
+    deseq_results <-
+      results(
+        object = deseq_data_set,
+        contrast = contrast_list,
+        lfcThreshold = argument_list$lfc_threshold,
+        alpha = argument_list$padj_threshold,
+        format = "DataFrame",
+        tidy = FALSE,
+        # If tidy is TRUE, a classical data.frame is returned.
+        parallel = TRUE
+      )
+    
+    # print(x = summary(object = deseq_results))
+    
+    # MA Plot ---------------------------------------------------------------
+    
+    
+    # Create a MA plot.
+    file_path <-
+      file.path(output_directory,
+                paste(
+                  paste(prefix,
+                        "contrast",
+                        contrast_character,
+                        "ma",
+                        sep = "_"),
+                  "pdf",
+                  sep = "."
+                ))
+    pdf(file = file_path)
+    plotMA(object = deseq_results)
+    return_value <- dev.off()
+    rm(return_value)
+    
+    file_path <-
+      file.path(output_directory,
+                paste(
+                  paste(prefix,
+                        "contrast",
+                        contrast_character,
+                        "ma",
+                        sep = "_"),
+                  "png",
+                  sep = "."
+                ))
+    png(file = file_path)
+    plotMA(object = deseq_results)
+    return_value <- dev.off()
+    rm(return_value)
+    
+    # DESeqResults DataFrame ------------------------------------------------
+    
+    
+    # Re-adjust the DESeqResults DataFrame for merging with the annotation DataFrame.
+    deseq_results_frame <-
+      DataFrame(
+        gene_id = rownames(x = deseq_results),
+        deseq_results[, c("baseMean",
+                          "log2FoldChange",
+                          "lfcSE",
+                          "stat",
+                          "pvalue",
+                          "padj")],
+        significant = factor(x = "no", levels = c("no", "yes"))
+      )
+    deseq_results_frame[!is.na(x = deseq_results_frame$padj) &
+                          deseq_results_frame$padj <= argument_list$padj_threshold, "significant"] <-
+      "yes"
+    
+    deseq_merge <-
+      merge(x = annotation_frame, y = deseq_results_frame, by = "gene_id")
+    
+    file_path <-
+      file.path(output_directory,
+                paste(
+                  paste(prefix,
+                        "contrast",
+                        contrast_character,
+                        "genes",
+                        sep = "_"),
+                  "tsv",
+                  sep = "."
+                ))
+    
+    write.table(
+      x = deseq_merge,
+      file = file_path,
+      sep = "\t",
+      col.names = TRUE,
+      row.names = FALSE
+    )
+    
+    # Significant DESeqResults DataFrame ------------------------------------
+    
+    
+    deseq_merge_significant <-
+      subset(x = deseq_merge, padj <= argument_list$padj_threshold)
+    
+    # Record the number of significant genes.
+    contrast_frame[i, "Significant"] <-
+      nrow(x = deseq_merge_significant)
+    
+    file_path <-
+      file.path(output_directory,
+                paste(
+                  paste(prefix,
+                        "contrast",
+                        contrast_character,
+                        "significant",
+                        sep = "_"),
+                  "tsv",
+                  sep = "."
+                ))
+    
+    write.table(
+      x = deseq_merge_significant,
+      file = file_path,
+      sep = "\t",
+      col.names = TRUE,
+      row.names = FALSE
+    )
+    
+    rm(
+      deseq_merge_significant,
+      deseq_merge,
+      deseq_results_frame,
+      deseq_results,
+      contrast_character,
+      contrast_list
+    )
+  }
+  rm(file_path)
 }
 
 # Write summary frame -----------------------------------------------------
