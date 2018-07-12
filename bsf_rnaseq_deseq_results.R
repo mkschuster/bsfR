@@ -191,8 +191,8 @@ contrast_frame$Significant <- 0L
 for (i in seq_len(length.out = nrow(x = contrast_frame))) {
   # The "contrast" option of the DESeq results() function expects a list of numerator and denominator.
   contrast_list <-
-    list(numerator = unlist(x = strsplit(x = contrast_frame[i, "Numerator"], split = ",")),
-         denominator = unlist(x = strsplit(x = contrast_frame[i, "Denominator"], split = ",")))
+    list("numerator" = unlist(x = strsplit(x = contrast_frame[i, "Numerator"], split = ",")),
+         "denominator" = unlist(x = strsplit(x = contrast_frame[i, "Denominator"], split = ",")))
   contrast_character <-
     paste(paste(contrast_list$numerator, collapse = "_"),
           "against",
@@ -343,7 +343,7 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
 
 write.table(
   x = contrast_frame,
-  file = file.path(output_directory, paste(prefix, "summary.tsv", sep = "_")),
+  file = file.path(output_directory, paste(prefix, "contrasts", "summary.tsv", sep = "_")),
   sep = "\t",
   col.names = TRUE,
   row.names = FALSE
