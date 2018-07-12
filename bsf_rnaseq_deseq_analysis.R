@@ -170,6 +170,7 @@ suppressPackageStartupMessages(expr = library(package = "GenomicAlignments"))  #
 suppressPackageStartupMessages(expr = library(package = "RColorBrewer"))  # for RColorBrewer::brewer.pal()
 suppressPackageStartupMessages(expr = library(package = "Rsamtools"))  # for Rsamtools::BamFileList()
 suppressPackageStartupMessages(expr = library(package = "caret"))  # For caret::findLinearCombos()
+suppressPackageStartupMessages(expr = library(package = "plyr"))  # For plyr::ldply()
 suppressPackageStartupMessages(expr = library(package = "genefilter"))  # for genefilter::rowVars()
 suppressPackageStartupMessages(expr = library(package = "ggplot2"))  # for ggplot2::ggplot()
 suppressPackageStartupMessages(expr = library(package = "grid"))  # for grid::grid.newpage() and grid::grid.draw()
@@ -231,7 +232,7 @@ initialise_annotation_frame <- function() {
     # gene_name_list <- lapply(X = rowRanges(x = deseq_data_set), FUN = function(x) { mcols(x = x)[1L, "gene_name"] })
     message("Reading reference GTF gene features")
     gene_ranges <-
-      import(
+      rtracklayer::import(
         con = argument_list$gtf_reference,
         format = "gtf",
         genome = argument_list$genome_version,
@@ -293,8 +294,8 @@ initialise_sample_frame <- function(factor_levels) {
   # Select only those samples, which have the design name annotated in the designs variable.
   index_logical <-
     unlist(x = lapply(
-      X = stri_split_fixed(str = as.character(data_frame$designs),
-                           pattern = ","),
+      X = stringi::stri_split_fixed(str = as.character(data_frame$designs),
+                                    pattern = ","),
       FUN = function(character_1) {
         # character_1 is a character vector resulting from the split on ",".
         return(any(argument_list$design_name %in% character_1))
@@ -333,16 +334,16 @@ initialise_sample_frame <- function(factor_levels) {
   factor_list <- lapply(
     # The "factor_levels" variable is a character vector, always with just a single component.
     # Split by ';' then by ':' character.
-    X = stri_split_fixed(
-      str = stri_split_fixed(str = factor_levels[1L],
-                             pattern = ";")[[1L]],
+    X = stringi::stri_split_fixed(
+      str = stringi::stri_split_fixed(str = factor_levels[1L],
+                                      pattern = ";")[[1L]],
       pattern = ":"
     ),
     FUN = function(character_1) {
       # Split the second component of character_1, the factor levels, on ",".
       character_2 <-
-        unlist(x = stri_split_fixed(str = character_1[2L],
-                                    pattern = ","))
+        unlist(x = stringi::stri_split_fixed(str = character_1[2L],
+                                             pattern = ","))
       # Set the first component of character_1, the factor name, as attribute.
       attr(x = character_2, which = "factor") <-
         character_1[1L]
@@ -387,7 +388,7 @@ initialise_sample_frame <- function(factor_levels) {
 
 # Initialise a Design list object -----------------------------------------
 
-#' Initialise a Design list
+#' Initialise a Design list for the selected design name.
 #'
 #' @references argument_list
 #' @references output_directory
@@ -461,7 +462,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     # The DESeq2 and RNA-seq vignettes suggest using TcDB objects, but for the moment,
     # we need extra annotation provided by Ensembl GTF files.
     exon_ranges <-
-      import(
+      rtracklayer::import(
         con = argument_list$gtf_reference,
         format = "gtf",
         genome = argument_list$genome_version,
@@ -496,7 +497,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
         
         # Create a BamFileList object and set the samples as names.
         message("Creating a BamFileList object")
-        bam_file_list <- BamFileList(
+        bam_file_list <- Rsamtools::BamFileList(
           file = as.character(x = sub_sample_frame$bam_path),
           index = as.character(x = sub_sample_frame$bai_path),
           yieldSize = 2000000L,
@@ -544,7 +545,9 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     
     # Calculate colSums() of assay() and add as total_count into the colData data frame.
     sample_frame <- colData(x = ranged_summarized_experiment)
-    sample_frame$total_counts <- colSums(x = assay(x = ranged_summarized_experiment), na.rm = TRUE)
+    sample_frame$total_counts <-
+      colSums(x = assay(x = ranged_summarized_experiment),
+              na.rm = TRUE)
     colData(x = ranged_summarized_experiment) <- sample_frame
     
     rm(gene_ranges_list,
@@ -719,8 +722,8 @@ initialise_deseq_data_set <- function(design_list) {
       # The design formula *is* full rank, so set it as "design" option directly.
       message("Creating a DESeqDataSet object with a model formula")
       deseq_data_set <-
-        DESeqDataSet(se = ranged_summarized_experiment,
-                     design = as.formula(object = design_list$full_formula))
+        DESeq2::DESeqDataSet(se = ranged_summarized_experiment,
+                             design = as.formula(object = design_list$full_formula))
       # Start DESeq2 Wald testing.
       # Set betaPrior = FALSE for consistent result names for designs, regardless of interaction terms.
       # DESeq2 seems to set betaPrior = FALSE upon interaction terms, automatically.
@@ -728,7 +731,7 @@ initialise_deseq_data_set <- function(design_list) {
       # betaPrior also has to be FALSE in case a user-supplied full model matrix is specified.
       message("Started DESeq Wald testing with a model formula")
       deseq_data_set <-
-        DESeq(
+        DESeq2::DESeq(
           object = deseq_data_set,
           test = "Wald",
           betaPrior = FALSE,
@@ -742,11 +745,11 @@ initialise_deseq_data_set <- function(design_list) {
       # peform Wald testing with the full model matrix.
       message("Creating a DESeqDataSet object with design formula ~ 1")
       deseq_data_set <-
-        DESeqDataSet(se = ranged_summarized_experiment,
-                     design = ~ 1)
+        DESeq2::DESeqDataSet(se = ranged_summarized_experiment,
+                             design = ~ 1)
       message("Started DESeq Wald testing with a model matrix")
       deseq_data_set <-
-        DESeq(
+        DESeq2::DESeq(
           object = deseq_data_set,
           test = "Wald",
           betaPrior = FALSE,
@@ -797,7 +800,7 @@ initialise_deseq_transform <-
       message(paste("Creating a", suffix, "DESeqTransform object"))
       # Run variance stabilizing transformation (VST) to get homoskedastic data for PCA plots.
       deseq_transform <-
-        varianceStabilizingTransformation(object = deseq_data_set, blind = blind)
+        DESeq2::varianceStabilizingTransformation(object = deseq_data_set, blind = blind)
       save(deseq_transform, file = file_path)
     }
     rm(file_path, suffix)
@@ -1034,9 +1037,9 @@ plot_mds <- function(object,
                 NULL
               else
                 arrow(
-                length = unit(x = 0.08, units = "inches"),
-                type = "closed"
-              )
+                  length = unit(x = 0.08, units = "inches"),
+                  type = "closed"
+                )
             )
         }
         
@@ -1136,7 +1139,7 @@ plot_heatmap <- function(object,
       mat = dist_matrix,
       clustering_distance_rows = dist_object,
       clustering_distance_cols = dist_object,
-      color = colorRampPalette(colors = rev(x = brewer.pal(
+      color = colorRampPalette(colors = rev(x = RColorBrewer::brewer.pal(
         n = 9, name = "Blues"
       )))(255),
       fontsize_row = 6
@@ -1217,7 +1220,7 @@ plot_pca <- function(object,
   message(paste("Creating", suffix, "PCA plots"))
   
   # Calculate the variance for each gene.
-  row_variance <- rowVars(assay(x = object))
+  row_variance <- genefilter::rowVars(assay(x = object))
   # Select the top number of genes by variance.
   selected_rows <-
     order(row_variance, decreasing = TRUE)[seq_len(length.out = min(argument_list$pca_top_number, length(x = row_variance)))]
@@ -1402,7 +1405,7 @@ plot_pca <- function(object,
               paste(
                 prefix,
                 "pca",
-                paste(aes_character, collapse = "_"),
+                aes_list_to_character(aes_list = aes_list),
                 suffix,
                 sep = "_"
               ),
@@ -1411,13 +1414,11 @@ plot_pca <- function(object,
             )
           ))
         }
-        rm(
-          graphics_format,
-          ggplot_object,
-          pca_frame,
-          plotting_frame,
-          aes_character
-        )
+        rm(graphics_format,
+           ggplot_object,
+           pca_frame,
+           plotting_frame,
+           aes_character)
       }
     )
   
@@ -1470,8 +1471,8 @@ plot_rin_scores(object = deseq_data_set)
 # Example: "name_1:~genotype + gender;name_2:~1"
 reduced_formula_list <-
   lapply(
-    X = stri_split_fixed(
-      str = stri_split_fixed(str = global_design_list$reduced_formulas[1L], pattern = ";")[[1L]],
+    X = stringi::stri_split_fixed(
+      str = stringi::stri_split_fixed(str = global_design_list$reduced_formulas[1L], pattern = ";")[[1L]],
       pattern = ":"
     ),
     FUN = function(character_1) {
@@ -1489,16 +1490,20 @@ temporary_list <- lapply(
     if (!nzchar(x = reduced_formula_character)) {
       return()
     }
+    summary_list <- NULL
     file_path <-
       file.path(output_directory,
-                paste(paste(
-                  prefix,
-                  "lrt",
-                  attr(x = reduced_formula_character, which = "reduced_name"),
-                  sep = "_"
-                ),
-                "tsv",
-                sep = "."))
+                paste(
+                  paste(
+                    prefix,
+                    "lrt",
+                    attr(x = reduced_formula_character, which = "reduced_name"),
+                    "significant",
+                    sep = "_"
+                  ),
+                  "tsv",
+                  sep = "."
+                ))
     
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
@@ -1506,6 +1511,19 @@ temporary_list <- lapply(
         "Skipping reduced formula: ",
         attr(x = reduced_formula_character, which = "reduced_name")
       ))
+      # Read the existing table to count the number of significant genes after LRT.
+      deseq_merge_significant <-
+        read.table(file = file_path,
+                   header = TRUE,
+                   sep = "\t")
+      summary_list <- list(
+        "design" = global_design_list$design,
+        "full_formula" = global_design_list$full_formula,
+        "reduced_name" = attr(x = reduced_formula_character, which = "reduced_name"),
+        "reduced_formula" = reduced_formula_character,
+        "significant" = nrow(deseq_merge_significant)
+      )
+      rm(deseq_merge_significant)
     } else {
       message(paste0(
         "Processing reduced formula: ",
@@ -1549,7 +1567,7 @@ temporary_list <- lapply(
       # print(x = paste("DESeqDataSet LRT result names for", attr(x = reduced_formula_character, which = "reduced_name")))
       # print(x = resultsNames(object = deseq_data_set_lrt))
       deseq_results_lrt <-
-        results(
+        DESeq2::results(
           object = deseq_data_set_lrt,
           format = "DataFrame",
           tidy = FALSE,
@@ -1607,6 +1625,13 @@ temporary_list <- lapply(
         col.names = TRUE,
         row.names = FALSE
       )
+      summary_list <- list(
+        "design" = global_design_list$design,
+        "full_formula" = global_design_list$full_formula,
+        "reduced_name" = attr(x = reduced_formula_character, which = "reduced_name"),
+        "reduced_formula" = reduced_formula_character,
+        "significant" = nrow(deseq_merge_significant)
+      )
       rm(
         deseq_merge_significant,
         deseq_merge,
@@ -1616,7 +1641,25 @@ temporary_list <- lapply(
       )
     }
     rm(file_path)
+    return(summary_list)
   }
+)
+
+# Convert the (temporary) list of (summary) lists into a data.frame and write to disk.
+write.table(
+  x = plyr::ldply(.data = temporary_list, .fun = data.frame),
+  file = file.path(output_directory,
+                   paste(
+                     paste(prefix,
+                           "lrt",
+                           "summary",
+                           sep = "_"),
+                     "tsv",
+                     sep = "."
+                   )),
+  sep = "\t",
+  row.names = FALSE,
+  col.names = TRUE
 )
 rm(temporary_list, reduced_formula_list)
 
@@ -1633,22 +1676,22 @@ rm(temporary_list, reduced_formula_list)
 # Convert into a list of list objects with variables and aesthetics as names.
 plot_list <-
   lapply(
-    X = stri_split_fixed(str = global_design_list$plot_aes[1L], pattern = "|")[[1L]],
+    X = stringi::stri_split_fixed(str = global_design_list$plot_aes[1L], pattern = "|")[[1L]],
     FUN = function(plot_character) {
       single_geom_list <- lapply(
-        X = stri_split_fixed(
-          str = stri_split_fixed(str = plot_character[1L], pattern = ";")[[1L]],
+        X = stringi::stri_split_fixed(
+          str = stringi::stri_split_fixed(str = plot_character[1L], pattern = ";")[[1L]],
           pattern = ":"
         ),
         FUN = function(geom_aes_character) {
           # Split on "," characters and assign names (geometric names) to the list components (aesthetic list).
           geom_aes_list <-
             lapply(
-              X = stri_split_fixed(str = geom_aes_character[2L], pattern = ","),
+              X = stringi::stri_split_fixed(str = geom_aes_character[2L], pattern = ","),
               FUN = function(aes_character) {
                 # Split on "=" characters and assign names (aestetic names) to the list components (variable names).
                 temporary_list <-
-                  stri_split_fixed(str = aes_character, pattern = "=")
+                  stringi::stri_split_fixed(str = aes_character, pattern = "=")
                 aes_list <-
                   lapply(
                     X = temporary_list,
@@ -1696,7 +1739,7 @@ plot_list <-
 
 
 print(x = "DESeqDataSet result names:")
-print(x = resultsNames(object = deseq_data_set))
+print(x = DESeq2::resultsNames(object = deseq_data_set))
 
 # Export RAW counts -------------------------------------------------------
 
@@ -1728,7 +1771,8 @@ rm(file_path, counts_frame)
 
 # Export FPKM values from the DESeqDataSet object
 counts_frame <-
-  as(object = fpkm(object = deseq_data_set), Class = "DataFrame")
+  as(object = DESeq2::fpkm(object = deseq_data_set),
+     Class = "DataFrame")
 counts_frame$gene_id <- row.names(x = counts_frame)
 deseq_merge <-
   merge(x = annotation_frame, y = counts_frame, by = "gene_id")
