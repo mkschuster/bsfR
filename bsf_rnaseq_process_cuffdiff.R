@@ -1106,10 +1106,9 @@ if (file.exists(plot_path_pdf) &&
   message("Skipping a Dendrogram Plot on Genes [PDF]")
 } else {
   message("Creating a Dendrogram Plot on Genes [PDF]")
-  pdf(file = plot_path_pdf)
+  grDevices::pdf(file = plot_path_pdf)
   csDendro(object = genes(object = cuff_set))
-  active_device <- dev.off()
-  rm(active_device)
+  base::invisible(x = grDevices::dev.off())
 }
 rm(plot_path_pdf)
 
@@ -1120,10 +1119,9 @@ if (file.exists(plot_path_png) &&
   message("Skipping a Dendrogram Plot on Genes [PNG]")
 } else {
   message("Creating a Dendrogram Plot on Genes [PNG]")
-  png(filename = plot_path_png)
+  grDevices::png(filename = plot_path_png)
   csDendro(object = genes(object = cuff_set))
-  active_device <- dev.off()
-  rm(active_device)
+  base::invisible(x = grDevices::dev.off())
 }
 rm(plot_path_png)
 
@@ -1533,11 +1531,13 @@ if (file.exists(frame_path_genes) &&
     # via Ensembl (ENST) transcript identifiers.
     message("Merging reference and assembled transcriptome annotation")
     ensembl_frame <-
-      merge(x = assembly_frame,
-            y = reference_frame,
-            by = "ensembl_transcript_id",
-            # Keep all XLOC entries.
-            all.x = TRUE)
+      merge(
+        x = assembly_frame,
+        y = reference_frame,
+        by = "ensembl_transcript_id",
+        # Keep all XLOC entries.
+        all.x = TRUE
+      )
     rm(reference_frame, assembly_frame)
     
     # 4. Create a new, normalised Ensembl annotation data frame that correlates
@@ -1557,10 +1557,12 @@ if (file.exists(frame_path_genes) &&
     message("Collapsing aggregated Ensembl annotation")
     ensembl_annotation <-
       data.frame(
-        "gene_id" = unlist(x = lapply(X = aggregate_frame$gene_id, FUN = character_to_csv)),
-        "transcript_ids" = unlist(x = lapply(
-          X = aggregate_frame$transcript_id, FUN = character_to_csv
+        "gene_id" = unlist(x = lapply(
+          X = aggregate_frame$gene_id, FUN = character_to_csv
         )),
+        "transcript_ids" = unlist(
+          x = lapply(X = aggregate_frame$transcript_id, FUN = character_to_csv)
+        ),
         # "gene_names" = unlist(x = lapply(X = aggregate_frame$gene_name, FUN = character_to_csv)),
         "ensembl_gene_ids" = unlist(
           x = lapply(X = aggregate_frame$ensembl_gene_id, FUN = character_to_csv)
@@ -1591,7 +1593,8 @@ if (file.exists(frame_path_genes) &&
       "transcript_ids" = reference_frame$ensembl_transcript_id,
       "ensembl_gene_ids" = reference_frame$ensembl_gene_id,
       "ensembl_transcript_ids" = reference_frame$ensembl_transcript_id,
-      stringsAsFactors = FALSE)
+      stringsAsFactors = FALSE
+    )
   }
   rm(assembly_granges, reference_frame)
   

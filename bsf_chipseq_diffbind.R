@@ -90,12 +90,12 @@ if (file.exists(file_path) &&
   
   # Plot heatmap on peak caller scores ------------------------------------
   message("Plotting a correlation heatmap based on peak caller score data")
-  png(filename = file.path(
+  grDevices::png(filename = file.path(
     prefix,
     paste(prefix, "correlation_peak_caller_score.png", sep = "_")
   ))
   return_value <- dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
-  active_device <- dev.off()
+  base::invisible(x = grDevices::dev.off())
   
   # Count reads -----------------------------------------------------------
   message("Counting reads")
@@ -103,11 +103,12 @@ if (file.exists(file_path) &&
   
   # Plot heatmap on read counts -------------------------------------------
   message("Plotting a correlation heatmap based on read counts")
-  png(filename = file.path(prefix, paste(
-    prefix, "correlation_read_counts.png", sep = "_"
-  )))
+  grDevices::png(filename = file.path(
+    prefix,
+    paste(prefix, "correlation_read_counts.png", sep = "_")
+  ))
   return_value <- dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
-  active_device <- dev.off()
+  base::invisible(x = grDevices::dev.off())
   
   # Establish contrasts -----------------------------------------------------
   message("Establishing contrasts by tissue")
@@ -145,9 +146,11 @@ if (file.exists(file_path) &&
   
   # Plot heatmap on differential binding affinity -------------------------
   message("Plotting correlation heatmap based on differential binding affinity analysis")
-  png(filename = file.path(prefix, paste(prefix, "correlation_analysis.png", sep = "_")))
+  grDevices::png(filename = file.path(prefix, paste(
+    prefix, "correlation_analysis.png", sep = "_"
+  )))
   return_value <- dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
-  active_device <- dev.off()
+  base::invisible(x = grDevices::dev.off())
   
   # Save DBA object -------------------------------------------------------
   message("Saving DBA object to disk")
@@ -186,20 +189,25 @@ process_per_contrast <-
       # for the file name.
       file_path <-
         sprintf("%s_report_%s__%s", argument_list$factor, group1, group2)
-      diffbind_report <- dba.report(
-        DBA = diffbind_dba,
-        contrast = as.integer(contrast),
-        bNormalized = TRUE,
-        bCalled = TRUE,
-        bCounts = TRUE,
-        bCalledDetail = TRUE,
-        file = file_path,
-        DataType = DBA_DATA_FRAME
+      base::invisible(
+        x = dba.report(
+          DBA = diffbind_dba,
+          contrast = as.integer(contrast),
+          bNormalized = TRUE,
+          bCalled = TRUE,
+          bCounts = TRUE,
+          bCalledDetail = TRUE,
+          file = file_path,
+          DataType = DBA_DATA_FRAME
+        )
       )
       # Create a symbolic link from the akward report file name to standard file names,
       # used by this script.
       file_path <-
-        sprintf("DBA_%s_report_%s__%s.csv", argument_list$factor, group1, group2)
+        sprintf("DBA_%s_report_%s__%s.csv",
+                argument_list$factor,
+                group1,
+                group2)
       link_path <-
         sprintf("%s_report_%s__%s.csv",
                 prefix,
@@ -208,7 +216,10 @@ process_per_contrast <-
       if (!file.exists(link_path)) {
         if (!file.symlink(from = file_path,
                           to = link_path)) {
-          warning(paste0("Encountered an error linking DBA report file: ", file_path))
+          warning(paste0(
+            "Encountered an error linking DBA report file: ",
+            file_path
+          ))
         }
       }
       rm(link_path, file_path)
@@ -222,14 +233,14 @@ process_per_contrast <-
         group2
       )
     )
-    png(filename = sprintf("%s_ma_plot_%s__%s.png", prefix, group1, group2))
-    dba.plotMA(
+    grDevices::png(filename = sprintf("%s_ma_plot_%s__%s.png", prefix, group1, group2))
+    DiffBind::dba.plotMA(
       DBA = diffbind_dba,
       bNormalized = TRUE,
       bXY = FALSE,
       contrast = as.integer(contrast)
     )
-    active_device <- dev.off()
+    base::invisible(x = grDevices::dev.off())
     
     message(
       sprintf(
@@ -239,14 +250,14 @@ process_per_contrast <-
         group2
       )
     )
-    png(filename = sprintf("%s_scatter_plot_%s__%s.png", prefix, group1, group2))
-    dba.plotMA(
+    grDevices::png(filename = sprintf("%s_scatter_plot_%s__%s.png", prefix, group1, group2))
+    DiffBind::dba.plotMA(
       DBA = diffbind_dba,
       bNormalized = TRUE,
       bXY = TRUE,
       contrast = as.integer(contrast)
     )
-    active_device <- dev.off()
+    base::invisible(x = grDevices::dev.off())
     
     message(
       sprintf(
@@ -256,9 +267,9 @@ process_per_contrast <-
         group2
       )
     )
-    png(filename = sprintf("%s_pca_plot_%s__%s.png", prefix, group1, group2))
-    dba.plotPCA(DBA = diffbind_dba, attributes = DBA_CONDITION)
-    active_device <- dev.off()
+    grDevices::png(filename = sprintf("%s_pca_plot_%s__%s.png", prefix, group1, group2))
+    DiffBind::dba.plotPCA(DBA = diffbind_dba, attributes = DBA_CONDITION)
+    base::invisible(x = dev.off())
     
     if (db_number == 0L) {
       message(
@@ -278,10 +289,9 @@ process_per_contrast <-
           group2
         )
       )
-      png(filename = sprintf("%s_box_plot_%s__%s.png", prefix, group1, group2))
-      diffbind_pvals <-
-        dba.plotBox(DBA = diffbind_dba, bNormalized = TRUE)
-      active_device <- dev.off()
+      grDevices::png(filename = sprintf("%s_box_plot_%s__%s.png", prefix, group1, group2))
+      DiffBind::dba.plotBox(DBA = diffbind_dba, bNormalized = TRUE)
+      base::invisible(x = grDevices::dev.off())
     }
     
     return(TRUE)
@@ -301,11 +311,9 @@ contrast_frame$Group2 <-
        x = contrast_frame$Group2)
 
 # Write the contrasts data frame to disk.
-write.csv(
-  x = contrast_frame,
-  file = file.path(prefix, paste(prefix, "contrasts.csv", sep = "_")),
-  row.names = FALSE
-)
+write.csv(x = contrast_frame,
+          file = file.path(prefix, paste(prefix, "contrasts.csv", sep = "_")),
+          row.names = FALSE)
 
 # Since DiffBind is quite peculiar in writing report files,
 # set the output directory as new working directory. Sigh.
@@ -335,9 +343,9 @@ rm(return_value)
 # dba.overlap(DBA = diffbind_dba, mode = DBA_OLAP_RATE)
 
 # message("Creating a Venn diagram")
-# png(filename = paste(prefix, "box_plot.png", sep = "_"))
+# grDevices::png(filename = paste(prefix, "box_plot.png", sep = "_"))
 # dba.plotVenn(DBA = diffbind_dba)
-# active_device <- dev.off()
+# base::invisible(x = grDevices::dev.off())
 
 rm(
   diffbind_dba,

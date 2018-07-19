@@ -107,7 +107,7 @@ setClass(
   )
 )
 
-invisible(setMethod(
+base::invisible(x = setMethod(
   f = "initialize",
   signature = "PicardMetrics",
   definition = function(.Object,
@@ -132,7 +132,7 @@ invisible(setMethod(
 setClass(Class = "PicardBarcodeMetric",
          contains = "PicardMetrics")
 
-invisible(setGeneric(
+base::invisible(x = setGeneric(
   name = "process_metrics",
   def = function(.Object, name, ...) {
     # Melt the data frame to have series for total and pass_filter matches only.
@@ -237,7 +237,7 @@ invisible(setGeneric(
 setClass(Class = "PicardAlignmentSummary",
          contains = "PicardMetrics")
 
-invisible(setMethod(
+base::invisible(x = setMethod(
   f = "process_metrics",
   signature = c(".Object" = "PicardAlignmentSummary", "name" = "character"),
   definition = function(.Object, name, ...) {

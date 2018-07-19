@@ -872,7 +872,7 @@ plot_rin_scores <- function(object) {
         ggplot(data = as.data.frame(x = colData(x = object)))
       ggplot_object <-
         ggplot_object + ggtitle(label = "RNA Integry Number (RIN) Density Plot")
-      ggplot_object <- ggplot_object + xlim(RIN = c(0.0, 10.0))
+      ggplot_object <- ggplot_object + ggplot2::xlim(RIN = c(0.0, 10.0))
       ggplot_object <-
         ggplot_object + geom_vline(xintercept = 1.0,
                                    colour = "red",
@@ -1047,8 +1047,8 @@ plot_mds <- function(object,
           theme_bw() +
           coord_fixed()
         
-        # ggplot_object <- ggplot_object + xlim(min(mds_frame$X1, mds_frame$X2), max(mds_frame$X1, mds_frame$X2))
-        # ggplot_object <- ggplot_object + ylim(min(mds_frame$X1, mds_frame$X2), max(mds_frame$X1, mds_frame$X2))
+        # ggplot_object <- ggplot_object + ggplot2::xlim(min(mds_frame$X1, mds_frame$X2), max(mds_frame$X1, mds_frame$X2))
+        # ggplot_object <- ggplot_object + ggplot2::ylim(min(mds_frame$X1, mds_frame$X2), max(mds_frame$X1, mds_frame$X2))
         
         for (graphics_format in graphics_formats) {
           ggsave(filename = file.path(
@@ -1146,7 +1146,7 @@ plot_heatmap <- function(object,
     )
   
   # PDF output
-  pdf(
+  grDevices::pdf(
     file = file.path(output_directory,
                      paste(
                        paste(
@@ -1162,10 +1162,10 @@ plot_heatmap <- function(object,
   )
   # grid::grid.newpage()
   grid::grid.draw(pheatmap_object$gtable)
-  device_number <- dev.off()
+  base::invisible(x = grDevices::dev.off())
   
   # PNG output
-  png(
+  grDevices::png(
     file = file.path(output_directory,
                      paste(
                        paste(
@@ -1183,17 +1183,14 @@ plot_heatmap <- function(object,
   )
   # grid::grid.newpage()
   grid::grid.draw(pheatmap_object$gtable)
-  device_number <- dev.off()
+  base::invisible(x = grDevices::dev.off())
   
-  rm(
-    device_number,
-    dist_matrix,
-    dist_object,
-    group_factor,
-    plotting_frame,
-    aes_character,
-    suffix
-  )
+  rm(dist_matrix,
+     dist_object,
+     group_factor,
+     plotting_frame,
+     aes_character,
+     suffix)
 }
 
 # Plot Principal Component Analysis (PCA) ---------------------------------

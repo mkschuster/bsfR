@@ -223,7 +223,12 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
     message(paste0("Skipping DESeqResults for ", contrast_character))
     
     deseq_merge_significant <-
-      read.table(file = file_path, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+      read.table(
+        file = file_path,
+        header = TRUE,
+        sep = "\t",
+        stringsAsFactors = FALSE
+      )
     
     # Record the number of significant genes.
     contrast_frame[i, "Significant"] <-
@@ -262,10 +267,9 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
                   "pdf",
                   sep = "."
                 ))
-    pdf(file = file_path)
+    grDevices::pdf(file = file_path)
     plotMA(object = deseq_results)
-    return_value <- dev.off()
-    rm(return_value)
+    base::invisible(x = grDevices::dev.off())
     
     file_path <-
       file.path(output_directory,
@@ -278,10 +282,9 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
                   "png",
                   sep = "."
                 ))
-    png(file = file_path)
+    grDevices::png(file = file_path)
     plotMA(object = deseq_results)
-    return_value <- dev.off()
-    rm(return_value)
+    base::invisible(x = grDevices::dev.off())
     
     # DESeqResults DataFrame ------------------------------------------------
     
@@ -338,11 +341,13 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
     file_path <-
       file.path(output_directory,
                 paste(
-                  paste(prefix,
-                        "contrast",
-                        contrast_character,
-                        "significant",
-                        sep = "_"),
+                  paste(
+                    prefix,
+                    "contrast",
+                    contrast_character,
+                    "significant",
+                    sep = "_"
+                  ),
                   "tsv",
                   sep = "."
                 ))
@@ -372,7 +377,10 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
 
 write.table(
   x = contrast_frame,
-  file = file.path(output_directory, paste(prefix, "contrasts", "summary.tsv", sep = "_")),
+  file = file.path(
+    output_directory,
+    paste(prefix, "contrasts", "summary.tsv", sep = "_")
+  ),
   sep = "\t",
   col.names = TRUE,
   row.names = FALSE
