@@ -100,7 +100,7 @@ for (directory_name in directory_names) {
   file_names <-
     list.files(
       path = file.path(argument_list$genome_directory, directory_name),
-      pattern = paste("^rnaseq_deseq", design_name, "summary.tsv$", sep = "_"),
+      pattern = paste("^rnaseq_deseq", design_name, "contrasts_summary.tsv$", sep = "_"),
       full.names = TRUE
     )
   for (file_name in file_names) {
