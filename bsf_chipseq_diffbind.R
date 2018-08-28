@@ -76,7 +76,7 @@ if (!file.exists(output_directory)) {
 
 
 diffbind_dba <- NULL
-file_path <- file.path(prefix, paste0(prefix, '_dba.R'))
+file_path <- file.path(prefix, paste0(prefix, '_dba.Rdata'))
 if (file.exists(file_path) &&
     file.info(file_path)$size > 0L) {
   message("Loading a DiffBind DBA object")
@@ -156,6 +156,16 @@ if (file.exists(file_path) &&
   message("Saving DBA object to disk")
   save(diffbind_dba, file = file_path)
 }
+rm(file_path)
+
+# Create score-based PCA plot ---------------------------------------------
+# Create a PCA plot irrespective of contrasts on the basis of scores in the main binding matrix.
+message(
+  paste("Creating PCA plot for factor", argument_list$factor, sep = " ")
+)
+grDevices::png(filename = file.path(prefix, paste(prefix, "pca_plot.png", sep = "_")))
+DiffBind::dba.plotPCA(DBA = diffbind_dba, attributes = DBA_CONDITION)
+base::invisible(x = dev.off())
 
 process_per_contrast <-
   function(contrast, group1, group2, db_number) {
@@ -166,7 +176,7 @@ process_per_contrast <-
     
     # The working directory has been set to the output_directory.
     
-    # Write differentially bound sites to disk ----------------------------
+    # Write differentially bound sites ------------------------------------
     if (db_number == 0L) {
       message(
         sprintf(
@@ -201,6 +211,8 @@ process_per_contrast <-
           DataType = DBA_DATA_FRAME
         )
       )
+      
+      # Link differentually bound sites -----------------------------------
       # Create a symbolic link from the akward report file name to standard file names,
       # used by this script.
       file_path <-
@@ -225,6 +237,7 @@ process_per_contrast <-
       rm(link_path, file_path)
     }
     
+    # Create MA plot ------------------------------------------------------
     message(
       sprintf(
         "Creating MA plot for factor %s and contrast %s versus %s",
@@ -237,11 +250,12 @@ process_per_contrast <-
     DiffBind::dba.plotMA(
       DBA = diffbind_dba,
       bNormalized = TRUE,
-      bXY = FALSE,
+      bXY = FALSE,  # FALSE for a MA plot.
       contrast = as.integer(contrast)
     )
     base::invisible(x = grDevices::dev.off())
     
+    # Create Scatter plot -------------------------------------------------
     message(
       sprintf(
         "Creating scatter plot for factor %s and contrast %s versus %s",
@@ -254,23 +268,37 @@ process_per_contrast <-
     DiffBind::dba.plotMA(
       DBA = diffbind_dba,
       bNormalized = TRUE,
-      bXY = TRUE,
+      bXY = TRUE,  # TRUE for a scatter plot.
       contrast = as.integer(contrast)
     )
     base::invisible(x = grDevices::dev.off())
     
-    message(
-      sprintf(
-        "Creating PCA plot for factor %s and contrast %s versus %s",
-        argument_list$factor,
-        group1,
-        group2
+    # Create PCA plot -----------------------------------------------------
+    # This PCA plot is based upon the differential binding affinity analysis for the contrast.
+    if (db_number == 0L) {
+      message(
+        sprintf(
+          "Skipping PCA plot for factor %s and contrast %s versus %s",
+          argument_list$factor,
+          group1,
+          group2
+        )
       )
-    )
-    grDevices::png(filename = sprintf("%s_pca_plot_%s__%s.png", prefix, group1, group2))
-    DiffBind::dba.plotPCA(DBA = diffbind_dba, attributes = DBA_CONDITION)
-    base::invisible(x = dev.off())
+    } else {
+      message(
+        sprintf(
+          "Creating PCA plot for factor %s and contrast %s versus %s",
+          argument_list$factor,
+          group1,
+          group2
+        )
+      )
+      grDevices::png(filename = sprintf("%s_pca_plot_%s__%s.png", prefix, group1, group2))
+      DiffBind::dba.plotPCA(DBA = diffbind_dba, attributes = DBA_CONDITION, contrast = as.integer(contrast))
+      base::invisible(x = dev.off())
+    }
     
+    # Create Box plot -----------------------------------------------------
     if (db_number == 0L) {
       message(
         sprintf(
@@ -290,7 +318,7 @@ process_per_contrast <-
         )
       )
       grDevices::png(filename = sprintf("%s_box_plot_%s__%s.png", prefix, group1, group2))
-      DiffBind::dba.plotBox(DBA = diffbind_dba, bNormalized = TRUE)
+      DiffBind::dba.plotBox(DBA = diffbind_dba, bNormalized = TRUE, contrast = as.integer(contrast))
       base::invisible(x = grDevices::dev.off())
     }
     
@@ -338,7 +366,7 @@ return_value <-
     # before converting into an integer.
     as.integer(x = as.character(x = contrast_frame[, 5L]))
   )
-rm(return_value)
+rm(return_value, contrast_frame)
 
 # dba.overlap(DBA = diffbind_dba, mode = DBA_OLAP_RATE)
 
@@ -355,9 +383,6 @@ rm(
   original_directory,
   argument_list
 )
-
-message("Save workspace image for manual post-processing")
-save.image()
 
 message("All done")
 
