@@ -596,7 +596,7 @@ fix_model_matrix <- function(model_matrix_local) {
       message(paste(colnames(x = model_matrix_local)[model_all_zero], collapse = ", "))
       message("Attempting to fix the model matrix by removing empty columns.")
       model_matrix_local <-
-        model_matrix_local[,-which(x = model_all_zero)]
+        model_matrix_local[, -which(x = model_all_zero)]
     } else {
       message(
         "One or more variables or interaction terms in the design formula are linear combinations of the others."
@@ -938,7 +938,6 @@ plot_mds <- function(object,
     lapply(
       X = plot_list,
       FUN = function(aes_list) {
-        # plot_mds(object = deseq_transform, aes_list = aes_list)
         ggplot_object <-
           ggplot(data = mds_frame)
         
@@ -1108,7 +1107,7 @@ plot_heatmap <- function(object,
   
   aes_character <-
     unique(x = unlist(x = aes_list, use.names = TRUE))
-  message(paste("  Heat map plot:", aes_character))
+  message(paste("  Heat map plot:", aes_character, collapse = " "))
   if (!all(aes_character %in% names(x = colData(x = object)))) {
     stop("the argument 'aes_character' should specify columns of colData(dds)")
   }
@@ -1116,34 +1115,60 @@ plot_heatmap <- function(object,
   plotting_frame <-
     as.data.frame(colData(x = object)[, aes_character, drop = FALSE])
   
-  # Add the aes_character factors together to create a new grouping factor
-  group_factor <- if (length(x = aes_character) > 1) {
-    factor(x = apply(
-      X = plotting_frame,
-      MARGIN = 1,
-      FUN = paste,
-      collapse = " : "
-    ))
-  } else {
-    colData(x = object)[[aes_character]]
-  }
-  
+  # Transpose the counts table, since dist() works with columns and
+  # assign the sample names as column and row names to the resulting matrix.
   dist_object <- dist(x = t(x = assay(x = object)))
   dist_matrix <- as.matrix(x = dist_object)
-  colnames(x = dist_matrix) <- NULL
-  rownames(x = dist_matrix) <-
-    paste(object$sample, group_factor, sep = "-")
-  # TODO: Rather use the ComplexHeatmap package?
-  pheatmap_object <-
-    pheatmap(
-      mat = dist_matrix,
-      clustering_distance_rows = dist_object,
-      clustering_distance_cols = dist_object,
-      color = colorRampPalette(colors = rev(x = RColorBrewer::brewer.pal(
-        n = 9, name = "Blues"
-      )))(255),
-      fontsize_row = 6
-    )
+  colnames(x = dist_matrix) <- object$sample
+  rownames(x = dist_matrix) <- object$sample
+  
+  pheatmap_object <- NULL
+  
+  if (FALSE) {
+    # Add the aes_character factors together to create a new grouping factor
+    group_factor <- if (length(x = aes_character) > 1) {
+      factor(x = apply(
+        X = plotting_frame,
+        MARGIN = 1,
+        FUN = paste,
+        collapse = " : "
+      ))
+    } else {
+      colData(x = object)[[aes_character]]
+    }
+    
+    # Assign the grouping factor to the distance matrix row names.
+    colnames(x = dist_matrix) <- NULL
+    rownames(x = dist_matrix) <-
+      paste(object$sample, group_factor, sep = " - ")
+    
+    pheatmap_object <-
+      pheatmap(
+        mat = dist_matrix,
+        color = colorRampPalette(colors = rev(x = RColorBrewer::brewer.pal(
+          n = 9, name = "Blues"
+        )))(255),
+        clustering_distance_rows = dist_object,
+        clustering_distance_cols = dist_object,
+        fontsize_row = 6
+      )
+    rm(group_factor)
+  } else {
+    # Draw a heatmap with covariate column annotation.
+    pheatmap_object <-
+      pheatmap(
+        mat = dist_matrix,
+        color = colorRampPalette(colors = rev(x = RColorBrewer::brewer.pal(
+          n = 9, name = "Blues"
+        )))(255),
+        clustering_distance_rows = dist_object,
+        clustering_distance_cols = dist_object,
+        annotation_col = plotting_frame,
+        show_rownames = TRUE,
+        show_colnames = FALSE,
+        fontsize_row = 6
+      )
+  }
   
   # PDF output
   grDevices::pdf(
@@ -1187,7 +1212,6 @@ plot_heatmap <- function(object,
   
   rm(dist_matrix,
      dist_object,
-     group_factor,
      plotting_frame,
      aes_character,
      suffix)
