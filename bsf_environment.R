@@ -25,11 +25,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
-source(file = "http://bioconductor.org/biocLite.R")
+base::source(file = "http://bioconductor.org/biocLite.R")
 
 # Let the user choose mirror options or ...
-# chooseCRANmirror()
-# chooseBioCmirror()
+# utils::chooseCRANmirror()
+# utils::chooseBioCmirror()
 # ... set preferences via the options() function in e.g. .Rprofile.
 # options(
 #  repos = c("Austria (Vienna) [https]" = "https://cran.wu.ac.at/"),
@@ -37,12 +37,19 @@ source(file = "http://bioconductor.org/biocLite.R")
 # )
 
 
-# Update all CRAN and Bioconductor packages.
+# Update CRAN packages ----------------------------------------------------
 
-update.packages()
-biocUpdatePackages(pkgs = c())
+message("Updating CRAN packages ...")
+utils::update.packages(lib.loc = .Library, ask = FALSE)
 
-# CRAN packages for BSF R scripts.
+# Update Bioconductor packages --------------------------------------------
+
+message("Updating Bioconductor packages ...")
+BiocInstaller::biocUpdatePackages(pkgs = c(),
+                                  lib.loc = .Library,
+                                  ask = FALSE)
+
+# Check and install CRAN packages -----------------------------------------
 #
 # CRAN packages for GATK
 # https://github.com/broadgsa/gatk-protected/blob/master/public/gatk-engine/src/main/resources/org/broadinstitute/gatk/engine/recalibration/BQSR.R
@@ -51,22 +58,58 @@ biocUpdatePackages(pkgs = c())
 # grid: R system library, no need to install explicitly
 # tools: R system library, no need to install explicitly
 
-install.packages(pkgs = c(
-  "devtools",  # Development tools, including installation from GitHub repositories, etc.
-  "ggplot2",  # for almost eveything plot related, really ...
-  "ggrepel",  # for ggplot2 extension functions geom_text_repel() and geom_label_repel() to repel labes form data points.
-  "gplots",  # for GATK
-  "gsalib",  # for GATK
-  "hexbin",  # for ggplot2 functions geom_binhex() and stat_bin_hex()
-  "optparse",  # for option parsing
-  "reshape",  # for GATK
-  "VGAM"  # for Bioconductor monocle
-))
+message("Checking CRAN packages ...")
+cran_packages <- c(
+  "devtools",
+  # Development tools, including installation from GitHub repositories, etc.
+  "ggplot2",
+  # for almost eveything plot related, really ...
+  "ggrepel",
+  # for ggplot2 extension functions geom_text_repel() and geom_label_repel() to repel labes form data points.
+  "gplots",
+  # for GATK
+  "gsalib",
+  # for GATK
+  "hexbin",
+  # for ggplot2 functions geom_binhex() and stat_bin_hex()
+  "optparse",
+  # for option parsing
+  "reshape",
+  # for GATK
+  "VGAM",  # for Bioconductor monocle
+  "simpleCache", # FIXME: LOLA seems to depend on it, yet only suggest it. Why is it not declared?
+  "wordcloud" # FIXME: RnBeads depends on it.
+)
+for (i in seq_along(along.with = cran_packages)) {
+  if (suppressPackageStartupMessages(expr = base::require(
+    package = cran_packages[i],
+    lib.loc = .Library,
+    quietly = TRUE,
+    character.only = TRUE
+  ))) {
+    message(paste0("Skipping package ", cran_packages[i]))
+    # base::detach(
+    #   name = paste("package", cran_packages[i], sep = ":"),
+    #   unload = TRUE,
+    #   character.only = TRUE
+    # )
+  } else {
+    message(paste0("Installing package ", cran_packages[i]))
+    # utils::install.packages(pkgs = cran_packages[i],
+    #                  lib = .Library)
+  }
+}
+rm(i, cran_packages)
 
-biocLite(pkgs = c(
+# Check and install Bioconductor packages ---------------------------------
+
+message("Checking Bioconductor packages ...")
+bioconductor_packages <- c(
+  "BiocInstaller",
   "BiocParallel",
   # Biostrings genomes
-  "BSgenome.Hsapiens.1000genomes.hs37d5", # For bsf_variant_calling_coverage.R
+  "BSgenome.Hsapiens.1000genomes.hs37d5",
+  # For bsf_variant_calling_coverage.R
   "BSgenome.Hsapiens.UCSC.hg19",
   "BSgenome.Hsapiens.UCSC.hg19.masked",
   "BSgenome.Hsapiens.UCSC.hg38",
@@ -76,19 +119,57 @@ biocLite(pkgs = c(
   #
   "ChIPpeakAnno",
   "ComplexHeatmap",
-  "cummeRbund",  # for Cufflinks mRNA-seq data processing
-  "DESeq2",  # for RNA-seq analysis
-  "DiffBind",  # for differential ChIP-seq analysis
-  "goseq",  # for Gene Ontology annotation
-  "monocle",  # For single cell RNA-seq
-  "RnBeads",  # For Meth-seq anaylsis (FDb.InfiniumMethylation.hg19)
-  "TxDb.Hsapiens.UCSC.hg19.knownGene", # UCSC gene set
-  "TxDb.Hsapiens.UCSC.hg19.lincRNAsTranscripts",  # UCSC gene set
-  "TxDb.Hsapiens.UCSC.hg38.knownGene",  # UCSC gene set
-  "TxDb.Mmusculus.UCSC.mm10.ensGene",  # Ensembl gene set
-  "TxDb.Mmusculus.UCSC.mm10.knownGene",  # UCSC gene set
+  "cummeRbund",
+  # for Cufflinks mRNA-seq data processing
+  "DESeq2",
+  # for RNA-seq analysis
+  "DiffBind",
+  # for differential ChIP-seq analysis
+  "goseq",
+  # for Gene Ontology annotation
+  "monocle",
+  # For single cell RNA-seq
+  "RnBeads",
+  "RnBeads.hg38",
+  "doParallel",  # FIXME: RnBeads seems to depend on it, yet only suggest it. Why is it not declared?
+  "LOLA", # FIXME: Same as above. Sigh.
+  # For Illumina Sequence Anaylsis Viewer information
+  "savR",
+  # For Meth-seq anaylsis (FDb.InfiniumMethylation.hg19)
+  "TxDb.Hsapiens.UCSC.hg19.knownGene",
+  # UCSC gene set
+  "TxDb.Hsapiens.UCSC.hg19.lincRNAsTranscripts",
+  # UCSC gene set
+  "TxDb.Hsapiens.UCSC.hg38.knownGene",
+  # UCSC gene set
+  "TxDb.Mmusculus.UCSC.mm10.ensGene",
+  # Ensembl gene set
+  "TxDb.Mmusculus.UCSC.mm10.knownGene",
+  # UCSC gene set
   "VariantAnnotation"
-  ))
+)
+for (i in seq_along(along.with = bioconductor_packages)) {
+  if (suppressPackageStartupMessages(expr = base::require(
+    package = bioconductor_packages[i],
+    lib.loc = .Library,
+    quietly = TRUE,
+    character.only = TRUE
+  ))) {
+    message(paste0("Skipping package ", bioconductor_packages[i]))
+    if (!bioconductor_packages[i] %in% c("BiocInstaller")) {
+      # base::detach(
+      #   name = paste("package", bioconductor_packages[i], sep = ":"),
+      #   unload = TRUE,
+      #   character.only = TRUE
+      # )
+    }
+  } else {
+    message(paste0("Installing package ", bioconductor_packages[i]))
+    # BiocInstaller::biocLite(pkgs = bioconductor_packages[i],
+    #          lib = .Library)
+  }
+}
+rm(bioconductor_packages, i)
 
 message("All done")
 
