@@ -154,7 +154,7 @@ prefix <- output_directory
 
 message("Creating or loading a cummeRbund database")
 cuff_set <-
-  readCufflinks(
+  cummeRbund::readCufflinks(
     dir = cuffdiff_directory,
     gtfFile = argument_list$gtf_assembly,
     genome = argument_list$genome_version
@@ -178,7 +178,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
 } else {
   message("Creating a run information table")
   write.table(
-    x = runInfo(object = cuff_set),
+    x = cummeRbund::runInfo(object = cuff_set),
     file = frame_path,
     quote = FALSE,
     sep = "\t",
@@ -191,7 +191,7 @@ rm(frame_path)
 # Process Cuffdiff sample information -------------------------------------
 
 
-sample_frame <- samples(object = cuff_set)
+sample_frame <- cummeRbund::samples(object = cuff_set)
 # Get the number of samples.
 sample_number <- nrow(x = sample_frame)
 # Write the sample_frame table.
@@ -235,7 +235,7 @@ rm(frame_path, sample_frame)
 # Process Cuffdiff replicate information ----------------------------------
 
 
-replicate_frame <- replicates(object = cuff_set)
+replicate_frame <- cummeRbund::replicates(object = cuff_set)
 # Get the number of replicates.
 replicate_number <- nrow(x = replicate_frame)
 # Some plots require replicates. Check whether at least one row has a
@@ -272,20 +272,20 @@ if (file.exists(plot_path_pdf) &&
   message("Skipping a library scale plot on replicates")
 } else {
   message("Creating a library scale plot on replicates")
-  ggplot_object <- ggplot(data = replicate_frame)
+  ggplot_object <- ggplot2::ggplot(data = replicate_frame)
   ggplot_object <-
     ggplot_object + geom_point(mapping = aes(x = rep_name, y = log10(internal_scale)))
   ggplot_object <-
     ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
   plot_width <-
     argument_list$plot_width + (ceiling(x = replicate_number / 24L) - 1L) * argument_list$plot_width * 0.25
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_pdf,
     plot = ggplot_object,
     width = plot_width,
     height = argument_list$plot_height
   )
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_png,
     plot = ggplot_object,
     width = plot_width,
@@ -314,14 +314,15 @@ if (file.exists(plot_path_pdf) &&
   message("Skipping a Dispersion Plot on Genes")
 } else {
   message("Creating a Dispersion Plot on Genes")
-  ggplot_object <- dispersionPlot(object = genes(object = cuff_set))
-  ggsave(
+  ggplot_object <-
+    cummeRbund::dispersionPlot(object = cummeRbund::genes(object = cuff_set))
+  ggplot2::ggsave(
     filename = plot_path_pdf,
     plot = ggplot_object,
     width = argument_list$plot_width,
     height = argument_list$plot_height
   )
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_png,
     plot = ggplot_object,
     width = argument_list$plot_width,
@@ -347,14 +348,14 @@ if (file.exists(plot_path_pdf) &&
   message("Creating a Dispersion Plot on Isoforms")
   tryCatch({
     ggplot_object <-
-      dispersionPlot(object = isoforms(object = cuff_set))
-    ggsave(
+      cummeRbund::dispersionPlot(object = cummeRbund::isoforms(object = cuff_set))
+    ggplot2::ggsave(
       filename = plot_path_pdf,
       plot = ggplot_object,
       width = argument_list$plot_width,
       height = argument_list$plot_height
     )
-    ggsave(
+    ggplot2::ggsave(
       filename = plot_path_png,
       plot = ggplot_object,
       width = argument_list$plot_width,
@@ -386,14 +387,15 @@ if (file.exists(plot_path_pdf) &&
   # The plot requires replicates.
   if (have_replicates) {
     message("Creating a SCV Plot on Genes")
-    ggplot_object <- fpkmSCVPlot(object = genes(object = cuff_set))
-    ggsave(
+    ggplot_object <-
+      cummeRbund::fpkmSCVPlot(object = cummeRbund::genes(object = cuff_set))
+    ggplot2::ggsave(
       filename = plot_path_pdf,
       plot = ggplot_object,
       width = argument_list$plot_width,
       height = argument_list$plot_height
     )
-    ggsave(
+    ggplot2::ggsave(
       filename = plot_path_png,
       plot = ggplot_object,
       width = argument_list$plot_width,
@@ -423,14 +425,14 @@ if (file.exists(plot_path_pdf) &&
   if (have_replicates) {
     message("Creating a SCV Plot on Isoforms")
     ggplot_object <-
-      fpkmSCVPlot(object = isoforms(object = cuff_set))
-    ggsave(
+      cummeRbund::fpkmSCVPlot(object = cummeRbund::isoforms(object = cuff_set))
+    ggplot2::ggsave(
       filename = plot_path_pdf,
       plot = ggplot_object,
       width = argument_list$plot_width,
       height = argument_list$plot_height
     )
-    ggsave(
+    ggplot2::ggsave(
       filename = plot_path_png,
       plot = ggplot_object,
       width = argument_list$plot_width,
@@ -460,14 +462,15 @@ if (file.exists(plot_path_pdf) &&
 } else {
   message("Creating a Density Plot on Genes without replicates")
   ggplot_object <-
-    csDensity(object = genes(object = cuff_set), replicates = FALSE)
-  ggsave(
+    cummeRbund::csDensity(object = cummeRbund::genes(object = cuff_set),
+                          replicates = FALSE)
+  ggplot2::ggsave(
     filename = plot_path_pdf,
     plot = ggplot_object,
     width = argument_list$plot_width,
     height = argument_list$plot_height
   )
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_png,
     plot = ggplot_object,
     width = argument_list$plot_width,
@@ -494,14 +497,15 @@ if (file.exists(plot_path_pdf) &&
 } else {
   message("Creating a Density Plot on Genes with replicates")
   ggplot_object <-
-    csDensity(object = genes(object = cuff_set), replicates = TRUE)
-  ggsave(
+    cummeRbund::csDensity(object = cummeRbund::genes(object = cuff_set),
+                          replicates = TRUE)
+  ggplot2::ggsave(
     filename = plot_path_pdf,
     plot = ggplot_object,
     width = argument_list$plot_width,
     height = argument_list$plot_height
   )
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_png,
     plot = ggplot_object,
     width = argument_list$plot_width,
@@ -528,14 +532,15 @@ if (file.exists(plot_path_pdf) &&
 } else {
   message("Creating a Density Plot on Isoforms without replicates")
   ggplot_object <-
-    csDensity(object = isoforms(object = cuff_set), replicates = FALSE)
-  ggsave(
+    cummeRbund::csDensity(object = cummeRbund::isoforms(object = cuff_set),
+                          replicates = FALSE)
+  ggplot2::ggsave(
     filename = plot_path_pdf,
     plot = ggplot_object,
     width = argument_list$plot_width,
     height = argument_list$plot_height
   )
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_png,
     plot = ggplot_object,
     width = argument_list$plot_width,
@@ -562,14 +567,15 @@ if (file.exists(plot_path_pdf) &&
 } else {
   message("Creating a Density Plot on Isoforms with replicates")
   ggplot_object <-
-    csDensity(object = isoforms(object = cuff_set), replicates = TRUE)
-  ggsave(
+    cummeRbund::csDensity(object = cummeRbund::isoforms(object = cuff_set),
+                          replicates = TRUE)
+  ggplot2::ggsave(
     filename = plot_path_pdf,
     plot = ggplot_object,
     width = argument_list$plot_width,
     height = argument_list$plot_height
   )
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_png,
     plot = ggplot_object,
     width = argument_list$plot_width,
@@ -600,12 +606,14 @@ if (file.exists(plot_path_pdf) &&
   # shallowly sequenced samples, this affects the plot.
   # Hence reproduce the plot here.
   # ggplot_object <-
-  #   csBoxplot(object = genes(object = cuff_set), replicates = TRUE)
-  rep_fpkm_genes <- repFpkm(object = genes(object = cuff_set))
+  #   cummeRbund::csBoxplot(object = cummeRbund::genes(object = cuff_set),
+  #                         replicates = TRUE)
+  rep_fpkm_genes <-
+    cummeRbund::repFpkm(object = cummeRbund::genes(object = cuff_set))
   # Rename the "rep_name" column into "condition".
   colnames(x = rep_fpkm_genes)[colnames(x = rep_fpkm_genes) == "rep_name"] <-
     "condition"
-  ggplot_object <- ggplot(data = rep_fpkm_genes)
+  ggplot_object <- ggplot2::ggplot(data = rep_fpkm_genes)
   ggplot_object <-
     ggplot_object + geom_boxplot(
       mapping = aes(
@@ -629,13 +637,13 @@ if (file.exists(plot_path_pdf) &&
   # guide legend column.
   plot_width <-
     argument_list$plot_width + (ceiling(x = replicate_number / 24L) - 1L) * argument_list$plot_width * 0.25
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_pdf,
     plot = ggplot_object,
     width = plot_width,
     height = argument_list$plot_height
   )
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_png,
     plot = ggplot_object,
     width = plot_width,
@@ -662,12 +670,14 @@ if (file.exists(plot_path_pdf) &&
 } else {
   message("Creating a Box Plot on Genes without replicates")
   # ggplot_object <-
-  #   csBoxplot(object = genes(object = cuff_set), replicates = FALSE)
-  fpkm_genes <- fpkm(object = genes(object = cuff_set))
+  #   cummeRbund::csBoxplot(object = cummeRbund::genes(object = cuff_set),
+  #                         replicates = FALSE)
+  fpkm_genes <-
+    cummeRbund::fpkm(object = cummeRbund::genes(object = cuff_set))
   # Rename the "sample_name" column into "condition".
   colnames(fpkm_genes)[colnames(fpkm_genes) == "sample_name"] <-
     "condition"
-  ggplot_object <- ggplot(data = fpkm_genes)
+  ggplot_object <- ggplot2::ggplot(data = fpkm_genes)
   ggplot_object <-
     ggplot_object + geom_boxplot(
       mapping = aes(
@@ -691,13 +701,13 @@ if (file.exists(plot_path_pdf) &&
   # guide legend column.
   plot_width <-
     argument_list$plot_width + (ceiling(x = sample_number / 24L) - 1L) * argument_list$plot_width * 0.25
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_pdf,
     plot = ggplot_object,
     width = plot_width,
     height = argument_list$plot_height
   )
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_png,
     plot = ggplot_object,
     width = plot_width,
@@ -728,12 +738,14 @@ if (file.exists(plot_path_pdf) &&
   # shallowly sequenced samples, this affects the plot.
   # Hence reproduce the plot here.
   # ggplot_object <-
-  #   csBoxplot(object = isoforms(object = cuff_set), replicates = TRUE)
-  rep_fpkm_isoforms <- repFpkm(object = isoforms(object = cuff_set))
+  #   cummeRbund::csBoxplot(object = cummeRbund::isoforms(object = cuff_set),
+  #                         replicates = TRUE)
+  rep_fpkm_isoforms <-
+    cummeRbund::repFpkm(object = cummeRbund::isoforms(object = cuff_set))
   # Rename the "rep_name" column into "condition".
   colnames(rep_fpkm_isoforms)[colnames(rep_fpkm_isoforms) == "rep_name"] <-
     "condition"
-  ggplot_object <- ggplot(data = rep_fpkm_isoforms)
+  ggplot_object <- ggplot2::ggplot(data = rep_fpkm_isoforms)
   ggplot_object <-
     ggplot_object + geom_boxplot(
       mapping = aes(
@@ -757,13 +769,13 @@ if (file.exists(plot_path_pdf) &&
   # guide legend column.
   plot_width <-
     argument_list$plot_width + (ceiling(x = replicate_number / 24L) - 1L) * argument_list$plot_width * 0.25
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_pdf,
     plot = ggplot_object,
     width = plot_width,
     height = argument_list$plot_height
   )
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_png,
     plot = ggplot_object,
     width = plot_width,
@@ -790,12 +802,14 @@ if (file.exists(plot_path_pdf) &&
 } else {
   message("Creating a Box Plot on Isoforms without replicates")
   # ggplot_object <-
-  #   csBoxplot(object = isoforms(object = cuff_set), replicates = FALSE)
-  fpkm_isoforms <- fpkm(object = isoforms(object = cuff_set))
+  #   cummeRbund::csBoxplot(object = cummeRbund::isoforms(object = cuff_set),
+  #                         replicates = FALSE)
+  fpkm_isoforms <-
+    cummeRbund::fpkm(object = cummeRbund::isoforms(object = cuff_set))
   # Rename the "sample_name" column into "condition".
   colnames(fpkm_isoforms)[colnames(fpkm_isoforms) == "sample_name"] <-
     "condition"
-  ggplot_object <- ggplot(data = fpkm_isoforms)
+  ggplot_object <- ggplot2::ggplot(data = fpkm_isoforms)
   ggplot_object <-
     ggplot_object + geom_boxplot(
       mapping = aes(
@@ -819,13 +833,13 @@ if (file.exists(plot_path_pdf) &&
   # guide legend column.
   plot_width <-
     argument_list$plot_width + (ceiling(x = sample_number / 24L) - 1L) * argument_list$plot_width * 0.25
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_pdf,
     plot = ggplot_object,
     width = plot_width,
     height = argument_list$plot_height
   )
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_png,
     plot = ggplot_object,
     width = plot_width,
@@ -854,14 +868,14 @@ if (sample_number <= 20L) {
   } else {
     message("Creating a Scatter Matrix Plot on Genes")
     ggplot_object <-
-      csScatterMatrix(object = genes(object = cuff_set))
-    ggsave(
+      cummeRbund::csScatterMatrix(object = cummeRbund::genes(object = cuff_set))
+    ggplot2::ggsave(
       filename = plot_path_pdf,
       plot = ggplot_object,
       width = argument_list$plot_width,
       height = argument_list$plot_height
     )
-    ggsave(
+    ggplot2::ggsave(
       filename = plot_path_png,
       plot = ggplot_object,
       width = argument_list$plot_width,
@@ -890,14 +904,14 @@ if (sample_number <= 20L) {
   } else {
     message("Creating a Scatter Matrix Plot on Isoforms")
     ggplot_object <-
-      csScatterMatrix(object = isoforms(object = cuff_set))
-    ggsave(
+      cummeRbund::csScatterMatrix(object = cummeRbund::isoforms(object = cuff_set))
+    ggplot2::ggsave(
       filename = plot_path_pdf,
       plot = ggplot_object,
       width = argument_list$plot_width,
       height = argument_list$plot_height
     )
-    ggsave(
+    ggplot2::ggsave(
       filename = plot_path_png,
       plot = ggplot_object,
       width = argument_list$plot_width,
@@ -959,8 +973,8 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
     # Unfortunately, the standard cummeRbund csScatter() function
     # does not allow colouring by significance.
     # ggplot_object <-
-    #   csScatter(
-    #     object = genes(object = cuff_set),
+    #   cummeRbund::csScatter(
+    #     object = cummeRbund::genes(object = cuff_set),
     #     x = sample_pairs[1L, i],
     #     y = sample_pairs[2L, i],
     #     colorByStatus = TRUE
@@ -968,15 +982,15 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
     
     # Re-implement scatter plots here.
     diff_data_genes <-
-      diffData(
-        object = genes(object = cuff_set),
+      cummeRbund::diffData(
+        object = cummeRbund::genes(object = cuff_set),
         x = sample_pairs[1L, i],
         y = sample_pairs[2L, i],
         features = FALSE
       )
     ggplot_object <-
-      ggplot(data = diff_data_genes,
-             mapping = aes(x = value_1, y = value_2))
+      ggplot2::ggplot(data = diff_data_genes,
+                      mapping = aes(x = value_1, y = value_2))
     ggplot_object <- ggplot_object + theme_light()
     ggplot_object <-
       ggplot_object + labs(x = sample_pairs[1L, i], y = sample_pairs[2L, i])
@@ -1077,13 +1091,13 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
     
     rm(range_value_1, range_value_2)
     
-    ggsave(
+    ggplot2::ggsave(
       filename = plot_path_pdf,
       plot = ggplot_object,
       width = argument_list$plot_width,
       height = argument_list$plot_height
     )
-    ggsave(
+    ggplot2::ggsave(
       filename = plot_path_png,
       plot = ggplot_object,
       width = argument_list$plot_width,
@@ -1098,7 +1112,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
 
 
 # The csDendro function returns a dendrogram object that cannot be saved with
-# the ggsave function.
+# the ggplot2::ggsave() function.
 plot_path_pdf <-
   file.path(output_directory, paste0(prefix, "_genes_dendrogram.pdf"))
 if (file.exists(plot_path_pdf) &&
@@ -1107,7 +1121,7 @@ if (file.exists(plot_path_pdf) &&
 } else {
   message("Creating a Dendrogram Plot on Genes [PDF]")
   grDevices::pdf(file = plot_path_pdf)
-  csDendro(object = genes(object = cuff_set))
+  cummeRbund::csDendro(object = cummeRbund::genes(object = cuff_set))
   base::invisible(x = grDevices::dev.off())
 }
 rm(plot_path_pdf)
@@ -1120,7 +1134,7 @@ if (file.exists(plot_path_png) &&
 } else {
   message("Creating a Dendrogram Plot on Genes [PNG]")
   grDevices::png(filename = plot_path_png)
-  csDendro(object = genes(object = cuff_set))
+  cummeRbund::csDendro(object = cummeRbund::genes(object = cuff_set))
   base::invisible(x = grDevices::dev.off())
 }
 rm(plot_path_png)
@@ -1157,16 +1171,18 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       sample_pairs[2L, i]
     ))
     ggplot_object <-
-      MAplot(object = genes(object = cuff_set),
-             x = sample_pairs[1L, i],
-             y = sample_pairs[2L, i])
-    ggsave(
+      cummeRbund::MAplot(
+        object = cummeRbund::genes(object = cuff_set),
+        x = sample_pairs[1L, i],
+        y = sample_pairs[2L, i]
+      )
+    ggplot2::ggsave(
       filename = plot_path_pdf,
       plot = ggplot_object,
       width = argument_list$plot_width,
       height = argument_list$plot_height
     )
-    ggsave(
+    ggplot2::ggsave(
       filename = plot_path_png,
       plot = ggplot_object,
       width = argument_list$plot_width,
@@ -1196,14 +1212,14 @@ if (file.exists(plot_path_pdf) &&
 } else {
   message("Creating a Volcano Matrix Plot on Genes")
   ggplot_object <-
-    csVolcanoMatrix(object = genes(object = cuff_set))
-  ggsave(
+    cummeRbund::csVolcanoMatrix(object = cummeRbund::genes(object = cuff_set))
+  ggplot2::ggsave(
     filename = plot_path_pdf,
     plot = ggplot_object,
     width = argument_list$plot_width,
     height = argument_list$plot_height
   )
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_png,
     plot = ggplot_object,
     width = argument_list$plot_width,
@@ -1273,20 +1289,20 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
     # setGeneric("csVolcano",
     #            function(object, x, y, features=F, ...) standardGeneric("csVolcano"))
     ggplot_object <-
-      csVolcano(
-        object = genes(object = cuff_set),
+      cummeRbund::csVolcano(
+        object = cummeRbund::genes(object = cuff_set),
         x = sample_pairs[1L, i],
         y = sample_pairs[2L, i],
         alpha = 0.05,
         showSignificant = TRUE
       )
-    ggsave(
+    ggplot2::ggsave(
       filename = plot_path_pdf,
       plot = ggplot_object,
       width = argument_list$plot_width,
       height = argument_list$plot_height
     )
-    ggsave(
+    ggplot2::ggsave(
       filename = plot_path_png,
       plot = ggplot_object,
       width = argument_list$plot_width,
@@ -1318,15 +1334,15 @@ if (replicate_number > 2L) {
     # standard cummeRbund MDSplot() falls down.
     if (replicate_number <= 24L) {
       ggplot_object <-
-        MDSplot(object = genes(object = cuff_set),
-                replicates = TRUE)
-      ggsave(
+        cummeRbund::MDSplot(object = cummeRbund::genes(object = cuff_set),
+                            replicates = TRUE)
+      ggplot2::ggsave(
         filename = plot_path_pdf,
         plot = ggplot_object,
         width = argument_list$plot_width,
         height = argument_list$plot_height
       )
-      ggsave(
+      ggplot2::ggsave(
         filename = plot_path_png,
         plot = ggplot_object,
         width = argument_list$plot_width,
@@ -1336,9 +1352,9 @@ if (replicate_number > 2L) {
     } else {
       # The standard MDSplot has too many replicates.
       gene_rep_fit <-
-        cmdscale(d = JSdist(mat = makeprobs(a = repFpkmMatrix(
-          object = genes(object = cuff_set)
-        ))),
+        cmdscale(d = cummeRbund::JSdist(mat = makeprobs(
+          a = cummeRbund::repFpkmMatrix(object = cummeRbund::genes(object = cuff_set))
+        )),
         eig = TRUE,
         k = 2)
       gene_rep_res <-
@@ -1348,7 +1364,7 @@ if (replicate_number > 2L) {
           "M2" = gene_rep_fit$points[, 2L],
           stringsAsFactors = FALSE
         )
-      ggplot_object <- ggplot(data = gene_rep_res)
+      ggplot_object <- ggplot2::ggplot(data = gene_rep_res)
       ggplot_object <-
         ggplot_object + theme_bw()  # Add theme black and white.
       ggplot_object <-
@@ -1376,13 +1392,13 @@ if (replicate_number > 2L) {
       # additional guide legend column.
       plot_width <-
         argument_list$plot_width + (ceiling(x = replicate_number / 24L) - 1L) * argument_list$plot_width * 0.25
-      ggsave(
+      ggplot2::ggsave(
         filename = plot_path_pdf,
         plot = ggplot_object,
         width = plot_width,
         height = argument_list$plot_height
       )
-      ggsave(
+      ggplot2::ggsave(
         filename = plot_path_png,
         plot = ggplot_object,
         width = plot_width,
@@ -1413,19 +1429,19 @@ if (file.exists(plot_path_pdf) &&
 } else {
   message("Creating a Principal Component Analysis Plot (PCA) on Genes")
   ggplot_object <-
-    PCAplot(
-      object = genes(object = cuff_set),
+    cummeRbund::PCAplot(
+      object = cummeRbund::genes(object = cuff_set),
       x = "PC1",
       y = "PC2",
       replicates = TRUE
     )
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_pdf,
     plot = ggplot_object,
     width = argument_list$plot_width,
     height = argument_list$plot_height
   )
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_png,
     plot = ggplot_object,
     width = argument_list$plot_width,
@@ -1482,17 +1498,17 @@ if (file.exists(frame_path_genes) &&
   # (ENST) transcript identifiers, as well as official gene symbols.
   # Read only features of type "transcript".
   message("Reading reference transcriptome annotation")
-  reference_granges <- import(
+  reference_granges <- rtracklayer::import(
     con = argument_list$gtf_reference,
     format = "gtf",
     genome = argument_list$genome_version,
     feature.type = "transcript"
   )
+  # Selecting via mcols()[] returns a S4Vectors::DataFrame object.
   reference_frame <- unique.data.frame(
     x = data.frame(
-      "ensembl_gene_id" = reference_granges$gene_id,
-      "ensembl_transcript_id" = reference_granges$transcript_id,
-      # "gene_name" = reference_granges$gene_name,
+      "ensembl_gene_id" = mcols(x = reference_granges)$gene_id,
+      "ensembl_transcript_id" = mcols(x = reference_granges)$transcript_id,
       stringsAsFactors = TRUE
     )
   )
@@ -1504,24 +1520,26 @@ if (file.exists(frame_path_genes) &&
   # loci may have been merged or split by Cuffmerge.
   # The Cuffmerge GTF file has only features of type "exon".
   message("Reading assembled transcriptome annotation")
-  assembly_granges <- import(
+  assembly_granges <- rtracklayer::import(
     con = argument_list$gtf_assembly,
     format = "gtf",
     genome = argument_list$genome_version,
     feature.type = "exon"
   )
-  if ("nearest_ref" %in% names(x = assembly_granges)) {
+  if ("nearest_ref" %in% names(x = mcols(x = assembly_granges))) {
     # If a "nearest_ref" variable is defined, the GTF is a Cuffmerge assembly.
     #
     # Example: gene_id "XLOC_000001"; transcript_id "TCONS_00000001"; exon_number "1";
     #          gene_name "DDX11L1"; oId "CUFF.1.2"; nearest_ref "ENST00000450305";
     #          class_code "="; tss_id "TSS1";
+    #
+    # Selecting via mcols()[] returns a S4Vectors::DataFrame object.
     assembly_frame <- unique.data.frame(
       x = data.frame(
-        "gene_id" = assembly_granges$gene_id,
-        "transcript_id" = assembly_granges$transcript_id,
-        "gene_name" = assembly_granges$gene_name,
-        "ensembl_transcript_id" = assembly_granges$nearest_ref,
+        "gene_id" = mcols(x = assembly_granges)$gene_id,
+        "transcript_id" = mcols(x = assembly_granges)$transcript_id,
+        "gene_name" = mcols(x = assembly_granges)$gene_name,
+        "ensembl_transcript_id" = mcols(x = assembly_granges)$nearest_ref,
         stringsAsFactors = TRUE
       )
     )
@@ -1573,7 +1591,6 @@ if (file.exists(frame_path_genes) &&
         stringsAsFactors = FALSE
       )
     rm(aggregate_frame)
-    
   } else {
     # If a "nearest_ref" variable is missing,
     # the GTF is the original reference without de-novo transcript assembly.
@@ -1595,8 +1612,9 @@ if (file.exists(frame_path_genes) &&
       "ensembl_transcript_ids" = reference_frame$ensembl_transcript_id,
       stringsAsFactors = FALSE
     )
+    rm(reference_frame)
   }
-  rm(assembly_granges, reference_frame)
+  rm(assembly_granges)
   
   # 5. Create a gene annotation frame, ready for enriching
   # cummeRbund gene information, by merging the "gene_id", "gene_short_name"
@@ -1605,20 +1623,13 @@ if (file.exists(frame_path_genes) &&
   # Ensembl annotation frame.
   message("Creating gene annotation information")
   cufflinks_annotation <-
-    annotation(object = genes(object = cuff_set))
+    cummeRbund::annotation(object = cummeRbund::genes(object = cuff_set))
   gene_annotation_frame <- merge(
     # Merge with a simplified cummeRbund gene annotation data frame, since
     # variables "class_code", "nearest_ref_id", "length" and "coverage" seem
     # empty by design. Remove hidden exon information by finding unique
     # rows only.
-    x = unique.data.frame(
-      x = data.frame(
-        "gene_id" = cufflinks_annotation$gene_id,
-        "gene_short_name" = cufflinks_annotation$gene_short_name,
-        "locus" = cufflinks_annotation$locus,
-        stringsAsFactors = FALSE
-      )
-    ),
+    x = unique.data.frame(x = cufflinks_annotation[, c("gene_id", "gene_short_name", "locus"), drop = FALSE]),
     # Merge with the Ensembl annotation data frame that correlates gene (XLOC)
     # identifiers with comma-separated lists of Ensembl Gene and Transcript
     # identifiers.
@@ -1638,20 +1649,18 @@ if (file.exists(frame_path_genes) &&
   
   message("Creating isoform annotation information")
   cufflinks_annotation <-
-    annotation(object = isoforms(object = cuff_set))
-  isoform_annotation_frame <- unique.data.frame(
-    x = data.frame(
-      "isoform_id" = cufflinks_annotation$isoform_id,
-      "gene_id" = cufflinks_annotation$gene_id,
-      "gene_short_name" = cufflinks_annotation$gene_short_name,
-      "TSS_group_id" = cufflinks_annotation$TSS_group_id,
-      "class_code" = cufflinks_annotation$class_code,
-      "nearest_ref_id" = cufflinks_annotation$nearest_ref_id,
-      "locus" = cufflinks_annotation$locus,
-      "length" = cufflinks_annotation$length,
-      stringsAsFactors = FALSE
-    )
-  )
+    cummeRbund::annotation(object = cummeRbund::isoforms(object = cuff_set))
+  isoform_annotation_frame <-
+    unique.data.frame(x = cufflinks_annotation[, c(
+      "isoform_id",
+      "gene_id",
+      "gene_short_name",
+      "TSS_group_id",
+      "class_code",
+      "nearest_ref_id",
+      "locus",
+      "length"
+    ), drop = FALSE])
   rm(cufflinks_annotation)
   
   write.table(x = gene_annotation_frame,
@@ -1671,7 +1680,7 @@ rm(frame_path_genes, frame_path_isoforms)
 
 
 # Push the aggregated Ensembl gene annotation back into the SQLite database.
-if (any("ensembl_gene_ids" %in% names(x = annotation(object = genes(object = cuff_set))))) {
+if ("ensembl_gene_ids" %in% names(x = annotation(object = cummeRbund::genes(object = cuff_set)))) {
   message("Skipping Ensembl annotation for the SQLite database")
 } else {
   message("Creating Ensembl annotation for the SQLite database")
@@ -1723,8 +1732,8 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
     # of columns of the same name interfere with the merge() function,
     # so that the first column needs removing.
     diff_data_genes <-
-      diffData(
-        object = genes(object = cuff_set),
+      cummeRbund::diffData(
+        object = cummeRbund::genes(object = cuff_set),
         x = sample_pairs[1L, i],
         y = sample_pairs[2L, i],
         features = FALSE
@@ -1818,8 +1827,8 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
     # data.frame columns of the same name interfere with the merge() function,
     # so that the first column needs removing.
     diff_data_isoform <-
-      diffData(
-        object = isoforms(object = cuff_set),
+      cummeRbund::diffData(
+        object = cummeRbund::isoforms(object = cuff_set),
         x = sample_pairs[1L, i],
         y = sample_pairs[2L, i],
         features = FALSE
@@ -1914,8 +1923,8 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
   
   for (i in seq_along(along.with = sample_pairs[1L,])) {
     diff_data_genes <-
-      diffData(
-        object = genes(object = cuff_set),
+      cummeRbund::diffData(
+        object = cummeRbund::genes(object = cuff_set),
         x = sample_pairs[1L, i],
         y = sample_pairs[2L, i],
         features = FALSE
@@ -1976,8 +1985,8 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
   
   for (i in seq_along(along.with = sample_pairs[1L,])) {
     diff_data_isoforms <-
-      diffData(
-        object = isoforms(object = cuff_set),
+      cummeRbund::diffData(
+        object = cummeRbund::isoforms(object = cuff_set),
         x = sample_pairs[1L, i],
         y = sample_pairs[2L, i],
         features = FALSE
@@ -2013,7 +2022,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
 } else {
   message("Creating a matrix of FPKM values per replicates on genes")
   gene_rep_fpkm_matrix <-
-    repFpkmMatrix(object = genes(object = cuff_set))
+    cummeRbund::repFpkmMatrix(object = cummeRbund::genes(object = cuff_set))
   gene_merge <-
     merge(
       x = gene_annotation_frame,
@@ -2045,7 +2054,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
 } else {
   message("Creating a matrix of count values per replicates on genes")
   gene_rep_count_matrix <-
-    repCountMatrix(object = genes(object = cuff_set))
+    cummeRbund::repCountMatrix(object = cummeRbund::genes(object = cuff_set))
   gene_merge <-
     merge(
       x = gene_annotation_frame,
@@ -2078,7 +2087,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
 } else {
   message("Creating a matrix of FPKM per replicates on isoforms")
   isoform_rep_fpkm_matrix <-
-    repFpkmMatrix(object = isoforms(object = cuff_set))
+    cummeRbund::repFpkmMatrix(object = cummeRbund::isoforms(object = cuff_set))
   isoform_merge <-
     merge(
       x = isoform_annotation_frame,
@@ -2111,7 +2120,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
 } else {
   message("Creating a matrix of count values per replicates on isoforms")
   isoform_rep_count_matrix <-
-    repCountMatrix(object = isoforms(object = cuff_set))
+    cummeRbund::repCountMatrix(object = cummeRbund::isoforms(object = cuff_set))
   isoform_merge <-
     merge(
       x = isoform_annotation_frame,
@@ -2150,13 +2159,13 @@ if (file.exists(plot_path_pdf) &&
 } else {
   message("Creating a significance matrix plot on Genes")
   ggplot_object <- sigMatrix(object = cuff_set, level = "genes")
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_pdf,
     plot = ggplot_object,
     width = argument_list$plot_width,
     height = argument_list$plot_height
   )
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_png,
     plot = ggplot_object,
     width = argument_list$plot_width,
@@ -2183,13 +2192,13 @@ if (file.exists(plot_path_pdf) &&
 } else {
   message("Creating a significance matrix plot on Isoforms")
   ggplot_object <- sigMatrix(object = cuff_set, level = "isoforms")
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_pdf,
     plot = ggplot_object,
     width = argument_list$plot_width,
     height = argument_list$plot_height
   )
-  ggsave(
+  ggplot2::ggsave(
     filename = plot_path_png,
     plot = ggplot_object,
     width = argument_list$plot_width,
@@ -2207,7 +2216,7 @@ rm(gene_annotation_frame, isoform_annotation_frame)
 # significant_gene_ids <-
 #   getSig(object = cuff_set, level = "genes")
 # significant_genes <-
-#   getGenes(object = cuff_set, geneIdList = significant_gene_ids)
+#   cummeRbund::getGenes(object = cuff_set, geneIdList = significant_gene_ids)
 
 # The csHeatmap plot does not seem to be a sensible option for larger sets
 # of significant genes.
