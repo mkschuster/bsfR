@@ -1146,12 +1146,12 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
   plot_path_pdf <-
     file.path(
       output_directory,
-      paste(prefix, sample_pairs[1L, i], sample_pairs[2L, i], "maplot.pdf", sep = "_")
+      paste(prefix, sample_pairs[1L, i], sample_pairs[2L, i], "genes_ma.pdf", sep = "_")
     )
   plot_path_png <-
     file.path(
       output_directory,
-      paste(prefix, sample_pairs[1L, i], sample_pairs[2L, i], "maplot.png", sep = "_")
+      paste(prefix, sample_pairs[1L, i], sample_pairs[2L, i], "genes_ma.png", sep = "_")
     )
   if (file.exists(plot_path_pdf) &&
       (file.info(plot_path_pdf)$size > 0L) &&
