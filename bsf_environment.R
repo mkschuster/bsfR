@@ -133,7 +133,9 @@ bioconductor_packages <- c(
   "RnBeads.hg38",
   "doParallel",  # FIXME: RnBeads seems to depend on it, yet only suggest it. Why is it not declared?
   "LOLA", # FIXME: Same as above. Sigh.
-  # For Illumina Sequence Anaylsis Viewer information
+  "org.Hs.eg.db",
+  "org.Mm.eg.db",
+  # For Illumina Sequence Analysis Viewer information
   "savR",
   # For Meth-seq anaylsis (FDb.InfiniumMethylation.hg19)
   "TxDb.Hsapiens.UCSC.hg19.knownGene",
