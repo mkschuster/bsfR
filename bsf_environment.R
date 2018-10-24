@@ -60,6 +60,8 @@ BiocInstaller::biocUpdatePackages(pkgs = c(),
 
 message("Checking CRAN packages ...")
 cran_packages <- c(
+  "caret",
+  # for bsf_rnaseq_deseq_analysis.R
   "devtools",
   # Development tools, including installation from GitHub repositories, etc.
   "ggplot2",
@@ -108,6 +110,7 @@ bioconductor_packages <- c(
   "BiocInstaller",
   "BiocParallel",
   # Biostrings genomes
+  "BSgenome.Ggallus.UCSC.galGal5",
   "BSgenome.Hsapiens.1000genomes.hs37d5",
   # For bsf_variant_calling_coverage.R
   "BSgenome.Hsapiens.UCSC.hg19",
@@ -133,6 +136,7 @@ bioconductor_packages <- c(
   "RnBeads.hg38",
   "doParallel",  # FIXME: RnBeads seems to depend on it, yet only suggest it. Why is it not declared?
   "LOLA", # FIXME: Same as above. Sigh.
+  "org.Gg.eg.db",
   "org.Hs.eg.db",
   "org.Mm.eg.db",
   # For Illumina Sequence Analysis Viewer information
