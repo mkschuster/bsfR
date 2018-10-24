@@ -239,7 +239,7 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
     message(paste0("Creating DESeqResults for ", contrast_character))
     
     deseq_results <-
-      results(
+      DESeq2::results(
         object = deseq_data_set,
         contrast = contrast_list,
         lfcThreshold = argument_list$lfc_threshold,
@@ -268,7 +268,7 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
                   sep = "."
                 ))
     grDevices::pdf(file = file_path)
-    plotMA(object = deseq_results)
+    DESeq2::plotMA(object = deseq_results)
     base::invisible(x = grDevices::dev.off())
     
     file_path <-
@@ -283,13 +283,14 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
                   sep = "."
                 ))
     grDevices::png(file = file_path)
-    plotMA(object = deseq_results)
+    DESeq2::plotMA(object = deseq_results)
     base::invisible(x = grDevices::dev.off())
     
     # DESeqResults DataFrame ------------------------------------------------
     
     
-    # Re-adjust the DESeqResults DataFrame for merging with the annotation DataFrame.
+    # Adjust the DESeqResults DataFrame for merging with the annotation DataFrame,
+    # by setting the rownames() as "gene_id" variable.
     deseq_results_frame <-
       DataFrame(
         gene_id = rownames(x = deseq_results),
@@ -301,9 +302,36 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
                           "padj")],
         significant = factor(x = "no", levels = c("no", "yes"))
       )
+    
+    # Assign the "significant" factor on the basis of the adjusted p-value threshold.
     deseq_results_frame[!is.na(x = deseq_results_frame$padj) &
                           deseq_results_frame$padj <= argument_list$padj_threshold, "significant"] <-
       "yes"
+    
+    # Calculate ranks for ...
+    # (1) the effect size (log2FoldChange), ...
+    deseq_results_frame$rank_log2_fold_change <-
+      base::rank(
+        x = -abs(x = deseq_results_frame$log2FoldChange),
+        ties.method = c("min")
+      )
+    
+    # (2) the absolute level (baseMean) and ...
+    deseq_results_frame$rank_base_mean <-
+      base::rank(x = -deseq_results_frame$baseMean,
+                 ties.method = c("min"))
+    
+    # (3) the statistical significance (padj).
+    deseq_results_frame$rank_padj <-
+      base::rank(x = deseq_results_frame$padj, ties.method = c("min"))
+    
+    # Calculate the maximum of the three ranks.
+    deseq_results_frame$max_rank <-
+      base::pmax(
+        deseq_results_frame$rank_log2_fold_change,
+        deseq_results_frame$rank_base_mean,
+        deseq_results_frame$rank_padj
+      )
     
     deseq_merge <-
       merge(x = annotation_frame, y = deseq_results_frame, by = "gene_id")
