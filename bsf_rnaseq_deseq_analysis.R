@@ -543,10 +543,10 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     }
     rm(library_type)
     
-    # Calculate colSums() of assay() and add as total_count into the colData data frame.
+    # Calculate colSums() of SummarizedExperiment::assay() and add as total_count into the colData data frame.
     sample_frame <- colData(x = ranged_summarized_experiment)
     sample_frame$total_counts <-
-      colSums(x = assay(x = ranged_summarized_experiment),
+      colSums(x = SummarizedExperiment::assay(x = ranged_summarized_experiment),
               na.rm = TRUE)
     colData(x = ranged_summarized_experiment) <- sample_frame
     
@@ -872,7 +872,8 @@ plot_rin_scores <- function(object) {
         ggplot(data = as.data.frame(x = colData(x = object)))
       ggplot_object <-
         ggplot_object + ggtitle(label = "RNA Integry Number (RIN) Density Plot")
-      ggplot_object <- ggplot_object + ggplot2::xlim(RIN = c(0.0, 10.0))
+      ggplot_object <-
+        ggplot_object + ggplot2::xlim(RIN = c(0.0, 10.0))
       ggplot_object <-
         ggplot_object + geom_vline(xintercept = 1.0,
                                    colour = "red",
@@ -888,7 +889,7 @@ plot_rin_scores <- function(object) {
       ggplot_object <-
         ggplot_object + geom_density(mapping = aes(x = RIN, y = ..density..))
       for (plot_path in plot_paths) {
-        ggsave(
+        ggplot2::ggsave(
           filename = plot_path,
           width = argument_list$plot_width,
           height = argument_list$plot_height,
@@ -929,7 +930,8 @@ plot_mds <- function(object,
   
   message(paste("Creating", suffix, "MDS plots"))
   
-  dist_object <- dist(x = t(x = assay(x = object)))
+  dist_object <-
+    dist(x = t(x = SummarizedExperiment::assay(x = object)))
   dist_matrix <- as.matrix(x = dist_object)
   mds_frame <-
     cbind(data.frame(cmdscale(d = dist_matrix)), as.data.frame(colData(x = object)))
@@ -1050,7 +1052,7 @@ plot_mds <- function(object,
         # ggplot_object <- ggplot_object + ggplot2::ylim(min(mds_frame$X1, mds_frame$X2), max(mds_frame$X1, mds_frame$X2))
         
         for (graphics_format in graphics_formats) {
-          ggsave(filename = file.path(
+          ggplot2::ggsave(filename = file.path(
             output_directory,
             paste(
               paste(
@@ -1117,7 +1119,8 @@ plot_heatmap <- function(object,
   
   # Transpose the counts table, since dist() works with columns and
   # assign the sample names as column and row names to the resulting matrix.
-  dist_object <- dist(x = t(x = assay(x = object)))
+  dist_object <-
+    dist(x = t(x = SummarizedExperiment::assay(x = object)))
   dist_matrix <- as.matrix(x = dist_object)
   colnames(x = dist_matrix) <- object$sample
   rownames(x = dist_matrix) <- object$sample
@@ -1241,15 +1244,46 @@ plot_pca <- function(object,
   message(paste("Creating", suffix, "PCA plots"))
   
   # Calculate the variance for each gene.
-  row_variance <- genefilter::rowVars(assay(x = object))
+  row_variance <-
+    genefilter::rowVars(x = SummarizedExperiment::assay(x = object))
   # Select the top number of genes by variance.
   selected_rows <-
     order(row_variance, decreasing = TRUE)[seq_len(length.out = min(argument_list$pca_top_number, length(x = row_variance)))]
   
-  # Perform a PCA on the data in assay(x) for the selected genes
+  # Perform a PCA on the (count) matrix returned by SummarizedExperiment::assay() for the selected genes.
   pca_object <-
-    prcomp(x = t(x = assay(x = object)[selected_rows,]))
+    prcomp(x = t(x = SummarizedExperiment::assay(x = object)[selected_rows,]))
   rm(selected_rows)
+  
+  # Plot the variance for a maximum of 100 components.
+  
+  plotting_frame <-
+    data.frame(
+      "component" = seq_along(along.with = pca_object$sdev),
+      "variance" = pca_object$sdev ^ 2 / sum(pca_object$sdev ^ 2)
+    )[seq_len(length.out = min(100L, length(x = pca_object$sdev))), , drop = FALSE]
+  print("PCA variance data frame")
+  print(x = str(object = plotting_frame))
+  
+  ggplot_object <-
+    ggplot2::ggplot(data = plotting_frame)
+  ggplot_object <-
+    ggplot_object + ggplot2::geom_point(mapping = aes(x = component, y = variance))
+  ggplot_object <-
+    ggplot_object + ggplot2::ggtitle(label = "Variance by Component")
+  for (graphics_format in graphics_formats) {
+    ggplot2::ggsave(filename = file.path(output_directory,
+                                         paste(
+                                           paste(prefix,
+                                                 "pca",
+                                                 "variance",
+                                                 suffix,
+                                                 sep = "_"),
+                                           graphics_format,
+                                           sep = "."
+                                         )))
+  }
+  rm(graphics_format, ggplot_object, plotting_frame)
   
   # The pca_object$x matrix has as many columns and rows as there are samples.
   pca_dimensions <-
@@ -1420,7 +1454,7 @@ plot_pca <- function(object,
             labeller = labeller(component_1 = label_function, component_2 = label_function)
           )
         for (graphics_format in graphics_formats) {
-          ggsave(filename = file.path(
+          ggplot2::ggsave(filename = file.path(
             output_directory,
             paste(
               paste(
@@ -1767,7 +1801,7 @@ print(x = DESeq2::resultsNames(object = deseq_data_set))
 
 # Export the raw counts from the DESeqDataSet object.
 counts_frame <-
-  as(object = assays(x = deseq_data_set)$counts,
+  as(object = SummarizedExperiment::assays(x = deseq_data_set)$counts,
      Class = "DataFrame")
 counts_frame$gene_id <- row.names(x = counts_frame)
 deseq_merge <-
@@ -1848,7 +1882,7 @@ for (blind in c(FALSE, TRUE)) {
   
   # Export the vst counts from the DESeqTransform object
   counts_frame <-
-    as(object = assay(x = deseq_transform, i = 1),
+    as(object = SummarizedExperiment::assay(x = deseq_transform, i = 1),
        Class = "DataFrame")
   counts_frame$gene_id <- row.names(x = counts_frame)
   deseq_merge <-
