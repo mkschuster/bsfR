@@ -73,6 +73,8 @@ cran_packages <- c(
   "gsalib",
   # for GATK
   "hexbin",
+  # For RnBeads
+  "impute",
   # for ggplot2 functions geom_binhex() and stat_bin_hex()
   "optparse",
   # for option parsing
