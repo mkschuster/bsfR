@@ -94,12 +94,14 @@ if (file.exists(file_path) &&
     prefix,
     paste(prefix, "correlation_peak_caller_score.png", sep = "_")
   ))
-  return_value <- DiffBind::dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
+  return_value <-
+    DiffBind::dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
   base::invisible(x = grDevices::dev.off())
   
   # Count reads -----------------------------------------------------------
   message("Counting reads")
-  diffbind_dba <- DiffBind::dba.count(DBA = diffbind_dba, bCorPlot = FALSE)
+  diffbind_dba <-
+    DiffBind::dba.count(DBA = diffbind_dba, bCorPlot = FALSE)
   
   # Plot heatmap on read counts -------------------------------------------
   message("Plotting a correlation heatmap based on read counts")
@@ -107,20 +109,22 @@ if (file.exists(file_path) &&
     prefix,
     paste(prefix, "correlation_read_counts.png", sep = "_")
   ))
-  return_value <- DiffBind::dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
+  return_value <-
+    DiffBind::dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
   base::invisible(x = grDevices::dev.off())
   
   # Establish contrasts -----------------------------------------------------
   message("Establishing contrasts by tissue")
   # The categories default to DiffBind::DBA_TISSUE, DiffBind::DBA_FACTOR, DiffBind::DBA_CONDITION and DiffBind::DBA_TREATMENT.
-  diffbind_dba <- DiffBind::dba.contrast(DBA = diffbind_dba, minMembers = 2)
+  diffbind_dba <-
+    DiffBind::dba.contrast(DBA = diffbind_dba, minMembers = 2)
   # Check if setting contrasts was successful. It may not be, if less than two replicates were available.
   if (is.null(x = diffbind_dba$contrasts)) {
     # Set the mask manually. For the moment this only works for two samples.
     if (nrow(x = diffbind_dba$samples) == 2) {
       message("In lack of replicates, setting contrasts on the basis of the first two conditions")
       diffbind_conditions <-
-        unique(x = diffbind_dba$class[DiffBind::DBA_CONDITION, ])
+        unique(x = diffbind_dba$class[DiffBind::DBA_CONDITION,])
       diffbind_dba <- DiffBind::dba.contrast(
         DBA = diffbind_dba,
         group1 = DiffBind::dba.mask(
@@ -142,14 +146,16 @@ if (file.exists(file_path) &&
   
   # Run differential binding affinity analysis ----------------------------
   message("Running differential binding affinity analysis")
-  diffbind_dba <- DiffBind::dba.analyze(DBA = diffbind_dba, bCorPlot = FALSE)
+  diffbind_dba <-
+    DiffBind::dba.analyze(DBA = diffbind_dba, bCorPlot = FALSE)
   
   # Plot heatmap on differential binding affinity -------------------------
   message("Plotting correlation heatmap based on differential binding affinity analysis")
   grDevices::png(filename = file.path(prefix, paste(
     prefix, "correlation_analysis.png", sep = "_"
   )))
-  return_value <- DiffBind::dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
+  return_value <-
+    DiffBind::dba.plotHeatmap(DBA = diffbind_dba, margin = 25)
   base::invisible(x = grDevices::dev.off())
   
   # Save DBA object -------------------------------------------------------
@@ -160,9 +166,7 @@ rm(file_path)
 
 # Create score-based PCA plot ---------------------------------------------
 # Create a PCA plot irrespective of contrasts on the basis of scores in the main binding matrix.
-message(
-  paste("Creating PCA plot for factor", argument_list$factor, sep = " ")
-)
+message(paste("Creating PCA plot for factor", argument_list$factor, sep = " "))
 grDevices::png(filename = file.path(prefix, paste(prefix, "pca_plot.png", sep = "_")))
 DiffBind::dba.plotPCA(DBA = diffbind_dba, attributes = DiffBind::DBA_CONDITION)
 base::invisible(x = dev.off())
@@ -197,47 +201,6 @@ process_per_contrast <-
           group2
         )
       )
-      # The report function is quite peculiar in that it insists on a prefix DBA_
-      # for the file name.
-      file_path <-
-        sprintf("%s_report_%s__%s", argument_list$factor, group1, group2)
-      base::invisible(
-        x = DiffBind::dba.report(
-          DBA = diffbind_dba,
-          contrast = as.integer(x = contrast),
-          bNormalized = TRUE,
-          bCalled = TRUE,
-          bCounts = TRUE,
-          bCalledDetail = TRUE,
-          file = file_path,
-          DataType = DiffBind::DBA_DATA_FRAME
-        )
-      )
-      
-      # Link differentially bound sites -----------------------------------
-      # Create a symbolic link from the akward report file name to standard file names,
-      # used by this script.
-      file_path <-
-        sprintf("DBA_%s_report_%s__%s.csv",
-                argument_list$factor,
-                group1,
-                group2)
-      link_path <-
-        sprintf("%s_report_%s__%s.csv",
-                prefix,
-                group1,
-                group2)
-      if (!file.exists(link_path)) {
-        if (!file.symlink(from = file_path,
-                          to = link_path)) {
-          warning(paste0(
-            "Encountered an error linking DBA report file: ",
-            file_path
-          ))
-        }
-      }
-      rm(link_path, file_path)
-      
       # To annotate peaks as differentially bound or not, export all sites as a
       # GRanges object and write it as a BED file to disk. All sites can be obtained by
       # setting the FDR threshold (th) to 1.0.
@@ -261,15 +224,67 @@ process_per_contrast <-
       # UCSC Genome Browser conventions.
       # The score should be an integer and range from 0 (white) to 1000 (black).
       GenomicRanges::score(x = granges_object) <-
-        1000L - as.integer(x = round(x = scale(
-          x = granges_object$FDR,
-          center = min(granges_object$FDR),
-          scale = diff(x = range(granges_object$FDR))
-        ) * 1000.0))
+        1000L - as.integer(x = round(
+          x = scale(
+            x = granges_object$FDR,
+            center = min(granges_object$FDR),
+            scale = diff(x = range(granges_object$FDR))
+          ) * 1000.0
+        ))
       
-      rtracklayer::export.bed(object = granges_object,
-                              con = sprintf("%s_peaks_%s__%s.bed", prefix, group1, group2))
+      rtracklayer::export.bed(
+        object = granges_object,
+        con = sprintf("%s_peaks_%s__%s.bed", prefix, group1, group2)
+      )
       rm(granges_object)
+      
+      # The report function is quite peculiar in that it insists on a prefix DBA_
+      # for the file name.
+      file_path <-
+        sprintf("%s_report_%s__%s", argument_list$factor, group1, group2)
+      tryCatch(
+        expr = {
+          base::invisible(
+            x = DiffBind::dba.report(
+              DBA = diffbind_dba,
+              contrast = as.integer(x = contrast),
+              bNormalized = TRUE,
+              bCalled = TRUE,
+              bCounts = TRUE,
+              bCalledDetail = TRUE,
+              file = file_path,
+              DataType = DiffBind::DBA_DATA_FRAME
+            )
+          )
+        },
+        error = function(cond) {
+          message("DiffBind::dba.report failed with message:\n", cond, appendLF = TRUE)
+        }
+      )
+      
+      # Link differentially bound sites -----------------------------------
+      # Create a symbolic link from the akward report file name to standard file names,
+      # used by this script.
+      file_path <-
+        sprintf("DBA_%s_report_%s__%s.csv",
+                argument_list$factor,
+                group1,
+                group2)
+      link_path <-
+        sprintf("%s_report_%s__%s.csv",
+                prefix,
+                group1,
+                group2)
+      if (file.exists(file_path) && !file.exists(link_path)) {
+        if (!file.symlink(from = file_path,
+                          to = link_path)) {
+          warning(paste0(
+            "Encountered an error linking DBA report file: ",
+            file_path
+          ))
+        }
+      }
+      rm(link_path, file_path)
     }
     
     # Create MA plot ------------------------------------------------------
@@ -285,7 +300,8 @@ process_per_contrast <-
     DiffBind::dba.plotMA(
       DBA = diffbind_dba,
       bNormalized = TRUE,
-      bXY = FALSE,  # FALSE for a MA plot.
+      bXY = FALSE,
+      # FALSE for a MA plot.
       contrast = as.integer(x = contrast)
     )
     base::invisible(x = grDevices::dev.off())
@@ -303,7 +319,8 @@ process_per_contrast <-
     DiffBind::dba.plotMA(
       DBA = diffbind_dba,
       bNormalized = TRUE,
-      bXY = TRUE,  # TRUE for a scatter plot.
+      bXY = TRUE,
+      # TRUE for a scatter plot.
       contrast = as.integer(x = contrast)
     )
     base::invisible(x = grDevices::dev.off())
@@ -329,7 +346,16 @@ process_per_contrast <-
         )
       )
       grDevices::png(filename = sprintf("%s_pca_plot_%s__%s.png", prefix, group1, group2))
-      DiffBind::dba.plotPCA(DBA = diffbind_dba, attributes = DiffBind::DBA_CONDITION, contrast = as.integer(x = contrast))
+      tryCatch(expr = {
+        DiffBind::dba.plotPCA(
+          DBA = diffbind_dba,
+          attributes = DiffBind::DBA_CONDITION,
+          contrast = as.integer(x = contrast)
+        )
+      },
+      error = function(cond) {
+        message("DiffBind::dba.plotPCA failed with message:\n", cond, "\n", appendLF = TRUE)
+      })
       base::invisible(x = dev.off())
     }
     
@@ -353,7 +379,16 @@ process_per_contrast <-
         )
       )
       grDevices::png(filename = sprintf("%s_box_plot_%s__%s.png", prefix, group1, group2))
-      DiffBind::dba.plotBox(DBA = diffbind_dba, bNormalized = TRUE, contrast = as.integer(x = contrast))
+      tryCatch(expr = {
+        DiffBind::dba.plotBox(
+          DBA = diffbind_dba,
+          bNormalized = TRUE,
+          contrast = as.integer(x = contrast)
+        )
+      },
+      error = function(cond) {
+        message("DiffBind::dba.plotBox failed with message:\n", cond, "\n", appendLF = TRUE)
+      })
       base::invisible(x = grDevices::dev.off())
     }
     
@@ -361,7 +396,8 @@ process_per_contrast <-
   }
 
 # Get a data frame with all contrasts to apply the above function to each row.
-contrast_frame <- DiffBind::dba.show(DBA = diffbind_dba, bContrasts = TRUE)
+contrast_frame <-
+  DiffBind::dba.show(DBA = diffbind_dba, bContrasts = TRUE)
 
 # Replace '!' characters with 'not_'.
 contrast_frame$Group1 <-
