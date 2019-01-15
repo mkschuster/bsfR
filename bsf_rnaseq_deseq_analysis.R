@@ -1546,7 +1546,19 @@ temporary_list <- lapply(
       return()
     }
     summary_list <- NULL
-    file_path <-
+    
+    file_path_all <-
+      file.path(output_directory,
+                paste(paste(
+                  prefix,
+                  "lrt",
+                  attr(x = reduced_formula_character, which = "reduced_name"),
+                  sep = "_"
+                ),
+                "tsv",
+                sep = "."))
+    
+    file_path_significant <-
       file.path(output_directory,
                 paste(
                   paste(
@@ -1560,15 +1572,15 @@ temporary_list <- lapply(
                   sep = "."
                 ))
     
-    if (file.exists(file_path) &&
-        file.info(file_path)$size > 0L) {
+    if (file.exists(file_path_significant) &&
+        file.info(file_path_significant)$size > 0L) {
       message(paste0(
         "Skipping reduced formula: ",
         attr(x = reduced_formula_character, which = "reduced_name")
       ))
       # Read the existing table to count the number of significant genes after LRT.
       deseq_merge_significant <-
-        read.table(file = file_path,
+        read.table(file = file_path_significant,
                    header = TRUE,
                    sep = "\t")
       summary_list <- list(
@@ -1645,37 +1657,26 @@ temporary_list <- lapply(
                                 deseq_results_lrt_frame$padj <= argument_list$padj_threshold, "significant"] <-
         "yes"
       
+      # Write all genes.
+      
       deseq_merge <-
         merge(x = annotation_frame, y = deseq_results_lrt_frame, by = "gene_id")
       
       write.table(
         x = deseq_merge,
-        file = file_path,
+        file = file_path_all,
         sep = "\t",
         col.names = TRUE,
         row.names = FALSE
       )
-      # Write only significant.
+      
+      # Write only significant genes.
       deseq_merge_significant <-
         subset(x = deseq_merge, padj <= argument_list$padj_threshold)
       
-      file_path <-
-        file.path(output_directory,
-                  paste(
-                    paste(
-                      prefix,
-                      "lrt",
-                      attr(x = reduced_formula_character, which = "reduced_name"),
-                      "significant",
-                      sep = "_"
-                    ),
-                    "tsv",
-                    sep = "."
-                  ))
-      
       write.table(
         x = deseq_merge_significant,
-        file = file_path,
+        file = file_path_significant,
         sep = "\t",
         col.names = TRUE,
         row.names = FALSE
@@ -1695,7 +1696,7 @@ temporary_list <- lapply(
         deseq_data_set_lrt
       )
     }
-    rm(file_path)
+    rm(file_path_all, file_path_significant)
     return(summary_list)
   }
 )
