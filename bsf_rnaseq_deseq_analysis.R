@@ -1262,8 +1262,8 @@ plot_pca <- function(object,
       "component" = seq_along(along.with = pca_object$sdev),
       "variance" = pca_object$sdev ^ 2 / sum(pca_object$sdev ^ 2)
     )[seq_len(length.out = min(100L, length(x = pca_object$sdev))), , drop = FALSE]
-  print("PCA variance data frame")
-  print(x = str(object = plotting_frame))
+  # print("PCA variance data frame")
+  # print(x = str(object = plotting_frame))
   
   ggplot_object <-
     ggplot2::ggplot(data = plotting_frame)
