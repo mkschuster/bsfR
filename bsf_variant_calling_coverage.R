@@ -324,27 +324,30 @@ for (level in c(
     0L
 }
 rm(level)
-# Count the number of entries for each mapping status level.
-aggregate_frame <-
-  as.data.frame(x = table(mcols(x = overlap_ranges)$mapping_status))
-# Assign the result levels (rows) as summary frame columns.
-for (j in seq_len(length.out = nrow(x = aggregate_frame))) {
-  summary_frame[i, paste("non_callable_number_constrained", aggregate_frame[j, 1L], sep = ".")] <-
-    aggregate_frame[j, 2L]
+if (length(x = overlap_ranges) > 0L) {
+  # Count the number of entries for each mapping status level.
+  aggregate_frame <-
+    as.data.frame(x = table(mcols(x = overlap_ranges)$mapping_status))
+  # Assign the result levels (rows) as summary frame columns.
+  for (j in seq_len(length.out = nrow(x = aggregate_frame))) {
+    summary_frame[i, paste("non_callable_number_constrained", aggregate_frame[j, 1L], sep = ".")] <-
+      aggregate_frame[j, 2L]
+  }
+  # Sum the widths of entries for each mapping_status level.
+  aggregate_frame <-
+    aggregate.data.frame(
+      x = data.frame(width = width(x = overlap_ranges)),
+      by = list(mapping_status = mcols(x = overlap_ranges)$mapping_status),
+      FUN = "sum"
+    )
+  # Assign the result levels (rows) as summary frame columns.
+  for (j in seq_len(length.out = nrow(x = aggregate_frame))) {
+    summary_frame[i, paste("non_callable_width_constrained", aggregate_frame[j, 1L], sep = ".")] <-
+      aggregate_frame[j, 2L]
+  }
+  rm(j, aggregate_frame)
 }
-# Sum the widths of entries for each mapping_status level.
-aggregate_frame <-
-  aggregate.data.frame(
-    x = data.frame(width = width(x = overlap_ranges)),
-    by = list(mapping_status = mcols(x = overlap_ranges)$mapping_status),
-    FUN = "sum"
-  )
-# Assign the result levels (rows) as summary frame columns.
-for (j in seq_len(length.out = nrow(x = aggregate_frame))) {
-  summary_frame[i, paste("non_callable_width_constrained", aggregate_frame[j, 1L], sep = ".")] <-
-    aggregate_frame[j, 2L]
-}
-rm(j, aggregate_frame, overlap_ranges, overlap_frame)
+rm(overlap_ranges, overlap_frame)
 
 # Annotate non-callable GRanges with target region names ------------------
 
