@@ -1321,10 +1321,10 @@ plot_pca <- function(object,
         pca_frame <- as.data.frame(pca_object$x)
         plotting_frame <-
           data.frame(
-            component1 = factor(levels = paste0(
+            component_1 = factor(levels = paste0(
               "PC", seq_len(length.out = pca_dimensions)
             )),
-            component2 = factor(levels = paste0(
+            component_2 = factor(levels = paste0(
               "PC", seq_len(length.out = pca_dimensions)
             )),
             x = numeric(),
