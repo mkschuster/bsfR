@@ -1469,6 +1469,27 @@ plot_pca <- function(object,
             )
           ))
         }
+        if (TRUE) {
+          # Write the PCA plot data frame.
+          write.table(
+            x = plotting_frame,
+            file = file.path(output_directory,
+                             paste(
+                               paste(
+                                 prefix,
+                                 "pca",
+                                 aes_list_to_character(aes_list = aes_list),
+                                 suffix,
+                                 sep = "_"
+                               ),
+                               "tsv",
+                               sep = "."
+                             )),
+            sep = "\t",
+            row.names = FALSE,
+            col.names = TRUE
+          )
+        }
         rm(graphics_format,
            ggplot_object,
            pca_frame,
