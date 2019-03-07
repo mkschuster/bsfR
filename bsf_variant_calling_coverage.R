@@ -1,4 +1,4 @@
-#! /usr/bin/env Rscript
+#!/usr/bin/env Rscript
 #
 # BSF R script to refine the GATK Callable Loci analyis.
 #
@@ -11,7 +11,7 @@
 # written to disk.
 #
 #
-# Copyright 2013 - 2017 Michael K. Schuster
+# Copyright 2013 - 2019 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
