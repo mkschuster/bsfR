@@ -1726,11 +1726,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
     )
     # The diffData function allows automatic merging with feature annotation,
     # but that includes some empty columns. For cleaner result tables, merge
-    # with the smaller gene_annotation_frame established above. Unfortunately,
-    # the "gene_id" column appears twice as a consequence of a SQL table join
-    # the "genes" table with the "geneExpDiffData" table. Separate data.frame
-    # of columns of the same name interfere with the merge() function,
-    # so that the first column needs removing.
+    # with the smaller gene_annotation_frame established above.
     diff_data_genes <-
       cummeRbund::diffData(
         object = cummeRbund::genes(object = cuff_set),
@@ -1738,7 +1734,9 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
         y = sample_pairs[2L, i],
         features = FALSE
       )
-    diff_data_genes <- diff_data_genes[, -1L]
+    # Remove the second column, which is duplicated as a consequence of a
+    # SQL table join between the "genes" and "geneExpDiffData" tables.
+    diff_data_genes <- diff_data_genes[, -c(2L)]
     # Calculate ranks for the effect size (log2_fold_change), absolute level
     # and statistical significance (q_value).
     diff_data_genes$rank_log2_fold_change <-
@@ -1767,8 +1765,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       merge(
         x = gene_annotation_frame,
         y = diff_data_genes,
-        by.x = "gene_id",
-        by.y = "gene_id",
+        by = "gene_id",
         all = TRUE,
         sort = TRUE
       )
@@ -1821,11 +1818,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
     )
     # The diffData function allows automatic merging with feature annotation,
     # but that includes some empty columns. For cleaner result tables, merge
-    # with the smaller isoform_annotation_frame established above. Unfortunately,
-    # the "isoform_id" column appears twice as a consequence of a SQL table join
-    # of the "isoforms" table with the "isoformsExpDiffData" table. Separate
-    # data.frame columns of the same name interfere with the merge() function,
-    # so that the first column needs removing.
+    # with the smaller isoform_annotation_frame established above.
     diff_data_isoform <-
       cummeRbund::diffData(
         object = cummeRbund::isoforms(object = cuff_set),
@@ -1833,7 +1826,9 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
         y = sample_pairs[2L, i],
         features = FALSE
       )
-    diff_data_isoform <- diff_data_isoform[, -1L]
+    # Remove the second column, which is duplicated as a consequence of a
+    # SQL table join between the "isoforms" and "isoformsExpDiffData" tables.
+    diff_data_isoform <- diff_data_isoform[, -c(2L)]
     # Calculate ranks for the effect size (log2_fold_change), absolute level
     # and statistical significance (q_value).
     diff_data_isoform$rank_log2_fold_change <-
@@ -1861,8 +1856,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       merge(
         x = isoform_annotation_frame,
         y = diff_data_isoform,
-        by.x = "isoform_id",
-        by.y = "isoform_id",
+        by = "isoform_id",
         all = TRUE,
         sort = TRUE
       )
