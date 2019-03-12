@@ -69,8 +69,11 @@ argument_list <- parse_args(object = OptionParser(
   )
 ))
 
+suppressPackageStartupMessages(expr = library(package = "dplyr"))
 suppressPackageStartupMessages(expr = library(package = "ggplot2"))
 suppressPackageStartupMessages(expr = library(package = "reshape2"))
+suppressPackageStartupMessages(expr = library(package = "tibble"))
+suppressPackageStartupMessages(expr = library(package = "tidyr"))
 
 # Save plots in the following formats.
 graphics_formats <- c("pdf", "png")
@@ -420,13 +423,19 @@ if (!is.null(x = combined_metrics_sample)) {
   
   message("Plotting the absolute number of aligned pass-filter reads per sample")
   ggplot_object <-
-    ggplot(data = combined_metrics_sample)
+    ggplot(
+      data = tibble::as.tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "NUMBER", -CATEGORY, -SAMPLE)
+    )
   ggplot_object <-
     ggplot_object + ggtitle(label = "Aligned Pass-Filter Reads per Sample")
   ggplot_object <-
-    ggplot_object + geom_point(mapping = aes(x = CATEGORY, y = PF_READS, colour = SAMPLE))
+    ggplot_object + geom_point(mapping = aes(x = SAMPLE, y = NUMBER, colour = CATEGORY))
   ggplot_object <-
-    ggplot_object + guides(colour = guide_legend(nrow = 24L))
+    ggplot_object + theme(axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      size = rel(x = 0.8)
+    ))
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
@@ -447,15 +456,19 @@ if (!is.null(x = combined_metrics_sample)) {
   
   message("Plotting the absolute number of aligned pass-filter reads per read group")
   ggplot_object <-
-    ggplot(data = combined_metrics_read_group)
+    ggplot(
+      data = tibble::as.tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "NUMBER", -CATEGORY, -READ_GROUP)
+    )
   ggplot_object <-
     ggplot_object + ggtitle(label = "Aligned Pass-Filter Reads per Read Group")
   ggplot_object <-
-    ggplot_object + geom_point(mapping = aes(x = CATEGORY, y = PF_READS, colour = READ_GROUP))
+    ggplot_object + geom_point(mapping = aes(x = READ_GROUP, y = NUMBER, colour = CATEGORY))
   ggplot_object <-
-    ggplot_object + guides(colour = guide_legend(nrow = 24L))
-  ggplot_object <-
-    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.5)))
+    ggplot_object + theme(axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      size = rel(x = 0.8)
+    ))
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
@@ -476,13 +489,19 @@ if (!is.null(x = combined_metrics_sample)) {
   
   message("Plotting the percentage of aligned pass-filter reads per sample")
   ggplot_object <-
-    ggplot(data = combined_metrics_sample)
+    ggplot(
+      data = tibble::as.tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PCT_PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -SAMPLE)
+    )
   ggplot_object <-
     ggplot_object + ggtitle(label = "Aligned Pass-Filter Reads per Sample")
   ggplot_object <-
-    ggplot_object + geom_point(mapping = aes(x = CATEGORY, y = PCT_PF_READS_ALIGNED, colour = SAMPLE))
+    ggplot_object + geom_point(mapping = aes(x = SAMPLE, y = FRACTION, colour = CATEGORY))
   ggplot_object <-
-    ggplot_object + guides(colour = guide_legend(nrow = 24L))
+    ggplot_object + theme(axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      size = rel(x = 0.8)
+    ))
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
@@ -503,15 +522,19 @@ if (!is.null(x = combined_metrics_sample)) {
   
   message("Plotting the percentage of aligned pass-filter reads per read group")
   ggplot_object <-
-    ggplot(data = combined_metrics_read_group)
+    ggplot(
+      data = tibble::as.tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PCT_PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -READ_GROUP)
+    )
   ggplot_object <-
     ggplot_object + ggtitle(label = "Aligned Pass-Filter Reads per Read Group")
   ggplot_object <-
-    ggplot_object + geom_point(mapping = aes(x = CATEGORY, y = PCT_PF_READS_ALIGNED, colour = READ_GROUP))
+    ggplot_object + geom_point(mapping = aes(x = READ_GROUP, y = FRACTION, colour = CATEGORY))
   ggplot_object <-
-    ggplot_object + guides(colour = guide_legend(nrow = 24L))
-  ggplot_object <-
-    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.5)))
+    ggplot_object + theme(axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      size = rel(x = 0.8)
+    ))
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
