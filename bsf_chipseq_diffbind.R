@@ -42,16 +42,29 @@ argument_list <- parse_args(object = OptionParser(
       type = "logical"
     ),
     make_option(
-      opt_str = c("-f", "--factor"),
+      opt_str = c("--comparison"),
+      dest = "comparison",
+      help = "Comparison name",
+      type = "character"
+    ),
+    make_option(
+      opt_str = c("--factor"),
       dest = "factor",
       help = "ChIP factor",
       type = "character"
     ),
     make_option(
-      opt_str = c("-s", "--sample-annotation"),
+      opt_str = c("--sample-annotation"),
       dest = "sample_annotation",
       help = "Sample annotation sheet",
       type = "character"
+    ),
+    make_option(
+      opt_str = c("--threads"),
+      default = 1L,
+      dest = "threads",
+      help = "Number of parallel processing threads [1]",
+      type = "integer"
     )
   )
 ))
@@ -59,10 +72,11 @@ argument_list <- parse_args(object = OptionParser(
 # Start of main script ----------------------------------------------------
 
 
+# suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
 suppressPackageStartupMessages(expr = library(package = "DiffBind"))
 
 prefix <-
-  paste("chipseq", "diff", "bind", argument_list$factor, sep = "_")
+  paste("chipseq", "diff", "bind", argument_list$comparison, argument_list$factor, sep = "_")
 
 output_directory <- prefix
 
@@ -88,6 +102,12 @@ if (file.exists(file_path) &&
     dba(sampleSheet = argument_list$sample_annotation,
         bCorPlot = FALSE)
   
+  # Count via the BiocParallel package that can be controlled more easily.
+  # Unfortunately, this does not work because DBA_PARALLEL_BIOC does not seem to be exported.
+  # diffbind_dba$config$parallelPackage <- DBA_PARALLEL_BIOC
+  # Set the number of parallel threads in the MulticoreParam instance.
+  # BiocParallel::register(BPPARAM = MulticoreParam(workers = argument_list$threads))
+  
   # Plot heatmap on peak caller scores ------------------------------------
   message("Plotting a correlation heatmap based on peak caller score data")
   grDevices::png(filename = file.path(
@@ -101,7 +121,7 @@ if (file.exists(file_path) &&
   # Count reads -----------------------------------------------------------
   message("Counting reads")
   diffbind_dba <-
-    DiffBind::dba.count(DBA = diffbind_dba, bCorPlot = FALSE)
+    DiffBind::dba.count(DBA = diffbind_dba, bCorPlot = FALSE, bParallel = FALSE)
   
   # Plot heatmap on read counts -------------------------------------------
   message("Plotting a correlation heatmap based on read counts")
@@ -166,7 +186,7 @@ rm(file_path)
 
 # Create score-based PCA plot ---------------------------------------------
 # Create a PCA plot irrespective of contrasts on the basis of scores in the main binding matrix.
-message(paste("Creating PCA plot for factor", argument_list$factor, sep = " "))
+message(sprintf("Creating PCA plot for comparison %s and factor %s", argument_list$comparison, argument_list$factor))
 grDevices::png(filename = file.path(prefix, paste(prefix, "pca_plot.png", sep = "_")))
 DiffBind::dba.plotPCA(DBA = diffbind_dba, attributes = DiffBind::DBA_CONDITION)
 base::invisible(x = dev.off())
@@ -186,7 +206,8 @@ process_per_contrast <-
     if (db_number == 0L) {
       message(
         sprintf(
-          "Skipping differentially bound sites for factor %s and contrast %s versus %s",
+          "Skipping differentially bound sites for comparison %s, factor %s and contrast %s versus %s",
+          argument_list$comparison,
           argument_list$factor,
           group1,
           group2
@@ -195,7 +216,8 @@ process_per_contrast <-
     } else {
       message(
         sprintf(
-          "Writing differentially bound sites for factor %s and contrast %s versus %s to disk",
+          "Writing differentially bound sites for comparison %s, factor %s and contrast %s versus %s to disk",
+          argument_list$comparison,
           argument_list$factor,
           group1,
           group2
@@ -241,7 +263,7 @@ process_per_contrast <-
       # The report function is quite peculiar in that it insists on a prefix DBA_
       # for the file name.
       file_path <-
-        sprintf("%s_report_%s__%s", argument_list$factor, group1, group2)
+        sprintf("%s_%s_report_%s__%s", argument_list$comparison, argument_list$factor, group1, group2)
       tryCatch(
         expr = {
           base::invisible(
@@ -266,7 +288,8 @@ process_per_contrast <-
       # Create a symbolic link from the akward report file name to standard file names,
       # used by this script.
       file_path <-
-        sprintf("DBA_%s_report_%s__%s.csv",
+        sprintf("DBA_%s_%s_report_%s__%s.csv",
+                argument_list$comparison,
                 argument_list$factor,
                 group1,
                 group2)
@@ -290,7 +313,8 @@ process_per_contrast <-
     # Create MA plot ------------------------------------------------------
     message(
       sprintf(
-        "Creating MA plot for factor %s and contrast %s versus %s",
+        "Creating MA plot for comparison %s, factor %s and contrast %s versus %s",
+        argument_list$comparison,
         argument_list$factor,
         group1,
         group2
@@ -309,7 +333,8 @@ process_per_contrast <-
     # Create Scatter plot -------------------------------------------------
     message(
       sprintf(
-        "Creating scatter plot for factor %s and contrast %s versus %s",
+        "Creating scatter plot for comparison %s, factor %s and contrast %s versus %s",
+        argument_list$comparison,
         argument_list$factor,
         group1,
         group2
@@ -330,7 +355,8 @@ process_per_contrast <-
     if (db_number == 0L) {
       message(
         sprintf(
-          "Skipping PCA plot for factor %s and contrast %s versus %s",
+          "Skipping PCA plot for comparison %s, factor %s and contrast %s versus %s",
+          argument_list$comparison,
           argument_list$factor,
           group1,
           group2
@@ -339,7 +365,8 @@ process_per_contrast <-
     } else {
       message(
         sprintf(
-          "Creating PCA plot for factor %s and contrast %s versus %s",
+          "Creating PCA plot for comparison %s, factor %s and contrast %s versus %s",
+          argument_list$comparison,
           argument_list$factor,
           group1,
           group2
@@ -363,7 +390,8 @@ process_per_contrast <-
     if (db_number == 0L) {
       message(
         sprintf(
-          "Skipping Box plot for factor %s and contrast %s versus %s",
+          "Skipping Box plot for comparison %s, factor %s and contrast %s versus %s",
+          argument_list$comparison,
           argument_list$factor,
           group1,
           group2
@@ -372,7 +400,8 @@ process_per_contrast <-
     } else {
       message(
         sprintf(
-          "Creating Box plot for factor %s and contrast %s versus %s",
+          "Creating Box plot for comparison %s, factor %s and contrast %s versus %s",
+          argument_list$comparison,
           argument_list$factor,
           group1,
           group2
