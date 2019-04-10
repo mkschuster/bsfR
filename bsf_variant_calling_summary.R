@@ -550,6 +550,72 @@ if (!is.null(x = combined_metrics_sample)) {
   }
   rm(graphics_format, ggplot_object)
   
+  # Plot the strand balance of aligned pass-filter reads per sample -------
+  
+  
+  message("Plotting the strand balance of aligned pass-filter reads per sample")
+  ggplot_object <-
+    ggplot(
+      data = tibble::as.tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "STRAND_BALANCE")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -SAMPLE)
+    )
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Strand Balance of Aligned Pass-Filter Reads per Sample")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(x = SAMPLE, y = FRACTION, colour = CATEGORY))
+  ggplot_object <-
+    ggplot_object + theme(axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      size = rel(x = 0.8)
+    ))
+  for (graphics_format in graphics_formats) {
+    ggsave(
+      filename = paste(
+        prefix_summary,
+        paste("alignment_strand_balance_sample", graphics_format, sep = "."),
+        sep = "_"
+      ),
+      plot = ggplot_object,
+      width = plot_width_sample,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(graphics_format, ggplot_object)
+  
+  # Plot the strand balance of aligned pass-filter reads per read group ----
+  
+  
+  message("Plotting the strand balance of aligned pass-filter reads per read group")
+  ggplot_object <-
+    ggplot(
+      data = tibble::as.tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "STRAND_BALANCE")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -READ_GROUP)
+    )
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Strand Balance of Aligned Pass-Filter Reads per Read Group")
+  ggplot_object <-
+    ggplot_object + geom_point(mapping = aes(x = READ_GROUP, y = FRACTION, colour = CATEGORY))
+  ggplot_object <-
+    ggplot_object + theme(axis.text.x = element_text(
+      angle = 90,
+      hjust = 0,
+      size = rel(x = 0.8)
+    ))
+  for (graphics_format in graphics_formats) {
+    ggsave(
+      filename = paste(
+        prefix_summary,
+        paste("alignment_strand_balance_read_group", graphics_format, sep = "."),
+        sep = "_"
+      ),
+      plot = ggplot_object,
+      width = plot_width_read_group,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(graphics_format, ggplot_object)
+  
   rm(plot_width_read_group, plot_width_sample)
 }
 rm(combined_metrics_read_group, combined_metrics_sample)
