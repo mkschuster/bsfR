@@ -105,6 +105,20 @@ argument_list <- parse_args(object = OptionParser(
       type = "integer"
     ),
     make_option(
+      opt_str = c("--genome-directory"),
+      default = ".",
+      dest = "genome_directory",
+      help = "Genome directory path [.]",
+      type = "character"
+    ),
+    make_option(
+      opt_str = c("--output-directory"),
+      default = ".",
+      dest = "output_directory",
+      help = "Output directory path [.]",
+      type = "character"
+    ),
+    make_option(
       opt_str = c("--plot-width"),
       default = 7.0,
       dest = "plot_width",
@@ -152,7 +166,7 @@ prefix <-
         argument_list$design_name,
         sep = "_")
 
-output_directory <- prefix
+output_directory <- file.path(argument_list$output_directory, prefix)
 if (!file.exists(output_directory)) {
   dir.create(path = output_directory,
              showWarnings = TRUE,
@@ -163,7 +177,8 @@ if (!file.exists(output_directory)) {
 deseq_data_set <- NULL
 
 file_path <-
-  file.path(output_directory,
+  file.path(argument_list$genome_directory,
+            prefix,
             paste0(prefix, "_deseq_data_set.Rdata"))
 if (file.exists(file_path) &&
     file.info(file_path)$size > 0L) {
@@ -230,7 +245,7 @@ for (i in seq_len(length.out = nrow(x = genes_frame))) {
         xlab = paste(genes_frame[i, "gene_name"], "(", genes_frame[i, "gene_id"], ")", sep = " "),
         returnData = TRUE
       )
-      # Create a now covariates variable pasting all values selected by the --groups option.
+      # Create a new covariates variable pasting all values selected by the --groups option.
       count_frame$covariates <-
         factor(x = apply(
           X = subset(

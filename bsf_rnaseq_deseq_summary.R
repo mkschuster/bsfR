@@ -59,7 +59,7 @@ argument_list <- parse_args(object = OptionParser(
       opt_str = c("--genome-directory"),
       default = ".",
       dest = "genome_directory",
-      help = "Genome directory path",
+      help = "Genome directory path [.]",
       type = "character"
     ),
     make_option(
