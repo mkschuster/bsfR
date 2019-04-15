@@ -73,10 +73,19 @@ argument_list <- parse_args(object = OptionParser(
 
 
 # suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
+# suppressPackageStartupMessages(expr = library(package = "ChIPQC"))
 suppressPackageStartupMessages(expr = library(package = "DiffBind"))
 
+# Set the number of parallel threads in the MulticoreParam instance.
+# BiocParallel::register(BPPARAM = MulticoreParam(workers = argument_list$threads))
+
 prefix <-
-  paste("chipseq", "diff", "bind", argument_list$comparison, argument_list$factor, sep = "_")
+  paste("chipseq",
+        "diff",
+        "bind",
+        argument_list$comparison,
+        argument_list$factor,
+        sep = "_")
 
 output_directory <- prefix
 
@@ -105,8 +114,6 @@ if (file.exists(file_path) &&
   # Count via the BiocParallel package that can be controlled more easily.
   # Unfortunately, this does not work because DBA_PARALLEL_BIOC does not seem to be exported.
   # diffbind_dba$config$parallelPackage <- DBA_PARALLEL_BIOC
-  # Set the number of parallel threads in the MulticoreParam instance.
-  # BiocParallel::register(BPPARAM = MulticoreParam(workers = argument_list$threads))
   
   # Plot heatmap on peak caller scores ------------------------------------
   message("Plotting a correlation heatmap based on peak caller score data")
@@ -121,7 +128,9 @@ if (file.exists(file_path) &&
   # Count reads -----------------------------------------------------------
   message("Counting reads")
   diffbind_dba <-
-    DiffBind::dba.count(DBA = diffbind_dba, bCorPlot = FALSE, bParallel = FALSE)
+    DiffBind::dba.count(DBA = diffbind_dba,
+                        bCorPlot = FALSE,
+                        bParallel = FALSE)
   
   # Plot heatmap on read counts -------------------------------------------
   message("Plotting a correlation heatmap based on read counts")
@@ -144,7 +153,7 @@ if (file.exists(file_path) &&
     if (nrow(x = diffbind_dba$samples) == 2) {
       message("In lack of replicates, setting contrasts on the basis of the first two conditions")
       diffbind_conditions <-
-        unique(x = diffbind_dba$class[DiffBind::DBA_CONDITION,])
+        unique(x = diffbind_dba$class[DiffBind::DBA_CONDITION, ])
       diffbind_dba <- DiffBind::dba.contrast(
         DBA = diffbind_dba,
         group1 = DiffBind::dba.mask(
@@ -186,7 +195,13 @@ rm(file_path)
 
 # Create score-based PCA plot ---------------------------------------------
 # Create a PCA plot irrespective of contrasts on the basis of scores in the main binding matrix.
-message(sprintf("Creating PCA plot for comparison %s and factor %s", argument_list$comparison, argument_list$factor))
+message(
+  sprintf(
+    "Creating PCA plot for comparison %s and factor %s",
+    argument_list$comparison,
+    argument_list$factor
+  )
+)
 grDevices::png(filename = file.path(prefix, paste(prefix, "pca_plot.png", sep = "_")))
 DiffBind::dba.plotPCA(DBA = diffbind_dba, attributes = DiffBind::DBA_CONDITION)
 base::invisible(x = dev.off())
@@ -263,7 +278,13 @@ process_per_contrast <-
       # The report function is quite peculiar in that it insists on a prefix DBA_
       # for the file name.
       file_path <-
-        sprintf("%s_%s_report_%s__%s", argument_list$comparison, argument_list$factor, group1, group2)
+        sprintf(
+          "%s_%s_report_%s__%s",
+          argument_list$comparison,
+          argument_list$factor,
+          group1,
+          group2
+        )
       tryCatch(
         expr = {
           base::invisible(
@@ -280,7 +301,9 @@ process_per_contrast <-
           )
         },
         error = function(cond) {
-          message("DiffBind::dba.report failed with message:\n", cond, appendLF = TRUE)
+          message("DiffBind::dba.report failed with message:\n",
+                  cond,
+                  appendLF = TRUE)
         }
       )
       
@@ -288,11 +311,13 @@ process_per_contrast <-
       # Create a symbolic link from the akward report file name to standard file names,
       # used by this script.
       file_path <-
-        sprintf("DBA_%s_%s_report_%s__%s.csv",
-                argument_list$comparison,
-                argument_list$factor,
-                group1,
-                group2)
+        sprintf(
+          "DBA_%s_%s_report_%s__%s.csv",
+          argument_list$comparison,
+          argument_list$factor,
+          group1,
+          group2
+        )
       link_path <-
         sprintf("%s_report_%s__%s.csv",
                 prefix,
@@ -373,16 +398,21 @@ process_per_contrast <-
         )
       )
       grDevices::png(filename = sprintf("%s_pca_plot_%s__%s.png", prefix, group1, group2))
-      tryCatch(expr = {
-        DiffBind::dba.plotPCA(
-          DBA = diffbind_dba,
-          attributes = DiffBind::DBA_CONDITION,
-          contrast = as.integer(x = contrast)
-        )
-      },
-      error = function(cond) {
-        message("DiffBind::dba.plotPCA failed with message:\n", cond, "\n", appendLF = TRUE)
-      })
+      tryCatch(
+        expr = {
+          DiffBind::dba.plotPCA(
+            DBA = diffbind_dba,
+            attributes = DiffBind::DBA_CONDITION,
+            contrast = as.integer(x = contrast)
+          )
+        },
+        error = function(cond) {
+          message("DiffBind::dba.plotPCA failed with message:\n",
+                  cond,
+                  "\n",
+                  appendLF = TRUE)
+        }
+      )
       base::invisible(x = dev.off())
     }
     
@@ -408,16 +438,21 @@ process_per_contrast <-
         )
       )
       grDevices::png(filename = sprintf("%s_box_plot_%s__%s.png", prefix, group1, group2))
-      tryCatch(expr = {
-        DiffBind::dba.plotBox(
-          DBA = diffbind_dba,
-          bNormalized = TRUE,
-          contrast = as.integer(x = contrast)
-        )
-      },
-      error = function(cond) {
-        message("DiffBind::dba.plotBox failed with message:\n", cond, "\n", appendLF = TRUE)
-      })
+      tryCatch(
+        expr = {
+          DiffBind::dba.plotBox(
+            DBA = diffbind_dba,
+            bNormalized = TRUE,
+            contrast = as.integer(x = contrast)
+          )
+        },
+        error = function(cond) {
+          message("DiffBind::dba.plotBox failed with message:\n",
+                  cond,
+                  "\n",
+                  appendLF = TRUE)
+        }
+      )
       base::invisible(x = grDevices::dev.off())
     }
     
@@ -474,6 +509,21 @@ rm(return_value, contrast_frame)
 # grDevices::png(filename = paste(prefix, "box_plot.png", sep = "_"))
 # DiffBind::dba.plotVenn(DBA = diffbind_dba)
 # base::invisible(x = grDevices::dev.off())
+
+# Initialise a ChIPQCexperiment object ------------------------------------
+
+# chipqc_experiment <- ChIPQC::ChIPQC(experiment = diffbind_dba)
+# 
+# ChIPQC::ChIPQCreport(
+#   object = chipqc_experiment,
+#   reportFolder = paste(
+#     "chipseq",
+#     "chipqc",
+#     argument_list$comparison,
+#     argument_list$factor,
+#     sep = "_"
+#   )
+# )
 
 rm(
   diffbind_dba,
