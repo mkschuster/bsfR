@@ -235,6 +235,90 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_width_read_group <-
     argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_read_group$READ_GROUP) / 24L) - 1L) * argument_list$plot_width * 0.35
   
+  # Plot the absolute number versus the fraction per sample ---------------
+  
+  
+  message("Plotting the absolute number versus the fraction per sample")
+  ggplot_object <-
+    ggplot(
+      data = tibble::as_tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED", "PF_READS")]) %>% tidyr::gather(
+        key = "VARIABLE",
+        value = "PF_READS_ALIGNED",-CATEGORY,-SAMPLE,-PF_READS
+      )
+    )
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Alignment Summary per Sample")
+  ggplot_object <-
+    ggplot_object + geom_point(
+      mapping = aes(
+        x = PF_READS_ALIGNED,
+        y = PF_READS_ALIGNED / PF_READS,
+        colour = SAMPLE,
+        shape = CATEGORY
+      )
+    )
+  for (graphics_format in graphics_formats) {
+    ggsave(
+      filename = paste(
+        paste(prefix_summary,
+              prefix_pasm,
+              "alignment",
+              "sample",
+              sep = "_"),
+        graphics_format,
+        sep = "."
+      ),
+      plot = ggplot_object,
+      width = plot_width_sample,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(graphics_format, ggplot_object)
+  
+  # Plot the absolute number versus the fraction per read group -----------
+  
+  
+  message("Plotting the absolute number versus the fraction per read group")
+  ggplot_object <-
+    ggplot(
+      data = tibble::as_tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PF_READS_ALIGNED", "PF_READS")]) %>% tidyr::gather(
+        key = "VARIABLE",
+        value = "PF_READS_ALIGNED",-CATEGORY,-READ_GROUP,-PF_READS
+      )
+    )
+  ggplot_object <-
+    ggplot_object + ggtitle(label = "Alignment Summary per Read Group")
+  ggplot_object <-
+    ggplot_object + geom_point(
+      mapping = aes(
+        x = PF_READS_ALIGNED,
+        y = PF_READS_ALIGNED / PF_READS,
+        colour = READ_GROUP,
+        shape = CATEGORY
+      )
+    )
+  for (graphics_format in graphics_formats) {
+    ggsave(
+      filename = paste(
+        paste(
+          prefix_summary,
+          prefix_pasm,
+          "alignment",
+          "read_group",
+          sep = "_"
+        ),
+        graphics_format,
+        sep = "."
+      ),
+      plot = ggplot_object,
+      width = plot_width_read_group,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(graphics_format, ggplot_object)
+  
   # Plot the absolute number of aligned pass-filter reads per sample ------
   
   
@@ -256,10 +340,13 @@ if (!is.null(x = combined_metrics_sample)) {
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
-        prefix_summary,
-        prefix_pasm,
-        paste("absolute_sample", graphics_format, sep = "."),
-        sep = "_"
+        paste(prefix_summary,
+              prefix_pasm,
+              "absolute",
+              "sample",
+              sep = "_"),
+        graphics_format,
+        sep = "."
       ),
       plot = ggplot_object,
       width = plot_width_sample,
@@ -290,10 +377,15 @@ if (!is.null(x = combined_metrics_sample)) {
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
-        prefix_summary,
-        prefix_pasm,
-        paste("absolute_read_group", graphics_format, sep = "."),
-        sep = "_"
+        paste(
+          prefix_summary,
+          prefix_pasm,
+          "absolute",
+          "read_group",
+          sep = "_"
+        ),
+        graphics_format,
+        sep = "."
       ),
       plot = ggplot_object,
       width = plot_width_read_group,
@@ -324,10 +416,13 @@ if (!is.null(x = combined_metrics_sample)) {
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
-        prefix_summary,
-        prefix_pasm,
-        paste("percentage_sample", graphics_format, sep = "."),
-        sep = "_"
+        paste(prefix_summary,
+              prefix_pasm,
+              "percentage",
+              "sample",
+              sep = "_"),
+        graphics_format,
+        sep = "."
       ),
       plot = ggplot_object,
       width = plot_width_sample,
@@ -358,10 +453,15 @@ if (!is.null(x = combined_metrics_sample)) {
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
-        prefix_summary,
-        prefix_pasm,
-        paste("percentage_read_group", graphics_format, sep = "."),
-        sep = "_"
+        paste(
+          prefix_summary,
+          prefix_pasm,
+          "percentage",
+          "read_group",
+          sep = "_"
+        ),
+        graphics_format,
+        sep = "."
       ),
       plot = ggplot_object,
       width = plot_width_read_group,
@@ -392,10 +492,15 @@ if (!is.null(x = combined_metrics_sample)) {
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
-        prefix_summary,
-        prefix_pasm,
-        paste("strand_balance_sample", graphics_format, sep = "."),
-        sep = "_"
+        paste(
+          prefix_summary,
+          prefix_pasm,
+          "strand_balance",
+          "sample",
+          sep = "_"
+        ),
+        graphics_format,
+        sep = "."
       ),
       plot = ggplot_object,
       width = plot_width_sample,
@@ -426,10 +531,15 @@ if (!is.null(x = combined_metrics_sample)) {
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
-        prefix_summary,
-        prefix_pasm,
-        paste("strand_balance_read_group", graphics_format, sep = "."),
-        sep = "_"
+        paste(
+          prefix_summary,
+          prefix_pasm,
+          "strand_balance",
+          "read_group",
+          sep = "_"
+        ),
+        graphics_format,
+        sep = "."
       ),
       plot = ggplot_object,
       width = plot_width_read_group,
@@ -568,10 +678,13 @@ if (!is.null(x = combined_metrics_sample)) {
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
-        prefix_summary,
-        prefix_pdsm,
-        paste("percentage_sample", graphics_format, sep = "."),
-        sep = "_"
+        paste(prefix_summary,
+              prefix_pdsm,
+              "percentage",
+              "sample",
+              sep = "_"),
+        graphics_format,
+        sep = "."
       ),
       plot = ggplot_object,
       width = plot_width,
@@ -617,10 +730,13 @@ if (!is.null(x = combined_metrics_sample)) {
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
-        prefix_summary,
-        prefix_pdsm,
-        paste("levels_sample", graphics_format, sep = "."),
-        sep = "_"
+        paste(prefix_summary,
+              prefix_pdsm,
+              "levels",
+              "sample",
+              sep = "_"),
+        graphics_format,
+        sep = "."
       ),
       plot = ggplot_object,
       width = plot_width,
