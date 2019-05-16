@@ -234,7 +234,7 @@ if (!is.null(x = combined_metrics_sample)) {
   # PERCENT_READ_PAIR_OPTICAL_DUPLICATION and PERCENT_DUPLICATION per sample.
   
   message("Plotting the duplication levels per sample")
-  plotting_frame <- melt(
+  plotting_frame <- reshape2::melt(
     data = combined_metrics_sample,
     id.vars = c("SAMPLE"),
     measure.vars = c(
@@ -910,7 +910,7 @@ if (!is.null(x = combined_metrics_sample)) {
   
   
   message("Plotting the percentage of excluded bases per sample")
-  plotting_frame <- melt(
+  plotting_frame <- reshape2::melt(
     data = combined_metrics_sample,
     id.vars = c("SAMPLE", "BAIT_SET"),
     measure.vars = c(
@@ -961,7 +961,7 @@ if (!is.null(x = combined_metrics_sample)) {
   
   
   message("Plotting the percentage of excluded bases per read group")
-  plotting_frame <- melt(
+  plotting_frame <- reshape2::melt(
     data = combined_metrics_read_group,
     id.vars = c("READ_GROUP", "BAIT_SET"),
     measure.vars = c(
@@ -1029,7 +1029,7 @@ if (!is.null(x = combined_metrics_sample)) {
   # Plot PCT_TARGET_BASES_1X, PCT_TARGET_BASES_2X, PCT_TARGET_BASES_10X, PCT_TARGET_BASES_20X,
   # PCT_TARGET_BASES_30X, PCT_TARGET_BASES_40X, PCT_TARGET_BASES_50X, PCT_TARGET_BASES_100X per sample.
   message("Plotting the coverage levels per sample")
-  plotting_frame <- melt(
+  plotting_frame <- reshape2::melt(
     data = combined_metrics_sample,
     id.vars = c("SAMPLE", "BAIT_SET"),
     measure.vars = c(
@@ -1084,7 +1084,7 @@ if (!is.null(x = combined_metrics_sample)) {
   # Plot PCT_TARGET_BASES_1X, PCT_TARGET_BASES_2X, PCT_TARGET_BASES_10X, PCT_TARGET_BASES_20X,
   # PCT_TARGET_BASES_30X, PCT_TARGET_BASES_40X, PCT_TARGET_BASES_50X, PCT_TARGET_BASES_100X per read group.
   message("Plotting the coverage levels per read group")
-  plotting_frame <- melt(
+  plotting_frame <- reshape2::melt(
     data = combined_metrics_read_group,
     id.vars = c("READ_GROUP", "BAIT_SET"),
     measure.vars = c(
@@ -1400,7 +1400,7 @@ if (nrow(x = combined_metrics_sample) > 0L) {
   rm(i, mapping_status, column_names)
   
   # Now, melt the data frame, but keep sample_name and target_width_constrained as identifiers.
-  plotting_frame <- melt(
+  plotting_frame <- reshape2::melt(
     data = plotting_frame,
     id.vars = c("sample_name", "target_number_constrained"),
     variable.name = "mapping_status",
@@ -1462,7 +1462,7 @@ if (nrow(x = combined_metrics_sample) > 0L) {
   rm(i, mapping_status, column_names)
   
   # Now, melt the data frame, but keep sample_name and target_width_constrained as identifiers.
-  plotting_frame <- melt(
+  plotting_frame <- reshape2::melt(
     data = plotting_frame,
     id.vars = c("sample_name", "target_width_constrained"),
     variable.name = "mapping_status",
