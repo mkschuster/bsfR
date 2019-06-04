@@ -82,6 +82,20 @@ argument_list <- parse_args(object = OptionParser(
       dest = "threads",
       help = "Number of parallel processing threads",
       type = "integer"
+    ),
+    make_option(
+      opt_str = c("--plot-width"),
+      default = 7.0,
+      dest = "plot_width",
+      help = "Plot width in inches [7.0]",
+      type = "numeric"
+    ),
+    make_option(
+      opt_str = c("--plot-height"),
+      default = 7.0,
+      dest = "plot_height",
+      help = "Plot height in inches [7.0]",
+      type = "numeric"
     )
   )
 ))
@@ -94,6 +108,11 @@ if (is.null(x = argument_list$design_name)) {
 
 suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
 suppressPackageStartupMessages(expr = library(package = "DESeq2"))
+suppressPackageStartupMessages(expr = library(package = "EnhancedVolcano"))
+
+# Save plots in the following formats.
+
+graphics_formats <- c("pdf", "png")
 
 message(paste0("Processing design '", argument_list$design_name, "'"))
 
@@ -182,7 +201,7 @@ contrast_frame <-
   )
 # Subset to the selected design.
 contrast_frame <-
-  contrast_frame[contrast_frame$Design == argument_list$design_name, ]
+  contrast_frame[contrast_frame$Design == argument_list$design_name,]
 if (nrow(contrast_frame) == 0L) {
   stop("No design remaining after selection for design name.")
 }
@@ -202,10 +221,10 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
             "intercept"
           },
           sep = "_")
-  
+
   # Check for the significant genes table and if it exist already,
   # read it to get the number of significant genes for the summary data frame.
-  
+
   file_path <-
     file.path(output_directory,
               paste(
@@ -217,11 +236,11 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
                 "tsv",
                 sep = "."
               ))
-  
+
   if (file.exists(file_path) &&
       file.info(file_path)$size > 0L) {
     message(paste0("Skipping DESeqResults for ", contrast_character))
-    
+
     deseq_merge_significant <-
       read.table(
         file = file_path,
@@ -229,16 +248,16 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
         sep = "\t",
         stringsAsFactors = FALSE
       )
-    
+
     # Record the number of significant genes.
     contrast_frame[i, "Significant"] <-
       nrow(x = deseq_merge_significant)
-    
+
     rm(deseq_merge_significant)
   } else {
     message(paste0("Creating DESeqResults for ", contrast_character))
-    
-    deseq_results <-
+
+    deseq_results_default <-
       DESeq2::results(
         object = deseq_data_set,
         contrast = contrast_list,
@@ -249,13 +268,31 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
         # If tidy is TRUE, a classical data.frame is returned.
         parallel = TRUE
       )
-    
-    # print(x = summary(object = deseq_results))
-    
+
+    # print(x = summary(object = deseq_results_default))
+
+    # Run lfcShrink() if possible.
+    deseq_results_shrunk <- NULL
+    if (any(attr(x = deseq_data_set, which = "full_rank"))) {
+      # The original DESEqDataSet object is full rank, so that log2-fold changes can be shrunk.
+      # The any() function returns FALSE for NULL values.
+      message(paste0("Shrinking log2-fold changes for ", contrast_character))
+      deseq_results_shrunk <- DESeq2::lfcShrink(
+        dds = deseq_data_set,
+        contrast = contrast_list,
+        res = deseq_results_default,
+        type = "ashr",
+        lfcThreshold = argument_list$lfc_threshold,
+        format = "DataFrame",
+        parallel = TRUE
+      )
+    }
+
     # MA Plot ---------------------------------------------------------------
-    
-    
+
+
     # Create a MA plot.
+    message(paste0("Creating a MA plot for ", contrast_character))
     file_path <-
       file.path(output_directory,
                 paste(
@@ -267,10 +304,18 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
                   "pdf",
                   sep = "."
                 ))
-    grDevices::pdf(file = file_path)
-    DESeq2::plotMA(object = deseq_results)
+    grDevices::pdf(
+      file = file_path,
+      width = argument_list$plot_width,
+      height = argument_list$plot_height
+    )
+    if (is.null(x = deseq_results_shrunk)) {
+      DESeq2::plotMA(object = deseq_results_default)
+    } else {
+      DESeq2::plotMA(object = deseq_results_shrunk)
+    }
     base::invisible(x = grDevices::dev.off())
-    
+
     file_path <-
       file.path(output_directory,
                 paste(
@@ -282,49 +327,130 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
                   "png",
                   sep = "."
                 ))
-    grDevices::png(file = file_path)
-    DESeq2::plotMA(object = deseq_results)
+    grDevices::png(
+      file = file_path,
+      width = argument_list$plot_width,
+      height = argument_list$plot_height,
+      units = "in",
+      res = 300L
+    )
+    if (is.null(x = deseq_results_shrunk)) {
+      DESeq2::plotMA(object = deseq_results_default)
+    } else {
+      DESeq2::plotMA(object = deseq_results_shrunk)
+    }
     base::invisible(x = grDevices::dev.off())
-    
-    # DESeqResults DataFrame ------------------------------------------------
-    
-    
+
+    # Enhanced Volcano plot -----------------------------------------------
+
+
+    # To annotate gene symbols rather than Ensembl gene identifiers,
+    # the DESeqResults DataFrame needs merging with the annotation frame.
+    message(paste0("Creating an EnhancedVolcano plot for ", contrast_character))
+    deseq_results_frame <-
+      if (is.null(x = deseq_results_shrunk))
+        DataFrame(
+          gene_id = rownames(x = deseq_results_default),
+          deseq_results_default[, c("baseMean",
+                                    "log2FoldChange",
+                                    "lfcSE",
+                                    "stat",
+                                    "pvalue",
+                                    "padj")],
+          significant = factor(x = "no", levels = c("no", "yes"))
+        )
+    else
+      DataFrame(
+        gene_id = rownames(x = deseq_results_shrunk),
+        deseq_results_shrunk[, c("baseMean",
+                                 "log2FoldChange",
+                                 "lfcSE",
+                                 "pvalue", # no "stat" column
+                                 "padj")],
+        significant = factor(x = "no", levels = c("no", "yes"))
+      )
+
+    deseq_results_merged <-
+      merge(x = annotation_frame, y = deseq_results_frame, by = "gene_id")
+
+    ggplot_object <- EnhancedVolcano::EnhancedVolcano(
+      toptable = deseq_results_merged,
+      lab = deseq_results_merged$gene_name,
+      x = "log2FoldChange",
+      y = "pvalue",
+      selectLab = c()
+    )
+    rm(deseq_results_merged, deseq_results_frame)
+
+    for (graphics_format in graphics_formats) {
+      ggplot2::ggsave(
+        filename = file.path(
+          output_directory,
+          paste(
+            paste(prefix,
+                  "contrast",
+                  contrast_character,
+                  "volcano",
+                  sep = "_"),
+            graphics_format,
+            sep = "."
+          )
+        ),
+        plot = ggplot_object,
+        width = argument_list$plot_width,
+        height = argument_list$plot_height
+      )
+    }
+    rm(graphics_format,
+       ggplot_object)
+
+    # DESeqResults DataFrame ----------------------------------------------
+
+
     # Adjust the DESeqResults DataFrame for merging with the annotation DataFrame,
     # by setting the rownames() as "gene_id" variable.
     deseq_results_frame <-
       DataFrame(
-        gene_id = rownames(x = deseq_results),
-        deseq_results[, c("baseMean",
-                          "log2FoldChange",
-                          "lfcSE",
-                          "stat",
-                          "pvalue",
-                          "padj")],
+        gene_id = rownames(x = deseq_results_default),
+        deseq_results_default[, c("baseMean",
+                                  "log2FoldChange",
+                                  "lfcSE",
+                                  "stat",
+                                  "pvalue",
+                                  "padj")],
         significant = factor(x = "no", levels = c("no", "yes"))
       )
-    
+
     # Assign the "significant" factor on the basis of the adjusted p-value threshold.
     deseq_results_frame[!is.na(x = deseq_results_frame$padj) &
                           deseq_results_frame$padj <= argument_list$padj_threshold, "significant"] <-
       "yes"
-    
+
     # Calculate ranks for ...
     # (1) the effect size (log2FoldChange), ...
-    deseq_results_frame$rank_log2_fold_change <-
-      base::rank(
-        x = -abs(x = deseq_results_frame$log2FoldChange),
-        ties.method = c("min")
-      )
-    
+    if (is.null(x = deseq_results_shrunk)) {
+      deseq_results_frame$rank_log2_fold_change <-
+        base::rank(
+          x = -abs(x = deseq_results_frame$log2FoldChange),
+          ties.method = c("min")
+        )
+    } else {
+      deseq_results_frame$rank_log2_fold_change <-
+        base::rank(
+          x = -abs(x = deseq_results_shrunk$log2FoldChange),
+          ties.method = c("min")
+        )
+    }
+
     # (2) the absolute level (baseMean) and ...
     deseq_results_frame$rank_base_mean <-
       base::rank(x = -deseq_results_frame$baseMean,
                  ties.method = c("min"))
-    
+
     # (3) the statistical significance (padj).
     deseq_results_frame$rank_padj <-
       base::rank(x = deseq_results_frame$padj, ties.method = c("min"))
-    
+
     # Calculate the maximum of the three ranks.
     deseq_results_frame$max_rank <-
       base::pmax(
@@ -332,10 +458,10 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
         deseq_results_frame$rank_base_mean,
         deseq_results_frame$rank_padj
       )
-    
-    deseq_merge <-
+
+    deseq_merge_complete <-
       merge(x = annotation_frame, y = deseq_results_frame, by = "gene_id")
-    
+
     file_path <-
       file.path(output_directory,
                 paste(
@@ -347,25 +473,25 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
                   "tsv",
                   sep = "."
                 ))
-    
+
     write.table(
-      x = deseq_merge,
+      x = deseq_merge_complete,
       file = file_path,
       sep = "\t",
       col.names = TRUE,
       row.names = FALSE
     )
-    
+
     # Significant DESeqResults DataFrame ------------------------------------
-    
-    
+
+
     deseq_merge_significant <-
-      subset(x = deseq_merge, padj <= argument_list$padj_threshold)
-    
+      subset(x = deseq_merge_complete, padj <= argument_list$padj_threshold)
+
     # Record the number of significant genes.
     contrast_frame[i, "Significant"] <-
       nrow(x = deseq_merge_significant)
-    
+
     file_path <-
       file.path(output_directory,
                 paste(
@@ -379,7 +505,7 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
                   "tsv",
                   sep = "."
                 ))
-    
+
     write.table(
       x = deseq_merge_significant,
       file = file_path,
@@ -387,12 +513,13 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
       col.names = TRUE,
       row.names = FALSE
     )
-    
+
     rm(
       deseq_merge_significant,
-      deseq_merge,
+      deseq_merge_complete,
       deseq_results_frame,
-      deseq_results,
+      deseq_results_shrunk,
+      deseq_results_default,
       contrast_character,
       contrast_list
     )
@@ -421,6 +548,7 @@ rm(
   annotation_frame,
   output_directory,
   prefix,
+  graphics_formats,
   argument_list
 )
 
