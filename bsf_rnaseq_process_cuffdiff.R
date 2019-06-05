@@ -274,9 +274,9 @@ if (file.exists(plot_path_pdf) &&
   message("Creating a library scale plot on replicates")
   ggplot_object <- ggplot2::ggplot(data = replicate_frame)
   ggplot_object <-
-    ggplot_object + geom_point(mapping = aes(x = rep_name, y = log10(internal_scale)))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = rep_name, y = log10(internal_scale)))
   ggplot_object <-
-    ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
+    ggplot_object + ggplot2::theme(axis.text.x = element_text(angle = -90, hjust = 0))
   plot_width <-
     argument_list$plot_width + (ceiling(x = replicate_number / 24L) - 1L) * argument_list$plot_width * 0.25
   ggplot2::ggsave(
@@ -615,8 +615,8 @@ if (file.exists(plot_path_pdf) &&
     "condition"
   ggplot_object <- ggplot2::ggplot(data = rep_fpkm_genes)
   ggplot_object <-
-    ggplot_object + geom_boxplot(
-      mapping = aes(
+    ggplot_object + ggplot2::geom_boxplot(
+      mapping = ggplot2::aes(
         x = condition,
         y = log10(fpkm),
         fill = condition
@@ -625,14 +625,15 @@ if (file.exists(plot_path_pdf) &&
       alpha = I(1 / 3)
     )
   ggplot_object <-
-    ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = element_text(angle = -90, hjust = 0),
+      legend.text = element_text(size = ggplot2::rel(x = 0.8))
+    )
   ggplot_object <-
-    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))
-  ggplot_object <-
-    ggplot_object + scale_fill_hue(l = 50, h.start = 200)
+    ggplot_object + ggplot2::scale_fill_hue(l = 50, h.start = 200)
   # Arrange a maximum of 24 replicates in each guide column.
   # ggplot_object <-
-  #   ggplot_object + guides(fill = guide_legend(nrow = 24))
+  #   ggplot_object + ggplot2::guides(fill = ggplot2::guide_legend(nrow = 24))
   # Use the base plot_witdh and add a quarter of the width for each additional
   # guide legend column.
   plot_width <-
@@ -679,8 +680,8 @@ if (file.exists(plot_path_pdf) &&
     "condition"
   ggplot_object <- ggplot2::ggplot(data = fpkm_genes)
   ggplot_object <-
-    ggplot_object + geom_boxplot(
-      mapping = aes(
+    ggplot_object + ggplot2::geom_boxplot(
+      mapping = ggplot2::aes(
         x = condition,
         y = log10(fpkm),
         fill = condition
@@ -689,14 +690,15 @@ if (file.exists(plot_path_pdf) &&
       alpha = I(1 / 3)
     )
   ggplot_object <-
-    ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = element_text(angle = -90, hjust = 0),
+      legend.text = element_text(size = ggplot2::rel(x = 0.8))
+    )
   ggplot_object <-
-    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))
-  ggplot_object <-
-    ggplot_object + scale_fill_hue(l = 50, h.start = 200)
+    ggplot_object + ggplot2::scale_fill_hue(l = 50, h.start = 200)
   # Arrange a maximum of 24 samples in each guide column.
   # ggplot_object <-
-  #   ggplot_object + guides(fill = guide_legend(nrow = 24))
+  #   ggplot_object + ggplot2::guides(fill = ggplot2::guide_legend(nrow = 24))
   # Use the base plot_witdh and add a quarter of the width for each additional
   # guide legend column.
   plot_width <-
@@ -747,8 +749,8 @@ if (file.exists(plot_path_pdf) &&
     "condition"
   ggplot_object <- ggplot2::ggplot(data = rep_fpkm_isoforms)
   ggplot_object <-
-    ggplot_object + geom_boxplot(
-      mapping = aes(
+    ggplot_object + ggplot2::geom_boxplot(
+      mapping = ggplot2::aes(
         x = condition,
         y = log10(fpkm),
         fill = condition
@@ -757,14 +759,15 @@ if (file.exists(plot_path_pdf) &&
       alpha = I(1 / 3)
     )
   ggplot_object <-
-    ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = element_text(angle = -90, hjust = 0),
+      legend.text = element_text(size = ggplot2::rel(x = 0.8))
+    )
   ggplot_object <-
-    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))
-  ggplot_object <-
-    ggplot_object + scale_fill_hue(l = 50, h.start = 200)
+    ggplot_object + ggplot2::scale_fill_hue(l = 50, h.start = 200)
   # Arrange a maximum of 24 replicates in each guide column.
   # ggplot_object <-
-  #   ggplot_object + guides(fill = guide_legend(nrow = 24))
+  #   ggplot_object + ggplot2::guides(fill = ggplot2::guide_legend(nrow = 24))
   # Use the base plot_witdh and add a quarter of the width for each additional
   # guide legend column.
   plot_width <-
@@ -811,8 +814,8 @@ if (file.exists(plot_path_pdf) &&
     "condition"
   ggplot_object <- ggplot2::ggplot(data = fpkm_isoforms)
   ggplot_object <-
-    ggplot_object + geom_boxplot(
-      mapping = aes(
+    ggplot_object + ggplot2::geom_boxplot(
+      mapping = ggplot2::aes(
         x = condition,
         y = log10(fpkm),
         fill = condition
@@ -821,14 +824,15 @@ if (file.exists(plot_path_pdf) &&
       alpha = I(1 / 3)
     )
   ggplot_object <-
-    ggplot_object + theme(axis.text.x = element_text(angle = -90, hjust = 0))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = element_text(angle = -90, hjust = 0),
+      legend.text = element_text(size = ggplot2::rel(x = 0.8))
+    )
   ggplot_object <-
-    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.8)))
-  ggplot_object <-
-    ggplot_object + scale_fill_hue(l = 50, h.start = 200)
+    ggplot_object + ggplot2::scale_fill_hue(l = 50, h.start = 200)
   # Arrange a maximum of 24 replicates in each guide column.
   # ggplot_object <-
-  #   ggplot_object + guides(fill = guide_legend(nrow = 24))
+  #   ggplot_object + ggplot2::guides(fill = ggplot2::guide_legend(nrow = 24))
   # Use the base plot_witdh and add a quarter of the with for each additional
   # guide legend column.
   plot_width <-
@@ -969,7 +973,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
         sample_pairs[2L, i]
       )
     )
-    
+
     # Unfortunately, the standard cummeRbund csScatter() function
     # does not allow colouring by significance.
     # ggplot_object <-
@@ -979,7 +983,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
     #     y = sample_pairs[2L, i],
     #     colorByStatus = TRUE
     #   )
-    
+
     # Re-implement scatter plots here.
     diff_data_genes <-
       cummeRbund::diffData(
@@ -990,16 +994,16 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       )
     ggplot_object <-
       ggplot2::ggplot(data = diff_data_genes,
-                      mapping = aes(x = value_1, y = value_2))
-    ggplot_object <- ggplot_object + theme_light()
+                      mapping = ggplot2::aes(x = value_1, y = value_2))
+    ggplot_object <- ggplot_object + ggplot2::theme_light()
     ggplot_object <-
-      ggplot_object + labs(x = sample_pairs[1L, i], y = sample_pairs[2L, i])
+      ggplot_object + ggplot2::labs(x = sample_pairs[1L, i], y = sample_pairs[2L, i])
     if (TRUE) {
-      # Plot the non-significant genes with geom_hex(),
+      # Plot the non-significant genes with ggplot2::geom_hex(),
       # which performs much better with typical numbers of genes.
       ggplot_object <-
-        ggplot_object + geom_hex(
-          data = diff_data_genes[diff_data_genes$significant == "no",],
+        ggplot_object + ggplot2::geom_hex(
+          data = diff_data_genes[diff_data_genes$significant == "no", ],
           alpha = I(1 / 3),
           show.legend = TRUE,
           bins = 50
@@ -1007,38 +1011,38 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       # Manually set scale colours.
       ggplot_object <-
         ggplot_object +
-        scale_fill_continuous(low = "#e6f0ff", high = "#0066ff")
-      # Plot the significant genes with geom_point() in red.
+        ggplot2::scale_fill_continuous(low = "#e6f0ff", high = "#0066ff")
+      # Plot the significant genes with ggplot2::geom_point() in red.
       ggplot_object <-
-        ggplot_object + geom_point(
-          data = diff_data_genes[diff_data_genes$significant == "yes",],
+        ggplot_object + ggplot2::geom_point(
+          data = diff_data_genes[diff_data_genes$significant == "yes", ],
           colour = "red",
           size = 1.2,
           alpha = I(1 / 3)
         )
     } else {
-      # Plot significant and non-significant genes with geom_point().
+      # Plot significant and non-significant genes with ggplot2::geom_point().
       ggplot_object <-
-        ggplot_object + geom_point(
-          mapping = aes(colour = significant),
+        ggplot_object + ggplot2::geom_point(
+          mapping = ggplot2::aes(colour = significant),
           size = 1.2,
           alpha = I(1 / 3)
         )
       # Manually set scale colours.
       ggplot_object <-
-        ggplot_object + scale_colour_manual(values = c("black", "red"))
+        ggplot_object + ggplot2::scale_colour_manual(values = c("black", "red"))
     }
     ggplot_object <-
-      ggplot_object + geom_abline(intercept = 0,
-                                  slope = 1,
-                                  linetype = 2)
+      ggplot_object + ggplot2::geom_abline(intercept = 0,
+                                           slope = 1,
+                                           linetype = 2)
     ggplot_object <-
-      ggplot_object + geom_rug(size = 0.8, alpha = 0.01)
+      ggplot_object + ggplot2::geom_rug(size = 0.8, alpha = 0.01)
     # ggplot_object <-
     #   ggplot_object + stat_smooth(method = "lm", fill = "blue", alpha = 0.2)
     ggplot_object <-
-      ggplot_object + scale_y_log10() + scale_x_log10()
-    
+      ggplot_object + ggplot2::scale_y_log10() + ggplot2::scale_x_log10()
+
     # Annotate the plot with the (Pearson) correlation coefficient and the
     # number of significantly up and downregulated genes.
     # For defining the data range for label placement,
@@ -1047,11 +1051,11 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       range(diff_data_genes[diff_data_genes$value_1 > 0.0, ]$value_1)
     range_value_2 <-
       range(diff_data_genes[diff_data_genes$value_2 > 0.0, ]$value_2)
-    
+
     # Calculate the (Pearson) correlation coefficient and place it on the plot
     # in the lower right corner at 95% x and 5% y.
     ggplot_object <-
-      ggplot_object + annotate(
+      ggplot_object + ggplot2::annotate(
         geom = "text",
         x = 10L ^ (log10(x = range_value_1[1L]) + (
           log10(x = range_value_1[2L]) - log10(x = range_value_1[1L])
@@ -1064,11 +1068,11 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
           digits = 3L
         ))
       )
-    
+
     # Calculate the numbers of up and down regulated genes and place them
     # on the plot in the upper left corner at 5%x and 95% y.
     ggplot_object <-
-      ggplot_object + annotate(
+      ggplot_object + ggplot2::annotate(
         geom = "text",
         x = 10L ^ (log10(x = range_value_1[1L]) + (
           log10(x = range_value_1[2L]) - log10(x = range_value_1[1L])
@@ -1079,18 +1083,18 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
         label = paste0(
           "Up: ",
           nrow(x = diff_data_genes[diff_data_genes$log2_fold_change > 0.0 &
-                                     diff_data_genes$significant == "yes",]),
+                                     diff_data_genes$significant == "yes", ]),
           "\n",
           "Down: ",
           nrow(x = diff_data_genes[diff_data_genes$log2_fold_change < 0.0 &
-                                     diff_data_genes$significant == "yes",])
+                                     diff_data_genes$significant == "yes", ])
         ),
         colour = "red",
         hjust = 0
       )
-    
+
     rm(range_value_1, range_value_2)
-    
+
     ggplot2::ggsave(
       filename = plot_path_pdf,
       plot = ggplot_object,
@@ -1120,7 +1124,11 @@ if (file.exists(plot_path_pdf) &&
   message("Skipping a Dendrogram Plot on Genes [PDF]")
 } else {
   message("Creating a Dendrogram Plot on Genes [PDF]")
-  grDevices::pdf(file = plot_path_pdf)
+  grDevices::pdf(
+    file = plot_path_pdf,
+    width = argument_list$plot_width,
+    height = argument_list$plot_height
+  )
   cummeRbund::csDendro(object = cummeRbund::genes(object = cuff_set))
   base::invisible(x = grDevices::dev.off())
 }
@@ -1133,7 +1141,13 @@ if (file.exists(plot_path_png) &&
   message("Skipping a Dendrogram Plot on Genes [PNG]")
 } else {
   message("Creating a Dendrogram Plot on Genes [PNG]")
-  grDevices::png(filename = plot_path_png)
+  grDevices::png(
+    filename = plot_path_png,
+    width = argument_list$plot_width,
+    height = argument_list$plot_height,
+    units = "in",
+    res = 300L
+  )
   cummeRbund::csDendro(object = cummeRbund::genes(object = cuff_set))
   base::invisible(x = grDevices::dev.off())
 }
@@ -1352,11 +1366,13 @@ if (replicate_number > 2L) {
     } else {
       # The standard MDSplot has too many replicates.
       gene_rep_fit <-
-        cmdscale(d = cummeRbund::JSdist(mat = makeprobs(
-          a = cummeRbund::repFpkmMatrix(object = cummeRbund::genes(object = cuff_set))
-        )),
-        eig = TRUE,
-        k = 2)
+        stats::cmdscale(
+          d = cummeRbund::JSdist(mat = cummeRbund::makeprobs(
+            a = cummeRbund::repFpkmMatrix(object = cummeRbund::genes(object = cuff_set))
+          )),
+          eig = TRUE,
+          k = 2
+        )
       gene_rep_res <-
         data.frame(
           "names" = rownames(gene_rep_fit$points),
@@ -1366,9 +1382,9 @@ if (replicate_number > 2L) {
         )
       ggplot_object <- ggplot2::ggplot(data = gene_rep_res)
       ggplot_object <-
-        ggplot_object + theme_bw()  # Add theme black and white.
+        ggplot_object + ggplot2::theme_bw()  # Add theme black and white.
       ggplot_object <-
-        ggplot_object + geom_point(mapping = aes(
+        ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
           x = M1,
           y = M2,
           colour = names
@@ -1377,17 +1393,19 @@ if (replicate_number > 2L) {
         # Only add text for a sensible number of replicates i.e. less than or
         # equal to 24.
         ggplot_object <-
-          ggplot_object + geom_text(mapping = aes(
-            x = M1,
-            y = M2,
-            label = names,
-            colour = names
-          ),
-          size = 4)
+          ggplot_object + ggplot2::geom_text(
+            mapping = ggplot2::aes(
+              x = M1,
+              y = M2,
+              label = names,
+              colour = names
+            ),
+            size = 4
+          )
       }
       # Arrange a maximum of 24 replicates in each guide column.
       ggplot_object <-
-        ggplot_object + guides(colour = guide_legend(nrow = 24))
+        ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(nrow = 24))
       # Use the base plot_witdh and add a quarter of the width for each
       # additional guide legend column.
       plot_width <-
@@ -1513,7 +1531,7 @@ if (file.exists(frame_path_genes) &&
     )
   )
   rm(reference_granges)
-  
+
   # 2. Read the assembly GTF, which specifies Cufflinks (XLOC) gene and
   # Cufflinks (TCONS) transcript identifiers, but does no longer provide
   # information about Ensembl (ENSG) gene identifiers. Reference transcriptome
@@ -1543,7 +1561,7 @@ if (file.exists(frame_path_genes) &&
         stringsAsFactors = TRUE
       )
     )
-    
+
     # 3. Join the reference and assembly data frames to correlate
     # Cufflinks (XLOC) gene identifiers with Ensembl (ENSG) gene identifiers
     # via Ensembl (ENST) transcript identifiers.
@@ -1557,7 +1575,7 @@ if (file.exists(frame_path_genes) &&
         all.x = TRUE
       )
     rm(reference_frame, assembly_frame)
-    
+
     # 4. Create a new, normalised Ensembl annotation data frame that correlates
     # each Cufflinks (XLOC) gene identifier with comma-separated lists of one or
     # more Ensembl (ENSG) gene and Ensembl (ENST) transcript identifiers.
@@ -1615,7 +1633,7 @@ if (file.exists(frame_path_genes) &&
     rm(reference_frame)
   }
   rm(assembly_granges)
-  
+
   # 5. Create a gene annotation frame, ready for enriching
   # cummeRbund gene information, by merging the "gene_id", "gene_short_name"
   # and "locus" variables of the gene annotation frame with the "transcript_ids",
@@ -1640,13 +1658,13 @@ if (file.exists(frame_path_genes) &&
     all.x = TRUE
   )
   rm(ensembl_annotation, cufflinks_annotation)
-  
+
   # 6. Create an isoform annotation data frame, ready for enriching
   # cummeRbund isoform information.
   # Simplify the cummeRbund isoform annotation data frame,
   # since variables "CDS_id" and "coverage" seem empty by design.
   # Remove hidden exon information by finding unique rows only.
-  
+
   message("Creating isoform annotation information")
   cufflinks_annotation <-
     cummeRbund::annotation(object = cummeRbund::isoforms(object = cuff_set))
@@ -1662,7 +1680,7 @@ if (file.exists(frame_path_genes) &&
       "length"
     ), drop = FALSE])
   rm(cufflinks_annotation)
-  
+
   write.table(x = gene_annotation_frame,
               frame_path_genes,
               sep = "\t",
@@ -1736,7 +1754,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       )
     # Remove the second column, which is duplicated as a consequence of a
     # SQL table join between the "genes" and "geneExpDiffData" tables.
-    diff_data_genes <- diff_data_genes[, -c(2L)]
+    diff_data_genes <- diff_data_genes[,-c(2L)]
     # Calculate ranks for the effect size (log2_fold_change), absolute level
     # and statistical significance (q_value).
     diff_data_genes$rank_log2_fold_change <-
@@ -1828,7 +1846,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       )
     # Remove the second column, which is duplicated as a consequence of a
     # SQL table join between the "isoforms" and "isoformsExpDiffData" tables.
-    diff_data_isoform <- diff_data_isoform[, -c(2L)]
+    diff_data_isoform <- diff_data_isoform[,-c(2L)]
     # Calculate ranks for the effect size (log2_fold_change), absolute level
     # and statistical significance (q_value).
     diff_data_isoform$rank_log2_fold_change <-
@@ -1900,12 +1918,12 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
           paste(x, collapse = "__")
         }
       ),
-      "OK" = integer(length = length(x = sample_pairs[1L,])),
-      "NOTEST" = integer(length = length(x = sample_pairs[1L,])),
-      "HIDATA" = integer(length = length(x = sample_pairs[1L,])),
-      "LOWDATA" = integer(length = length(x = sample_pairs[1L,])),
-      "FAIL" = integer(length = length(x = sample_pairs[1L,])),
-      "SUM" = integer(length = length(x = sample_pairs[1L,])),
+      "OK" = integer(length = length(x = sample_pairs[1L, ])),
+      "NOTEST" = integer(length = length(x = sample_pairs[1L, ])),
+      "HIDATA" = integer(length = length(x = sample_pairs[1L, ])),
+      "LOWDATA" = integer(length = length(x = sample_pairs[1L, ])),
+      "FAIL" = integer(length = length(x = sample_pairs[1L, ])),
+      "SUM" = integer(length = length(x = sample_pairs[1L, ])),
       row.names = apply(
         X = sample_pairs,
         MARGIN = 2L,
@@ -1914,8 +1932,8 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
         }
       )
     )
-  
-  for (i in seq_along(along.with = sample_pairs[1L,])) {
+
+  for (i in seq_along(along.with = sample_pairs[1L, ])) {
     diff_data_genes <-
       cummeRbund::diffData(
         object = cummeRbund::genes(object = cuff_set),
@@ -1962,12 +1980,12 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
           paste(x, collapse = "__")
         }
       ),
-      "OK" = integer(length = length(x = sample_pairs[1L,])),
-      "NOTEST" = integer(length = length(x = sample_pairs[1L,])),
-      "HIDATA" = integer(length = length(x = sample_pairs[1L,])),
-      "LOWDATA" = integer(length = length(x = sample_pairs[1L,])),
-      "FAIL" = integer(length = length(x = sample_pairs[1L,])),
-      "SUM" = integer(length = length(x = sample_pairs[1L,])),
+      "OK" = integer(length = length(x = sample_pairs[1L, ])),
+      "NOTEST" = integer(length = length(x = sample_pairs[1L, ])),
+      "HIDATA" = integer(length = length(x = sample_pairs[1L, ])),
+      "LOWDATA" = integer(length = length(x = sample_pairs[1L, ])),
+      "FAIL" = integer(length = length(x = sample_pairs[1L, ])),
+      "SUM" = integer(length = length(x = sample_pairs[1L, ])),
       row.names = apply(
         X = sample_pairs,
         MARGIN = 2L,
@@ -1976,8 +1994,8 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
         }
       )
     )
-  
-  for (i in seq_along(along.with = sample_pairs[1L,])) {
+
+  for (i in seq_along(along.with = sample_pairs[1L, ])) {
     diff_data_isoforms <-
       cummeRbund::diffData(
         object = cummeRbund::isoforms(object = cuff_set),
