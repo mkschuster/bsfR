@@ -84,6 +84,7 @@ argument_list <- parse_args(object = OptionParser(
 
 suppressPackageStartupMessages(expr = library(package = "ggplot2"))
 suppressPackageStartupMessages(expr = library(package = "reshape2"))
+suppressPackageStartupMessages(expr = library(package = "tibble"))
 
 # Save plots in the following formats.
 graphics_formats <- c("pdf", "png")
@@ -111,7 +112,7 @@ for (i in seq_len(length.out = nrow(x = summary_frame))) {
       x = base::basename(summary_frame[i, "file_name"])
     )
   message(paste0("  ", summary_frame[i, "read_group_name"]))
-  
+
   # This is the layout of a STAR alignment summary file.
   #
   # Started job on |       May 27 15:24:19
@@ -148,7 +149,7 @@ for (i in seq_len(length.out = nrow(x = summary_frame))) {
   #   CHIMERIC READS:
   #   Number of chimeric reads |       0
   # % of chimeric reads |       0.00%
-  
+
   temporary_frame <- as.data.frame(t(
     x = read.table(
       file = summary_frame[i, "file_name"],
@@ -246,31 +247,35 @@ write.table(
   col.names = TRUE
 )
 
-# Scatter plot of read numbers per read group -----------------------------
+# Scatter plot of read number versus alignment rate per read group --------
 
 
 plotting_frame <-
-  data.frame(
-    "read_group" = summary_frame$read_group_name,
-    "input" = summary_frame$input_reads,
-    "unique" = summary_frame$uniquely_mapped_reads,
-    "multi" = summary_frame$multi_mapped_number,
-    stringsAsFactors = FALSE
+  reshape2::melt(
+    data = tibble::tibble(
+      "read_group" = summary_frame$read_group_name,
+      "input" = summary_frame$input_reads,
+      "unique" = summary_frame$uniquely_mapped_reads,
+      "multi" = summary_frame$multi_mapped_number,
+      "unmapped" = summary_frame$input_reads - summary_frame$uniquely_mapped_reads - summary_frame$multi_mapped_number,
+      stringsAsFactors = FALSE
+    ),
+    id.vars = c("read_group", "input"),
+    measure.vars = c("unmapped", "multi", "unique"),
+    variable.name = "status",
+    value.name = "mapped"
   )
-plotting_frame$mapped <-
-  plotting_frame$unique + plotting_frame$multi
-plotting_frame$unmapped <-
-  plotting_frame$input - plotting_frame$mapped
 
 message("Creating a scatter plot of read number versus alignment rate per read group")
 ggplot_object <- ggplot(data = plotting_frame)
 ggplot_object <-
-  ggplot_object + ggtitle(label = "STAR Alignment per Read Group")
+  ggplot_object + ggtitle(label = "STAR Alignment Summary per Read Group")
 ggplot_object <-
   ggplot_object + geom_point(mapping = aes(
     x = mapped,
     y = mapped / input,
-    colour = read_group
+    colour = read_group,
+    shape = status
   ))
 # Reduce the label font size and the legend key size and allow a maximum of 24
 # guide legend rows.
@@ -284,8 +289,9 @@ ggplot_object <-
   ggplot_object + theme(legend.text = element_text(size = rel(x = 0.7)))
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
+# Because read group names are quite long, extend already for the first column.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = plotting_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 0L) * argument_list$plot_width * 1.0
 for (graphics_format in graphics_formats) {
   ggsave(
     filename = paste(
@@ -308,8 +314,8 @@ rm(graphics_format, plot_width, ggplot_object, plotting_frame)
 
 
 plotting_frame <-
-  melt(
-    data = data.frame(
+  reshape2::melt(
+    data = tibble::tibble(
       "read_group" = summary_frame$read_group_name,
       "unique" = summary_frame$uniquely_mapped_reads,
       "multi" = summary_frame$multi_mapped_number,
@@ -349,7 +355,7 @@ ggplot_object <-
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = plotting_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   ggsave(
     filename = paste(
@@ -372,8 +378,8 @@ rm(graphics_format, plot_width, ggplot_object, plotting_frame)
 # Column plot of read fractions per read group ----------------------------
 
 
-plotting_frame <- melt(
-  data = data.frame(
+plotting_frame <- reshape2::melt(
+  data = tibble::tibble(
     "read_group" = summary_frame$read_group_name,
     "unique" = summary_frame$uniquely_mapped_reads / summary_frame$input_reads,
     "multi" = summary_frame$multi_mapped_number / summary_frame$input_reads,
@@ -391,7 +397,7 @@ plotting_frame <- melt(
 message("Creating a column plot of read fractions per read group")
 ggplot_object <- ggplot(data = plotting_frame)
 ggplot_object <-
-  ggplot_object + ggtitle(label = "STAR Aliger Mapped Fractions per Read Group")
+  ggplot_object + ggtitle(label = "STAR Aligner Mapped Fractions per Read Group")
 ggplot_object <-
   ggplot_object + geom_col(mapping = aes(x = read_group, y = fraction, fill = status),
                            alpha = I(1 / 3))
@@ -415,7 +421,7 @@ ggplot_object <-
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = plotting_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   ggsave(
     filename = paste(
@@ -440,8 +446,8 @@ rm(graphics_format, plot_width, ggplot_object, plotting_frame)
 # Column plot of splice junction numbers per read group -------------------
 
 
-plotting_frame <- melt(
-  data = data.frame(
+plotting_frame <- reshape2::melt(
+  data = tibble::tibble(
     "read_group" = summary_frame$read_group_name,
     "gtag" = summary_frame$number_splice_gtag,
     "gcag" = summary_frame$number_splice_gcag,
@@ -458,7 +464,7 @@ plotting_frame <- melt(
 message("Creating a column plot of splice junction numbers per read group")
 ggplot_object <- ggplot(data = plotting_frame)
 ggplot_object <-
-  ggplot_object + ggtitle(label = "STAR Aliger Splice Junction Numbers per Read Group")
+  ggplot_object + ggtitle(label = "STAR Aligner Splice Junction Numbers per Read Group")
 ggplot_object <-
   ggplot_object + geom_col(
     mapping = aes(x = read_group, y = number, fill = splice_junction),
@@ -484,7 +490,7 @@ ggplot_object <-
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = plotting_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   ggsave(
     filename = paste(
@@ -509,8 +515,8 @@ rm(graphics_format, plot_width, ggplot_object, plotting_frame)
 # Column plot of splice junction fractions per read group -----------------
 
 
-plotting_frame <- melt(
-  data = data.frame(
+plotting_frame <- reshape2::melt(
+  data = tibble::tibble(
     "read_group" = summary_frame$read_group_name,
     "gtag" = summary_frame$number_splice_gtag / summary_frame$number_splice_total,
     "gcag" = summary_frame$number_splice_gcag / summary_frame$number_splice_total,
@@ -526,7 +532,7 @@ plotting_frame <- melt(
 message("Creating a column plot of splice junction fractions per read group")
 ggplot_object <- ggplot(data = plotting_frame)
 ggplot_object <-
-  ggplot_object + ggtitle(label = "STAR Aliger Splice Junction Fractions per Read Group")
+  ggplot_object + ggtitle(label = "STAR Aligner Splice Junction Fractions per Read Group")
 ggplot_object <-
   ggplot_object + geom_col(
     mapping = aes(x = read_group, y = fraction, fill = junction),
@@ -552,7 +558,7 @@ ggplot_object <-
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 samples.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = plotting_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   ggsave(
     filename = paste(
@@ -639,80 +645,31 @@ if (file.exists(file_path)) {
     row.names = FALSE,
     col.names = TRUE
   )
-  
+
   # For plotting, add in mapped und unmapped reads.
   aggregate_frame$reads_mapped <-
     aggregate_frame$reads_unique + aggregate_frame$reads_multi
   aggregate_frame$reads_unmapped <-
     aggregate_frame$reads_input - aggregate_frame$reads_mapped
-  
+
   # Scatter plot of read number versus alignment rate per sample ----------
-  
-  
-  plotting_frame <-
-    data.frame(
+
+
+  plotting_frame <- reshape2::melt(
+    data = tibble::tibble(
       "sample" = aggregate_frame$sample,
       "input" = aggregate_frame$reads_input,
       "multi" = aggregate_frame$reads_multi,
       "unique" = aggregate_frame$reads_unique,
-      "mapped" = aggregate_frame$reads_mapped,
       "unmapped" = aggregate_frame$reads_unmapped,
       stringsAsFactors = FALSE
-    )
-  
-  message("Creating a scatter plot of read number versus alignment rate per sample")
-  ggplot_object <- ggplot(data = plotting_frame)
-  ggplot_object <-
-    ggplot_object + ggtitle(label = "STAR Alignment Summary per Sample")
-  ggplot_object <-
-    ggplot_object + geom_point(mapping = aes(
-      x = mapped,
-      y = mapped / input,
-      colour = sample
-    ))
-  # Reduce the label font size and the legend key size and allow a maximum of 24
-  # guide legend rows.
-  ggplot_object <-
-    ggplot_object + guides(colour = guide_legend(
-      keywidth = rel(x = 0.8),
-      keyheight = rel(x = 0.8),
-      nrow = 24L
-    ))
-  ggplot_object <-
-    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.7)))
-  # Scale the plot width with the number of read groups, by adding a quarter of
-  # the original width for each 24 read groups.
-  plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = plotting_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
-  for (graphics_format in graphics_formats) {
-    ggsave(
-      filename = paste(
-        paste(argument_list$prefix,
-              "alignment",
-              "sample",
-              sep = "_"),
-        graphics_format,
-        sep = "."
-      ),
-      plot = ggplot_object,
-      width = plot_width,
-      height = argument_list$plot_height,
-      limitsize = FALSE
-    )
-  }
-  
-  # Scatter plot of read number versus alignment rate per sample ----------
-  
-  
-  # Repeat the plot, but melt the data frame by status first.
-  plotting_frame <- melt(
-    data = plotting_frame,
+    ),
     id.vars = c("sample", "input"),
     measure.vars = c("unmapped", "multi", "unique"),
     variable.name = "status",
     value.name = "mapped"
   )
-  
+
   message("Creating a scatter plot of read number versus alignment rate per sample")
   ggplot_object <- ggplot(data = plotting_frame)
   ggplot_object <-
@@ -737,12 +694,12 @@ if (file.exists(file_path)) {
   # Scale the plot width with the number of read groups, by adding a quarter of
   # the original width for each 24 read groups.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = plotting_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+    argument_list$plot_width + (ceiling(x = nrow(x = aggregate_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
         paste(argument_list$prefix,
-              "scatter",
+              "alignment",
               "sample",
               sep = "_"),
         graphics_format,
@@ -754,14 +711,13 @@ if (file.exists(file_path)) {
       limitsize = FALSE
     )
   }
-  
   rm(graphics_format, plot_width, ggplot_object, plotting_frame)
-  
+
   # Column plot of read numbers per sample --------------------------------
-  
-  
-  plotting_frame <- melt(
-    data = data.frame(
+
+
+  plotting_frame <- reshape2::melt(
+    data = tibble::tibble(
       "sample" = aggregate_frame$sample,
       "unmapped" = aggregate_frame$reads_unmapped,
       "multi" = aggregate_frame$reads_multi,
@@ -773,11 +729,11 @@ if (file.exists(file_path)) {
     variable.name = "status",
     value.name = "number"
   )
-  
+
   message("Creating a column plot of read numbers per sample")
   ggplot_object <- ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggtitle(label = "STAR Aliger Mapped Numbers per Sample")
+    ggplot_object + ggtitle(label = "STAR Aligner Mapped Numbers per Sample")
   ggplot_object <-
     ggplot_object + geom_col(mapping = aes(x = sample, y = number, fill = status),
                              alpha = I(1 / 3))
@@ -801,7 +757,7 @@ if (file.exists(file_path)) {
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = plotting_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+    argument_list$plot_width + (ceiling(x = nrow(x = aggregate_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
@@ -820,12 +776,12 @@ if (file.exists(file_path)) {
     )
   }
   rm(graphics_format, plot_width, ggplot_object, plotting_frame)
-  
+
   # Column plot of read fractions per sample ------------------------------
-  
-  
-  plotting_frame <- melt(
-    data = data.frame(
+
+
+  plotting_frame <- reshape2::melt(
+    data = tibble::tibble(
       "sample" = aggregate_frame$sample,
       "unmapped" = aggregate_frame$reads_unmapped / aggregate_frame$reads_input,
       "multi" = aggregate_frame$reads_multi / aggregate_frame$reads_input,
@@ -836,11 +792,11 @@ if (file.exists(file_path)) {
     variable.name = "status",
     value.name = "fraction"
   )
-  
+
   message("Creating a column plot of read fractions per sample")
   ggplot_object <- ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggtitle(label = "STAR Aliger Mapped Fractions per Sample")
+    ggplot_object + ggtitle(label = "STAR Aligner Mapped Fractions per Sample")
   ggplot_object <-
     ggplot_object + geom_col(mapping = aes(x = sample, y = fraction, fill = status),
                              alpha = I(1 / 3))
@@ -864,7 +820,7 @@ if (file.exists(file_path)) {
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = plotting_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+    argument_list$plot_width + (ceiling(x = nrow(x = aggregate_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
@@ -883,12 +839,12 @@ if (file.exists(file_path)) {
     )
   }
   rm(graphics_format, plot_width, ggplot_object, plotting_frame)
-  
+
   # Column plot of splice junction numbers per sample ---------------------
-  
-  
-  plotting_frame <- melt(
-    data = data.frame(
+
+
+  plotting_frame <- reshape2::melt(
+    data = tibble::tibble(
       "sample" = aggregate_frame$sample,
       "gtag" = aggregate_frame$junctions_gtag,
       "gcag" = aggregate_frame$junctions_gcag,
@@ -900,11 +856,11 @@ if (file.exists(file_path)) {
     variable.name = "junction",
     value.name = "number"
   )
-  
+
   message("Creating a column plot of splice junction numbers per sample")
   ggplot_object <- ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggtitle(label = "STAR Aliger Splice Junction Numbers per Sample")
+    ggplot_object + ggtitle(label = "STAR Aligner Splice Junction Numbers per Sample")
   ggplot_object <-
     ggplot_object + geom_col(mapping = aes(x = sample, y = number, fill = junction),
                              alpha = I(1 / 3))
@@ -928,7 +884,7 @@ if (file.exists(file_path)) {
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = plotting_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+    argument_list$plot_width + (ceiling(x = nrow(x = aggregate_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
@@ -947,12 +903,12 @@ if (file.exists(file_path)) {
     )
   }
   rm(graphics_format, plot_width, ggplot_object, plotting_frame)
-  
+
   # Column plot of splice junction fractions per sample -------------------
-  
-  
-  plotting_frame <- melt(
-    data = data.frame(
+
+
+  plotting_frame <- reshape2::melt(
+    data = tibble::tibble(
       "sample" = aggregate_frame$sample,
       "gtag" = aggregate_frame$junctions_gtag / aggregate_frame$junctions_total,
       "gcag" = aggregate_frame$junctions_gcag / aggregate_frame$junctions_total,
@@ -964,11 +920,11 @@ if (file.exists(file_path)) {
     variable.name = "junction",
     value.name = "fraction"
   )
-  
+
   message("Creating a column plot of splice junction fractions per sample")
   ggplot_object <- ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggtitle(label = "STAR Aliger Splice Junction Fractions per Sample")
+    ggplot_object + ggtitle(label = "STAR Aligner Splice Junction Fractions per Sample")
   ggplot_object <-
     ggplot_object + geom_col(mapping = aes(x = sample, y = fraction, fill = junction),
                              alpha = I(1 / 3))
@@ -992,7 +948,7 @@ if (file.exists(file_path)) {
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = plotting_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+    argument_list$plot_width + (ceiling(x = nrow(x = aggregate_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
     ggsave(
       filename = paste(
@@ -1013,7 +969,7 @@ if (file.exists(file_path)) {
     )
   }
   rm(graphics_format, plot_width, ggplot_object, plotting_frame)
-  
+
   rm(aggregate_frame, merged_frame)
 }
 rm(file_path)
