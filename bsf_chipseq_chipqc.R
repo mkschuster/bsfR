@@ -90,11 +90,12 @@ prefix <-
 
 
 diffbind_dba <- NULL
-file_path <- file.path(prefix, paste0(prefix, '_dba.Rdata'))
+file_path <- file.path(prefix, paste0(prefix, '_DBA.RData'))
 if (file.exists(file_path) &&
     file.info(file_path)$size > 0L) {
   message("Loading a DiffBind DBA object")
-  load(file = file_path)
+  diffbind_dba <-
+    DiffBind::dba.load(dir = prefix, pre = paste0(prefix, "_"))
 } else {
   stop(paste0(
     "Require a pre-calculated DiffBind DBA object in file: ",
