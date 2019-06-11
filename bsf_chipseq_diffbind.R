@@ -445,9 +445,12 @@ process_per_contrast <-
       # Annotate the GRanges object.
 
       # Coerce the GRanges object into a Bioconductor DataFrame object.
+      # Coercing via as(object = report_granges, Class = "DataFrame") yields
+      # a DataFrame with a variable X that holds GRanges objects. Use
+      # BiocGenerics::as.data.frame(x = report_granges) for the coercion
+      # into a plain data.frame object.
       report_frame <-
-        as(object = report_granges, Class = "DataFrame")
-
+        BiocGenerics::as.data.frame(x = report_granges, stringsAsFactors = FALSE)
       # Write a table of all peaks.
       write.table(
         x = report_frame,
@@ -473,6 +476,7 @@ process_per_contrast <-
         row.names = FALSE,
         col.names = TRUE
       )
+      rm(report_frame)
 
       # Set the BED score on the basis of the FDR value, scaled and centered to
       # fit UCSC Genome Browser conventions. The score should be an integer and
