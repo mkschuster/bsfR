@@ -87,7 +87,7 @@ suppressPackageStartupMessages(expr = library(package = "reshape2"))
 suppressPackageStartupMessages(expr = library(package = "tibble"))
 
 # Save plots in the following formats.
-graphics_formats <- c("pdf", "png")
+graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
 # Parse STAR aligner log files --------------------------------------------
 
@@ -267,33 +267,39 @@ plotting_frame <-
   )
 
 message("Creating a scatter plot of read number versus alignment rate per read group")
-ggplot_object <- ggplot(data = plotting_frame)
+ggplot_object <- ggplot2::ggplot(data = plotting_frame)
 ggplot_object <-
-  ggplot_object + ggtitle(label = "STAR Alignment Summary per Read Group")
-ggplot_object <-
-  ggplot_object + geom_point(mapping = aes(
+  ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
     x = mapped,
     y = mapped / input,
     colour = read_group,
     shape = status
   ))
+ggplot_object <-
+  ggplot_object + ggplot2::labs(
+    x = "Reads Number",
+    y = "Reads Fraction",
+    colour = "Read Group",
+    shape = "Mapping Status",
+    title = "STAR Alignment Summary per Read Group"
+  )
 # Reduce the label font size and the legend key size and allow a maximum of 24
 # guide legend rows.
 ggplot_object <-
-  ggplot_object + guides(colour = guide_legend(
-    keywidth = rel(x = 0.8),
-    keyheight = rel(x = 0.8),
+  ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(
+    keywidth = ggplot2::rel(x = 0.8),
+    keyheight = ggplot2::rel(x = 0.8),
     nrow = 24L
   ))
 ggplot_object <-
-  ggplot_object + theme(legend.text = element_text(size = rel(x = 0.7)))
+  ggplot_object + ggplot2::theme(legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7)))
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
 # Because read group names are quite long, extend already for the first column.
 plot_width <-
   argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 0L) * argument_list$plot_width * 1.0
 for (graphics_format in graphics_formats) {
-  ggsave(
+  ggplot2::ggsave(
     filename = paste(
       paste(argument_list$prefix,
             "alignment",
@@ -329,35 +335,40 @@ plotting_frame <-
   )
 
 message("Creating a column plot of read numbers per read group")
-ggplot_object <- ggplot(data = plotting_frame)
+ggplot_object <- ggplot2::ggplot(data = plotting_frame)
 ggplot_object <-
-  ggplot_object + ggtitle(label = "STAR Aligner Mapped Numbers per Read Group")
+  ggplot_object + ggplot2::geom_col(
+    mapping = ggplot2::aes(x = read_group, y = number, fill = status),
+    alpha = I(1 / 3)
+  )
 ggplot_object <-
-  ggplot_object + geom_col(mapping = aes(x = read_group, y = number, fill = status),
-                           alpha = I(1 / 3))
+  ggplot_object + ggplot2::labs(x = "Read Group",
+                                y = "Reads Number",
+                                fill = "Mapping Status",
+                                title = "STAR Aligner Mapped Numbers per Read Group")
 # Reduce the label font size and the legend key size and allow a maximum of 24
 # guide legend rows.
 ggplot_object <-
-  ggplot_object + guides(colour = guide_legend(
-    keywidth = rel(x = 0.8),
-    keyheight = rel(x = 0.8),
+  ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(
+    keywidth = ggplot2::rel(x = 0.8),
+    keyheight = ggplot2::rel(x = 0.8),
     nrow = 24L
   ))
 ggplot_object <-
-  ggplot_object + theme(
-    axis.text.x = element_text(
+  ggplot_object + ggplot2::theme(
+    axis.text.x = ggplot2::element_text(
       angle = 90,
       hjust = 0,
-      size = rel(x = 0.7)
+      size = ggplot2::rel(x = 0.7)
     ),
-    legend.text = element_text(size = rel(x = 0.7))
+    legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
   )
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
 plot_width <-
   argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
-  ggsave(
+  ggplot2::ggsave(
     filename = paste(
       paste(argument_list$prefix,
             "mapped",
@@ -395,35 +406,40 @@ plotting_frame <- reshape2::melt(
 )
 
 message("Creating a column plot of read fractions per read group")
-ggplot_object <- ggplot(data = plotting_frame)
+ggplot_object <- ggplot2::ggplot(data = plotting_frame)
 ggplot_object <-
-  ggplot_object + ggtitle(label = "STAR Aligner Mapped Fractions per Read Group")
+  ggplot_object + ggplot2::geom_col(
+    mapping = ggplot2::aes(x = read_group, y = fraction, fill = status),
+    alpha = I(1 / 3)
+  )
 ggplot_object <-
-  ggplot_object + geom_col(mapping = aes(x = read_group, y = fraction, fill = status),
-                           alpha = I(1 / 3))
+  ggplot_object + ggplot2::labs(x = "Read Group",
+                                y = "Reads Fraction",
+                                fill = "Mapping Status",
+                                title = "STAR Aligner Mapped Fractions per Read Group")
 # Reduce the label font size and the legend key size and allow a maximum of 24
 # guide legend rows.
 ggplot_object <-
-  ggplot_object + guides(colour = guide_legend(
-    keywidth = rel(x = 0.8),
-    keyheight = rel(x = 0.8),
+  ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(
+    keywidth = ggplot2::rel(x = 0.8),
+    keyheight = ggplot2::rel(x = 0.8),
     nrow = 24L
   ))
 ggplot_object <-
-  ggplot_object + theme(
-    axis.text.x = element_text(
+  ggplot_object + ggplot2::theme(
+    axis.text.x = ggplot2::element_text(
       angle = 90,
       hjust = 0,
-      size = rel(x = 0.7)
+      size = ggplot2::rel(x = 0.7)
     ),
-    legend.text = element_text(size = rel(x = 0.7))
+    legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
   )
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
 plot_width <-
   argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
-  ggsave(
+  ggplot2::ggsave(
     filename = paste(
       paste(
         argument_list$prefix,
@@ -462,37 +478,40 @@ plotting_frame <- reshape2::melt(
 )
 
 message("Creating a column plot of splice junction numbers per read group")
-ggplot_object <- ggplot(data = plotting_frame)
+ggplot_object <- ggplot2::ggplot(data = plotting_frame)
 ggplot_object <-
-  ggplot_object + ggtitle(label = "STAR Aligner Splice Junction Numbers per Read Group")
-ggplot_object <-
-  ggplot_object + geom_col(
-    mapping = aes(x = read_group, y = number, fill = splice_junction),
+  ggplot_object + ggplot2::geom_col(
+    mapping = ggplot2::aes(x = read_group, y = number, fill = splice_junction),
     alpha = I(1 / 3)
   )
+ggplot_object <-
+  ggplot_object + ggplot2::labs(x = "Read Group",
+                                y = "Splice Junction Number",
+                                fill = "Splice Junction",
+                                title = "STAR Aligner Splice Junction Numbers per Read Group")
 # Reduce the label font size and the legend key size and allow a maximum of 24
 # guide legend rows.
 ggplot_object <-
-  ggplot_object + guides(colour = guide_legend(
-    keywidth = rel(x = 0.8),
-    keyheight = rel(x = 0.8),
+  ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(
+    keywidth = ggplot2::rel(x = 0.8),
+    keyheight = ggplot2::rel(x = 0.8),
     nrow = 24L
   ))
 ggplot_object <-
-  ggplot_object + theme(
-    axis.text.x = element_text(
+  ggplot_object + ggplot2::theme(
+    axis.text.x = ggplot2::element_text(
       angle = 90,
       hjust = 0,
-      size = rel(x = 0.7)
+      size = ggplot2::rel(x = 0.7)
     ),
-    legend.text = element_text(size = rel(x = 0.7))
+    legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
   )
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
 plot_width <-
   argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
-  ggsave(
+  ggplot2::ggsave(
     filename = paste(
       paste(
         argument_list$prefix,
@@ -530,37 +549,40 @@ plotting_frame <- reshape2::melt(
 )
 
 message("Creating a column plot of splice junction fractions per read group")
-ggplot_object <- ggplot(data = plotting_frame)
+ggplot_object <- ggplot2::ggplot(data = plotting_frame)
 ggplot_object <-
-  ggplot_object + ggtitle(label = "STAR Aligner Splice Junction Fractions per Read Group")
-ggplot_object <-
-  ggplot_object + geom_col(
-    mapping = aes(x = read_group, y = fraction, fill = junction),
+  ggplot_object + ggplot2::geom_col(
+    mapping = ggplot2::aes(x = read_group, y = fraction, fill = junction),
     alpha = I(1 / 3)
   )
+ggplot_object <-
+  ggplot_object + ggplot2::labs(x = "Read Group",
+                                y = "Splice Junction Fraction",
+                                fill = "Splice Junction",
+                                title = "STAR Aligner Splice Junction Fractions per Read Group")
 # Reduce the label font size and the legend key size and allow a maximum of 24
 # guide legend rows.
 ggplot_object <-
-  ggplot_object + guides(colour = guide_legend(
-    keywidth = rel(x = 0.8),
-    keyheight = rel(x = 0.8),
+  ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(
+    keywidth = ggplot2::rel(x = 0.8),
+    keyheight = ggplot2::rel(x = 0.8),
     nrow = 24L
   ))
 ggplot_object <-
-  ggplot_object + theme(
-    axis.text.x = element_text(
+  ggplot_object + ggplot2::theme(
+    axis.text.x = ggplot2::element_text(
       angle = 90,
       hjust = 0,
-      size = rel(x = 0.7)
+      size = ggplot2::rel(x = 0.7)
     ),
-    legend.text = element_text(size = rel(x = 0.7))
+    legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
   )
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 samples.
 plot_width <-
   argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
-  ggsave(
+  ggplot2::ggsave(
     filename = paste(
       paste(
         argument_list$prefix,
@@ -671,32 +693,40 @@ if (file.exists(file_path)) {
   )
 
   message("Creating a scatter plot of read number versus alignment rate per sample")
-  ggplot_object <- ggplot(data = plotting_frame)
+  ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggtitle(label = "STAR Alignment Summary per Sample")
-  ggplot_object <-
-    ggplot_object + geom_point(mapping = aes(
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
       x = mapped,
       y = mapped / input,
       colour = sample,
       shape = status
     ))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Reads Number",
+      y = "Reads Fraction",
+      colour = "Sample",
+      shape = "Mapping Status",
+      title = "STAR Alignment Summary per Sample"
+    )
   # Reduce the label font size and the legend key size and allow a maximum of 24
   # guide legend rows.
   ggplot_object <-
-    ggplot_object + guides(colour = guide_legend(
-      keywidth = rel(x = 0.8),
-      keyheight = rel(x = 0.8),
-      nrow = 24L
-    ))
+    ggplot_object + ggplot2::guides(
+      colour = ggplot2::guide_legend(
+        keywidth = ggplot2::rel(x = 0.8),
+        keyheight = ggplot2::rel(x = 0.8),
+        nrow = 24L
+      )
+    )
   ggplot_object <-
-    ggplot_object + theme(legend.text = element_text(size = rel(x = 0.7)))
+    ggplot_object + ggplot2::theme(legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7)))
   # Scale the plot width with the number of read groups, by adding a quarter of
   # the original width for each 24 read groups.
   plot_width <-
     argument_list$plot_width + (ceiling(x = nrow(x = aggregate_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
-    ggsave(
+    ggplot2::ggsave(
       filename = paste(
         paste(argument_list$prefix,
               "alignment",
@@ -731,35 +761,40 @@ if (file.exists(file_path)) {
   )
 
   message("Creating a column plot of read numbers per sample")
-  ggplot_object <- ggplot(data = plotting_frame)
+  ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggtitle(label = "STAR Aligner Mapped Numbers per Sample")
+    ggplot_object + ggplot2::geom_col(mapping = ggplot2::aes(x = sample, y = number, fill = status),
+                                      alpha = I(1 / 3))
   ggplot_object <-
-    ggplot_object + geom_col(mapping = aes(x = sample, y = number, fill = status),
-                             alpha = I(1 / 3))
+    ggplot_object + ggplot2::labs(x = "Sample",
+                                  y = "Reads Number",
+                                  fill = "Mapping Status",
+                                  title = "STAR Aligner Mapped Numbers per Sample")
   # Reduce the label font size and the legend key size and allow a maximum of 24
   # guide legend rows.
   ggplot_object <-
-    ggplot_object + guides(colour = guide_legend(
-      keywidth = rel(x = 0.8),
-      keyheight = rel(x = 0.8),
-      nrow = 24L
-    ))
+    ggplot_object + ggplot2::guides(
+      colour = ggplot2::guide_legend(
+        keywidth = ggplot2::rel(x = 0.8),
+        keyheight = ggplot2::rel(x = 0.8),
+        nrow = 24L
+      )
+    )
   ggplot_object <-
-    ggplot_object + theme(
-      axis.text.x = element_text(
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
         angle = 90,
         hjust = 0,
-        size = rel(x = 0.7)
+        size = ggplot2::rel(x = 0.7)
       ),
-      legend.text = element_text(size = rel(x = 0.7))
+      legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
     )
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
     argument_list$plot_width + (ceiling(x = nrow(x = aggregate_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
-    ggsave(
+    ggplot2::ggsave(
       filename = paste(
         paste(argument_list$prefix,
               "mapped",
@@ -794,35 +829,42 @@ if (file.exists(file_path)) {
   )
 
   message("Creating a column plot of read fractions per sample")
-  ggplot_object <- ggplot(data = plotting_frame)
+  ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggtitle(label = "STAR Aligner Mapped Fractions per Sample")
+    ggplot_object + ggplot2::geom_col(
+      mapping = ggplot2::aes(x = sample, y = fraction, fill = status),
+      alpha = I(1 / 3)
+    )
   ggplot_object <-
-    ggplot_object + geom_col(mapping = aes(x = sample, y = fraction, fill = status),
-                             alpha = I(1 / 3))
+    ggplot_object + ggplot2::labs(x = "Sample",
+                                  y = "Reads Fraction",
+                                  fill = "Mapping Status",
+                                  title = "STAR Aligner Mapped Fractions per Sample")
   # Reduce the label font size and the legend key size and allow a maximum of 24
   # guide legend rows.
   ggplot_object <-
-    ggplot_object + guides(colour = guide_legend(
-      keywidth = rel(x = 0.8),
-      keyheight = rel(x = 0.8),
-      nrow = 24L
-    ))
+    ggplot_object + ggplot2::guides(
+      colour = ggplot2::guide_legend(
+        keywidth = ggplot2::rel(x = 0.8),
+        keyheight = ggplot2::rel(x = 0.8),
+        nrow = 24L
+      )
+    )
   ggplot_object <-
-    ggplot_object + theme(
-      axis.text.x = element_text(
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
         angle = 90,
         hjust = 0,
-        size = rel(x = 0.7)
+        size = ggplot2::rel(x = 0.7)
       ),
-      legend.text = element_text(size = rel(x = 0.7))
+      legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
     )
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
     argument_list$plot_width + (ceiling(x = nrow(x = aggregate_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
-    ggsave(
+    ggplot2::ggsave(
       filename = paste(
         paste(argument_list$prefix,
               "mapped",
@@ -858,35 +900,40 @@ if (file.exists(file_path)) {
   )
 
   message("Creating a column plot of splice junction numbers per sample")
-  ggplot_object <- ggplot(data = plotting_frame)
+  ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggtitle(label = "STAR Aligner Splice Junction Numbers per Sample")
+    ggplot_object + ggplot2::geom_col(mapping = ggplot2::aes(x = sample, y = number, fill = junction),
+                                      alpha = I(1 / 3))
   ggplot_object <-
-    ggplot_object + geom_col(mapping = aes(x = sample, y = number, fill = junction),
-                             alpha = I(1 / 3))
+    ggplot_object + ggplot2::labs(x = "Sample",
+                                  y = "Splice Junction Number",
+                                  fill = "Splice Junction",
+                                  title = "STAR Aligner Splice Junction Numbers per Sample")
   # Reduce the label font size and the legend key size and allow a maximum of 24
   # guide legend rows.
   ggplot_object <-
-    ggplot_object + guides(colour = guide_legend(
-      keywidth = rel(x = 0.8),
-      keyheight = rel(x = 0.8),
-      nrow = 24L
-    ))
+    ggplot_object + ggplot2::guides(
+      colour = ggplot2::guide_legend(
+        keywidth = ggplot2::rel(x = 0.8),
+        keyheight = ggplot2::rel(x = 0.8),
+        nrow = 24L
+      )
+    )
   ggplot_object <-
-    ggplot_object + theme(
-      axis.text.x = element_text(
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
         angle = 90,
         hjust = 0,
-        size = rel(x = 0.7)
+        size = ggplot2::rel(x = 0.7)
       ),
-      legend.text = element_text(size = rel(x = 0.7))
+      legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
     )
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
     argument_list$plot_width + (ceiling(x = nrow(x = aggregate_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
-    ggsave(
+    ggplot2::ggsave(
       filename = paste(
         paste(argument_list$prefix,
               "junction",
@@ -922,35 +969,42 @@ if (file.exists(file_path)) {
   )
 
   message("Creating a column plot of splice junction fractions per sample")
-  ggplot_object <- ggplot(data = plotting_frame)
+  ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggtitle(label = "STAR Aligner Splice Junction Fractions per Sample")
+    ggplot_object + ggplot2::geom_col(
+      mapping = ggplot2::aes(x = sample, y = fraction, fill = junction),
+      alpha = I(1 / 3)
+    )
   ggplot_object <-
-    ggplot_object + geom_col(mapping = aes(x = sample, y = fraction, fill = junction),
-                             alpha = I(1 / 3))
+    ggplot_object + ggplot2::labs(x = "Sample",
+                                  y = "Splice Junction Fraction",
+                                  fill = "Splice Junction",
+                                  title = "STAR Aligner Splice Junction Fractions per Sample")
   # Reduce the label font size and the legend key size and allow a maximum of 24
   # guide legend rows.
   ggplot_object <-
-    ggplot_object + guides(colour = guide_legend(
-      keywidth = rel(x = 0.8),
-      keyheight = rel(x = 0.8),
-      nrow = 24L
-    ))
+    ggplot_object + ggplot2::guides(
+      colour = ggplot2::guide_legend(
+        keywidth = ggplot2::rel(x = 0.8),
+        keyheight = ggplot2::rel(x = 0.8),
+        nrow = 24L
+      )
+    )
   ggplot_object <-
-    ggplot_object + theme(
-      axis.text.x = element_text(
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
         angle = 90,
         hjust = 0,
-        size = rel(x = 0.7)
+        size = ggplot2::rel(x = 0.7)
       ),
-      legend.text = element_text(size = rel(x = 0.7))
+      legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
     )
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
     argument_list$plot_width + (ceiling(x = nrow(x = aggregate_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
-    ggsave(
+    ggplot2::ggsave(
       filename = paste(
         paste(
           argument_list$prefix,
