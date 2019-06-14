@@ -90,8 +90,10 @@ if (is.null(x = argument_list$file_path)) {
 suppressPackageStartupMessages(expr = library(package = "ggplot2"))
 suppressPackageStartupMessages(expr = library(package = "Rsamtools"))
 
-graphics_formats <- c("pdf", "png")
+graphics_formats <- c("pdf" = "pdf", "png" = "png")
+
 prefix <- "variant_calling_diagnose_sample"
+
 sample_name <-
   gsub(
     pattern = "^variant_calling_process_sample_(.*)_realigned.bam$",
@@ -174,29 +176,35 @@ write.table(
 # Plot insert size distribution -------------------------------------------
 
 
-ggplot_object <- ggplot(data = summary_frame)
-ggplot_object <-
-  ggplot_object + ggtitle(label = paste0("Insert Size ", sample_name))
+plot_paths <- paste(
+  paste(
+    prefix,
+    sample_name,
+    "insert_size",
+    sep = "_"
+  ),
+  graphics_format,
+  sep = "."
+)
+
+ggplot_object <- ggplot2::ggplot(data = summary_frame)
 if (argument_list$density_plot) {
   ggplot_object <-
-    ggplot_object + geom_density(mapping = aes(x = size, y = frequency), stat = "identity")
+    ggplot_object + ggplot2::geom_density(mapping = ggplot2::aes(x = size, y = frequency), stat = "identity")
 } else {
   ggplot_object <-
-    ggplot_object + geom_col(mapping = aes(x = size, y = frequency))
+    ggplot_object + ggplot2::geom_col(mapping = ggplot2::aes(x = size, y = frequency))
 }
-for (graphics_format in graphics_formats) {
-  ggsave(
-    filename =
-      paste(
-        paste(
-          prefix,
-          sample_name,
-          "insert_size",
-          sep = "_"
-        ),
-        graphics_format,
-        sep = "."
-      ),
+ggplot_object <-
+  ggplot_object + ggplot2::labs(
+    x = "Insert Size",
+    y = "Frequency",
+    title = "Insert Size Density",
+    subtitle = sample_name
+  )
+for (plot_path in plot_paths) {
+  ggplot2::ggsave(
+    filename = plot_path,
     plot = ggplot_object,
     width = argument_list$plot_width,
     height = argument_list$plot_height,
@@ -204,8 +212,9 @@ for (graphics_format in graphics_formats) {
   )
 }
 rm(
-  graphics_format,
+  plot_path,
   ggplot_object,
+  plot_paths,
   summary_frame,
   records_read_chunk,
   records_read_total,
