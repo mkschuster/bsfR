@@ -143,6 +143,13 @@ argument_list <- parse_args(object = OptionParser(
       help = "Number of parallel processing threads [1]",
       type = "integer"
     ),
+    # make_option(
+    #   opt_str = c("--plot-factor"),
+    #   default = 0.5,
+    #   dest = "plot_factor",
+    #   help = "Plot width increase per 24 samples [0.5]",
+    #   type = "numeric"
+    # ),
     make_option(
       opt_str = c("--plot-width"),
       default = 7.0,
@@ -172,7 +179,7 @@ suppressPackageStartupMessages(expr = library(package = "Rsamtools"))  # for Rsa
 suppressPackageStartupMessages(expr = library(package = "caret"))  # For caret::findLinearCombos()
 suppressPackageStartupMessages(expr = library(package = "plyr"))  # For plyr::ldply()
 suppressPackageStartupMessages(expr = library(package = "genefilter"))  # for genefilter::rowVars()
-suppressPackageStartupMessages(expr = library(package = "ggplot2"))  # for ggplot2::ggplot()
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))  # for ggplot2::ggplot(), etc.
 suppressPackageStartupMessages(expr = library(package = "grid"))  # for grid::grid.newpage() and grid::grid.draw()
 suppressPackageStartupMessages(expr = library(package = "pheatmap"))  # for pheatmap::pheatmap()
 # suppressPackageStartupMessages(expr = library(package = "reshape2"))  # for reshape2::melt()
@@ -181,7 +188,7 @@ suppressPackageStartupMessages(expr = library(package = "stringi"))  # For strin
 
 # Save plots in the following formats.
 
-graphics_formats <- c("pdf", "png")
+graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
 prefix <-
   paste("rnaseq",
@@ -500,8 +507,16 @@ initialise_ranged_summarized_experiment <- function(design_list) {
           yieldSize = 2000000L,
           asMates = (sequencing_type == "PE")
         )
-        names(x = bam_file_list) <-
-          as.character(x = sub_sample_frame$sample)
+        # If a "run" variable is defined, technical replicates need collapsing
+        # and the "sample" variable has duplicate values. Hence, use "run"
+        # instead of "sample" for naming.
+        if ("run" %in% names(x = sub_sample_frame)) {
+          names(x = bam_file_list) <-
+            as.character(x = sub_sample_frame$run)
+        } else {
+          names(x = bam_file_list) <-
+            as.character(x = sub_sample_frame$sample)
+        }
 
         message("Creating a RangedSummarizedExperiment object")
         sub_ranged_summarized_experiment <-
@@ -539,6 +554,24 @@ initialise_ranged_summarized_experiment <- function(design_list) {
       rm(sequencing_type)
     }
     rm(library_type)
+
+    # Collapse technical replicates if variable "run" is defined.
+    sample_frame <-
+      SummarizedExperiment::colData(x = ranged_summarized_experiment)
+    if ("run" %in% names(x = sample_frame)) {
+      message("Collapsing technical replicates.")
+      # To avoid mismatching column and row names between
+      # assay matrices and the column data annotation, variables
+      # "sample" and "run" should be used. So set the original samples as runs
+      # and rename the collapsed_sample variable into the sample variable.
+      ranged_summarized_experiment <- DESeq2::collapseReplicates(
+        object = ranged_summarized_experiment,
+        groupby = sample_frame$sample,
+        run = sample_frame$run,
+        renameCols = TRUE
+      )
+    }
+    rm(sample_frame)
 
     # Calculate colSums() of SummarizedExperiment::assay() and add as total_count into the colData data frame.
     sample_frame <-
@@ -628,18 +661,16 @@ check_model_matrix <- function(model_matrix) {
     # because this function is now used on full and reduced matrices.
     if (argument_list$verbose) {
       message("Writing model matrix")
-      model_frame <- as.data.frame(x = model_matrix)
-      model_path <-
-        file.path(output_directory,
-                  paste0(prefix, "_model_matrix_initial.tsv"))
       write.table(
-        x = model_frame,
-        file = model_path,
+        x = base::as.data.frame(x = model_matrix),
+        file = file.path(
+          output_directory,
+          paste0(prefix, "_model_matrix_initial.tsv")
+        ),
         sep = "\t",
         row.names = TRUE,
         col.names = TRUE
       )
-      rm(model_path, model_frame)
     }
   }
 
@@ -660,18 +691,16 @@ check_model_matrix <- function(model_matrix) {
     # because this function is now used on full and reduced matrices.
     if (argument_list$verbose) {
       message("Writing modified model matrix")
-      model_frame <- as.data.frame(x = model_matrix)
-      model_path <-
-        file.path(output_directory,
-                  paste0(prefix, "_model_matrix_modified.tsv"))
       write.table(
-        x = model_frame,
-        file = model_path,
+        x = base::as.data.frame(x = model_matrix),
+        file = file.path(
+          output_directory,
+          paste0(prefix, "_model_matrix_modified.tsv")
+        ),
         sep = "\t",
         row.names = TRUE,
         col.names = TRUE
       )
-      rm(model_path, model_frame)
     }
   }
 
@@ -841,7 +870,76 @@ aes_list_to_character <- function(aes_list) {
 }
 
 
-# Plot RIN scores ---------------------------------------------------------
+# Plot FPKM Values --------------------------------------------------------
+
+
+#' Plot FPKM values.
+#'
+#' @param object A \code{matrix} object returned by \code{DESeq2::fpkm}.
+#'
+#' @return \code{NULL}
+#'
+#' @examples
+#' @noRd
+plot_fpkm_values <- function(object) {
+  plot_paths <- file.path(output_directory,
+                          paste(
+                            paste(prefix,
+                                  "fpkm",
+                                  "density",
+                                  sep = "_"),
+                            graphics_formats,
+                            sep = "."
+                          ))
+
+  if (all(file.exists(plot_paths) &&
+          file.info(plot_paths)$size > 0L)) {
+    message("Skipping a FPKM density plot")
+  } else {
+    # Melt the data frame to get just a "key" and a "value" variable.
+    ggplot_object <-
+      ggplot2::ggplot(data = tidyr::gather(data = tibble::as_tibble(x = object)))
+
+    ggplot_object <-
+      ggplot_object + ggplot2::geom_density(
+        mapping = ggplot2::aes(
+          x = log10(.data$value),
+          y = ..density..,
+          colour = .data$key
+        ),
+        alpha = I(1 / 3)
+      )
+
+    ggplot_object <-
+      ggplot_object + ggplot2::labs(
+        x = "log10(FPKM)",
+        y = "density",
+        colour = "sample",
+        title = "FPKM Density",
+        subtitle = paste("Design", argument_list$design_name)
+      )
+
+    # Increase the plot width per 24 samples.
+    # The number of samples is the number of columns of the matrix.
+    # Rather than argument_list$plot_factor, a fixed mumber of 0.25 is used here.
+    plot_width <-
+      argument_list$plot_width + (ceiling(x = ncol(x = object) / 24L) - 1L) * argument_list$plot_width * 0.25
+
+    for (plot_path in plot_paths) {
+      ggplot2::ggsave(
+        filename = plot_path,
+        plot = ggplot_object,
+        width = plot_width,
+        height = argument_list$plot_height,
+        limitsize = FALSE
+      )
+    }
+    rm(plot_path, ggplot_object)
+  }
+  rm(plot_paths)
+}
+
+# Plot RIN Scores ---------------------------------------------------------
 
 
 #' Plot RIN scores.
@@ -851,11 +949,13 @@ aes_list_to_character <- function(aes_list) {
 #' @return \code{NULL}
 #'
 #' @examples
+#' @noRd
 plot_rin_scores <- function(object) {
   plot_paths <- file.path(output_directory,
                           paste(
                             paste(prefix,
-                                  "rin_density",
+                                  "rin",
+                                  "density",
                                   sep = "_"),
                             graphics_formats,
                             sep = "."
@@ -867,31 +967,44 @@ plot_rin_scores <- function(object) {
     if ("RIN" %in% colnames(x = SummarizedExperiment::colData(x = object))) {
       message("Creating a RIN score density plot")
       ggplot_object <-
-        ggplot2::ggplot(data = as.data.frame(x = SummarizedExperiment::colData(x = object)))
-      ggplot_object <-
-        ggplot_object + ggplot2::ggtitle(label = "RNA Integry Number (RIN) Density Plot")
+        ggplot2::ggplot(data = BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)))
+
       ggplot_object <-
         ggplot_object + ggplot2::xlim(RIN = c(0.0, 10.0))
+
       ggplot_object <-
         ggplot_object + ggplot2::geom_vline(xintercept = 1.0,
                                             colour = "red",
                                             linetype = 2L)
+
       ggplot_object <-
         ggplot_object + ggplot2::geom_vline(xintercept = 4.0,
                                             colour = "yellow",
                                             linetype = 2L)
+
       ggplot_object <-
         ggplot_object + ggplot2::geom_vline(xintercept = 7.0,
                                             colour = "green",
                                             linetype = 2L)
+
       ggplot_object <-
-        ggplot_object + ggplot2::geom_density(mapping = aes(x = RIN, y = ..density..))
+        ggplot_object + ggplot2::geom_density(mapping = ggplot2::aes(x = RIN, y = ..density..))
+
+      ggplot_object <-
+        ggplot_object + ggplot2::labs(
+          x = "RIN score",
+          y = "density",
+          title = "RNA Integrity Number (RIN) Density Plot",
+          subtitle = paste("Design", argument_list$design_name)
+        )
+
       for (plot_path in plot_paths) {
         ggplot2::ggsave(
           filename = plot_path,
+          plot = ggplot_object,
           width = argument_list$plot_width,
           height = argument_list$plot_height,
-          plot = ggplot_object
+          limitsize = FALSE
         )
       }
       rm(plot_path, ggplot_object)
@@ -928,147 +1041,163 @@ plot_mds <- function(object,
   message(paste("Creating", suffix, "MDS plots"))
 
   dist_object <-
-    dist(x = t(x = SummarizedExperiment::assay(x = object)))
+    stats::dist(x = t(x = SummarizedExperiment::assay(x = object)))
   dist_matrix <- as.matrix(x = dist_object)
+  # Convert the Mulitdimensional Scaling matrix into a DataFrame and
+  # bind its columns to the sample annotation DataFrame.
   mds_frame <-
-    cbind(data.frame(cmdscale(d = dist_matrix)),
-          as.data.frame(SummarizedExperiment::colData(x = object)))
+    base::cbind(
+      base::data.frame(stats::cmdscale(d = dist_matrix)),
+      BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object))
+    )
 
   dummy_list <-
     lapply(
       X = plot_list,
       FUN = function(aes_list) {
-        ggplot_object <-
-          ggplot2::ggplot(data = mds_frame)
+        plot_paths <- file.path(output_directory,
+                                paste(
+                                  paste(
+                                    prefix,
+                                    prefix,
+                                    "mds",
+                                    aes_list_to_character(aes_list = aes_list),
+                                    suffix,
+                                    sep = "_"
+                                  ),
+                                  graphics_formats,
+                                  sep = "."
+                                ))
 
-        # geom_line
-        if (!is.null(x = aes_list$geom_line)) {
+        if (all(file.exists(plot_paths) &&
+                file.info(plot_paths)$size > 0L)) {
+          message("Skipping a MDS plot")
+        } else {
+          message("Creating a MDS plot")
+
           ggplot_object <-
-            ggplot_object +
-            ggplot2::geom_line(
-              mapping = aes_(
-                x = quote(expr = X1),
-                y = quote(expr = X2),
-                colour = if (is.null(x = aes_list$geom_line$colour))
-                  "black"
-                else
-                  as.name(x = aes_list$geom_line$colour),
-                group = if (is.null(x = aes_list$geom_line$group))
-                  1L
-                else
-                  as.name(x = aes_list$geom_line$group),
-                linetype = if (is.null(x = aes_list$geom_path$linetype))
-                  "solid"
-                else
-                  as.name(x = aes_list$geom_path$linetype)
-              ),
-              alpha = I(1 / 3)
-            )
-        }
+            ggplot2::ggplot(data = mds_frame)
 
-        # geom_point
-        if (!is.null(x = aes_list$geom_point)) {
-          ggplot_object <- ggplot_object +
-            ggplot2::geom_point(
-              mapping = aes_(
-                x = quote(expr = X1),
-                y = quote(expr = X2),
-                colour = if (is.null(x = aes_list$geom_point$colour))
-                  "black"
-                else
-                  as.name(x = aes_list$geom_point$colour),
-                shape = if (is.null(x = aes_list$geom_point$shape))
-                  15L
-                else
-                  as.name(x = aes_list$geom_point$shape)
-              ),
-              size = 2.0,
-              alpha = I(1 / 3)
-            )
-          if (is.null(x = aes_list$geom_point$shape)) {
-            # In case the shape is not mapped, use values without scaling.
+          # geom_line
+          if (!is.null(x = aes_list$geom_line)) {
             ggplot_object <-
-              ggplot_object + ggplot2::scale_shape_identity()
+              ggplot_object +
+              ggplot2::geom_line(
+                mapping = aes_(
+                  x = quote(expr = X1),
+                  y = quote(expr = X2),
+                  colour = if (is.null(x = aes_list$geom_line$colour))
+                    "black"
+                  else
+                    as.name(x = aes_list$geom_line$colour),
+                  group = if (is.null(x = aes_list$geom_line$group))
+                    1L
+                  else
+                    as.name(x = aes_list$geom_line$group),
+                  linetype = if (is.null(x = aes_list$geom_path$linetype))
+                    "solid"
+                  else
+                    as.name(x = aes_list$geom_path$linetype)
+                ),
+                alpha = I(1 / 3)
+              )
           }
-        }
 
-        # geom_text
-        if (!is.null(x = aes_list$geom_text)) {
+          # geom_point
+          if (!is.null(x = aes_list$geom_point)) {
+            ggplot_object <- ggplot_object +
+              ggplot2::geom_point(
+                mapping = aes_(
+                  x = quote(expr = X1),
+                  y = quote(expr = X2),
+                  colour = if (is.null(x = aes_list$geom_point$colour))
+                    "black"
+                  else
+                    as.name(x = aes_list$geom_point$colour),
+                  shape = if (is.null(x = aes_list$geom_point$shape))
+                    15L
+                  else
+                    as.name(x = aes_list$geom_point$shape)
+                ),
+                size = 2.0,
+                alpha = I(1 / 3)
+              )
+            if (is.null(x = aes_list$geom_point$shape)) {
+              # In case the shape is not mapped, use values without scaling.
+              ggplot_object <-
+                ggplot_object + ggplot2::scale_shape_identity()
+            }
+          }
+
+          # geom_text
+          if (!is.null(x = aes_list$geom_text)) {
+            ggplot_object <- ggplot_object +
+              ggplot2::geom_text(
+                mapping = aes_(
+                  x = quote(expr = X1),
+                  y = quote(expr = X2),
+                  label = if (is.null(x = aes_list$geom_text$label))
+                    "x"
+                  else
+                    as.name(x = aes_list$geom_text$label),
+                  colour = if (is.null(x = aes_list$geom_text$colour))
+                    "black"
+                  else
+                    as.name(x = aes_list$geom_text$colour)
+                ),
+                size = 2.0,
+                alpha = I(1 / 3)
+              )
+          }
+
+          # geom_path
+          if (!is.null(x = aes_list$geom_path)) {
+            ggplot_object <-
+              ggplot_object + ggplot2::geom_path(
+                mapping = aes_(
+                  x = quote(expr = X1),
+                  y = quote(expr = X2),
+                  colour = if (is.null(x = aes_list$geom_path$colour))
+                    "black"
+                  else
+                    as.name(x = aes_list$geom_path$colour),
+                  group = if (is.null(x = aes_list$geom_path$group))
+                    1L
+                  else
+                    as.name(x = aes_list$geom_path$group),
+                  linetype = if (is.null(x = aes_list$geom_path$linetype))
+                    "solid"
+                  else
+                    as.name(x = aes_list$geom_path$linetype)
+                ),
+                arrow = if (is.null(x = aes_list$geom_path$arrow))
+                  NULL
+                else
+                  arrow(
+                    length = unit(x = 0.08, units = "inches"),
+                    type = "closed"
+                  )
+              )
+          }
+
           ggplot_object <- ggplot_object +
-            ggplot2::geom_text(
-              mapping = aes_(
-                x = quote(expr = X1),
-                y = quote(expr = X2),
-                label = if (is.null(x = aes_list$geom_text$label))
-                  "x"
-                else
-                  as.name(x = aes_list$geom_text$label),
-                colour = if (is.null(x = aes_list$geom_text$colour))
-                  "black"
-                else
-                  as.name(x = aes_list$geom_text$colour)
-              ),
-              size = 2.0,
-              alpha = I(1 / 3)
+            ggplot2::theme_bw() +
+            coord_fixed()
+
+          # ggplot_object <- ggplot_object + ggplot2::xlim(min(mds_frame$X1, mds_frame$X2), max(mds_frame$X1, mds_frame$X2))
+          # ggplot_object <- ggplot_object + ggplot2::ylim(min(mds_frame$X1, mds_frame$X2), max(mds_frame$X1, mds_frame$X2))
+
+          for (plot_path in plot_paths) {
+            ggplot2::ggsave(
+              filename = plot_path,
+              plot = ggplot_object,
+              width = argument_list$plot_width,
+              height = argument_list$plot_height,
+              limitsize = FALSE
             )
+          }
+          rm(plot_path, ggplot_object)
         }
-
-        # geom_path
-        if (!is.null(x = aes_list$geom_path)) {
-          ggplot_object <-
-            ggplot_object + ggplot2::geom_path(
-              mapping = aes_(
-                x = quote(expr = X1),
-                y = quote(expr = X2),
-                colour = if (is.null(x = aes_list$geom_path$colour))
-                  "black"
-                else
-                  as.name(x = aes_list$geom_path$colour),
-                group = if (is.null(x = aes_list$geom_path$group))
-                  1L
-                else
-                  as.name(x = aes_list$geom_path$group),
-                linetype = if (is.null(x = aes_list$geom_path$linetype))
-                  "solid"
-                else
-                  as.name(x = aes_list$geom_path$linetype)
-              ),
-              arrow = if (is.null(x = aes_list$geom_path$arrow))
-                NULL
-              else
-                arrow(
-                  length = unit(x = 0.08, units = "inches"),
-                  type = "closed"
-                )
-            )
-        }
-
-        ggplot_object <- ggplot_object +
-          ggplot2::theme_bw() +
-          coord_fixed()
-
-        # ggplot_object <- ggplot_object + ggplot2::xlim(min(mds_frame$X1, mds_frame$X2), max(mds_frame$X1, mds_frame$X2))
-        # ggplot_object <- ggplot_object + ggplot2::ylim(min(mds_frame$X1, mds_frame$X2), max(mds_frame$X1, mds_frame$X2))
-
-        for (graphics_format in graphics_formats) {
-          ggplot2::ggsave(filename = file.path(
-            output_directory,
-            paste(
-              paste(
-                prefix,
-                "mds",
-                aes_list_to_character(aes_list = aes_list),
-                suffix,
-                sep = "_"
-              ),
-              graphics_format,
-              sep = "."
-            )
-          ),
-          plot = ggplot_object)
-        }
-        rm(graphics_format,
-           ggplot_object)
       }
     )
 
@@ -1108,7 +1237,7 @@ plot_heatmap <- function(object,
 
   aes_character <-
     unique(x = unlist(x = aes_list, use.names = TRUE))
-  message(paste("  Heat map plot:", aes_character, collapse = " "))
+  message(paste(c("  Heat map plot:", aes_character), collapse = " "))
   if (!all(aes_character %in% names(x = SummarizedExperiment::colData(x = object)))) {
     stop(
       "the argument 'aes_character' should specify columns of SummarizedExperiment::colData(dds)"
@@ -1116,15 +1245,15 @@ plot_heatmap <- function(object,
   }
 
   plotting_frame <-
-    as.data.frame(SummarizedExperiment::colData(x = object)[, aes_character, drop = FALSE])
+    BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object))[, aes_character, drop = FALSE]
 
   # Transpose the counts table, since dist() works with columns and
   # assign the sample names as column and row names to the resulting matrix.
   dist_object <-
     dist(x = t(x = SummarizedExperiment::assay(x = object)))
   dist_matrix <- as.matrix(x = dist_object)
-  colnames(x = dist_matrix) <- object$sample
-  rownames(x = dist_matrix) <- object$sample
+  base::colnames(x = dist_matrix) <- object$sample
+  base::rownames(x = dist_matrix) <- object$sample
 
   pheatmap_object <- NULL
 
@@ -1142,19 +1271,20 @@ plot_heatmap <- function(object,
     }
 
     # Assign the grouping factor to the distance matrix row names.
-    colnames(x = dist_matrix) <- NULL
-    rownames(x = dist_matrix) <-
+    base::colnames(x = dist_matrix) <- NULL
+    base::rownames(x = dist_matrix) <-
       paste(object$sample, group_factor, sep = " - ")
 
     pheatmap_object <-
-      pheatmap(
+      pheatmap::pheatmap(
         mat = dist_matrix,
         color = grDevices::colorRampPalette(colors = rev(x = RColorBrewer::brewer.pal(
           n = 9, name = "Blues"
         )))(255),
         clustering_distance_rows = dist_object,
         clustering_distance_cols = dist_object,
-        fontsize_row = 6
+        fontsize_row = 6,
+        silent = TRUE
       )
     rm(group_factor)
   } else {
@@ -1170,22 +1300,27 @@ plot_heatmap <- function(object,
         annotation_col = plotting_frame,
         show_rownames = TRUE,
         show_colnames = FALSE,
-        fontsize_row = 6
+        fontsize_row = 6,
+        silent = TRUE
       )
   }
+  plot_paths <- file.path(output_directory,
+                          paste(
+                            paste(
+                              prefix,
+                              "heatmap",
+                              paste(aes_character, collapse = "_"),
+                              suffix,
+                              sep = "_"
+                            ),
+                            graphics_formats,
+                            sep = "."
+                          ))
+  names(x = plot_paths) <- names(x = graphics_formats)
 
   # PDF output
   grDevices::pdf(
-    file = file.path(output_directory,
-                     paste(
-                       paste(
-                         prefix,
-                         "heatmap",
-                         paste(aes_character, collapse = "_"),
-                         suffix,
-                         sep = "_"
-                       ), "pdf", sep = "."
-                     )),
+    file = plot_paths["pdf"],
     width = argument_list$plot_width,
     height = argument_list$plot_height
   )
@@ -1195,16 +1330,7 @@ plot_heatmap <- function(object,
 
   # PNG output
   grDevices::png(
-    file = file.path(output_directory,
-                     paste(
-                       paste(
-                         prefix,
-                         "heatmap",
-                         paste(aes_character, collapse = "_"),
-                         suffix,
-                         sep = "_"
-                       ), "png", sep = "."
-                     )),
+    filename = plot_paths["png"],
     width = argument_list$plot_width,
     height = argument_list$plot_height,
     units = "in",
@@ -1214,7 +1340,8 @@ plot_heatmap <- function(object,
   grid::grid.draw(pheatmap_object$gtable)
   base::invisible(x = grDevices::dev.off())
 
-  rm(dist_matrix,
+  rm(plot_paths,
+     dist_matrix,
      dist_object,
      plotting_frame,
      aes_character,
@@ -1254,39 +1381,43 @@ plot_pca <- function(object,
 
   # Perform a PCA on the (count) matrix returned by SummarizedExperiment::assay() for the selected genes.
   pca_object <-
-    prcomp(x = t(x = SummarizedExperiment::assay(x = object)[selected_rows, ]))
+    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object)[selected_rows, ]))
   rm(selected_rows)
 
   # Plot the variance for a maximum of 100 components.
+  plot_paths <- file.path(output_directory,
+                          paste(
+                            paste(prefix,
+                                  "pca",
+                                  "variance",
+                                  suffix,
+                                  sep = "_"),
+                            graphics_formats,
+                            sep = "."
+                          ))
 
-  plotting_frame <-
-    data.frame(
+  plotting_tibble <-
+    tibble::tibble(
       "component" = seq_along(along.with = pca_object$sdev),
       "variance" = pca_object$sdev ^ 2 / sum(pca_object$sdev ^ 2)
-    )[seq_len(length.out = min(100L, length(x = pca_object$sdev))), , drop = FALSE]
-  # print("PCA variance data frame")
-  # print(x = str(object = plotting_frame))
+    )
 
   ggplot_object <-
-    ggplot2::ggplot(data = plotting_frame)
+    ggplot2::ggplot(data = plotting_tibble[seq_len(length.out = min(100L, length(x = pca_object$sdev))), , drop = FALSE])
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = aes(x = component, y = variance))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = component, y = variance))
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Variance by Component")
-  for (graphics_format in graphics_formats) {
-    ggplot2::ggsave(filename = file.path(output_directory,
-                                         paste(
-                                           paste(prefix,
-                                                 "pca",
-                                                 "variance",
-                                                 suffix,
-                                                 sep = "_"),
-                                           graphics_format,
-                                           sep = "."
-                                         )))
+    ggplot_object + ggplot2::labs(x = "component", y = "variance", title = "Variance by Component")
+  for (plot_path in plot_paths) {
+    ggplot2::ggsave(
+      filename = plot_path,
+      plot = ggplot_object,
+      width = argument_list$plot_width,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
   }
-  rm(graphics_format, ggplot_object, plotting_frame)
-
+  rm(plot_path, ggplot_object, plotting_tibble, plot_paths)
   # The pca_object$x matrix has as many columns and rows as there are samples.
   pca_dimensions <-
     min(argument_list$pca_dimensions, ncol(x = pca_object$x))
@@ -1315,16 +1446,30 @@ plot_pca <- function(object,
       FUN = function(aes_list) {
         aes_character <-
           unique(x = unlist(x = aes_list, use.names = TRUE))
-        message(paste("  PCA plot:", aes_character, collapse = " "))
+        message(paste(c("  PCA plot:", aes_character), collapse = " "))
         if (!all(aes_character %in% names(x = SummarizedExperiment::colData(x = object)))) {
           stop(
             "the argument 'aes_character' should specify columns of SummarizedExperiment::colData(dds)"
           )
         }
-        # Assemble the data for the plot.
-        pca_frame <- as.data.frame(pca_object$x)
+
+        plot_paths <- file.path(output_directory,
+                                paste(
+                                  paste(
+                                    prefix,
+                                    "pca",
+                                    aes_list_to_character(aes_list = aes_list),
+                                    suffix,
+                                    sep = "_"
+                                  ),
+                                  graphics_formats,
+                                  sep = "."
+                                ))
+
+        # Assemble the data for the plot from the rotated data matrix.
+        pca_frame <- base::as.data.frame(x = pca_object$x)
         plotting_frame <-
-          data.frame(
+          base::data.frame(
             component_1 = factor(levels = paste0(
               "PC", seq_len(length.out = pca_dimensions)
             )),
@@ -1334,7 +1479,7 @@ plot_pca <- function(object,
             x = numeric(),
             y = numeric(),
             # Also initalise all variables of the column data, but do not include data (i.e. 0L rows).
-            SummarizedExperiment::colData(x = object)[0L,]
+            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L,])
           )
 
         for (column_number in seq_len(length.out = ncol(x = pca_pair_matrix))) {
@@ -1342,14 +1487,14 @@ plot_pca <- function(object,
             paste0("PC", pca_pair_matrix[1L, column_number])
           pca_label_2 <-
             paste0("PC", pca_pair_matrix[2L, column_number])
-          plotting_frame <- rbind.data.frame(
+          plotting_frame <- base::rbind(
             plotting_frame,
-            data.frame(
+            base::data.frame(
               component_1 = pca_label_1,
               component_2 = pca_label_2,
               x = pca_frame[, pca_label_1],
               y = pca_frame[, pca_label_2],
-              SummarizedExperiment::colData(x = object)
+              BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object))
             )
           )
           rm(pca_label_1, pca_label_2)
@@ -1457,22 +1602,17 @@ plot_pca <- function(object,
             facets = component_1 ~ component_2,
             labeller = labeller(component_1 = label_function, component_2 = label_function)
           )
-        for (graphics_format in graphics_formats) {
-          ggplot2::ggsave(filename = file.path(
-            output_directory,
-            paste(
-              paste(
-                prefix,
-                "pca",
-                aes_list_to_character(aes_list = aes_list),
-                suffix,
-                sep = "_"
-              ),
-              graphics_format,
-              sep = "."
-            )
-          ))
+        for (plot_path in plot_paths) {
+          ggplot2::ggsave(
+            filename = plot_path,
+            plot = ggplot_object,
+            width = argument_list$plot_width,
+            height = argument_list$plot_height,
+            limitsize = FALSE
+          )
         }
+        rm(plot_path, ggplot_object)
+
         if (TRUE) {
           # Write the PCA plot data frame.
           write.table(
@@ -1494,9 +1634,7 @@ plot_pca <- function(object,
             col.names = TRUE
           )
         }
-        rm(graphics_format,
-           ggplot_object,
-           pca_frame,
+        rm(pca_frame,
            plotting_frame,
            aes_character)
       }
@@ -1567,7 +1705,7 @@ temporary_list <- lapply(
   X = reduced_formula_list,
   FUN = function(reduced_formula_character) {
     # Skip empty character vectors.
-    if (!nzchar(x = reduced_formula_character)) {
+    if (!base::nzchar(x = reduced_formula_character)) {
       return()
     }
     summary_list <- NULL
@@ -1692,11 +1830,11 @@ temporary_list <- lapply(
 
       # Write all genes.
 
-      deseq_merge <-
+      deseq_merge_complete <-
         merge(x = annotation_frame, y = deseq_results_lrt_frame, by = "gene_id")
 
       write.table(
-        x = deseq_merge,
+        x = deseq_merge_complete,
         file = file_path_all,
         sep = "\t",
         col.names = TRUE,
@@ -1705,7 +1843,7 @@ temporary_list <- lapply(
 
       # Write only significant genes.
       deseq_merge_significant <-
-        subset(x = deseq_merge, padj <= argument_list$padj_threshold)
+        subset(x = deseq_merge_complete, padj <= argument_list$padj_threshold)
 
       write.table(
         x = deseq_merge_significant,
@@ -1723,7 +1861,7 @@ temporary_list <- lapply(
       )
       rm(
         deseq_merge_significant,
-        deseq_merge,
+        deseq_merge_complete,
         deseq_results_lrt_frame,
         deseq_results_lrt,
         deseq_data_set_lrt
@@ -1838,46 +1976,44 @@ counts_frame <-
   as(object = SummarizedExperiment::assays(x = deseq_data_set)$counts,
      Class = "DataFrame")
 counts_frame$gene_id <- row.names(x = counts_frame)
-deseq_merge <-
-  merge(x = annotation_frame, y = counts_frame, by = "gene_id")
-file_path <-
-  file.path(output_directory,
-            paste(prefix,
-                  "counts",
-                  "raw.tsv",
-                  sep = "_"))
+
 write.table(
-  x = deseq_merge,
-  file = file_path,
+  x = merge(x = annotation_frame, y = counts_frame, by = "gene_id"),
+  file = file.path(output_directory,
+                   paste(prefix,
+                         "counts",
+                         "raw.tsv",
+                         sep = "_")),
   sep = "\t",
   col.names = TRUE,
   row.names = FALSE
 )
-rm(file_path, counts_frame)
+rm(counts_frame)
 
 # Export FPKM values ------------------------------------------------------
 
 
+# Retrieve and plot FPKM values.
+fpkm_matrix <- DESeq2::fpkm(object = deseq_data_set)
+plot_fpkm_values(object = fpkm_matrix)
+
 # Export FPKM values from the DESeqDataSet object
-counts_frame <-
-  as(object = DESeq2::fpkm(object = deseq_data_set),
+fpkm_frame <-
+  as(object = fpkm_matrix,
      Class = "DataFrame")
-counts_frame$gene_id <- row.names(x = counts_frame)
-deseq_merge <-
-  merge(x = annotation_frame, y = counts_frame, by = "gene_id")
-file_path <-
-  file.path(output_directory,
-            paste(prefix,
-                  "fpkms.tsv",
-                  sep = "_"))
+fpkm_frame$gene_id <- row.names(x = fpkm_frame)
+
 write.table(
-  x = deseq_merge,
-  file = file_path,
+  x = merge(x = annotation_frame, y = fpkm_frame, by = "gene_id"),
+  file = file.path(output_directory,
+                   paste(prefix,
+                         "fpkms.tsv",
+                         sep = "_")),
   sep = "\t",
   col.names = TRUE,
   row.names = FALSE
 )
-rm(file_path, counts_frame)
+rm(fpkm_frame, fpkm_matrix)
 
 # DESeqTransform ----------------------------------------------------------
 # MDS Plot ----------------------------------------------------------------
@@ -1919,23 +2055,22 @@ for (blind in c(FALSE, TRUE)) {
     as(object = SummarizedExperiment::assay(x = deseq_transform, i = 1),
        Class = "DataFrame")
   counts_frame$gene_id <- row.names(x = counts_frame)
-  deseq_merge <-
-    merge(x = annotation_frame, y = counts_frame, by = "gene_id")
-  file_path <-
-    file.path(output_directory,
-              paste(paste(prefix,
-                          "counts",
-                          "vst",
-                          suffix,
-                          sep = "_"), "tsv", sep = "."))
+
   write.table(
-    x = deseq_merge,
-    file = file_path,
+    x = merge(x = annotation_frame, y = counts_frame, by = "gene_id"),
+    file = file.path(output_directory,
+                     paste(
+                       paste(prefix,
+                             "counts",
+                             "vst",
+                             suffix,
+                             sep = "_"), "tsv", sep = "."
+                     )),
     sep = "\t",
     col.names = TRUE,
     row.names = FALSE
   )
-  rm(file_path, counts_frame)
+  rm(counts_frame)
 
   rm(suffix)
 }
@@ -1945,7 +2080,6 @@ rm(blind, plot_list)
 # save.image()
 
 rm(
-  deseq_merge,
   annotation_frame,
   deseq_transform,
   deseq_data_set,
@@ -1958,6 +2092,7 @@ rm(
   plot_heatmap,
   plot_mds,
   plot_rin_scores,
+  plot_fpkm_values,
   aes_list_to_character,
   initialise_deseq_transform,
   initialise_deseq_data_set,
