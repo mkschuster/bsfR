@@ -112,7 +112,7 @@ suppressPackageStartupMessages(expr = library(package = "EnhancedVolcano"))
 
 # Save plots in the following formats.
 
-graphics_formats <- c("pdf", "png")
+graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
 message(paste0("Processing design '", argument_list$design_name, "'"))
 
@@ -201,7 +201,7 @@ contrast_frame <-
   )
 # Subset to the selected design.
 contrast_frame <-
-  contrast_frame[contrast_frame$Design == argument_list$design_name,]
+  contrast_frame[contrast_frame$Design == argument_list$design_name, ]
 if (nrow(contrast_frame) == 0L) {
   stop("No design remaining after selection for design name.")
 }
@@ -273,27 +273,31 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
 
     # Run lfcShrink() if possible.
     deseq_results_shrunk <- NULL
-    if (any(attr(x = deseq_data_set, which = "full_rank"))) {
-      # The original DESEqDataSet object is full rank, so that log2-fold changes can be shrunk.
-      # The any() function returns FALSE for NULL values.
-      message(paste0("Shrinking log2-fold changes for ", contrast_character))
-      deseq_results_shrunk <- DESeq2::lfcShrink(
-        dds = deseq_data_set,
-        contrast = contrast_list,
-        res = deseq_results_default,
-        type = "ashr",
-        lfcThreshold = argument_list$lfc_threshold,
-        format = "DataFrame",
-        parallel = TRUE
-      )
-    }
+    # NOTE: The "ashr" method shrinks log2-fold changes on the basis of the
+    # results table and can thus deal with model matrices not being full rank.
+    #
+    # if (any(attr(x = deseq_data_set, which = "full_rank"))) {
+    # The original DESEqDataSet object is full rank, so that log2-fold changes
+    # can be shrunk. The any() function returns FALSE for NULL values.
+    message(paste0("Shrinking log2-fold changes for ", contrast_character))
+    deseq_results_shrunk <- DESeq2::lfcShrink(
+      dds = deseq_data_set,
+      # For "ashr", if "res" is provided, then "coef" and "contrast" are ignored.
+      contrast = contrast_list,
+      res = deseq_results_default,
+      type = "ashr",
+      lfcThreshold = argument_list$lfc_threshold,
+      format = "DataFrame",
+      parallel = TRUE
+    )
+    # }
 
     # MA Plot ---------------------------------------------------------------
 
 
     # Create a MA plot.
     message(paste0("Creating a MA plot for ", contrast_character))
-    file_path <-
+    plot_paths <-
       file.path(output_directory,
                 paste(
                   paste(prefix,
@@ -301,11 +305,13 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
                         contrast_character,
                         "ma",
                         sep = "_"),
-                  "pdf",
+                  graphics_formats,
                   sep = "."
                 ))
+    names(x = plot_paths) <- names(x = graphics_formats)
+
     grDevices::pdf(
-      file = file_path,
+      file = plot_paths["pdf"],
       width = argument_list$plot_width,
       height = argument_list$plot_height
     )
@@ -316,19 +322,8 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
     }
     base::invisible(x = grDevices::dev.off())
 
-    file_path <-
-      file.path(output_directory,
-                paste(
-                  paste(prefix,
-                        "contrast",
-                        contrast_character,
-                        "ma",
-                        sep = "_"),
-                  "png",
-                  sep = "."
-                ))
     grDevices::png(
-      file = file_path,
+      filename = plot_paths["png"],
       width = argument_list$plot_width,
       height = argument_list$plot_height,
       units = "in",
@@ -340,10 +335,21 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
       DESeq2::plotMA(object = deseq_results_shrunk)
     }
     base::invisible(x = grDevices::dev.off())
+    rm(plot_paths)
 
     # Enhanced Volcano plot -----------------------------------------------
 
 
+    plot_paths <- file.path(output_directory,
+                            paste(
+                              paste(prefix,
+                                    "contrast",
+                                    contrast_character,
+                                    "volcano",
+                                    sep = "_"),
+                              graphics_formats,
+                              sep = "."
+                            ))
     # To annotate gene symbols rather than Ensembl gene identifiers,
     # the DESeqResults DataFrame needs merging with the annotation frame.
     message(paste0("Creating an EnhancedVolcano plot for ", contrast_character))
@@ -382,27 +388,17 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
     )
     rm(deseq_results_merged, deseq_results_frame)
 
-    for (graphics_format in graphics_formats) {
+    for (plot_path in plot_paths) {
       ggplot2::ggsave(
-        filename = file.path(
-          output_directory,
-          paste(
-            paste(prefix,
-                  "contrast",
-                  contrast_character,
-                  "volcano",
-                  sep = "_"),
-            graphics_format,
-            sep = "."
-          )
-        ),
+        filename = plot_path,
         plot = ggplot_object,
         width = argument_list$plot_width,
-        height = argument_list$plot_height
+        height = argument_list$plot_height,
+        limitsize = FALSE
       )
     }
-    rm(graphics_format,
-       ggplot_object)
+    rm(plot_path,
+       ggplot_object, plot_paths)
 
     # DESeqResults DataFrame ----------------------------------------------
 
@@ -462,21 +458,18 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
     deseq_merge_complete <-
       merge(x = annotation_frame, y = deseq_results_frame, by = "gene_id")
 
-    file_path <-
-      file.path(output_directory,
-                paste(
-                  paste(prefix,
-                        "contrast",
-                        contrast_character,
-                        "genes",
-                        sep = "_"),
-                  "tsv",
-                  sep = "."
-                ))
-
     write.table(
       x = deseq_merge_complete,
-      file = file_path,
+      file = file.path(output_directory,
+                       paste(
+                         paste(prefix,
+                               "contrast",
+                               contrast_character,
+                               "genes",
+                               sep = "_"),
+                         "tsv",
+                         sep = "."
+                       )),
       sep = "\t",
       col.names = TRUE,
       row.names = FALSE
@@ -492,23 +485,20 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
     contrast_frame[i, "Significant"] <-
       nrow(x = deseq_merge_significant)
 
-    file_path <-
-      file.path(output_directory,
-                paste(
-                  paste(
-                    prefix,
-                    "contrast",
-                    contrast_character,
-                    "significant",
-                    sep = "_"
-                  ),
-                  "tsv",
-                  sep = "."
-                ))
-
     write.table(
       x = deseq_merge_significant,
-      file = file_path,
+      file = file.path(output_directory,
+                       paste(
+                         paste(
+                           prefix,
+                           "contrast",
+                           contrast_character,
+                           "significant",
+                           sep = "_"
+                         ),
+                         "tsv",
+                         sep = "."
+                       )),
       sep = "\t",
       col.names = TRUE,
       row.names = FALSE
