@@ -354,8 +354,14 @@ diffbind_peakset_granges <-
   )
 
 # Write a table of the entire peak set.
+#
+# Coerce the GRanges object into a Bioconductor DataFrame object.
+# Coercing via as(object = report_granges, Class = "DataFrame") yields
+# a DataFrame with a variable X that holds GRanges objects. Use
+# BiocGenerics::as.data.frame(x = report_granges) for the coercion
+# into a plain data.frame object.
 write.table(
-  x = as(object = diffbind_peakset_granges, Class = "DataFrame"),
+  x = BiocGenerics::as.data.frame(x = diffbind_peakset_granges, stringsAsFactors = FALSE),
   file = file.path(output_directory,
                    paste(prefix, "peak_set.tsv", sep = "_")),
   sep = "\t",
@@ -372,7 +378,7 @@ rm(diffbind_peakset_granges)
 #' @param group2 A \code{character} scalar of contrast group 2
 #' @param db_number An \code{integer} scalar with the number of differntually bound sites
 #'
-#' @return TRUE
+#' @return
 #' @export
 #'
 #' @examples
@@ -724,8 +730,6 @@ process_per_contrast <-
 
       rm(return_value, diff_bind_box_plot)
     }
-
-    return(TRUE)
   }
 
 # Get a data frame with all contrasts to apply the above function to each row.
