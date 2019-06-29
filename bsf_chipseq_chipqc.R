@@ -102,6 +102,7 @@ if (file.exists(file_path) &&
     file_path
   ))
 }
+rm(file_path)
 
 # Initialise a ChIPQCexperiment object ------------------------------------
 
