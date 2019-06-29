@@ -148,7 +148,7 @@ if (file.exists(file_path) &&
   grDevices::pdf(
     file = file.path(
       output_directory,
-      paste(prefix, "correlation_peak_caller_score.pdf", sep = "_")
+      sprintf(fmt = "%s_correlation_peak_caller_score.pdf", prefix)
     ),
     width = argument_list$plot_width,
     height = argument_list$plot_height
@@ -192,7 +192,7 @@ if (file.exists(file_path) &&
   grDevices::pdf(
     file = file.path(
       output_directory,
-      paste(prefix, "correlation_read_counts.pdf", sep = "_")
+      sprintf(fmt = "%s_correlation_read_counts.pdf", prefix)
     ),
     width = argument_list$plot_width,
     height = argument_list$plot_height
@@ -266,7 +266,7 @@ if (file.exists(file_path) &&
   grDevices::pdf(
     file = file.path(
       output_directory,
-      paste(prefix, "correlation_analysis.pdf", sep = "_")
+      sprintf(fmt = "%s_correlation_analysis.pdf", prefix)
     ),
     width = argument_list$plot_width,
     height = argument_list$plot_height
@@ -319,7 +319,7 @@ message(
 
 # Since DBA_GROUP seems to fail, try DBA_CONDITION.
 grDevices::pdf(
-  file = file.path(output_directory, paste(prefix, "pca_plot.pdf", sep = "_")),
+  file = file.path(output_directory, sprintf(fmt = "%s_pca_plot.pdf", prefix)),
   width = argument_list$plot_width,
   height = argument_list$plot_height
 )
@@ -329,7 +329,7 @@ return_value <-
   dev.off()
 
 grDevices::png(
-  filename = file.path(output_directory, paste(prefix, "pca_plot.png", sep = "_")),
+  filename = file.path(output_directory, sprintf(fmt = "%s_pca_plot.png", prefix)),
   width = argument_list$plot_width,
   height = argument_list$plot_height,
   units = "in",
@@ -342,7 +342,7 @@ return_value <-
 
 rm(return_value)
 
-# Write the peak set ------------------------------------------------------
+# Write the consensus peak set --------------------------------------------
 
 
 message("Loading the DiffBind peakset (GRanges) object")
@@ -362,8 +362,7 @@ diffbind_peakset_granges <-
 # into a plain data.frame object.
 write.table(
   x = BiocGenerics::as.data.frame(x = diffbind_peakset_granges, stringsAsFactors = FALSE),
-  file = file.path(output_directory,
-                   paste(prefix, "peak_set.tsv", sep = "_")),
+  file = file.path(output_directory, sprintf(fmt = "%s_peak_set.tsv", prefix)),
   sep = "\t",
   row.names = FALSE,
   col.names = TRUE
@@ -460,10 +459,7 @@ process_per_contrast <-
       # Write a table of all peaks.
       write.table(
         x = report_frame,
-        file = sprintf("%s_peaks_%s__%s.tsv",
-                       prefix,
-                       group1,
-                       group2),
+        file = sprintf(fmt = "%s_peaks_%s__%s.tsv", prefix, group1, group2),
         sep = "\t",
         row.names = FALSE,
         col.names = TRUE
@@ -474,10 +470,7 @@ process_per_contrast <-
         report_frame[report_frame$FDR <= argument_list$fdr_threshold, ]
       write.table(
         x = report_frame,
-        file = sprintf("%s_significant_%s__%s.tsv",
-                       prefix,
-                       group1,
-                       group2),
+        file = sprintf(fmt = "%s_significant_%s__%s.tsv", prefix, group1, group2),
         sep = "\t",
         row.names = FALSE,
         col.names = TRUE
@@ -518,7 +511,7 @@ process_per_contrast <-
     )
 
     grDevices::pdf(
-      file = sprintf("%s_ma_plot_%s__%s.pdf", prefix, group1, group2),
+      file = sprintf(fmt = "%s_ma_plot_%s__%s.pdf", prefix, group1, group2),
       width = argument_list$plot_width,
       height = argument_list$plot_height
     )
@@ -565,7 +558,7 @@ process_per_contrast <-
     )
 
     grDevices::pdf(
-      file = sprintf("%s_scatter_plot_%s__%s.pdf", prefix, group1, group2),
+      file = sprintf(fmt = "%s_scatter_plot_%s__%s.pdf", prefix, group1, group2),
       width = argument_list$plot_width,
       height = argument_list$plot_height
     )
@@ -643,7 +636,7 @@ process_per_contrast <-
       return_value <- NULL
 
       grDevices::pdf(
-        file = sprintf("%s_pca_plot_%s__%s.pdf", prefix, group1, group2),
+        file = sprintf(fmt = "%s_pca_plot_%s__%s.pdf", prefix, group1, group2),
         width = argument_list$plot_width,
         height = argument_list$plot_height
       )
@@ -709,7 +702,7 @@ process_per_contrast <-
       return_value <- NULL
 
       grDevices::pdf(
-        file = sprintf("%s_box_plot_%s__%s.pdf", prefix, group1, group2),
+        file = sprintf(fmt = "%s_box_plot_%s__%s.pdf", prefix, group1, group2),
         width = argument_list$plot_width,
         height = argument_list$plot_height
       )
@@ -749,7 +742,7 @@ contrast_frame$Group2 <-
 # Write the contrasts data frame to disk.
 write.csv(
   x = contrast_frame,
-  file = file.path(output_directory, paste(prefix, "contrasts.csv", sep = "_")),
+  file = file.path(output_directory, sprintf(fmt = "%s_contrasts.csv", prefix)),
   row.names = FALSE
 )
 
