@@ -183,7 +183,7 @@ plot_paths <- paste(
     "insert_size",
     sep = "_"
   ),
-  graphics_format,
+  graphics_formats,
   sep = "."
 )
 
