@@ -38,8 +38,8 @@
 # Sample Annotation DataFrame Description ---------------------------------
 #
 #
-# The rnaseq_deseq_PREFIX_samples.tsv sample annotation DataFrame supports
-# the following variables.
+# The rnaseq_deseq_PREFIX_samples.tsv sample annotation DataFrame supports the
+# following variables.
 #
 #   "bam_path":
 #      A "character" vector of BAM file paths.
@@ -47,28 +47,38 @@
 #   "bai_path":
 #      A "character" vector of BAI file paths.
 #
+#   "sample":
+#      The sample name.
+#
+#   "run":
+#     Optional. If present, indicates that technical replicates should be
+#     collapsed according to information in the "sample" variable. The "run"
+#     variable provides the original sample name before collapsing technical
+#     replicates.
+#
 #   "designs":
 #      A "character" vector of comma-separated values of designs,
 #      a particular sample should be part of.
 #
 #   "library_type":
 #      A "factor" vector with levels "unstranded", "first" and "second" to
-#      indicate the strandedness of the RNA-seq protocol and whether the
-#      first or second strand get sequenced. Illumina TruSeq standed mRNA
-#      sequences the second strand so that reads need inverting before
-#      counting strand-specifically.
+#      indicate the strandedness of the RNA-seq protocol and whether the first
+#      or second strand gets sequenced. Illumina TruSeq standed mRNA sequences
+#      the second strand so that reads need inverting before counting
+#      strand-specifically.
 #
 #   "sequencing_type":
-#      A factor with levels "SE" and "PE" to indicate single-end or
-#      paired-end sequencing and thus counting as read pairs or not.
+#      A "factor" vector with levels "SE" and "PE" indicating single-end or
+#      paired-end sequencing, repsectivley and thus counting as read pairs or
+#      not.
 #
 #   "total_counts":
-#      Total counts per sample.
-#      Calculated automatically based on the colSums() of the counts() function.
+#      An "integer" vector with total counts per sample. Calculated
+#      automatically based on the colSums() of the counts() function.
 #
 #   "RIN":
-#      A numeric vector providing the RNA integrity number (RIN) score
-#      per sample. If available, the RIN score distribution will be plotted.
+#      A "numeric" vector providing the RNA integrity number (RIN) score per
+#      sample. If available, the RIN score distribution will be plotted.
 #
 #
 
