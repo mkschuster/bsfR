@@ -194,18 +194,16 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_width <-
     argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample$SAMPLE) / 24L) - 1L) * argument_list$plot_width * 0.3
 
-  # Plot Percent Duplication per Sample -----------------------------------
+  # Plot Duplication Fraction per Sample ----------------------------------
 
 
-  message("Plotting the percent duplication per sample")
+  message("Plotting the duplication fraction per sample")
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_sample)
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Percent Duplication per Sample")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = PERCENT_DUPLICATION))
   ggplot_object <-
-    ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(nrow = 24L))
+    ggplot_object + ggplot2::labs(x = "Sample", y = "Duplication Fraction", title = "Duplication Fraction per Sample")
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -249,11 +247,16 @@ if (!is.null(x = combined_metrics_sample)) {
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Duplication Levels per Sample")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE,
                                                                y = fraction,
                                                                colour = DUPLICATION))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Sample",
+      y = "Fraction",
+      colour = "Duplication Level",
+      title = "Duplication Levels per Sample"
+    )
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -418,18 +421,23 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_width_read_group <-
     argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_read_group$READ_GROUP) / 24L) - 1L) * argument_list$plot_width * 0.35
 
-  # Plot the absolute number of aligned pass-filter reads per sample ------
+  # Plot the aligned pass-filter reads number per sample ------------------
 
 
-  message("Plotting the absolute number of aligned pass-filter reads per sample")
+  message("Plotting the aligned pass-filter reads number per sample")
   ggplot_object <-
     ggplot2::ggplot(
       data = tibble::as.tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "NUMBER", -CATEGORY, -SAMPLE)
     )
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Aligned Pass-Filter Reads per Sample")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = NUMBER, colour = CATEGORY))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Sample",
+      y = "Number",
+      colour = "Category",
+      title = "Aligned Pass-Filter Reads Number per Sample"
+    )
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -451,18 +459,23 @@ if (!is.null(x = combined_metrics_sample)) {
   }
   rm(graphics_format, ggplot_object)
 
-  # Plot the absolute number of aligned pass-filter reads per read group ----
+  # Plot the aligned pass-filter reads number per read group --------------
 
 
-  message("Plotting the absolute number of aligned pass-filter reads per read group")
+  message("Plotting the aligned pass-filter reads number per read group")
   ggplot_object <-
     ggplot2::ggplot(
       data = tibble::as.tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "NUMBER", -CATEGORY, -READ_GROUP)
     )
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Aligned Pass-Filter Reads per Read Group")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP, y = NUMBER, colour = CATEGORY))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Read Group",
+      y = "Number",
+      colour = "Category",
+      title = "Aligned Pass-Filter Reads Number per Read Group"
+    )
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -484,18 +497,23 @@ if (!is.null(x = combined_metrics_sample)) {
   }
   rm(graphics_format, ggplot_object)
 
-  # Plot the percentage of aligned pass-filter reads per sample -----------
+  # Plot the aligned pass-filter reads fraction per sample ----------------
 
 
-  message("Plotting the percentage of aligned pass-filter reads per sample")
+  message("Plotting the aligned pass-filter reads fraction per sample")
   ggplot_object <-
     ggplot2::ggplot(
       data = tibble::as.tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PCT_PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -SAMPLE)
     )
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Aligned Pass-Filter Reads per Sample")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = FRACTION, colour = CATEGORY))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Sample",
+      y = "Fraction",
+      colour = "Category",
+      title = "Aligned Pass-Filter Reads Fraction per Sample"
+    )
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -517,18 +535,23 @@ if (!is.null(x = combined_metrics_sample)) {
   }
   rm(graphics_format, ggplot_object)
 
-  # Plot the percentage of aligned pass-filter reads per read group -------
+  # Plot the aligned pass-filter reads fraction per read group ------------
 
 
-  message("Plotting the percentage of aligned pass-filter reads per read group")
+  message("Plotting the aligned pass-filter reads fraction per read group")
   ggplot_object <-
     ggplot2::ggplot(
       data = tibble::as.tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PCT_PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -READ_GROUP)
     )
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Aligned Pass-Filter Reads per Read Group")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP, y = FRACTION, colour = CATEGORY))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Read Group",
+      y = "Fraction",
+      colour = "Category",
+      title = "Aligned Pass-Filter Reads Fraction per Read Group"
+    )
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -559,9 +582,14 @@ if (!is.null(x = combined_metrics_sample)) {
       data = tibble::as.tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "STRAND_BALANCE")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -SAMPLE)
     )
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Strand Balance of Aligned Pass-Filter Reads per Sample")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = FRACTION, colour = CATEGORY))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Sample",
+      y = "Fraction",
+      colour = "Category",
+      title = "Strand Balance of Aligned Pass-Filter Reads per Sample"
+    )
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -592,9 +620,14 @@ if (!is.null(x = combined_metrics_sample)) {
       data = tibble::as.tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "STRAND_BALANCE")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -READ_GROUP)
     )
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Strand Balance of Aligned Pass-Filter Reads per Read Group")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP, y = FRACTION, colour = CATEGORY))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Read Group",
+      y = "Fraction",
+      colour = "Category",
+      title = "Strand Balance of Aligned Pass-Filter Reads per Read Group"
+    )
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -771,11 +804,9 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_sample)
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Unique Pass-Filter Reads per Sample")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = PCT_PF_UQ_READS))
   ggplot_object <-
-    ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(nrow = 24L))
+    ggplot_object + ggplot2::labs(x = "Sample" , y = "Fraction PF Unique", title = "Unique Pass-Filter Reads per Sample")
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -804,14 +835,19 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_read_group)
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Unique Pass-Filter Reads per Read Group")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP, y = PCT_PF_UQ_READS, shape = BAIT_SET))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Read Group",
+      y = "PF Unique Fraction",
+      shape = "Bait Set",
+      title = "Unique Pass-Filter Reads per Read Group"
+    )
   # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
   ggplot_object <-
     ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
   ggplot_object <-
-    ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(nrow = 24L))
+    ggplot_object + ggplot2::guides(shape = ggplot2::guide_legend(nrow = 24L))
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -844,11 +880,9 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_sample)
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Mean Target Coverage per Sample")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = MEAN_TARGET_COVERAGE))
   ggplot_object <-
-    ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(nrow = 24L))
+    ggplot_object + ggplot2::labs(x = "Sample", y = "Mean Target Coverage", title = "Mean Target Coverage per Sample")
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -877,14 +911,19 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_read_group)
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Mean Target Coverage per Read Group")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP, y = MEAN_TARGET_COVERAGE, shape = BAIT_SET))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Read Group",
+      y = "Mean Target Coverage",
+      shape = "Bait Set",
+      title = "Mean Target Coverage per Read Group"
+    )
   # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
   ggplot_object <-
-    ggplot_object + scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
+    ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
   ggplot_object <-
-    ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(nrow = 24L))
+    ggplot_object + ggplot2::guides(shape = ggplot2::guide_legend(nrow = 24L))
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -930,16 +969,19 @@ if (!is.null(x = combined_metrics_sample)) {
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Excluded Bases per Sample")
-  # ggplot_object <-
-  #   ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE,
-  #                                            y = fraction,
-  #                                            colour = EXCLUDED))
-  ggplot_object <-
     ggplot_object + ggplot2::geom_col(
       mapping = ggplot2::aes(x = SAMPLE, y = fraction, fill = EXCLUDED),
       alpha = I(1 / 3)
     )
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Sample",
+      y = "Fraction",
+      fill = "Excluded",
+      title = "Excluded Bases per Sample"
+    )
+  ggplot_object <-
+    ggplot_object + ggplot2::guides(shape = ggplot2::guide_legend(nrow = 24L))
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -983,15 +1025,6 @@ if (!is.null(x = combined_metrics_sample)) {
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Excluded Bases per Read Group")
-  # ggplot_object <-
-  #   ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
-  #     x = READ_GROUP,
-  #     y = fraction,
-  #     colour = EXCLUDED,
-  #     shape = BAIT_SET
-  #   ))
-  ggplot_object <-
     ggplot_object + ggplot2::geom_col(
       mapping = ggplot2::aes(
         x = READ_GROUP,
@@ -1001,9 +1034,16 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       alpha = I(1 / 3)
     )
-  # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
   ggplot_object <-
-    ggplot_object + scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
+    ggplot_object + ggplot2::labs(
+      x = "Reag Group",
+      y = "Fraction",
+      fill = "Excluded",
+      colour = "Bait Set",
+      title = "Excluded Bases per Read Group"
+    )
+  ggplot_object <-
+    ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(nrow = 24L))
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -1054,11 +1094,18 @@ if (!is.null(x = combined_metrics_sample)) {
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Coverage Levels per Sample")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE,
                                                                y = fraction,
                                                                colour = COVERAGE))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Sample",
+      y = "Fraction",
+      colour = "Coverage Level",
+      title = "Coverage Levels per Sample"
+    )
+  ggplot_object <-
+    ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(nrow = 24L))
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -1109,17 +1156,25 @@ if (!is.null(x = combined_metrics_sample)) {
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Coverage Levels per Read Group")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
       x = READ_GROUP,
       y = fraction,
       colour = COVERAGE,
       shape = BAIT_SET
     ))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Read Group",
+      y = "Fraction",
+      colour = "Coverage",
+      shape = "Bait Set",
+      title = "Coverage Levels per Read Group"
+    )
   # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
   ggplot_object <-
-    ggplot_object + scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
+    ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
+  ggplot_object <-
+    ggplot_object + ggplot2::guides(shape = ggplot2::guide_legend(nrow = 24L))
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -1162,10 +1217,10 @@ if (!is.null(x = combined_metrics_sample)) {
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Nominal Coverage per Sample")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE,
                                                                y = NOMINAL_COVERAGE))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(x = "Sample", y = "Nominal Coverage", title = "Nominal Coverage per Sample")
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -1206,14 +1261,21 @@ if (!is.null(x = combined_metrics_sample)) {
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Nominal Coverage per Read Group")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP,
                                                                y = NOMINAL_COVERAGE,
                                                                shape = BAIT_SET))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Read Group",
+      y = "Nominal Coverage",
+      shape = "Bait Set",
+      title = "Nominal Coverage per Read Group"
+    )
   # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
   ggplot_object <-
-    ggplot_object + scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
+    ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
+  ggplot_object <-
+    ggplot_object + ggplot2::guides(shape = ggplot2::guide_legend(nrow = 24L))
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -1415,15 +1477,20 @@ if (nrow(x = combined_metrics_sample) > 0L) {
   # Calculate the fractions on the basis of the constrained target number.
   plotting_frame[, "fraction"] <-
     plotting_frame$number / plotting_frame$target_number_constrained
-  # For the moment remove lines with "TOTAL".
+  # For the moment, remove lines with "TOTAL".
   plotting_frame <-
     plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Number of Non-Callable Loci per Sample")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = sample_name, y = number, colour = mapping_status))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Sample",
+      y = "Number",
+      colour = "Non-Callable",
+      title = "Number of Non-Callable Loci per Sample"
+    )
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -1477,15 +1544,20 @@ if (nrow(x = combined_metrics_sample) > 0L) {
   # Calculate the fractions on the basis of the constrained target width.
   plotting_frame[, "fraction"] <-
     plotting_frame$width / plotting_frame$target_width_constrained
-  # For the moment remove lines with "TOTAL".
+  # For the moment, remove lines with "TOTAL".
   plotting_frame <-
     plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::ggtitle(label = "Fraction of Non-Callable Loci per Sample")
-  ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = sample_name, y = fraction, colour = mapping_status))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Sample",
+      y = "Fraction",
+      colour = "Non-Callable",
+      title = "Fraction of Non-Callable Loci per Sample"
+    )
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,

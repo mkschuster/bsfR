@@ -259,23 +259,25 @@ for (i in seq_len(length.out = nrow(x = genes_frame))) {
         ))
       ggplot_object <- ggplot2::ggplot(data = count_frame)
       ggplot_object <-
-        ggplot_object + ggplot2::geom_point(mapping = aes(x = covariates, y = count),
+        ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = covariates, y = count),
                                             alpha = I(1 / 3))
       ggplot_object <-
-        ggplot_object + ggplot2::theme(axis.text.x = element_text(
+        ggplot_object + ggplot2::labs(
+          x = "Covariates",
+          y = if (argument_list$normalised) {
+            "Normalised Counts"
+          } else {
+            "Counts"
+          },
+          title = paste("Gene", "Counts", genes_frame[i, "gene_id"], genes_frame[i, "gene_name"], sep = " ")
+        )
+      ggplot_object <-
+        ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
           size = 8.0,
           hjust = 1.0,
           vjust = 0.5,
           angle = 90.0
         ))
-      ggplot_object <-
-        ggplot_object + ggplot2::ylab(label = if (argument_list$normalised) {
-          "normalised counts"
-        } else {
-          "counts"
-        })
-      ggplot_object <-
-        ggplot_object + ggplot2::ggtitle(label = paste("Gene", "Counts", genes_frame[i, "gene_id"], genes_frame[i, "gene_name"], sep = " "))
       ggplot2::ggsave(
         filename = file_path,
         plot = ggplot_object,

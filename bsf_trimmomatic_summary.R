@@ -132,7 +132,7 @@ process_trimlog <- function(file_path, number = -1L) {
     replacement = "",
     x = basename(path = file_path)
   )
-  
+
   initialise_read_frame <- function(length, read_number = 1L) {
     return(
       data.frame(
@@ -145,7 +145,7 @@ process_trimlog <- function(file_path, number = -1L) {
       )
     )
   }
-  
+
   update_read_frame <- function(read_frame, trimlog_list) {
     # Increment the surviving position.
     read_frame$surviving[as.integer(x = trimlog_list[[1]][2]) + 1L] <-
@@ -158,14 +158,14 @@ process_trimlog <- function(file_path, number = -1L) {
       read_frame$frequency_3[as.integer(x = trimlog_list[[1]][4]) + 1L] + 1L
     return(read_frame)
   }
-  
+
   # The data frames need to be intialised with the correct length, which is only
   # available from reading the trim log file.
   counter_1 <- 0L
   counter_2 <- 0L
   read_frame_1 <- NULL
   read_frame_2 <- NULL
-  
+
   trimlog_connection <- file(description = file_path, open = "rt")
   # Since trim log files may start with completely trimmed reads that allow no conclusion
   # about read lengths, the file needs searching for meaningful coordinates first.
@@ -180,7 +180,7 @@ process_trimlog <- function(file_path, number = -1L) {
     # The data frame length is one longer to store the end position.
     frame_length <-
       as.integer(x = trimlog_list[[1]][4]) + as.integer(x = trimlog_list[[1]][5]) + 1L
-    
+
     # Check for read 1.
     if (endsWith(x = trimlog_list[[1]][1], "/1")) {
       counter_1 <- counter_1 + 1L  # Increment the counter for read 1.
@@ -209,7 +209,7 @@ process_trimlog <- function(file_path, number = -1L) {
         }
       }
     }
-    
+
     # No decision before the first read has been seen twice ...
     if (counter_1 > 2L) {
       # Break out, if ...
@@ -228,7 +228,7 @@ process_trimlog <- function(file_path, number = -1L) {
       }
     }
   }
-  
+
   # Re-postion the connection to the start, reset the read counters and re-read the entire file.
   seek(con = trimlog_connection, where = 0L)
   counter_1 <- 0L
@@ -240,7 +240,7 @@ process_trimlog <- function(file_path, number = -1L) {
     }
     trimlog_list <-
       stri_split_fixed(str = trimlog_line, pattern = " ")
-    
+
     # Check for read 1.
     if (endsWith(x = trimlog_list[[1]][1], "/1")) {
       counter_1 <- counter_1 + 1L  # Increment the counter for read 1.
@@ -261,11 +261,11 @@ process_trimlog <- function(file_path, number = -1L) {
       }
     }
     rm(trimlog_list, trimlog_line)
-    
+
     # if ((counter_1 %% 10000L) == 0L) {
     #   print(x = counter_1)
     # }
-    
+
     # Break after reaching the maximum nuber of reads to process.
     if (number > 0L) {
       if (counter_2 > 0L) {
@@ -285,7 +285,7 @@ process_trimlog <- function(file_path, number = -1L) {
   rm(trimlog_connection,
      update_read_frame,
      initialise_read_frame)
-  
+
   complete_read_frame <- function(read_frame, counter) {
     # Calculate the 5-prime coverage, which is the
     # cumulative sum of 5-prime frequencies.
@@ -309,7 +309,7 @@ process_trimlog <- function(file_path, number = -1L) {
       counter
     return(read_frame)
   }
-  
+
   trimmomatic_frame <-
     complete_read_frame(read_frame = read_frame_1, counter = counter_1)
   if (!is.null(x = read_frame_2)) {
@@ -324,7 +324,7 @@ process_trimlog <- function(file_path, number = -1L) {
      complete_read_frame,
      counter_1,
      counter_2)
-  
+
   # Write the summary frame to disk.
   write.table(
     x = trimmomatic_frame,
@@ -334,7 +334,7 @@ process_trimlog <- function(file_path, number = -1L) {
     row.names = FALSE,
     col.names = TRUE
   )
-  
+
   # Melt the data frame on measure variables "coverage_5", "coverage_3" and "coverage"
   # and plot faceted by column on the "read" factor.
   molten_frame <- melt(
@@ -344,15 +344,21 @@ process_trimlog <- function(file_path, number = -1L) {
     variable.name = "type",
     value.name = "reads"
   )
-  ggplot_object <- ggplot(data = molten_frame)
+  ggplot_object <- ggplot2::ggplot(data = molten_frame)
   ggplot_object <-
-    ggplot_object + ggtitle(label = "Coverage Summary")
-  ggplot_object <- ggplot_object + facet_grid(facets = read ~ .)
+    ggplot_object + ggplot2::facet_grid(facets = read ~ .)
   ggplot_object <-
-    ggplot_object + geom_point(mapping = aes(x = position, y = reads, colour = type))
-  ggsave(filename = paste(file_prefix, "coverage.png", sep = "_"),
-         plot = ggplot_object)
-  
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = position, y = reads, colour = type))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Position",
+      y = "Reads",
+      colour = "Type",
+      title = "Coverage Summary"
+    )
+  ggplot2::ggsave(filename = paste(file_prefix, "coverage.png", sep = "_"),
+                  plot = ggplot_object)
+
   # Melt the data frame on measure variables "frequency_5" and "frequency_3"
   # and plot faceted by column on the "read" factor.
   molten_frame <- melt(
@@ -362,15 +368,21 @@ process_trimlog <- function(file_path, number = -1L) {
     variable.name = "type",
     value.name = "reads"
   )
-  ggplot_object <- ggplot(data = molten_frame)
+  ggplot_object <- ggplot2::ggplot(data = molten_frame)
   ggplot_object <-
-    ggplot_object + ggtitle(label = "Frequency Summary")
-  ggplot_object <- ggplot_object + facet_grid(facets = read ~ .)
+    ggplot_object + ggplot2::facet_grid(facets = read ~ .)
   ggplot_object <-
-    ggplot_object + geom_point(mapping = aes(x = position, y = reads, colour = type))
-  ggsave(filename = paste(file_prefix, "frequency.png", sep = "_"),
-         plot = ggplot_object)
-  
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = position, y = reads, colour = type))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Position",
+      y = "Reads",
+      colour = "Type",
+      title = "Frequency Summary"
+    )
+  ggplot2::ggsave(filename = paste(file_prefix, "frequency.png", sep = "_"),
+                  plot = ggplot_object)
+
   # Melt the data frame on measure variables "surviving"
   # and plot faceted by column on the "read" factor.
   # molten_frame <- melt(
@@ -383,17 +395,16 @@ process_trimlog <- function(file_path, number = -1L) {
   # Rather than melting with a single measure variable, just select from the data frame.
   molten_frame <-
     trimmomatic_frame[, c("position", "read", "surviving")]
-  ggplot_object <- ggplot(data = molten_frame)
+  ggplot_object <- ggplot2::ggplot(data = molten_frame)
   ggplot_object <-
-    ggplot_object + ggtitle(label = "Surviving Sequence")
-  ggplot_object <- ggplot_object + facet_grid(facets = read ~ .)
-  # ggplot_object <-
-  #   ggplot_object + geom_point(mapping = aes(x = position, y = reads, colour = type))
+    ggplot_object + ggplot2::facet_grid(facets = read ~ .)
   ggplot_object <-
-    ggplot_object + geom_point(mapping = aes(x = position, y = surviving)) + ylab(label = "reads")
-  ggsave(filename = paste(file_prefix, "surviving.png", sep = "_"),
-         plot = ggplot_object)
-  
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = position, y = surviving))
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(x = "Position", y = "Reads", title = "Surviving Sequence")
+  ggplot2::ggsave(filename = paste(file_prefix, "surviving.png", sep = "_"),
+                  plot = ggplot_object)
+
   rm(ggplot_object, molten_frame, trimmomatic_frame, file_prefix)
   return()
 }
@@ -469,7 +480,7 @@ if (!is.null(x = argument_list$directory)) {
       full.names = TRUE
     )
   # trimmomatic_reports <- vector(mode = "list", length = length(x = trimmomatic_paths))
-  
+
   trimmomatic_list <-
     lapply(X = trimmomatic_paths, FUN = process_stdout)
   # print(x = paste("trimmomatic_list class:", class(x = trimmomatic_list)))
@@ -477,7 +488,7 @@ if (!is.null(x = argument_list$directory)) {
   # print(x = data.frame(matrix(data = unlist(x = trimmomatic_list)), byrow = TRUE), stringsAsFactors=FALSE)
   # print(x = lapply(X = trimmomatic_list, FUN = class))
   # print(x = trimmomatic_list)
-  
+
   # trimmomatic_frame <- rbind.data.frame(trimmomatic_list)
   # trimmomatic_frame <- do.call(rbind.data.frame, trimmomatic_list)
   # trimmomatic_frame <- data.frame(
@@ -492,10 +503,10 @@ if (!is.null(x = argument_list$directory)) {
   # print(x = paste("trimmomatic_frame names:", names(x = trimmomatic_frame)))
   # print(head(x = trimmomatic_frame))
   # print(row.names(x = trimmomatic_frame))
-  
+
   # for (trimmomatic_file in trimmomatic_files) {
   # trimmomatic_lines <- readLines(con = trimmomatic_file)
-  
+
   # The relevant line is:
   # Input Read Pairs: 7999402 Both Surviving: 6629652 (82.88%) Forward Only Surviving: 1271736 (15.90%) Reverse Only Surviving: 18573 (0.23%) Dropped: 79441 (0.99%)
   # trimmomatic_matches <- regexec(pattern = "^Input Read Pairs: ([[:digit:]]+) Both Surviving: ([[:digit:]]+) .*Forward Only Surviving: ([[:digit:]]+).*Reverse Only Surviving: ([[:digit:]]+).*Dropped: ([[:digit:]]+) ",
