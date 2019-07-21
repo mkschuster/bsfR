@@ -1,9 +1,11 @@
 #!/usr/bin/env Rscript
 #
-# The bsf_chipseq_annotate.R script annotates the consensus peak set and
-# contrast peak sets of a DiffBind analysis run via bsf_chipseq_diff_bind.R. The
-# annotation is based on a Biocoductor TxDb object as well as GTF file that
-# provides addiitonal annotation, such as gene symbols and gene biotypes.
+# This script uses the Bioconductor ChIPpeakAnno package to annotate the
+# consensus peak set, as well as contrast peak sets of a differential binding
+# analysis carried out by the Bioconductor DiffBind package via the
+# bsf_chipseq_diff_bind.R script. The annotation is based on a Biocoductor TxDb
+# object, as well as its corresponding GTF file that provides additional
+# annotation, such as gene symbols and gene biotypes.
 #
 #
 # Copyright 2013 - 2019 Michael K. Schuster
@@ -117,10 +119,11 @@ suppressPackageStartupMessages(expr = library(package = "AnnotationDbi"))
 suppressPackageStartupMessages(expr = library(package = "ChIPpeakAnno"))
 suppressPackageStartupMessages(expr = library(package = "DiffBind"))
 suppressPackageStartupMessages(expr = library(package = "GenomicFeatures"))
-suppressPackageStartupMessages(expr = library(package = "ggplot2"))
-suppressPackageStartupMessages(expr = library(package = "tibble"))
+suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 # Save plots in the following formats.
+
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
 prefix <-
@@ -195,7 +198,6 @@ plot_paths <- file.path(output_directory,
                           paste(prefix,
                                 "peak",
                                 "set",
-                                "chromosome",
                                 "regions",
                                 sep = "_"),
                           graphics_formats,
@@ -236,6 +238,22 @@ for (plot_path in plot_paths) {
     limitsize = FALSE
   )
 }
+
+# Write the chromosome region fractions to a TSV file.
+readr::write_tsv(
+  x = ggplot_object$data,
+  path = file.path(output_directory,
+                   paste(
+                     paste(prefix,
+                           "peak",
+                           "set",
+                           "regions",
+                           sep = "_"),
+                     "tsv",
+                     sep = "."
+                   )),
+  col_names = TRUE
+)
 rm(plot_path, ggplot_object, plot_paths, chromosome_region_list)
 
 # Initialise reference annotation -----------------------------------------
@@ -315,6 +333,7 @@ write.table(
                            "peak",
                            "set",
                            "genes",
+                           "complete",
                            sep = "_"),
                      "tsv",
                      sep = "."
@@ -340,8 +359,18 @@ print(x = base::warnings())
 #' @examples
 process_per_contrast <-
   function(contrast, group1, group2, db_number) {
+    message(
+      sprintf(
+        fmt = "Processing %s %s contrast %s versus %s",
+        argument_list$comparison,
+        argument_list$factor,
+        group1,
+        group2
+      )
+    )
+
     report_granges <- NULL
-    tryCatch(
+    base::tryCatch(
       expr = {
         report_granges <- DiffBind::dba.report(
           DBA = diffbind_dba,
@@ -373,7 +402,7 @@ process_per_contrast <-
 
     message(
       sprintf(
-        fmt = "Annotating %s %s contrast %s versus %s peak set: %d",
+        fmt = "  Annotating %s %s contrast %s versus %s peak set: %d",
         argument_list$comparison,
         argument_list$factor,
         group1,
@@ -385,6 +414,8 @@ process_per_contrast <-
     annotated_granges <-
       ChIPpeakAnno::annotatePeakInBatch(myPeakList = report_granges,
                                         AnnotationData = annotation_granges)
+    print(x = "Contrast peak set annotation warnings:")
+    print(x = base::warnings())
 
     annotated_frame <-
       BiocGenerics::as.data.frame(x = annotated_granges, stringsAsFactors = FALSE)
@@ -399,6 +430,21 @@ process_per_contrast <-
       )
     rm(annotated_frame)
 
+    # Calculate ranks for ...
+    # (1) the effect size (Fold), ...
+    merged_frame$rank_fold_change <-
+      base::rank(x = -abs(x = merged_frame$Fold),
+                 ties.method = c("min"))
+
+    # (2) the absolute level (Conc) and ...
+    merged_frame$rank_conc <-
+      base::rank(x = -merged_frame$Conc,
+                 ties.method = c("min"))
+
+    # (3) the statistical significance (padj).
+    merged_frame$rank_fdr <-
+      base::rank(x = merged_frame$FDR, ties.method = c("min"))
+
     # Order by the numeric "peak" variable.
     merged_frame <-
       merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)), ]
@@ -407,10 +453,32 @@ process_per_contrast <-
       x = merged_frame,
       file = file.path(
         output_directory,
-        sprintf("%s_peaks_%s__%s_genes.tsv",
-                prefix,
-                group1,
-                group2)
+        sprintf(
+          "%s_peaks_%s__%s_genes_complete.tsv",
+          prefix,
+          group1,
+          group2
+        )
+      ),
+      sep = "\t",
+      row.names = FALSE,
+      col.names = TRUE
+    )
+
+    # Filter by the FDR threshold value.
+    merged_frame <-
+      merged_frame[merged_frame$FDR <= argument_list$fdr_threshold, ]
+
+    utils::write.table(
+      x = merged_frame,
+      file = file.path(
+        output_directory,
+        sprintf(
+          "%s_peaks_%s__%s_genes_significant.tsv",
+          prefix,
+          group1,
+          group2
+        )
       ),
       sep = "\t",
       row.names = FALSE,
@@ -419,8 +487,80 @@ process_per_contrast <-
 
     rm(merged_frame)
 
-    print(x = "Contrast peak set annotation warnings:")
-    print(x = base::warnings())
+    significant_granges <-
+      report_granges[report_granges$FDR <= argument_list$fdr_threshold, ]
+    message(sprintf(fmt = "  Assigning chromosome regions for significant peak set: %d",
+                    length(x = significant_granges)))
+
+    chromosome_region_list <-
+      ChIPpeakAnno::assignChromosomeRegion(peaks.RD = significant_granges, TxDb = txdb_object)
+
+    message("  Plotting chromosome regions")
+    plot_paths <- file.path(
+      output_directory,
+      sprintf(
+        "%s_peaks_%s__%s_regions.%s",
+        prefix,
+        group1,
+        group2,
+        graphics_formats
+      )
+    )
+
+    ggplot_object <-
+      ggplot2::ggplot(data = tibble::tibble(
+        name = attr(x = chromosome_region_list$percentage, which = "dimnames")$subjectHits,
+        percentage = as.numeric(x = chromosome_region_list$percentage[])
+      ))
+
+    ggplot_object <-
+      ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = name, y = percentage))
+
+    ggplot_object <-
+      ggplot_object + ggplot2::labs(
+        x = "Name",
+        y = "Percentage",
+        title = "Chromosome Regions",
+        subtitle = paste("Peak Set", group1, group2, sep = " ")
+      )
+
+    ggplot_object <-
+      ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
+        size = 8.0,
+        hjust = 1.0,
+        vjust = 0.5,
+        angle = 90.0
+      ))
+
+    for (plot_path in plot_paths) {
+      ggplot2::ggsave(
+        filename = plot_path,
+        plot = ggplot_object,
+        width = argument_list$plot_width,
+        height = argument_list$plot_height,
+        limitsize = FALSE
+      )
+    }
+    # Write the fractions to a TSV file.
+    readr::write_tsv(
+      x = ggplot_object$data,
+      path = file.path(
+        output_directory,
+        sprintf("%s_peaks_%s__%s_regions.tsv",
+                prefix,
+                group1,
+                group2)
+      ),
+      col_names = TRUE
+    )
+    rm(
+      plot_path,
+      ggplot_object,
+      plot_paths,
+      chromosome_region_list,
+      significant_granges,
+      report_granges
+    )
   }
 
 # Get a data frame with all contrasts to apply the above function to each row.
