@@ -76,7 +76,7 @@ suppressPackageStartupMessages(expr = library(package = "tibble"))
 suppressPackageStartupMessages(expr = library(package = "tidyr"))
 
 # Save plots in the following formats.
-graphics_formats <- c("pdf", "png")
+graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
 # Assign a file prefix.
 prefix_summary <- "variant_calling_summary"
@@ -427,7 +427,7 @@ if (!is.null(x = combined_metrics_sample)) {
   message("Plotting the aligned pass-filter reads number per sample")
   ggplot_object <-
     ggplot2::ggplot(
-      data = tibble::as.tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "NUMBER", -CATEGORY, -SAMPLE)
+      data = tibble::as_tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "NUMBER", -CATEGORY, -SAMPLE)
     )
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = NUMBER, colour = CATEGORY))
@@ -465,7 +465,7 @@ if (!is.null(x = combined_metrics_sample)) {
   message("Plotting the aligned pass-filter reads number per read group")
   ggplot_object <-
     ggplot2::ggplot(
-      data = tibble::as.tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "NUMBER", -CATEGORY, -READ_GROUP)
+      data = tibble::as_tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "NUMBER", -CATEGORY, -READ_GROUP)
     )
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP, y = NUMBER, colour = CATEGORY))
@@ -503,7 +503,7 @@ if (!is.null(x = combined_metrics_sample)) {
   message("Plotting the aligned pass-filter reads fraction per sample")
   ggplot_object <-
     ggplot2::ggplot(
-      data = tibble::as.tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PCT_PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -SAMPLE)
+      data = tibble::as_tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PCT_PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -SAMPLE)
     )
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = FRACTION, colour = CATEGORY))
@@ -541,7 +541,7 @@ if (!is.null(x = combined_metrics_sample)) {
   message("Plotting the aligned pass-filter reads fraction per read group")
   ggplot_object <-
     ggplot2::ggplot(
-      data = tibble::as.tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PCT_PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -READ_GROUP)
+      data = tibble::as_tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PCT_PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -READ_GROUP)
     )
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP, y = FRACTION, colour = CATEGORY))
@@ -579,7 +579,7 @@ if (!is.null(x = combined_metrics_sample)) {
   message("Plotting the strand balance of aligned pass-filter reads per sample")
   ggplot_object <-
     ggplot2::ggplot(
-      data = tibble::as.tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "STRAND_BALANCE")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -SAMPLE)
+      data = tibble::as_tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "STRAND_BALANCE")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -SAMPLE)
     )
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = FRACTION, colour = CATEGORY))
@@ -617,7 +617,7 @@ if (!is.null(x = combined_metrics_sample)) {
   message("Plotting the strand balance of aligned pass-filter reads per read group")
   ggplot_object <-
     ggplot2::ggplot(
-      data = tibble::as.tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "STRAND_BALANCE")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -READ_GROUP)
+      data = tibble::as_tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "STRAND_BALANCE")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -READ_GROUP)
     )
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP, y = FRACTION, colour = CATEGORY))
@@ -847,8 +847,6 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
   ggplot_object <-
-    ggplot_object + ggplot2::guides(shape = ggplot2::guide_legend(nrow = 24L))
-  ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
       hjust = 0,
@@ -923,8 +921,6 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
   ggplot_object <-
-    ggplot_object + ggplot2::guides(shape = ggplot2::guide_legend(nrow = 24L))
-  ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
       hjust = 0,
@@ -980,8 +976,6 @@ if (!is.null(x = combined_metrics_sample)) {
       fill = "Excluded",
       title = "Excluded Bases per Sample"
     )
-  ggplot_object <-
-    ggplot_object + ggplot2::guides(shape = ggplot2::guide_legend(nrow = 24L))
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -1043,7 +1037,10 @@ if (!is.null(x = combined_metrics_sample)) {
       title = "Excluded Bases per Read Group"
     )
   ggplot_object <-
-    ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(nrow = 24L))
+    ggplot_object + ggplot2::guides(
+      fill = ggplot2::guide_legend(order = 1L),
+      colour = ggplot2::guide_legend(order = 2L)
+    )
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -1104,8 +1101,6 @@ if (!is.null(x = combined_metrics_sample)) {
       colour = "Coverage Level",
       title = "Coverage Levels per Sample"
     )
-  ggplot_object <-
-    ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(nrow = 24L))
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -1174,7 +1169,10 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
   ggplot_object <-
-    ggplot_object + ggplot2::guides(shape = ggplot2::guide_legend(nrow = 24L))
+    ggplot_object + ggplot2::guides(
+      colour = ggplot2::guide_legend(order = 1L),
+      shape = ggplot2::guide_legend(order = 2L)
+    )
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
@@ -1274,8 +1272,6 @@ if (!is.null(x = combined_metrics_sample)) {
   # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
   ggplot_object <-
     ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
-  ggplot_object <-
-    ggplot_object + ggplot2::guides(shape = ggplot2::guide_legend(nrow = 24L))
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
