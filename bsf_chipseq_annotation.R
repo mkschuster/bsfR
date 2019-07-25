@@ -126,6 +126,18 @@ suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
+# Define the precedence of regions for the
+# ChIPpeakAnno::assignChromosomeRegion() function so that each peak is assigned
+# only once and all regions sum up to 100%.
+region_precedence <- c(
+  "Promoters",
+  "immediateDownstream",
+  "fiveUTRs",
+  "threeUTRs",
+  "Exons",
+  "Introns"
+)
+
 prefix <-
   paste("chipseq",
         "diff",
@@ -190,7 +202,11 @@ diffbind_peakset_granges <-
 message("Assigning chromosome regions: ",
         length(diffbind_peakset_granges))
 chromosome_region_list <-
-  ChIPpeakAnno::assignChromosomeRegion(peaks.RD = diffbind_peakset_granges, TxDb = txdb_object)
+  ChIPpeakAnno::assignChromosomeRegion(
+    peaks.RD = diffbind_peakset_granges,
+    precedence = region_precedence,
+    TxDb = txdb_object
+  )
 
 message("Plotting chromosome regions")
 plot_paths <- file.path(output_directory,
@@ -493,7 +509,11 @@ process_per_contrast <-
                     length(x = significant_granges)))
 
     chromosome_region_list <-
-      ChIPpeakAnno::assignChromosomeRegion(peaks.RD = significant_granges, TxDb = txdb_object)
+      ChIPpeakAnno::assignChromosomeRegion(
+        peaks.RD = significant_granges,
+        precedence = region_precedence,
+        TxDb = txdb_object
+      )
 
     message("  Plotting chromosome regions")
     plot_paths <- file.path(
@@ -577,10 +597,6 @@ contrast_frame$Group2 <-
        replacement = "not_",
        x = contrast_frame$Group2)
 
-# print(x = "Contrast frame")
-# print(x = str(object = contrast_frame))
-# print(x = row.names(x = contrast_frame))
-
 return_value <-
   mapply(
     FUN = process_per_contrast,
@@ -601,6 +617,7 @@ rm(
   txdb_object,
   output_directory,
   prefix,
+  region_precedence,
   graphics_formats,
   argument_list
 )
