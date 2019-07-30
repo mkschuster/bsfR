@@ -371,27 +371,29 @@ initialise_sample_frame <- function(factor_levels) {
   design_variables <- names(x = data_frame)
   for (i in seq_along(along.with = factor_list)) {
     factor_name <- attr(x = factor_list[[i]], which = "factor")
-    if (factor_name %in% design_variables) {
-      data_frame[, factor_name] <-
-        factor(x = as.character(x = data_frame[, factor_name]),
-               levels = factor_list[[i]])
-      # Check for NA values in case a factor level was missing.
-      if (any(is.na(x = data_frame[, factor_name]))) {
+    if (factor_name != "") {
+      if (factor_name %in% design_variables) {
+        data_frame[, factor_name] <-
+          factor(x = as.character(x = data_frame[, factor_name]),
+                 levels = factor_list[[i]])
+        # Check for NA values in case a factor level was missing.
+        if (any(is.na(x = data_frame[, factor_name]))) {
+          stop(
+            paste0(
+              "Missing values after assigning factor levels for factor name ",
+              factor_name
+            )
+          )
+        }
+      } else {
         stop(
           paste0(
-            "Missing values after assigning factor levels for factor name ",
-            factor_name
+            "Factor name ",
+            factor_name,
+            " does not resemble a variable of the design frame."
           )
         )
       }
-    } else {
-      stop(
-        paste0(
-          "Factor name ",
-          factor_name,
-          " does not resemble a variable of the design frame."
-        )
-      )
     }
     rm(factor_name)
   }
@@ -923,15 +925,15 @@ plot_fpkm_values <- function(object) {
     ggplot_object <-
       ggplot_object + ggplot2::labs(
         x = "log10(FPKM)",
-        y = "density",
-        colour = "sample",
+        y = "Density",
+        colour = "Sample",
         title = "FPKM Density",
         subtitle = paste("Design", argument_list$design_name)
       )
 
     # Increase the plot width per 24 samples.
     # The number of samples is the number of columns of the matrix.
-    # Rather than argument_list$plot_factor, a fixed mumber of 0.25 is used here.
+    # Rather than argument_list$plot_factor, a fixed number of 0.25 is used here.
     plot_width <-
       argument_list$plot_width + (ceiling(x = ncol(x = object) / 24L) - 1L) * argument_list$plot_width * 0.25
 
@@ -945,6 +947,64 @@ plot_fpkm_values <- function(object) {
       )
     }
     rm(plot_path, ggplot_object)
+  }
+  rm(plot_paths)
+}
+
+# Plot Cook's Distances ---------------------------------------------------
+
+
+#' Plot Cook's distances as box plot.
+#'
+#' @param object A \code{DESeqDataSet} object.
+#' @return \code{NULL}
+#'
+#' @examples
+#' @noRd
+plot_cooks_distances <- function(object) {
+  plot_paths <- file.path(output_directory, paste(paste(prefix, "cooks", "distances", sep = "_"), graphics_formats, sep = "."))
+
+  if (all(file.exists(plot_paths) &&
+          file.info(plot_paths)$size > 0L)) {
+    message("Skipping a Cook's distances box plot")
+  } else {
+    message("Creating a Cook's distances box plot")
+
+    ggplot_object <-
+      ggplot2::ggplot(data = tidyr::gather(data = tibble::as_tibble(x = SummarizedExperiment::assays(x = object)$cooks)))
+    ggplot_object <-
+      ggplot_object + ggplot2::geom_boxplot(mapping = ggplot2::aes(x = key, y = value, fill = key))
+    ggplot_object <-
+      ggplot_object + ggplot2::labs(
+        x = "Sample",
+        y = "Cook's Distance",
+        fill = "Sample",
+        title = "Cook's Distance per Sample",
+        subtitle = paste("Design", argument_list$design_name)
+      )
+    ggplot_object <-
+      ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
+        angle = 90,
+        hjust = 0,
+        size = ggplot2::rel(x = 0.8)
+      ))
+
+    # Increase the plot width per 24 samples.
+    # The number of samples is the number of rows of the colData() DataFrame.
+    # Rather than argument_list$plot_factor, a fixed number of 0.33 is used here.
+    plot_width <-
+      argument_list$plot_width + (ceiling(x = S4Vectors::nrow(x = SummarizedExperiment::colData(x = object)) / 24L) - 1L) * argument_list$plot_width * 0.33
+
+    for (plot_path in plot_paths) {
+      ggplot2::ggsave(
+        filename = plot_path,
+        plot = ggplot_object,
+        width = plot_width,
+        height = argument_list$plot_height,
+        limitsize = FALSE
+      )
+    }
+    rm(plot_path, plot_width, ggplot_object)
   }
   rm(plot_paths)
 }
@@ -1068,7 +1128,6 @@ plot_mds <- function(object,
         plot_paths <- file.path(output_directory,
                                 paste(
                                   paste(
-                                    prefix,
                                     prefix,
                                     "mds",
                                     aes_list_to_character(aes_list = aes_list),
@@ -1250,7 +1309,7 @@ plot_heatmap <- function(object,
   message(paste(c("  Heat map plot:", aes_character), collapse = " "))
   if (!all(aes_character %in% names(x = SummarizedExperiment::colData(x = object)))) {
     stop(
-      "the argument 'aes_character' should specify columns of SummarizedExperiment::colData(dds)"
+      "the argument 'aes_character' should specify columns of SummarizedExperiment::colData(x = dds)"
     )
   }
 
@@ -1417,7 +1476,12 @@ plot_pca <- function(object,
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = component, y = variance))
   ggplot_object <-
-    ggplot_object + ggplot2::labs(x = "component", y = "variance", title = "Variance by Component")
+    ggplot_object + ggplot2::labs(
+      x = "Principal Component",
+      y = "Variance",
+      title = "Variance by Principal Component",
+      subtitle = paste("Design", argument_list$design_name))
+
   for (plot_path in plot_paths) {
     ggplot2::ggsave(
       filename = plot_path,
@@ -1459,7 +1523,7 @@ plot_pca <- function(object,
         message(paste(c("  PCA plot:", aes_character), collapse = " "))
         if (!all(aes_character %in% names(x = SummarizedExperiment::colData(x = object)))) {
           stop(
-            "the argument 'aes_character' should specify columns of SummarizedExperiment::colData(dds)"
+            "the argument 'aes_character' should specify columns of SummarizedExperiment::colData(x = dds)"
           )
         }
 
@@ -1685,18 +1749,21 @@ deseq_data_set <-
 
 # TODO: Write the matrix of gene versus model coefficients as a data.frame to disk.
 
+# Cooks Distances Plot ----------------------------------------------------
+
+plot_cooks_distances(object = deseq_data_set)
+
 # RIN Score Plot ----------------------------------------------------------
 
 
 # If RIN scores are annotated in the sample frame, plot their distribution.
 plot_rin_scores(object = deseq_data_set)
 
-
 # Likelihood Ratio Test (LRT) ---------------------------------------------
 
 
-# The "reduced_formulas" variable of the "design" data frame encodes reduced formulas for LRT.
-# Example: "name_1:~genotype + gender;name_2:~1"
+# The "reduced_formulas" variable of the "design" data frame encodes reduced
+# formulas for LRT. Example: "name_1:~genotype + gender;name_2:~1"
 reduced_formula_list <-
   lapply(
     X = stringi::stri_split_fixed(
@@ -2102,6 +2169,7 @@ rm(
   plot_heatmap,
   plot_mds,
   plot_rin_scores,
+  plot_cooks_distances,
   plot_fpkm_values,
   aes_list_to_character,
   initialise_deseq_transform,
