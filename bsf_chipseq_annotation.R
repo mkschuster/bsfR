@@ -222,8 +222,8 @@ plot_paths <- file.path(output_directory,
 
 ggplot_object <-
   ggplot2::ggplot(data = tibble::tibble(
-    name = attr(x = chromosome_region_list$percentage, which = "dimnames")$subjectHits,
-    percentage = as.numeric(x = chromosome_region_list$percentage[])
+    name = dimnames(x = chromosome_region_list$percentage)$subjectHits,
+    percentage = as.numeric(x = chromosome_region_list$percentage)
   ))
 
 ggplot_object <-
@@ -359,8 +359,8 @@ write.table(
   col.names = TRUE
 )
 rm(merged_frame)
-print(x = "Consensus peak set annotation warnings:")
-print(x = base::warnings())
+# print(x = "Consensus peak set annotation warnings:")
+# print(x = base::warnings())
 
 #' Process a contrasts data frame obtained via DiffBind::dba.show() per row.
 #'
@@ -430,8 +430,8 @@ process_per_contrast <-
     annotated_granges <-
       ChIPpeakAnno::annotatePeakInBatch(myPeakList = report_granges,
                                         AnnotationData = annotation_granges)
-    print(x = "Contrast peak set annotation warnings:")
-    print(x = base::warnings())
+    # print(x = "Contrast peak set annotation warnings:")
+    # print(x = base::warnings())
 
     annotated_frame <-
       BiocGenerics::as.data.frame(x = annotated_granges, stringsAsFactors = FALSE)
@@ -515,68 +515,74 @@ process_per_contrast <-
         TxDb = txdb_object
       )
 
-    message("  Plotting chromosome regions")
-    plot_paths <- file.path(
-      output_directory,
-      sprintf(
-        "%s_peaks_%s__%s_regions.%s",
-        prefix,
-        group1,
-        group2,
-        graphics_formats
-      )
-    )
-
-    ggplot_object <-
-      ggplot2::ggplot(data = tibble::tibble(
-        name = attr(x = chromosome_region_list$percentage, which = "dimnames")$subjectHits,
-        percentage = as.numeric(x = chromosome_region_list$percentage[])
-      ))
-
-    ggplot_object <-
-      ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = name, y = percentage))
-
-    ggplot_object <-
-      ggplot_object + ggplot2::labs(
-        x = "Name",
-        y = "Percentage",
-        title = "Chromosome Regions",
-        subtitle = paste("Peak Set", group1, group2, sep = " ")
+    if (is.null(x = dimnames(x = chromosome_region_list$percentage)$subjectHits)) {
+      warning("  Skipping an empty chromosome regions plot")
+    } else {
+      message("  Creating a chromosome regions plot")
+      plot_paths <- file.path(
+        output_directory,
+        sprintf(
+          "%s_peaks_%s__%s_regions.%s",
+          prefix,
+          group1,
+          group2,
+          graphics_formats
+        )
       )
 
-    ggplot_object <-
-      ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-        size = 8.0,
-        hjust = 1.0,
-        vjust = 0.5,
-        angle = 90.0
-      ))
+      ggplot_object <-
+        ggplot2::ggplot(data = tibble::tibble(
+          name = dimnames(x = chromosome_region_list$percentage)$subjectHits,
+          percentage = as.numeric(x = chromosome_region_list$percentage)
+        ))
 
-    for (plot_path in plot_paths) {
-      ggplot2::ggsave(
-        filename = plot_path,
-        plot = ggplot_object,
-        width = argument_list$plot_width,
-        height = argument_list$plot_height,
-        limitsize = FALSE
+      ggplot_object <-
+        ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = name, y = percentage))
+
+      ggplot_object <-
+        ggplot_object + ggplot2::labs(
+          x = "Name",
+          y = "Percentage",
+          title = "Chromosome Regions",
+          subtitle = paste("Peak Set", group1, group2, sep = " ")
+        )
+
+      ggplot_object <-
+        ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
+          size = 8.0,
+          hjust = 1.0,
+          vjust = 0.5,
+          angle = 90.0
+        ))
+
+      for (plot_path in plot_paths) {
+        ggplot2::ggsave(
+          filename = plot_path,
+          plot = ggplot_object,
+          width = argument_list$plot_width,
+          height = argument_list$plot_height,
+          limitsize = FALSE
+        )
+      }
+      # Write the fractions to a TSV file.
+      readr::write_tsv(
+        x = ggplot_object$data,
+        path = file.path(
+          output_directory,
+          sprintf("%s_peaks_%s__%s_regions.tsv",
+                  prefix,
+                  group1,
+                  group2)
+        ),
+        col_names = TRUE
+      )
+      rm(
+        plot_path,
+        ggplot_object,
+        plot_paths
       )
     }
-    # Write the fractions to a TSV file.
-    readr::write_tsv(
-      x = ggplot_object$data,
-      path = file.path(
-        output_directory,
-        sprintf("%s_peaks_%s__%s_regions.tsv",
-                prefix,
-                group1,
-                group2)
-      ),
-      col_names = TRUE
-    )
     rm(
-      plot_path,
-      ggplot_object,
-      plot_paths,
       chromosome_region_list,
       significant_granges,
       report_granges
