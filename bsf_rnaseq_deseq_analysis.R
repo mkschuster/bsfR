@@ -13,6 +13,13 @@
 #
 # BSF R script to run a DESeq2 analysis.
 #
+# Reads are counted on the basis of a reference (Ensembl) transcriptome supplied
+# as a GTF file and imported via rtracklayer::import() into exon GRanges
+# objects. The exon GRanges are subsequently converted into a GRangesList object
+# by (Ensembl) gene identifiers. A RangedSummarizedExpriment object is created
+# by the GenomicAlignments::summarizeOverlaps() function. Reads in secondary
+# alignments and reads failing vendor quality filtering are thereby dismissed.
+#
 # Copyright 2013 - 2019 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
@@ -325,7 +332,7 @@ initialise_sample_frame <- function(factor_levels) {
   }
 
   # The sequencing_type and library_type variables are required to set options
-  # for the summarizeOverlaps() read counting function.
+  # for the GenomicAlignments::summarizeOverlaps() read counting function.
 
   if (!any("sequencing_type" %in% names(x = data_frame))) {
     stop("A sequencing_type variable is missing from the sample annotation frame.")
@@ -667,25 +674,6 @@ fix_model_matrix <- function(model_matrix_local) {
 #'
 #' @examples
 check_model_matrix <- function(model_matrix) {
-  # Write the unmodified model matrix to disk if argument "--verbose" was set.
-  if (FALSE) {
-    # FIXME: Writing out original model matrices no longer works,
-    # because this function is now used on full and reduced matrices.
-    if (argument_list$verbose) {
-      message("Writing model matrix")
-      write.table(
-        x = base::as.data.frame(x = model_matrix),
-        file = file.path(
-          output_directory,
-          paste0(prefix, "_model_matrix_initial.tsv")
-        ),
-        sep = "\t",
-        row.names = TRUE,
-        col.names = TRUE
-      )
-    }
-  }
-
   formula_full_rank <- NULL
   matrix_full_rank <- FALSE
   while (!matrix_full_rank) {
@@ -695,24 +683,6 @@ check_model_matrix <- function(model_matrix) {
     if (is.null(x = formula_full_rank)) {
       # Capture the intial state of the model matrix, which represents the formula.
       formula_full_rank <- result_list$full_rank
-    }
-  }
-
-  if (FALSE) {
-    # FIXME: Writing out modified model matrices no longer works,
-    # because this function is now used on full and reduced matrices.
-    if (argument_list$verbose) {
-      message("Writing modified model matrix")
-      write.table(
-        x = base::as.data.frame(x = model_matrix),
-        file = file.path(
-          output_directory,
-          paste0(prefix, "_model_matrix_modified.tsv")
-        ),
-        sep = "\t",
-        row.names = TRUE,
-        col.names = TRUE
-      )
     }
   }
 
@@ -750,13 +720,39 @@ initialise_deseq_data_set <- function(design_list) {
 
     # Create a model matrix based on the model formula and column (sample annotation) data
     # and check whether it is full rank.
+    model_matrix <- stats::model.matrix.default(
+      object = as.formula(object = design_list$full_formula),
+      data = SummarizedExperiment::colData(x = ranged_summarized_experiment)
+    )
     result_list <-
       check_model_matrix(
-        model_matrix = stats::model.matrix.default(
-          object = as.formula(object = design_list$full_formula),
-          data = SummarizedExperiment::colData(x = ranged_summarized_experiment)
-        )
+        model_matrix = model_matrix
       )
+    if (argument_list$verbose) {
+      message("Writing initial model matrix")
+      write.table(
+        x = base::as.data.frame(x = model_matrix),
+        file = file.path(
+          output_directory,
+          paste0(prefix, "_model_matrix_full_initial.tsv")
+        ),
+        sep = "\t",
+        row.names = TRUE,
+        col.names = TRUE
+      )
+      message("Writing modified model matrix")
+      write.table(
+        x = base::as.data.frame(x = result_list$model_matrix),
+        file = file.path(
+          output_directory,
+          paste0(prefix, "_model_matrix_full_modified.tsv")
+        ),
+        sep = "\t",
+        row.names = TRUE,
+        col.names = TRUE
+      )
+    }
+    rm(model_matrix)
 
     if (result_list$formula_full_rank) {
       # The design formula *is* full rank, so set it as "design" option directly.
@@ -1156,15 +1152,15 @@ plot_mds <- function(object,
                   x = quote(expr = X1),
                   y = quote(expr = X2),
                   colour = if (is.null(x = aes_list$geom_line$colour))
-                    "black"
+                    NULL
                   else
                     as.name(x = aes_list$geom_line$colour),
                   group = if (is.null(x = aes_list$geom_line$group))
-                    1L
+                    NULL
                   else
                     as.name(x = aes_list$geom_line$group),
                   linetype = if (is.null(x = aes_list$geom_path$linetype))
-                    "solid"
+                    NULL
                   else
                     as.name(x = aes_list$geom_path$linetype)
                 ),
@@ -1180,11 +1176,11 @@ plot_mds <- function(object,
                   x = quote(expr = X1),
                   y = quote(expr = X2),
                   colour = if (is.null(x = aes_list$geom_point$colour))
-                    "black"
+                    NULL
                   else
                     as.name(x = aes_list$geom_point$colour),
                   shape = if (is.null(x = aes_list$geom_point$shape))
-                    15L
+                    NULL
                   else
                     as.name(x = aes_list$geom_point$shape)
                 ),
@@ -1210,7 +1206,7 @@ plot_mds <- function(object,
                   else
                     as.name(x = aes_list$geom_text$label),
                   colour = if (is.null(x = aes_list$geom_text$colour))
-                    "black"
+                    NULL
                   else
                     as.name(x = aes_list$geom_text$colour)
                 ),
@@ -1227,15 +1223,15 @@ plot_mds <- function(object,
                   x = quote(expr = X1),
                   y = quote(expr = X2),
                   colour = if (is.null(x = aes_list$geom_path$colour))
-                    "black"
+                    NULL
                   else
                     as.name(x = aes_list$geom_path$colour),
                   group = if (is.null(x = aes_list$geom_path$group))
-                    1L
+                    NULL
                   else
                     as.name(x = aes_list$geom_path$group),
                   linetype = if (is.null(x = aes_list$geom_path$linetype))
-                    "solid"
+                    NULL
                   else
                     as.name(x = aes_list$geom_path$linetype)
                 ),
@@ -1586,11 +1582,11 @@ plot_pca <- function(object,
                 x = quote(expr = x),
                 y = quote(expr = y),
                 colour = if (is.null(x = aes_list$geom_line$colour))
-                  "black"
+                  NULL
                 else
                   as.name(x = aes_list$geom_line$colour),
                 group = if (is.null(x = aes_list$geom_line$group))
-                  1L
+                  NULL
                 else
                   as.name(x = aes_list$geom_line$group)
               ),
@@ -1606,11 +1602,11 @@ plot_pca <- function(object,
                 x = quote(expr = x),
                 y = quote(expr = y),
                 colour = if (is.null(x = aes_list$geom_point$colour))
-                  "black"
+                  NULL
                 else
                   as.name(x = aes_list$geom_point$colour),
                 shape = if (is.null(x = aes_list$geom_point$shape))
-                  15L
+                  NULL
                 else
                   as.name(x = aes_list$geom_point$shape)
               ),
@@ -1635,7 +1631,7 @@ plot_pca <- function(object,
                 else
                   as.name(x = aes_list$geom_text$label),
                 colour = if (is.null(x = aes_list$geom_text$colour))
-                  "black"
+                  NULL
                 else
                   as.name(x = aes_list$geom_text$colour)
               ),
@@ -1652,15 +1648,15 @@ plot_pca <- function(object,
                 x = quote(expr = x),
                 y = quote(expr = y),
                 colour = if (is.null(x = aes_list$geom_path$colour))
-                  "black"
+                  NULL
                 else
                   as.name(x = aes_list$geom_path$colour),
                 group = if (is.null(x = aes_list$geom_path$group))
-                  "black"
+                  NULL
                 else
                   as.name(x = aes_list$geom_path$group),
                 linetype = if (is.null(x = aes_list$geom_path$linetype))
-                  "solid"
+                  NULL
                 else
                   as.name(x = aes_list$geom_path$linetype)
               ),
@@ -1687,7 +1683,7 @@ plot_pca <- function(object,
         }
         rm(plot_path, ggplot_object)
 
-        if (TRUE) {
+        if (argument_list$verbose) {
           # Write the PCA plot data frame.
           write.table(
             x = plotting_frame,
@@ -1847,15 +1843,51 @@ temporary_list <- lapply(
             data = SummarizedExperiment::colData(x = deseq_data_set)
           )
         )
+
       formula_reduced <-
         as.formula(object = reduced_formula_character)
+      model_matrix_reduced <- stats::model.matrix.default(
+        object = formula_reduced,
+        data = SummarizedExperiment::colData(x = deseq_data_set)
+      )
       result_list_reduced <-
         check_model_matrix(
-          model_matrix = stats::model.matrix.default(
-            object = formula_reduced,
-            data = SummarizedExperiment::colData(x = deseq_data_set)
-          )
+          model_matrix = model_matrix_reduced
         )
+      if (argument_list$verbose) {
+        message("Writing initial reduced model matrix")
+        write.table(
+          x = base::as.data.frame(x = model_matrix_reduced),
+          file = file.path(
+            output_directory,
+            paste0(
+              prefix,
+              "_model_matrix_",
+              attr(x = reduced_formula_character, which = "reduced_name"),
+              "_initial.tsv"
+            )
+          ),
+          sep = "\t",
+          row.names = TRUE,
+          col.names = TRUE
+        )
+        message("Writing modified reduced model matrix")
+        write.table(
+          x = base::as.data.frame(x = result_list_reduced$model_matrix),
+          file = file.path(
+            output_directory,
+            paste0(
+              prefix,
+              "_model_matrix_",
+              attr(x = reduced_formula_character, which = "reduced_name"),
+              "_modified.tsv"
+            )
+          ),
+          sep = "\t",
+          row.names = TRUE,
+          col.names = TRUE
+        )
+      }
       full_rank <-
         result_list_full$formula_full_rank &
         result_list_reduced$formula_full_rank
