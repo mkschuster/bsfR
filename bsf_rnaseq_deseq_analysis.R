@@ -641,21 +641,33 @@ fix_model_matrix <- function(model_matrix_local) {
       )
     if (any(model_all_zero)) {
       message(
-        "Levels or combinations of levels without any samples have resulted in column(s) of zeros in the model matrix."
+        "Levels or combinations of levels without any samples have resulted in\n",
+        "column(s) of zeros in the model matrix:\n  ",
+        paste(colnames(x = model_matrix_local)[model_all_zero], collapse = "\n  "),
+        "\n",
+        "Attempting to fix the model matrix by removing empty columns."
       )
-      message(paste(colnames(x = model_matrix_local)[model_all_zero], collapse = ", "))
-      message("Attempting to fix the model matrix by removing empty columns.")
       model_matrix_local <-
-        model_matrix_local[,-which(x = model_all_zero)]
+        model_matrix_local[, -which(x = model_all_zero)]
     } else {
-      message(
-        "One or more variables or interaction terms in the design formula are linear combinations of the others."
-      )
-      message("Attempting to fix the model by removing linear combinations.")
       linear_combinations_list <-
         caret::findLinearCombos(x = model_matrix_local)
-      # print(x = linear_combinations_list)
-      # print(x = colnames(x = model_matrix_local)[linear_combinations_list$remove])
+      message_character <-
+        unlist(x = lapply(
+          X = linear_combinations_list$linearCombos,
+          FUN = function(x) {
+            return(paste0("  Linear combinations:\n    ", paste(
+              colnames(x = model_matrix_local)[x], collapse = "\n    "
+            )))
+          }
+        ))
+      message(
+        "One or more variables or interaction terms in the design formula are\n",
+        "linear combinations of the others.\n",
+        message_character,
+        "Attempting to fix the model by removing linear combinations:\n  ",
+        paste(colnames(x = model_matrix_local)[linear_combinations_list$remove], collapse = "\n  ")
+      )
       model_matrix_local <-
         model_matrix_local[,-linear_combinations_list$remove]
     }
@@ -1187,10 +1199,12 @@ plot_mds <- function(object,
                 size = 2.0,
                 alpha = I(1 / 3)
               )
-            if (is.null(x = aes_list$geom_point$shape)) {
-              # In case the shape is not mapped, use values without scaling.
+            if (!is.null(x = aes_list$geom_point$shape)) {
+              # For more than six shapes (scale_shape()), a manual scale
+              # (scale_shape_manual()) needs setting up.
+              # https://ggplot2.tidyverse.org/reference/scale_shape.html
               ggplot_object <-
-                ggplot_object + ggplot2::scale_shape_identity()
+                ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = mds_frame[, aes_list$geom_point$shape])))
             }
           }
 
@@ -1613,9 +1627,12 @@ plot_pca <- function(object,
               size = 2.0,
               alpha = I(1 / 3)
             )
-          if (is.null(x = aes_list$geom_point$shape)) {
-            # In case the shape is not mapped, use values without scaling.
-            ggplot_object <- ggplot_object + scale_shape_identity()
+          if (!is.null(x = aes_list$geom_point$shape)) {
+            # For more than six shapes (scale_shape()), a manual scale
+            # (scale_shape_manual()) needs setting up.
+            # https://ggplot2.tidyverse.org/reference/scale_shape.html
+            ggplot_object <-
+              ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = plotting_frame[, aes_list$geom_point$shape])))
           }
         }
 
@@ -1669,8 +1686,9 @@ plot_pca <- function(object,
 
         ggplot_object <-
           ggplot_object + facet_grid(
-            facets = component_1 ~ component_2,
-            labeller = labeller(component_1 = label_function, component_2 = label_function)
+            rows = ggplot2::vars(component_1),
+            cols = ggplot2::vars(component_2),
+            labeller = ggplot2::labeller(component_1 = label_function, component_2 = label_function)
           )
         for (plot_path in plot_paths) {
           ggplot2::ggsave(
@@ -1777,8 +1795,8 @@ reduced_formula_list <-
 temporary_list <- lapply(
   X = reduced_formula_list,
   FUN = function(reduced_formula_character) {
-    # Skip empty character vectors.
-    if (!base::nzchar(x = reduced_formula_character)) {
+    # Skip NA or empty character vectors.
+    if (is.na(x = reduced_formula_character) | !base::nzchar(x = reduced_formula_character)) {
       return()
     }
     summary_list <- NULL
