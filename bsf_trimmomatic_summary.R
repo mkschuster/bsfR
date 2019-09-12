@@ -346,7 +346,7 @@ process_trimlog <- function(file_path, number = -1L) {
   )
   ggplot_object <- ggplot2::ggplot(data = molten_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::facet_grid(facets = read ~ .)
+    ggplot_object + ggplot2::facet_grid(cols = ggplot2::vars(read))
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = position, y = reads, colour = type))
   ggplot_object <-
@@ -370,7 +370,7 @@ process_trimlog <- function(file_path, number = -1L) {
   )
   ggplot_object <- ggplot2::ggplot(data = molten_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::facet_grid(facets = read ~ .)
+    ggplot_object + ggplot2::facet_grid(cols = ggplot2::vars(read))
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = position, y = reads, colour = type))
   ggplot_object <-
@@ -397,7 +397,7 @@ process_trimlog <- function(file_path, number = -1L) {
     trimmomatic_frame[, c("position", "read", "surviving")]
   ggplot_object <- ggplot2::ggplot(data = molten_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::facet_grid(facets = read ~ .)
+    ggplot_object + ggplot2::facet_grid(cols = ggplot2::vars(read))
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = position, y = surviving))
   ggplot_object <-
