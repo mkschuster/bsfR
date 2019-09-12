@@ -843,7 +843,9 @@ if (!is.null(x = combined_metrics_sample)) {
       shape = "Bait Set",
       title = "Unique Pass-Filter Reads per Read Group"
     )
-  # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
+  # For more than six shapes (scale_shape()), a manual scale
+  # (scale_shape_manual()) needs setting up.
+  # https://ggplot2.tidyverse.org/reference/scale_shape.html
   ggplot_object <-
     ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
   ggplot_object <-
@@ -917,7 +919,9 @@ if (!is.null(x = combined_metrics_sample)) {
       shape = "Bait Set",
       title = "Mean Target Coverage per Read Group"
     )
-  # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
+  # For more than six shapes (scale_shape()), a manual scale
+  # (scale_shape_manual()) needs setting up.
+  # https://ggplot2.tidyverse.org/reference/scale_shape.html
   ggplot_object <-
     ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
   ggplot_object <-
@@ -999,7 +1003,7 @@ if (!is.null(x = combined_metrics_sample)) {
   }
   rm(graphics_format, ggplot_object, plotting_frame)
 
-  # Plot the percentage of exluded bases per read group -------------------
+  # Plot the percentage of excluded bases per read group ------------------
 
 
   message("Plotting the percentage of excluded bases per read group")
@@ -1030,7 +1034,7 @@ if (!is.null(x = combined_metrics_sample)) {
     )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
-      x = "Reag Group",
+      x = "Read Group",
       y = "Fraction",
       fill = "Excluded",
       colour = "Bait Set",
@@ -1165,7 +1169,9 @@ if (!is.null(x = combined_metrics_sample)) {
       shape = "Bait Set",
       title = "Coverage Levels per Read Group"
     )
-  # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
+  # For more than six shapes (scale_shape()), a manual scale
+  # (scale_shape_manual()) needs setting up.
+  # https://ggplot2.tidyverse.org/reference/scale_shape.html
   ggplot_object <-
     ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
   ggplot_object <-
@@ -1269,7 +1275,9 @@ if (!is.null(x = combined_metrics_sample)) {
       shape = "Bait Set",
       title = "Nominal Coverage per Read Group"
     )
-  # ggplot2 only adds six shapes automatically. Since there may be more, add them manually.
+  # For more than six shapes (scale_shape()), a manual scale
+  # (scale_shape_manual()) needs setting up.
+  # https://ggplot2.tidyverse.org/reference/scale_shape.html
   ggplot_object <-
     ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
   ggplot_object <-
