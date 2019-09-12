@@ -79,9 +79,12 @@ argument_list <- parse_args(object = OptionParser(
   )
 ))
 
-suppressPackageStartupMessages(expr = library(package = "reshape2"))  # For reshape2::dcast()
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
-summary_frame <- NULL
+# Parse rnaseq_deseq_[design]_contrasts_summary.tsv files -----------------
+
+
+summary_tibble <- NULL
 directory_names <-
   grep(
     pattern = "^rnaseq_deseq_.*",
@@ -100,91 +103,101 @@ for (directory_name in directory_names) {
   file_names <-
     list.files(
       path = file.path(argument_list$genome_directory, directory_name),
-      pattern = paste("^rnaseq_deseq", design_name, "contrasts_summary.tsv$", sep = "_"),
+      pattern = paste(
+        "^rnaseq_deseq",
+        design_name,
+        "contrasts_summary.tsv$",
+        sep = "_"
+      ),
       full.names = TRUE
     )
   for (file_name in file_names) {
-    design_table <-
-      read.table(
-        file = file_name,
-        header = TRUE,
-        sep = "\t",
-        stringsAsFactors = FALSE
+    summary_tibble <-
+      dplyr::bind_rows(
+        summary_tibble,
+        readr::read_tsv(
+          file = file_name,
+          col_names = TRUE,
+          col_types = readr::cols(
+            Design = readr::col_character(),
+            Numerator = readr::col_character(),
+            Denominator = readr::col_character(),
+            Label = readr::col_character(),
+            Exclude = readr::col_logical(),
+            Significant = readr::col_integer()
+          )
+        )
       )
-    if (is.null(x = summary_frame)) {
-      summary_frame <- design_table
-    } else {
-      summary_frame <- rbind(summary_frame, design_table)
-    }
-    rm(design_table)
   }
   rm(file_name, file_names, design_name)
 }
 rm(directory_name, directory_names)
 
-# Replace all instances of NA in the Numerator and Denominator with "1".
-summary_frame[is.na(x = summary_frame$Numerator), "Numerator"] <-
-  "1"
-summary_frame[is.na(x = summary_frame$Denominator), "Denominator"] <-
-  "1"
-# Replace all empty characters in the Numerator and Denominator with "1".
-summary_frame[summary_frame$Denominator == "", "Denominator"] <- "1"
+# Drop the "Exclude" variable.
+summary_tibble <- dplyr::select(.data = summary_tibble,-Exclude)
 
-# Remove the "Label" variable, before casting.
-
-subset_frame <- summary_frame[,!(names(x = summary_frame) %in% c("Label")), drop = FALSE]
-casted_frame <-
-  dcast(
-    data = subset_frame,
-    formula = Numerator + Denominator ~ Design,
-    value.var = "Significant"
+# Replace NA and "" values in the Numerator and Denominator with character "1".
+summary_tibble <-
+  dplyr::mutate_at(
+    .tbl = summary_tibble,
+    .vars = c("Numerator", "Denominator"),
+    .funs = list(~ replace(., is.na(x = .) | . == "", "1"))
   )
 
-write.table(
-  x = casted_frame,
-  file = "rnaseq_deseq_summary_design.tsv",
-  sep = "\t",
-  row.names = FALSE,
-  col.names = TRUE
+# Summarise by Numerator and Denominator ----------------------------------
+
+
+# Check for unique keys.
+key_tibble <-
+  dplyr::select(.data = summary_tibble, Design, Numerator, Denominator)
+duplicated_tibble <-
+  summary_tibble[duplicated(x = key_tibble) |
+                   duplicated(x = key_tibble, fromLast = TRUE), ]
+if (nrow(x = duplicated_tibble)) {
+  print(x = "Duplicated Design, Numerator and Denominator rows:")
+  print(x = duplicated_tibble)
+}
+rm(duplicated_tibble, key_tibble)
+
+# Remove the "Label" variable,
+# then spread "Significant" values on the "Design" key.
+readr::write_tsv(
+  x = tidyr::spread(
+    data = dplyr::select(.data = summary_tibble,-Label),
+    key = Design,
+    value = Significant
+  ),
+  path = "rnaseq_deseq_summary_design.tsv",
+  col_names = TRUE
 )
 
-# Find duplicated rows in "Design" and "Label" variables.
+# Summarise by Label ------------------------------------------------------
 
-casted_frame <- summary_frame[, c("Design", "Label"), drop = FALSE]
-subset_frame <- summary_frame[duplicated(x = casted_frame) | duplicated(x = casted_frame, fromLast = TRUE), ]
-if (nrow(x = subset_frame)) {
-  print(x = "Duplicated rows.")
-  print(x = subset_frame)
+
+# Check for unique keys.
+key_tibble <- dplyr::select(.data = summary_tibble, Design, Label)
+duplicated_tibble <-
+  summary_tibble[duplicated(x = key_tibble) |
+                   duplicated(x = key_tibble, fromLast = TRUE), ]
+if (nrow(x = duplicated_tibble)) {
+  print(x = "Duplicated Design and Label rows:")
+  print(x = duplicated_tibble)
 }
+rm(duplicated_tibble, key_tibble)
 
-# Remove the "Numerator" and "Denominator" variables, before casting.
-subset_frame <- summary_frame[,!(names(x = summary_frame) %in% c("Numerator", "Denominator")), drop = FALSE]
-casted_frame <-
-  dcast(
-    data = subset_frame,
-    formula = Label ~ Design,
-    value.var = "Significant"
-  )
-
-write.table(
-  x = casted_frame,
-  file = "rnaseq_deseq_summary_labels.tsv",
-  sep = "\t",
-  row.names = FALSE,
-  col.names = TRUE
+# Remove the "Numerator" and "Denominator" variables,
+# then spread "Significant" values on the "Design" key.
+readr::write_tsv(
+  x = tidyr::spread(
+    data = dplyr::select(.data = summary_tibble,-Numerator,-Denominator),
+    key = Design,
+    value = Significant
+  ),
+  path = "rnaseq_deseq_summary_labels.tsv",
+  col_names = TRUE
 )
 
-if (FALSE) {
-  write.table(
-    x = summary_frame[,!(names(x = summary_frame) %in% c("Numerator", "Denominator")), drop = FALSE],
-    file = "rnaseq_deseq_summary_simple.tsv",
-    sep = "\t",
-    row.names = FALSE,
-    col.names = TRUE
-  )
-}
-
-rm(casted_frame, subset_frame, summary_frame, argument_list)
+rm(summary_tibble, argument_list)
 
 message("All done")
 
