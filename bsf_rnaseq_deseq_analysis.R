@@ -592,11 +592,12 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     }
     rm(sample_frame)
 
-    # Calculate colSums() of SummarizedExperiment::assay() and add as total_count into the colData data frame.
+    # Calculate colSums() of SummarizedExperiment::assays()$counts and add as
+    # total_count into the colData data frame.
     sample_frame <-
       SummarizedExperiment::colData(x = ranged_summarized_experiment)
     sample_frame$total_counts <-
-      base::colSums(x = SummarizedExperiment::assay(x = ranged_summarized_experiment),
+      base::colSums(x = SummarizedExperiment::assays(x = ranged_summarized_experiment)$counts,
                     na.rm = TRUE)
     SummarizedExperiment::colData(x = ranged_summarized_experiment) <-
       sample_frame
@@ -1119,7 +1120,7 @@ plot_mds <- function(object,
   message(paste("Creating", suffix, "MDS plots"))
 
   dist_object <-
-    stats::dist(x = t(x = SummarizedExperiment::assay(x = object)))
+    stats::dist(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)))
   dist_matrix <- as.matrix(x = dist_object)
   # Convert the Mulitdimensional Scaling matrix into a DataFrame and
   # bind its columns to the sample annotation DataFrame.
@@ -1329,7 +1330,7 @@ plot_heatmap <- function(object,
   # Transpose the counts table, since dist() works with columns and
   # assign the sample names as column and row names to the resulting matrix.
   dist_object <-
-    dist(x = t(x = SummarizedExperiment::assay(x = object)))
+    dist(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)))
   dist_matrix <- as.matrix(x = dist_object)
   base::colnames(x = dist_matrix) <- object$sample
   base::rownames(x = dist_matrix) <- object$sample
@@ -1453,14 +1454,14 @@ plot_pca <- function(object,
 
   # Calculate the variance for each gene.
   row_variance <-
-    genefilter::rowVars(x = SummarizedExperiment::assay(x = object))
+    genefilter::rowVars(x = SummarizedExperiment::assay(x = object, i = 1L))
   # Select the top number of genes by variance.
   selected_rows <-
     order(row_variance, decreasing = TRUE)[seq_len(length.out = min(argument_list$pca_top_number, length(x = row_variance)))]
 
   # Perform a PCA on the (count) matrix returned by SummarizedExperiment::assay() for the selected genes.
   pca_object <-
-    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object)[selected_rows, ]))
+    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows, ]))
   rm(selected_rows)
 
   # Plot the variance for a maximum of 100 components.
@@ -2179,7 +2180,7 @@ for (blind in c(FALSE, TRUE)) {
 
   # Export the vst counts from the DESeqTransform object
   counts_frame <-
-    as(object = SummarizedExperiment::assay(x = deseq_transform, i = 1),
+    as(object = SummarizedExperiment::assay(x = deseq_transform, i = 1L),
        Class = "DataFrame")
   counts_frame$gene_id <- row.names(x = counts_frame)
 
