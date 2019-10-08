@@ -2,13 +2,13 @@
 #
 # BSF R script to refine the GATK Callable Loci analyis.
 #
-# The coverage assessment loads (Ensembl) exon information, collates (or projects)
-# all (overlapping) exons into transcribed regions on the genome, overlaps those with
-# the target regions to get transcribed target regions and finally overlaps those with
-# non-callable loci to get the minimal set of problematic regions.
-# Each problematic region is annotated with target name, as well as exon, transcript and
-# gene information. A summary data frame of metrics collected along the procedure is also
-# written to disk.
+# The coverage assessment loads (Ensembl) exon information, collates (or
+# projects) all (overlapping) exons into transcribed regions on the genome,
+# overlaps those with the target regions to get transcribed target regions and
+# finally overlaps those with non-callable loci to get the minimal set of
+# problematic regions. Each problematic region is annotated with target name, as
+# well as exon, transcript and gene information. A summary data frame of metrics
+# collected along the procedure is also written to disk.
 #
 #
 # Copyright 2013 - 2019 Michael K. Schuster
@@ -125,18 +125,20 @@ exon_ranges <-
   import(con = summary_frame[i, "exon_path"],
          genome = "hs37d5",
          feature.type = "exon")
-# Ensembl now annotates a "tag" in GFF files with value "basic" indicating standard (basic) transcript models.
-# Can the exon ranges be subset by such a tag?
-if ("tag" %in% names(x = mcols(x = exon_ranges)) &
+# Ensembl now annotates a "tag" in GFF files with value "basic" indicating
+# standard (basic) transcript models. Can the exon ranges be subset by such a
+# tag?
+if ("tag" %in% names(x = S4Vectors::mcols(x = exon_ranges)) &
     !argument_list$no_filter) {
   message("Filtering by GTF 'tag = \"basic\"' annotation")
   summary_frame[i, "exon_number_raw"] <- length(x = exon_ranges)
   message(paste0("Number of raw exon ranges: ", summary_frame[i, "exon_number_raw"]))
   summary_frame[i, "exon_width_raw"] <- sum(width(x = exon_ranges))
   message(paste0("Cumulative width of raw exon ranges: ", summary_frame[i, "exon_width_raw"]))
-  # Use the %in% operator for character matching as it sets NA values to FALSE, automatically.
+  # Use the %in% operator for character matching as it sets NA values to FALSE,
+  # automatically.
   basic_exon_ranges <-
-    exon_ranges[mcols(x = exon_ranges)$tag %in% "basic", ]
+    exon_ranges[S4Vectors::mcols(x = exon_ranges)$tag %in% "basic", ]
   if (length(x = basic_exon_ranges) > 0L) {
     # Only replace the original Exon ranges if there were any "basic" matches.
     exon_ranges <- basic_exon_ranges
@@ -199,7 +201,8 @@ constrained_ranges <- NULL
 if (!is.null(x = argument_list$target_path)) {
   summary_frame[i, "target_path"] <- argument_list$target_path
   message(paste0("Importing target range annotation: ", summary_frame[i, "target_path"]))
-  # The rtrackayer::import() function reads the genome version from the "db" attribute of the BED "track" line.
+  # The rtrackayer::import() function reads the genome version from the "db"
+  # attribute of the BED "track" line.
   target_ranges <- import(con = summary_frame[i, "target_path"])
   summary_frame[i, "target_number_raw"] <-
     length(x = target_ranges)
@@ -207,7 +210,7 @@ if (!is.null(x = argument_list$target_path)) {
   summary_frame[i, "target_width_raw"] <-
     sum(width(x = target_ranges))
   message(paste0("Cumulative width of target ranges: ", summary_frame[i, "target_width_raw"]))
-  
+
   message("Overlapping target and transcribed ranges.")
   overlap_frame <-
     mergeByOverlaps(query = target_ranges, subject = transcribed_ranges)
@@ -307,10 +310,10 @@ message(paste0(
 # Summarise by mapping status ---------------------------------------------
 
 
-# Summarise also separately by mapping status.
-# Populate the summary frame with columns for each mapping status level,
-# regardless of whether it is associated with data or not.
-# Use fixed mapping status levels emitted by GATK CallableLoci.
+# Summarise also separately by mapping status. Populate the summary frame with
+# columns for each mapping status level, regardless of whether it is associated
+# with data or not. Use fixed mapping status levels emitted by GATK
+# CallableLoci.
 for (level in c(
   "REF_N",
   "NO_COVERAGE",
@@ -327,17 +330,19 @@ rm(level)
 if (length(x = overlap_ranges) > 0L) {
   # Count the number of entries for each mapping status level.
   aggregate_frame <-
-    as.data.frame(x = table(mcols(x = overlap_ranges)$mapping_status))
+    as.data.frame(x = table(S4Vectors::mcols(x = overlap_ranges)$mapping_status))
   # Assign the result levels (rows) as summary frame columns.
   for (j in seq_len(length.out = nrow(x = aggregate_frame))) {
-    summary_frame[i, paste("non_callable_number_constrained", aggregate_frame[j, 1L], sep = ".")] <-
+    summary_frame[i, paste("non_callable_number_constrained",
+                           aggregate_frame[j, 1L],
+                           sep = ".")] <-
       aggregate_frame[j, 2L]
   }
   # Sum the widths of entries for each mapping_status level.
   aggregate_frame <-
     aggregate.data.frame(
       x = data.frame(width = width(x = overlap_ranges)),
-      by = list(mapping_status = mcols(x = overlap_ranges)$mapping_status),
+      by = list(mapping_status = S4Vectors::mcols(x = overlap_ranges)$mapping_status),
       FUN = "sum"
     )
   # Assign the result levels (rows) as summary frame columns.
@@ -355,16 +360,17 @@ rm(overlap_ranges, overlap_frame)
 # Annotate the table of non-callable GRanges with target region names if available.
 diagnose_ranges <- NULL
 if (!is.null(x = summary_frame[i, "target_path"])) {
-  # If the target GRanges are available, merge by overlap with the non-callable GRanges into a new DataFrame.
+  # If the target GRanges are available, merge by overlap with the non-callable
+  # GRanges into a new DataFrame.
   overlap_frame <-
     mergeByOverlaps(query = target_ranges, subject = non_callable_ranges)
   # Extract the "non_callable_ranges".
   diagnose_ranges <- overlap_frame[, c("non_callable_ranges")]
   # Annotate with the target_name from the target GRanges object.
-  mcols(x = diagnose_ranges)$target_name <-
+  S4Vectors::mcols(x = diagnose_ranges)$target_name <-
     overlap_frame[, "name"]
-  # Rename the "name" column of the mcols() DataFrame into "mapping_status".
-  colnames(x = mcols(x = diagnose_ranges))[colnames(x = mcols(x = diagnose_ranges)) == "name"] <-
+  # Rename the "name" column of the S4Vectors::mcols() DataFrame into "mapping_status".
+  colnames(x = S4Vectors::mcols(x = diagnose_ranges))[colnames(x = S4Vectors::mcols(x = diagnose_ranges)) == "name"] <-
     "mapping_status"
   rm(overlap_frame)
 } else {
@@ -374,10 +380,11 @@ if (!is.null(x = summary_frame[i, "target_path"])) {
 # To annotate non-callable regions, merge by overlap with the exon GRanges.
 overlap_frame <-
   mergeByOverlaps(query = diagnose_ranges, subject = exon_ranges)
-# The mergeByOverlaps() function returns a DataFrame of query (diagnose GRanges) and
-# subject (exon GRanges) variables, as well as all mcols() variables that were present
-# in either GRanges object. To remove these redundant mcols() variables, keep only the
-# GRanges objects themselves.
+# The mergeByOverlaps() function returns a DataFrame of query (diagnose GRanges)
+# and subject (exon GRanges) variables, as well as all S4Vectors::mcols()
+# variables that were present in either GRanges object. To remove these
+# redundant S4Vectors::mcols() variables, keep only the GRanges objects
+# themselves.
 write.table(
   x = overlap_frame[, c("diagnose_ranges", "exon_ranges")],
   file = paste(
@@ -395,26 +402,30 @@ write.table(
 # Group GRanges by non-callable regions -----------------------------------
 
 
-# Since the mergeByOverlaps() function provides the cartesian product of diagnosis and exon GRanges,
-# the table can be rather long and unwieldy. Annotate the diagnosis GRanges with exon GRanges meta
-# information before grouping by diagnosis GRanges so that there is a single observation for each problematic region.
-# Gene and transcript identifiers and names are turned into comma-separated lists.
+# Since the mergeByOverlaps() function provides the cartesian product of
+# diagnosis and exon GRanges, the table can be rather long and unwieldy.
+# Annotate the diagnosis GRanges with exon GRanges meta information before
+# grouping by diagnosis GRanges so that there is a single observation for each
+# problematic region. Gene and transcript identifiers and names are turned into
+# comma-separated lists.
 message("Annotate the diagnostic ranges.")
 overlap_diagnose_ranges <- overlap_frame$diagnose_ranges
-overlap_diagnose_frame <- mcols(x = overlap_diagnose_ranges)
+overlap_diagnose_frame <-
+  S4Vectors::mcols(x = overlap_diagnose_ranges)
 overlap_diagnose_frame$gene_id <-
-  mcols(x = overlap_frame$exon_ranges)$gene_id
+  S4Vectors::mcols(x = overlap_frame$exon_ranges)$gene_id
 overlap_diagnose_frame$gene_name <-
-  mcols(x = overlap_frame$exon_ranges)$gene_name
+  S4Vectors::mcols(x = overlap_frame$exon_ranges)$gene_name
 overlap_diagnose_frame$transcript_id <-
-  mcols(x = overlap_frame$exon_ranges)$transcript_id
+  S4Vectors::mcols(x = overlap_frame$exon_ranges)$transcript_id
 overlap_diagnose_frame$transcript_name <-
-  mcols(x = overlap_frame$exon_ranges)$transcript_name
+  S4Vectors::mcols(x = overlap_frame$exon_ranges)$transcript_name
 overlap_diagnose_frame$exon_id <-
-  mcols(x = overlap_frame$exon_ranges)$exon_id
-mcols(x = overlap_diagnose_ranges) <- overlap_diagnose_frame
-# This returns a Grouping object (CompressedManyToOneGrouping) of the IRanges package,
-# specifying which groups contain which indices to the original object.
+  S4Vectors::mcols(x = overlap_frame$exon_ranges)$exon_id
+S4Vectors::mcols(x = overlap_diagnose_ranges) <-
+  overlap_diagnose_frame
+# This returns a Grouping object (CompressedManyToOneGrouping) of the IRanges
+# package, specifying which groups contain which indices to the original object.
 message("Group annotated diagnose ranges by region.")
 overlap_diagnose_grouping <-
   as(object = overlap_diagnose_ranges, "Grouping")
@@ -423,22 +434,22 @@ grouped_ranges <- unlist(x = GRangesList(lapply(
   X = overlap_diagnose_grouping,
   FUN = function(x) {
     sub_ranges <- overlap_diagnose_ranges[x]
-    sub_mcols <- mcols(x = sub_ranges)
+    sub_mcols <- S4Vectors::mcols(x = sub_ranges)
     selected_range <- sub_ranges[1L]
-    
-    mcols(x = selected_range) <- DataFrame(
+
+    S4Vectors::mcols(x = selected_range) <- DataFrame(
       "mapping_status" = sub_mcols[1L, "mapping_status"],
-      
+
       "gene_ids" = paste(unique(x = sort(x = sub_mcols$gene_id)), collapse = ","),
-      
+
       "gene_names" = paste(unique(x = sort(x = sub_mcols$gene_name)), collapse = ","),
-      
+
       "transcript_ids" = paste(unique(x = sort(x = sub_mcols$transcript_id)), collapse = ","),
-      
+
       "transcript_names" = paste(unique(x = sort(
         x = sub_mcols$transcript_name
       )), collapse = ","),
-      
+
       "exon_ids" = paste(unique(x = sort(x = sub_mcols$exon_id)), collapse = ",")
     )
     return(selected_range)
