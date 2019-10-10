@@ -37,6 +37,7 @@ suppressPackageStartupMessages(expr = library(package = "biomaRt"))
 suppressPackageStartupMessages(expr = library(package = "ggplot2"))
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
+suppressPackageStartupMessages(expr = library(package = "Biostrings"))
 
 
 #' Process Tophat and Cufflinks directories for each sample.
@@ -52,18 +53,18 @@ process_sample <- function(summary_frame = NULL) {
   if (is.null(x = summary_frame)) {
     stop("Missing summary_frame argument")
   }
-  
+
   for (i in seq_len(length.out = nrow(x = summary_frame))) {
     message(paste0("Processing sample ", summary_frame[i, "sample"]))
-    
+
     # Construct sample-specific prefixes for Cufflinks and Tophat directories.
     prefix_cufflinks <-
       paste("rnaseq", "cufflinks", summary_frame[i, "sample"], sep = "_")
     prefix_tophat <-
       paste("rnaseq", "tophat", summary_frame[i, "sample"], sep = "_")
-    
+
     # Read, summarise, merge, write and delete gene (genes.fpkm_tracking) tables.
-    
+
     cufflinks_genes <-
       read.table(
         file = file.path(prefix_cufflinks, "genes.fpkm_tracking"),
@@ -86,18 +87,18 @@ process_sample <- function(summary_frame = NULL) {
           "FPKM_status" = "factor"
         )
       )
-    
+
     # Collect aggregate statistics for the "FPKM_status" variable.
     aggregate_frame <-
       as.data.frame(x = table(cufflinks_genes$FPKM_status))
-    
+
     # Assign the aggregate "FPKM_status" levels (rows) as summary frame columns.
     for (j in seq_len(length.out = nrow(x = aggregate_frame))) {
       summary_frame[i, paste("FPKM_status_gene", aggregate_frame[j, 1L], sep = ".")] <-
         aggregate_frame[j, 2L]
     }
     rm(aggregate_frame, j)
-    
+
     file_path <-
       file.path(prefix_cufflinks,
                 paste(prefix_cufflinks, "genes_fpkm_tracking.tsv", sep = "_"))
@@ -123,9 +124,9 @@ process_sample <- function(summary_frame = NULL) {
       rm(cufflinks_ensembl)
     }
     rm(cufflinks_genes, file_path)
-    
+
     # Read, summarize, merge, write and delete transcript (isoforms.fpkm_tracking) tables.
-    
+
     cufflinks_transcripts <-
       read.table(
         file = file.path(prefix_cufflinks, "isoforms.fpkm_tracking"),
@@ -148,18 +149,18 @@ process_sample <- function(summary_frame = NULL) {
           "FPKM_status" = "factor"
         )
       )
-    
+
     # Collect aggregate statistics for the "FPKM_status" variable.
     aggregate_frame <-
       as.data.frame(x = table(cufflinks_transcripts$FPKM_status))
-    
+
     # Assign the aggregate "FPKM_status" levels (rows) as summary frame columns.
     for (j in seq_len(length.out = nrow(x = aggregate_frame))) {
       summary_frame[i, paste("FPKM_status_isoforms", aggregate_frame[j, 1L], sep = ".")] <-
         aggregate_frame[j, 2L]
     }
     rm(aggregate_frame, j)
-    
+
     file_path <-
       file.path(
         prefix_cufflinks,
@@ -187,9 +188,9 @@ process_sample <- function(summary_frame = NULL) {
       rm(cufflinks_ensembl)
     }
     rm(cufflinks_transcripts, file_path)
-    
+
     # Finally, create sample-specific symbolic links to Tophat files.
-    
+
     file_path <- file.path("..", prefix_tophat, "accepted_hits.bam")
     link_path <-
       file.path(prefix_cufflinks,
@@ -200,7 +201,7 @@ process_sample <- function(summary_frame = NULL) {
       }
     }
     rm(file_path, link_path)
-    
+
     file_path <-
       file.path("..", prefix_tophat, "accepted_hits.bam.bai")
     link_path <-
@@ -212,7 +213,7 @@ process_sample <- function(summary_frame = NULL) {
       }
     }
     rm(file_path, link_path)
-    
+
     file_path <- file.path("..", prefix_tophat, "unmapped.bam")
     link_path <-
       file.path(prefix_cufflinks,
@@ -223,7 +224,7 @@ process_sample <- function(summary_frame = NULL) {
       }
     }
     rm(file_path, link_path)
-    
+
     file_path <- file.path("..", prefix_tophat, "align_summary.txt")
     link_path <-
       file.path(prefix_cufflinks,
@@ -234,7 +235,7 @@ process_sample <- function(summary_frame = NULL) {
       }
     }
     rm(file_path, link_path)
-    
+
     file_path <- "transcripts.bb"
     link_path <-
       file.path(prefix_cufflinks,
@@ -245,7 +246,7 @@ process_sample <- function(summary_frame = NULL) {
       }
     }
     rm(file_path, link_path)
-    
+
     file_path <- "transcripts.gtf"
     link_path <-
       file.path(prefix_cufflinks,
@@ -256,7 +257,7 @@ process_sample <- function(summary_frame = NULL) {
       }
     }
     rm(file_path, link_path)
-    
+
     file_path <- "skipped.gtf"
     link_path <-
       file.path(prefix_cufflinks,
@@ -267,10 +268,10 @@ process_sample <- function(summary_frame = NULL) {
       }
     }
     rm(file_path, link_path)
-    
+
     rm(prefix_cufflinks, prefix_tophat)
   }
-  
+
   return(summary_frame)
 }
 
@@ -285,7 +286,7 @@ process_align_summary <- function(summary_frame) {
   if (is.null(x = summary_frame)) {
     stop("Missing summary_frame argument")
   }
-  
+
   # Initialise further columns in the data frame.
   frame_length <- nrow(x = summary_frame)
   # R integer vector of the number of input reads.
@@ -299,20 +300,20 @@ process_align_summary <- function(summary_frame) {
   # R integer vector of the mapping threshold.
   summary_frame$threshold = integer(length = frame_length)
   rm(frame_length)
-  
+
   for (i in seq_len(length.out = nrow(x = summary_frame))) {
     prefix_tophat <-
       paste("rnaseq", "tophat", summary_frame[i, "sample"], sep = "_")
     file_path <- file.path(prefix_tophat, "align_summary.txt")
-    
+
     if (!file.exists(file_path)) {
       warning(paste0("Missing Tophat alignment summary file ", file_path))
       rm(prefix_tophat, file_path)
       next
     }
-    
+
     align_summary <- readLines(con = file_path)
-    
+
     # This is the layout of a Tophat align_summary.txt file.
     #
     #   [1] "Reads:"
@@ -320,7 +321,7 @@ process_align_summary <- function(summary_frame) {
     #   [3] "           Mapped   :  21518402 (98.7% of input)"
     #   [4] "            of these:   2010462 ( 9.3%) have multiple alignments (8356 have >20)"
     #   [5] "98.7% overall read mapping rate."
-    
+
     # Parse the second line of "input" reads.
     summary_frame[i, "input"] <- as.integer(
       x = sub(
@@ -329,7 +330,7 @@ process_align_summary <- function(summary_frame) {
         x = align_summary[2L]
       )
     )
-    
+
     # Parse the third line of "mapped" reads.
     summary_frame[i, "mapped"] <- as.integer(
       x = sub(
@@ -338,7 +339,7 @@ process_align_summary <- function(summary_frame) {
         x = align_summary[3L]
       )
     )
-    
+
     # Get the number of "multiply" aligned reads from the fourth line.
     summary_frame[i, "multiple"] <- as.integer(
       x = sub(
@@ -347,7 +348,7 @@ process_align_summary <- function(summary_frame) {
         x = align_summary[4L]
       )
     )
-    
+
     # Get the number of multiply aligned reads "above" the multiple alignment threshold.
     summary_frame[i, "above"] <- as.integer(
       x = sub(
@@ -356,18 +357,18 @@ process_align_summary <- function(summary_frame) {
         x = align_summary[4L]
       )
     )
-    
+
     # Get the multiple alignment "threshold".
     summary_frame[i, "threshold"] <- as.integer(x = sub(
       pattern = ".+ >([[:digit:]]+)\\)",
       replacement = "\\1",
       x = align_summary[4L]
     ))
-    
+
     rm(align_summary, prefix_tophat)
   }
   rm(i)
-  
+
   return(summary_frame)
 }
 
@@ -487,7 +488,7 @@ if (is.null(x = argument_list$biomart_data_set)) {
     feature.type = "transcript"
   )
   reference_mcols <- mcols(x = reference_granges)
-  
+
   # Standard GTF attributes
   gene_annotation_frame <- data.frame(
     "ensembl_gene_id" = reference_mcols$gene_id,
@@ -497,19 +498,19 @@ if (is.null(x = argument_list$biomart_data_set)) {
     "ensembl_gene_biotype" = reference_mcols$gene_biotype
   )
   # Optional GTF attributes
-  if ("havana_gene_id" %in% names(x = reference_mcols)) {
-    gene_annotation_frame$havana_gene_id <-
-      reference_mcols$havana_gene_id
+  if ("havana_gene" %in% names(x = reference_mcols)) {
+    gene_annotation_frame$havana_gene <-
+      reference_mcols$havana_gene
   }
   if ("havana_gene_version" %in% names(x = reference_mcols)) {
     gene_annotation_frame$havana_gene_version <-
       reference_mcols$havana_gene_version
   }
-  
+
   # Gene information is available for each transcript.
   gene_annotation_frame <-
     unique.data.frame(x = gene_annotation_frame)
-  
+
   # Standard GTF attributes
   isoform_annotation_frame <- data.frame(
     "ensembl_transcript_id" = reference_mcols$transcript_id,
@@ -524,18 +525,21 @@ if (is.null(x = argument_list$biomart_data_set)) {
     "ensembl_gene_biotype" = reference_mcols$gene_biotype
   )
   # Optional GTF attributes
-  if ("havana_transcript_id" %in% names(x = reference_mcols)) {
-    isoform_annotation_frame$havana_transcript_id <- reference_mcols$havana_transcript_id
+  if ("havana_transcript" %in% names(x = reference_mcols)) {
+    isoform_annotation_frame$havana_transcript <-
+      reference_mcols$havana_transcript
   }
   if ("havana_transcript_version" %in% names(x = reference_mcols)) {
-    isoform_annotation_frame$havana_transcript_version <- reference_mcols$havana_transcript_version
+    isoform_annotation_frame$havana_transcript_version <-
+      reference_mcols$havana_transcript_version
   }
   if ("havana_transcript_support_level" %in% names(x = reference_mcols)) {
-    isoform_annotation_frame$havana_transcript_support_level <- reference_mcols$havana_transcript_support_level
+    isoform_annotation_frame$havana_transcript_support_level <-
+      reference_mcols$havana_transcript_support_level
   }
-  if ("havana_gene_id" %in% names(x = reference_mcols)) {
-    isoform_annotation_frame$havana_gene_id <-
-      reference_mcols$havana_gene_id
+  if ("havana_gene" %in% names(x = reference_mcols)) {
+    isoform_annotation_frame$havana_gene <-
+      reference_mcols$havana_gene
   }
   if ("havana_gene_version" %in% names(x = reference_mcols)) {
     isoform_annotation_frame$havana_gene_version <-
@@ -549,13 +553,13 @@ if (is.null(x = argument_list$biomart_data_set)) {
     isoform_annotation_frame$tag <-
       reference_mcols$tag
   }
-  
+
   rm(reference_mcols, reference_granges)
 } else {
   # BioMart-based annotation.
   # Connect to the Ensembl BioMart.
   message("Connect to BioMart")
-  
+
   ensembl_mart <- useMart(
     biomart = argument_list$biomart_instance,
     dataset = argument_list$biomart_data_set,
@@ -563,19 +567,19 @@ if (is.null(x = argument_list$biomart_data_set)) {
     path = argument_list$biomart_path,
     port = argument_list$biomart_port
   )
-  
+
   message("Loading attribute data from BioMart")
-  
+
   ensembl_attributes <- listAttributes(
     mart = ensembl_mart,
     page = "feature_page",
     what = c("name", "description", "page")
   )
-  
+
   # Get Ensembl Gene information. From Ensembl version e75, the attributes
   # "external_gene_id" and "external_gene_db" are called "external_gene_name" and
   # "external_gene_source", respectively.
-  
+
   if ("external_gene_id" %in% ensembl_attributes$name) {
     # Pre e75.
     ensembl_gene_attributes <- c("ensembl_gene_id",
@@ -593,15 +597,15 @@ if (is.null(x = argument_list$biomart_data_set)) {
       "Neither external_gene_id nor external_gene_name are available as BioMart attributes."
     )
   }
-  
+
   message("Loading gene data from BioMart")
-  
+
   gene_annotation_frame <-
     getBM(attributes = ensembl_gene_attributes, mart = ensembl_mart)
   rm(ensembl_gene_attributes)
-  
+
   # Get Ensembl Transcript information.
-  
+
   if ("external_gene_id" %in% ensembl_attributes$name) {
     # Pre e75.
     ensembl_transcript_attributes <- c(
@@ -631,14 +635,14 @@ if (is.null(x = argument_list$biomart_data_set)) {
       "Neither external_gene_id nor external_gene_name are available as BioMart attributes."
     )
   }
-  
+
   message("Loading transcript data from BioMart")
   isoform_annotation_frame <-
     getBM(attributes = ensembl_transcript_attributes, mart = ensembl_mart)
   rm(ensembl_transcript_attributes)
-  
+
   # Destroy and thus discconnect the Ensembl BioMart connection already here.
-  
+
   rm(ensembl_mart, ensembl_attributes)
 }
 
