@@ -75,6 +75,12 @@ argument_list <- parse_args(object = OptionParser(
       type = "integer"
     ),
     make_option(
+      opt_str = c("--gene-path"),
+      dest = "gene_path",
+      help = "Gene list file path for annotation [NULL]",
+      type = "character"
+    ),
+    make_option(
       opt_str = c("--genome-directory"),
       default = ".",
       dest = "genome_directory",
@@ -111,9 +117,9 @@ if (is.null(x = argument_list$design_name)) {
   stop("Missing --design-name option")
 }
 
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "ComplexHeatmap"))
 suppressPackageStartupMessages(expr = library(package = "DESeq2"))
-suppressPackageStartupMessages(expr = library(package = "ggplot2"))
 suppressPackageStartupMessages(expr = library(package = "Nozzle.R1"))
 suppressPackageStartupMessages(expr = library(package = "stringr"))
 
@@ -142,6 +148,74 @@ if (!file.exists(output_directory)) {
              recursive = FALSE)
 }
 
+#' Load gene tibble for annotation or selection of genes for the heat map.
+#'
+#' @param file_path A \code{character} scalar providing the file path.
+#'
+#' @return A \code{tibble} of gene_id (i.e. Ensembl gene identifier), gene_name
+#'   (i.e. official gene symbol) and plot_name (i.e. sub-plot name) or
+#'   \code{NULL}.
+#' @noRd
+#'
+#' @examples
+read_gene_tibble <- function(file_path) {
+  if (!is.null(x = file_path)) {
+    # Load the gene annotation tibble.
+    # message("Loading plot annotation ...")
+    gene_tibble <-
+      readr::read_csv(
+        file = file_path,
+        col_names = TRUE,
+        col_types = readr::cols(
+          gene_id = readr::col_character(),
+          gene_name = readr::col_character(),
+          plot_name = readr::col_character()
+        )
+      )
+    # Find all those observations in "gene_id" that are NA or empty.
+    missing_ids <-
+      is.na(x = gene_tibble$gene_id) | gene_tibble$gene_id == ""
+    missing_indices <- which(x = missing_ids)
+    if (length(x = missing_indices) > 0L) {
+      # Read the central transcriptome annotation tibble.
+      # message("Loading gene annotation ...")
+      annotation_tibble <-
+        readr::read_tsv(file = file.path(
+          argument_list$genome_directory,
+          prefix_deseq,
+          paste0(prefix_deseq, "_annotation.tsv")
+        ))
+      # Associate empty "gene_id" values with corresponding "gene_name" values.
+      missing_names <-
+        gene_tibble[missing_indices, c("gene_name"), drop = TRUE]
+      # Reset the missing gene_id values, by matching missing names in the annotation_tibble.
+      gene_tibble[missing_indices, c("gene_id")] <-
+        annotation_tibble[match(x = missing_names, table = annotation_tibble$gene_name), c("gene_id"), drop = TRUE]
+      rm(missing_names, annotation_tibble)
+    }
+    rm(missing_indices, missing_ids)
+    return(gene_tibble)
+  } else {
+    return(NULL)
+  }
+}
+
+plot_annotation_tibble <-
+  read_gene_tibble(file_path = argument_list$gene_path)
+missing_tibble <-
+  dplyr::filter(.data = plot_annotation_tibble, is.na(x = .data$gene_id))
+if (nrow(x = missing_tibble) > 0L) {
+  print(x = "The following genes_name values could not be resolved into gene_id values:")
+  print(x = missing_tibble)
+}
+rm(missing_tibble)
+
+readr::write_tsv(
+  x = plot_annotation_tibble,
+  path = file.path(output_directory, paste0(prefix_heatmap, "_gene_set.tsv")),
+  col_names = TRUE
+)
+
 # DESeqDataSet ------------------------------------------------------------
 
 
@@ -150,9 +224,11 @@ if (!file.exists(output_directory)) {
 deseq_data_set <- NULL
 
 file_path <-
-  file.path(argument_list$genome_directory,
-            prefix_deseq,
-            paste0(prefix_deseq, "_deseq_data_set.Rdata"))
+  file.path(
+    argument_list$genome_directory,
+    prefix_deseq,
+    paste0(prefix_deseq, "_deseq_data_set.Rdata")
+  )
 if (file.exists(file_path) &&
     file.info(file_path)$size > 0L) {
   message("Loading a DESeqDataSet object")
@@ -205,7 +281,11 @@ contrast_frame <-
     file = file.path(
       argument_list$genome_directory,
       prefix_deseq,
-      paste(paste(prefix_deseq, "contrasts", "summary", sep = "_"), "tsv", sep = ".")
+      paste(
+        paste(prefix_deseq, "contrasts", "summary", sep = "_"),
+        "tsv",
+        sep = "."
+      )
     ),
     header = TRUE,
     sep = "\t",
@@ -290,7 +370,7 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
           sep = "_")
 
   # Annotated Results Frame -----------------------------------------------
-  # Read the annotated data.frame with all genes.
+  # Read the annotated data.frame with all genes for this contrast.
 
   file_path <-
     file.path(argument_list$genome_directory,
@@ -320,109 +400,157 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
     row.names(x = deseq_results_frame) <-
       deseq_results_frame$gene_id
 
-    top_gene_identifiers <-
-      if (argument_list$maximum_number >= 0L) {
-        deseq_results_frame[head(
-          x = order(deseq_results_frame$max_rank, decreasing = FALSE),
-          n = argument_list$maximum_number
-        ), "gene_id", drop = TRUE]
-      } else {
-        deseq_results_frame[deseq_results_frame$significant == "yes", "gene_id", drop = TRUE]
+    draw_complex_heatmap <-
+      function(nozzle_section,
+               top_gene_identifiers,
+               plot_title,
+               file_index = NULL) {
+        if (length(x = top_gene_identifiers) > 0L) {
+          print(x = plot_title)
+          print(x = str(object = top_gene_identifiers))
+          # Draw a ComplexHeatmap.
+          # Select the top (gene) rows from the scaled counts matrix and calculate
+          # z-scores per row to center the scale. Since base::scale() works on
+          # columns, two transpositions are required.
+          transformed_matrix <-
+            SummarizedExperiment::assay(x = deseq_transform, i = 1L)[top_gene_identifiers, ]
+          # Replace negative transformed count values with 0.
+          # https://support.bioconductor.org/p/59369/
+          transformed_matrix[transformed_matrix < 0] <- 1e-06
+          # Add 1e-06 to the scaled counts for the log() function.
+
+          complex_heatmap <- ComplexHeatmap::Heatmap(
+            matrix = t(x = base::scale(
+              x = t(x = log(x = transformed_matrix)),
+              center = TRUE,
+              scale = TRUE
+            )),
+            name = "z-score",
+            row_title = "genes",
+            # row_title_gp = gpar(fontsize = 7),
+            column_title = "samples",
+            cluster_rows = TRUE,
+            show_row_dend = TRUE,
+            cluster_columns = TRUE,
+            show_column_dend = TRUE,
+            show_row_names = TRUE,
+            row_names_gp = gpar(fontsize = 7),
+            show_column_names = TRUE,
+            column_names_gp = gpar(fontsize = 7),
+            top_annotation = ComplexHeatmap::columnAnnotation(df = column_annotation_frame)
+          )
+          rm(transformed_matrix)
+
+          # Add column annotation.
+          complex_heatmap <-
+            complex_heatmap + ComplexHeatmap::HeatmapAnnotation(
+              df = deseq_results_frame[top_gene_identifiers, c("gene_biotype", "significant"), drop = FALSE],
+              which = "row",
+              text = anno_text(
+                x = deseq_results_frame[top_gene_identifiers, "gene_name", drop = TRUE],
+                which = "row",
+                gp = gpar(fontsize = 6),
+                just = "left"
+              )
+            )
+
+          file_path_character <-
+            paste(if (is.null(x = file_index)) {
+              # Without a file_index ...
+              paste(prefix_heatmap,
+                    contrast_character,
+                    suffix,
+                    sep = "_")
+            } else {
+              # ... or with a file_index.
+              paste(prefix_heatmap,
+                    contrast_character,
+                    suffix,
+                    file_index,
+                    sep = "_")
+            },
+            graphics_formats,
+            sep = ".")
+
+          # Draw a PDF plot (1L).
+          grDevices::pdf(
+            file = file.path(output_directory, file_path_character[1L]),
+            width = argument_list$plot_width,
+            height = argument_list$plot_height
+          )
+          if (is.null(x = plot_title)) {
+            ComplexHeatmap::draw(object = complex_heatmap)
+          } else {
+            ComplexHeatmap::draw(object = complex_heatmap, column_title = plot_title)
+          }
+          base::invisible(x = grDevices::dev.off())
+
+          # Draw a PNG plot (2L).
+          grDevices::png(
+            filename = file.path(output_directory, file_path_character[2L]),
+            width = argument_list$plot_width,
+            height = argument_list$plot_height,
+            units = "in",
+            res = 300L
+          )
+          if (is.null(x = plot_title)) {
+            ComplexHeatmap::draw(object = complex_heatmap)
+          } else {
+            ComplexHeatmap::draw(object = complex_heatmap, column_title = plot_title)
+          }
+          base::invisible(x = grDevices::dev.off())
+
+          nozzle_section <-
+            Nozzle.R1::addTo(
+              parent = nozzle_section,
+              Nozzle.R1::newFigure(
+                file = file_path_character[2L],
+                "Heatmap for contrast ",
+                Nozzle.R1::asStrong(contrast_frame[i, "Label", drop = TRUE]),
+                fileHighRes = file_path_character[1L]
+              )
+            )
+          rm(complex_heatmap,
+             file_path_character)
+        }
+        return(nozzle_section)
       }
 
-    if (length(x = top_gene_identifiers) > 0L) {
-      # Draw a ComplexHeatmap.
-      # Select the top (gene) rows from the scaled counts matrix and calculate
-      # z-scores per row to center the scale. Since base::scale() works on
-      # columns, two transpositions are required.
-      transformed_matrix <- SummarizedExperiment::assay(x = deseq_transform, i = 1L)[top_gene_identifiers, , drop = FALSE]
-      # Replace negative transformed count values with 0.
-      # https://support.bioconductor.org/p/59369/
-      transformed_matrix[transformed_matrix < 0] <- 1e-06
-      # Add 1e-06 to the scaled counts for the log() function.
+    # In case a gene_set_tibble is available, use it for filtering.
 
-      complex_heatmap <- ComplexHeatmap::Heatmap(
-        matrix = t(x = base::scale(
-          x = t(x = log(
-            x = transformed_matrix
-          )),
-          center = TRUE,
-          scale = TRUE
-        )),
-        name = "z-score",
-        row_title = "genes",
-        # row_title_gp = gpar(fontsize = 7),
-        column_title = "samples",
-        cluster_rows = TRUE,
-        show_row_dend = TRUE,
-        cluster_columns = TRUE,
-        show_column_dend = TRUE,
-        show_row_names = TRUE,
-        row_names_gp = gpar(fontsize = 7),
-        show_column_names = TRUE,
-        column_names_gp = gpar(fontsize = 7),
-        top_annotation = ComplexHeatmap::columnAnnotation(df = column_annotation_frame)
-      )
-      rm(transformed_matrix)
-
-      # Add column annotation.
-      complex_heatmap <-
-        complex_heatmap + ComplexHeatmap::HeatmapAnnotation(
-          df = deseq_results_frame[top_gene_identifiers, c("gene_biotype", "significant"), drop = FALSE],
-          which = "row",
-          text = anno_text(
-            x = deseq_results_frame[top_gene_identifiers, "gene_name", drop = TRUE],
-            which = "row",
-            gp = gpar(fontsize = 6),
-            just = "left"
-          )
-        )
-
-      file_path_character <-
-        paste(
-          paste(
-            prefix_heatmap,
-            contrast_character,
-            suffix,
-            sep = "_"
-          ),
-          graphics_formats,
-          sep = "."
-        )
-
-      # Draw a PDF plot (1L).
-      grDevices::pdf(
-        file = file.path(output_directory, file_path_character[1L]),
-        width = argument_list$plot_width,
-        height = argument_list$plot_height
-      )
-      ComplexHeatmap::draw(object = complex_heatmap)
-      base::invisible(x = grDevices::dev.off())
-
-      # Draw a PNG plot (2L).
-      grDevices::png(
-        filename = file.path(output_directory, file_path_character[2L]),
-        width = argument_list$plot_width,
-        height = argument_list$plot_height,
-        units = "in",
-        res = 300L
-      )
-      ComplexHeatmap::draw(object = complex_heatmap)
-      base::invisible(x = grDevices::dev.off())
-
+    if (is.null(x = plot_annotation_tibble)) {
+      # No gene_set_tibble to select genes from.
+      selected_gene_identifiers <-
+        if (argument_list$maximum_number >= 0L) {
+          deseq_results_frame[head(
+            x = order(deseq_results_frame$max_rank, decreasing = FALSE),
+            n = argument_list$maximum_number
+          ), "gene_id", drop = TRUE]
+        } else {
+          deseq_results_frame[deseq_results_frame$significant == "yes", "gene_id", drop = TRUE]
+        }
       nozzle_section_heatmaps <-
-        Nozzle.R1::addTo(
-          parent = nozzle_section_heatmaps,
-          Nozzle.R1::newFigure(
-            file = file_path_character[2L],
-            "Heatmap for contrast ", Nozzle.R1::asStrong(contrast_frame[i, "Label", drop = TRUE]),
-            fileHighRes = file_path_character[1L]
+        draw_complex_heatmap(nozzle_section = nozzle_section_heatmaps,
+                             top_gene_identifiers = selected_gene_identifiers)
+      rm(selected_gene_identifiers)
+    } else {
+      # A gene_set_tibble exists to select genes from.
+      plot_names <- unique(plot_annotation_tibble$plot_name)
+      for (index in seq_along(along.with = plot_names)) {
+        # Filter for plot_name values.
+        selected_gene_identifiers <-
+          dplyr::filter(.data = plot_annotation_tibble, plot_name == plot_names[index])$gene_id
+        nozzle_section_heatmaps <-
+          draw_complex_heatmap(
+            nozzle_section = nozzle_section_heatmaps,
+            top_gene_identifiers = selected_gene_identifiers,
+            plot_title = plot_names[index],
+            file_index = index
           )
-        )
-      rm(complex_heatmap,
-         file_path_character)
+        rm(selected_gene_identifiers)
+      }
+      rm(index, plot_names)
     }
-    rm(top_gene_identifiers)
   } else {
     message(paste0("Missing DESeqResults data.frame for ",
                    contrast_character))
@@ -465,7 +593,9 @@ rm(
   prefix_heatmap,
   prefix_deseq,
   graphics_formats,
-  argument_list
+  argument_list,
+  read_gene_tibble,
+  plot_annotation_tibble
 )
 
 message("All done")
