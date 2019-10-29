@@ -1,0 +1,21 @@
+Package: bsfR
+Type: Package
+Title: BSF R package
+Version: 0.1.0
+# Author: Michael Schuster
+# Maintainer: Michael Schuster <MSchuster@cemm.oeaw.ac.at>
+Authors@R: c(person(given = "Michael", family = "Schuster", email = "MSchuster@cemm.oeaw.ac.at", role = "cre", comment = c("ORCID" = "0000-0003-2975-8969")))
+Description: Package to run day-to-day analyses of the Biomedical Sequencing Facility (BSF).
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Imports:
+    dplyr,
+    ggplot2,
+    methods,
+    tidyr,
+    readr,
+    rlang
+RoxygenNote: 6.1.1
+Collate:
+    'bsf_rnaseq_deseq.R'
