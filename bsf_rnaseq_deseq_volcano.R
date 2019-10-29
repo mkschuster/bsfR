@@ -130,6 +130,7 @@ if (is.null(x = argument_list$design_name)) {
   stop("Missing --design-name option")
 }
 
+suppressPackageStartupMessages(expr = library(package = "bsfR"))
 suppressPackageStartupMessages(expr = library(package = "EnhancedVolcano"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
@@ -138,18 +139,10 @@ suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
 prefix_deseq <-
-  paste("rnaseq",
-        "deseq",
-        argument_list$design_name,
-        sep = "_")
+  bsfR::bsfrd_get_prefix_deseq(design_name = argument_list$design_name)
 
 prefix_volcano <-
-  paste("rnaseq",
-        "deseq",
-        argument_list$design_name,
-        "volcano",
-        sep = "_")
-
+  bsfR::bsfrd_get_prefix_volcano(design_name = argument_list$design_name)
 
 output_directory <-
   file.path(argument_list$output_directory, prefix_volcano)
@@ -159,143 +152,44 @@ if (!file.exists(output_directory)) {
              recursive = FALSE)
 }
 
-#' Load a contrast data frame
-#'
-#' @param contrast_character A \code{character} scalar of the contrast
-#'
-#' @return A \code{tibble} of annotated DESeqResults
-#' @noRd
-#'
-#' @examples
-load_contrast_frame <- function(contrast_character) {
-  # Annotated Results Frame -----------------------------------------------
-  # Read the annotated data.frame with all genes.
-  deseq_results_tibble <- NULL
+# Plot Annotation ---------------------------------------------------------
 
-  file_path <-
-    file.path(argument_list$genome_directory,
-              prefix_deseq,
-              paste(
-                paste(prefix_deseq,
-                      "contrast",
-                      contrast_character,
-                      "genes",
-                      sep = "_"),
-                "tsv",
-                sep = "."
-              ))
 
-  if (file.exists(file_path) &&
-      file.info(file_path)$size > 0L) {
-    message("Loading DESeqResults frame for contrast ",
-            contrast_character)
-
-    deseq_results_tibble <-
-      readr::read_tsv(
-        file = file_path,
-        col_types = cols(
-          gene_id = col_character(),
-          gene_version = col_double(),
-          gene_name = col_character(),
-          gene_biotype = col_character(),
-          gene_source = col_character(),
-          location = col_character(),
-          baseMean = col_double(),
-          log2FoldChange = col_double(),
-          lfcSE = col_double(),
-          stat = col_double(),
-          pvalue = col_double(),
-          padj = col_double(),
-          significant = col_character(),
-          rank_log2_fold_change = col_double(),
-          rank_base_mean = col_double(),
-          rank_padj = col_double(),
-          max_rank = col_double()
-        )
-      )
-
-  } else {
-    message("No DESeqResults frame for contrast ", contrast_character)
-  }
-  return(deseq_results_tibble)
+plot_labels <- character()
+if (!is.null(x = argument_list$gene_path)) {
+  plot_annotation_tibble <-
+    bsfR::bsfrd_read_gene_set_tibble(
+      genome_directory = argument_list$genome_directory,
+      design_name = argument_list$design_name,
+      gene_set_path = argument_list$gene_path
+    )
+  plot_labels <- plot_annotation_tibble$gene_name
+  rm(plot_annotation_tibble)
 }
-
-#' Load plot labels
-#'
-#' @return A \code{character} vector of gene identifiers.
-#' @noRd
-#'
-#' @examples
-load_plot_labels <- function() {
-  # Plot labels -----------------------------------------------------------
-  if (!is.null(x = argument_list$gene_path)) {
-    gene_tibble <-
-      readr::read_csv(
-        file = argument_list$gene_path,
-        col_names = TRUE,
-        col_types = cols(gene_name = col_character())
-      )
-    return(gene_tibble[, c("gene_name"), drop = TRUE])
-  } else {
-    return(character())
-  }
-}
-
-plot_labels <- load_plot_labels()
 
 # Contrasts Frame ---------------------------------------------------------
 
 
-# Read a data frame of contrasts with variables "Design", "Numerator", "Denominator" and "Label".
-message("Loading contrast frame")
-contrast_frame <-
-  read.table(
-    file = file.path(
-      argument_list$genome_directory,
-      prefix_deseq,
-      paste(
-        paste(prefix_deseq, "contrasts", "summary", sep = "_"),
-        "tsv",
-        sep = "."
-      )
-    ),
-    header = TRUE,
-    sep = "\t",
-    colClasses = c(
-      "Design" = "character",
-      "Numerator" = "character",
-      "Denominator" = "character",
-      "Label" = "character",
-      "Significant" = "integer"
-    ),
-    stringsAsFactors = FALSE
+contrast_tibble <-
+  bsfR::bsfrd_read_contrast_tibble(
+    genome_directory = argument_list$genome_directory,
+    design_name = argument_list$design_name
   )
-# Subset to the selected design.
-contrast_frame <-
-  contrast_frame[contrast_frame$Design == argument_list$design_name, , drop = FALSE]
-if (nrow(x = contrast_frame) == 0L) {
+if (nrow(x = contrast_tibble) == 0L) {
   stop("No contrast remaining after selection for design name.")
 }
 
-for (i in seq_len(length.out = nrow(x = contrast_frame))) {
-  # The "contrast" option of the DESeq results() function expects a list of
-  # numerator and denominator.
-  contrast_list <-
-    list("numerator" = unlist(x = strsplit(x = contrast_frame[i, "Numerator", drop = TRUE], split = ",")),
-         "denominator" = unlist(x = strsplit(x = contrast_frame[i, "Denominator", drop = TRUE], split = ",")))
+for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
   contrast_character <-
-    paste(paste(contrast_list$numerator, collapse = "_"),
-          "against",
-          if (length(x = contrast_list$denominator) > 0L) {
-            paste(contrast_list$denominator, collapse = "_")
-          } else {
-            "intercept"
-          },
-          sep = "_")
-  rm(contrast_list)
+    bsfR::bsfrd_get_contrast_character(contrast_tibble = contrast_tibble, index = contrast_index)
 
   deseq_results_tibble <-
-    load_contrast_frame(contrast_character = contrast_character)
+    bsfR::bsfrd_read_result_tibble(
+      genome_directory = argument_list$genome_directory,
+      design_name = argument_list$design_name,
+      contrast_tibble = contrast_tibble,
+      index = contrast_index
+    )
 
   # deseq_results_tibble <-
   #   dplyr::filter(.data = deseq_results_tibble,!is.na(x = log2FoldChange),!is.na(x = pvalue))
@@ -305,11 +199,13 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
   if (argument_list$plot_padj) {
     plot_paths <- file.path(output_directory,
                             paste(
-                              paste(prefix_volcano,
-                                    "contrast",
-                                    contrast_character,
-                                    "adjp",
-                                    sep = "_"),
+                              paste(
+                                prefix_volcano,
+                                "contrast",
+                                contrast_character,
+                                "adjp",
+                                sep = "_"
+                              ),
                               graphics_formats,
                               sep = "."
                             ))
@@ -342,14 +238,14 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
       argument_list$p_threshold
     },
     xlab = if (argument_list$plot_padj) {
-      bquote(~Log[2] ~ "fold change")
+      bquote( ~ Log[2] ~ "fold change")
     } else {
-      bquote(~Log[2] ~ "fold change")
+      bquote( ~ Log[2] ~ "fold change")
     },
     ylab = if (argument_list$plot_padj) {
-      bquote(~-Log[10] ~ adjusted ~ italic(P))
+      bquote( ~ -Log[10] ~ adjusted ~ italic(P))
     } else {
-      bquote(~-Log[10] ~ italic(P))
+      bquote( ~ -Log[10] ~ italic(P))
     },
     subtitle = ggplot2::waiver(),
     caption = ggplot2::waiver(),
@@ -381,13 +277,10 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
      deseq_results_tibble,
      contrast_character)
 }
-rm(i)
-
 rm(
+  contrast_index,
   plot_labels,
-  load_plot_labels,
-  contrast_frame,
-  load_contrast_frame,
+  contrast_tibble,
   output_directory,
   prefix_volcano,
   prefix_deseq,
