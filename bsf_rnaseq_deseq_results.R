@@ -201,17 +201,19 @@ contrast_frame <-
   )
 # Subset to the selected design.
 contrast_frame <-
-  contrast_frame[contrast_frame$Design == argument_list$design_name, ]
+  contrast_frame[contrast_frame$Design == argument_list$design_name, , drop = FALSE]
 if (nrow(contrast_frame) == 0L) {
   stop("No design remaining after selection for design name.")
 }
 contrast_frame$Significant <- 0L
+contrast_frame$SignificantUp <- 0L
+contrast_frame$SignificantDown <- 0L
 
 for (i in seq_len(length.out = nrow(x = contrast_frame))) {
   # The "contrast" option of the DESeq results() function expects a list of numerator and denominator.
   contrast_list <-
-    list("numerator" = unlist(x = strsplit(x = contrast_frame[i, "Numerator"], split = ",")),
-         "denominator" = unlist(x = strsplit(x = contrast_frame[i, "Denominator"], split = ",")))
+    list("numerator" = unlist(x = strsplit(x = contrast_frame[i, "Numerator", drop = TRUE], split = ",")),
+         "denominator" = unlist(x = strsplit(x = contrast_frame[i, "Denominator", drop = TRUE], split = ",")))
   contrast_character <-
     paste(paste(contrast_list$numerator, collapse = "_"),
           "against",
@@ -252,6 +254,12 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
     # Record the number of significant genes.
     contrast_frame[i, "Significant"] <-
       nrow(x = deseq_merge_significant)
+
+    contrast_frame[i, "SignificantUp"] <-
+      nrow(x = deseq_merge_significant[deseq_merge_significant$log2FoldChange > 0.0, , drop = FALSE])
+
+    contrast_frame[i, "SignificantDown"] <-
+      nrow(x = deseq_merge_significant[deseq_merge_significant$log2FoldChange < 0.0, , drop = FALSE])
 
     rm(deseq_merge_significant)
   } else {
@@ -362,7 +370,7 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
                                     "lfcSE",
                                     "stat",
                                     "pvalue",
-                                    "padj")],
+                                    "padj"), drop = FALSE],
           significant = factor(x = "no", levels = c("no", "yes"))
         )
     else
@@ -372,7 +380,7 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
                                  "log2FoldChange",
                                  "lfcSE",
                                  "pvalue", # no "stat" column
-                                 "padj")],
+                                 "padj"), drop = FALSE],
         significant = factor(x = "no", levels = c("no", "yes"))
       )
 
@@ -383,8 +391,7 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
       toptable = deseq_results_merged,
       lab = deseq_results_merged$gene_name,
       x = "log2FoldChange",
-      y = "pvalue",
-      selectLab = c()
+      y = "pvalue"
     )
     rm(deseq_results_merged, deseq_results_frame)
 
@@ -413,7 +420,7 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
                                   "lfcSE",
                                   "stat",
                                   "pvalue",
-                                  "padj")],
+                                  "padj"), drop = FALSE],
         significant = factor(x = "no", levels = c("no", "yes"))
       )
 
@@ -484,6 +491,12 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
     # Record the number of significant genes.
     contrast_frame[i, "Significant"] <-
       nrow(x = deseq_merge_significant)
+
+    contrast_frame[i, "SignificantUp"] <-
+      nrow(x = deseq_merge_significant[deseq_merge_significant$log2FoldChange > 0.0, , drop = FALSE])
+
+    contrast_frame[i, "SignificantDown"] <-
+      nrow(x = deseq_merge_significant[deseq_merge_significant$log2FoldChange < 0.0, , drop = FALSE])
 
     write.table(
       x = deseq_merge_significant,
