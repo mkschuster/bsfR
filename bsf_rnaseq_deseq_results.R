@@ -1,16 +1,5 @@
 #!/usr/bin/env Rscript
 #
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
-#SBATCH --distribution=block
-#SBATCH --mem=65536
-#SBATCH --time=12:00:00
-#SBATCH --partition=shortq
-#SBATCH --export=NONE
-#SBATCH --get-user-env=L
-#SBATCH --error=.bsf_rnaseq_deseq_results_%j.err
-#SBATCH --output=.bsf_rnaseq_deseq_results_%j.out
-#
 # BSF R script to extract results of a DESeq2 analysis.
 #
 #

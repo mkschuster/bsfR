@@ -1,16 +1,5 @@
 #!/usr/bin/env Rscript
 #
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
-#SBATCH --distribution=block
-#SBATCH --mem=131072
-#SBATCH --time=2-00:00:00
-#SBATCH --partition=mediumq
-#SBATCH --export=NONE
-#SBATCH --get-user-env=L
-#SBATCH --error=.bsf_rnaseq_deseq_analysis_%j.err
-#SBATCH --output=.bsf_rnaseq_deseq_analysis_%j.out
-#
 # BSF R script to run a DESeq2 analysis.
 #
 # Reads are counted on the basis of a reference (Ensembl) transcriptome supplied
