@@ -142,14 +142,21 @@ if (!file.exists(output_directory)) {
              recursive = FALSE)
 }
 
-plot_annotation_tibble <-
-  bsfR::bsfrd_read_gene_set_tibble(
-    genome_directory = argument_list$genome_directory,
-    design_name = argument_list$design_name,
-    gene_set_path = argument_list$gene_path
+plot_annotation_tibble <- NULL
+if (!is.null(x = argument_list$gene_path)) {
+  plot_annotation_tibble <-
+    bsfR::bsfrd_read_gene_set_tibble(
+      genome_directory = argument_list$genome_directory,
+      design_name = argument_list$design_name,
+      gene_set_path = argument_list$gene_path
+    )
+
+  readr::write_tsv(
+    x = plot_annotation_tibble,
+    path = file.path(output_directory, paste0(prefix_heatmap, "_gene_set.tsv")),
+    col_names = TRUE
   )
 
-if (!is.null(x = plot_annotation_tibble)) {
   # If the tibble exists test for NA values.
   missing_tibble <-
     dplyr::filter(.data = plot_annotation_tibble, is.na(x = .data$gene_id))
@@ -159,12 +166,6 @@ if (!is.null(x = plot_annotation_tibble)) {
   }
   rm(missing_tibble)
 }
-
-readr::write_tsv(
-  x = plot_annotation_tibble,
-  path = file.path(output_directory, paste0(prefix_heatmap, "_gene_set.tsv")),
-  col_names = TRUE
-)
 
 # DESeqDataSet ------------------------------------------------------------
 
@@ -256,7 +257,7 @@ draw_complex_heatmap <-
            deseq_results_frame,
            top_gene_identifiers,
            contrast_character,
-           plot_title,
+           plot_title = NULL,
            file_index = NULL) {
     if (length(x = top_gene_identifiers) > 0L) {
       # Draw a ComplexHeatmap.
