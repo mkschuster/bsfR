@@ -63,6 +63,13 @@ argument_list <- parse_args(object = OptionParser(
       type = "character"
     ),
     make_option(
+      opt_str = c("--output-directory"),
+      default = ".",
+      dest = "output_directory",
+      help = "Output directory path [.]",
+      type = "character"
+    ),
+    make_option(
       opt_str = c("--plot-width"),
       default = 7.0,
       dest = "plot_width",
@@ -81,67 +88,58 @@ argument_list <- parse_args(object = OptionParser(
 
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
+# For the moment, no other prefix-based directory gets created under the output
+# directory.
+output_directory <-
+  file.path(argument_list$output_directory)
+if (!file.exists(output_directory)) {
+  dir.create(path = output_directory,
+             showWarnings = TRUE,
+             recursive = FALSE)
+}
+
 # Parse rnaseq_deseq_[design]_contrasts_summary.tsv files -----------------
 
 
 summary_tibble <- NULL
-directory_names <-
-  grep(
-    pattern = "^rnaseq_deseq_.*",
-    x = list.dirs(
-      path = argument_list$genome_directory,
-      full.names = FALSE,
-      recursive = FALSE
-    ),
-    value = TRUE
-  )
-for (directory_name in directory_names) {
-  design_name <-
-    gsub(pattern = "^rnaseq_deseq_(.*?)$",
-         replacement = "\\1",
-         x = directory_name)
-  file_names <-
-    list.files(
-      path = file.path(argument_list$genome_directory, directory_name),
-      pattern = paste(
-        "^rnaseq_deseq",
-        design_name,
-        "contrasts_summary.tsv$",
-        sep = "_"
-      ),
-      full.names = TRUE
-    )
-  for (file_name in file_names) {
-    summary_tibble <-
-      dplyr::bind_rows(
-        summary_tibble,
-        readr::read_tsv(
-          file = file_name,
-          col_names = TRUE,
-          col_types = readr::cols(
-            Design = readr::col_character(),
-            Numerator = readr::col_character(),
-            Denominator = readr::col_character(),
-            Label = readr::col_character(),
-            Exclude = readr::col_logical(),
-            Significant = readr::col_integer()
-          )
-        )
+# Get a list of all rnaseq_deseq_.*_contrasts_summary.tsv files recursively,
+# extract directory names, base names and finally match design names.
+design_names <-
+  base::gsub(
+    pattern = "^rnaseq_deseq_(.*?)$",
+    replacement = "\\1",
+    x = base::basename(path = base::dirname(
+      path = base::list.files(
+        path = argument_list$genome_directory,
+        pattern = "rnaseq_deseq_.*_contrasts_summary.tsv$",
+        full.names = TRUE,
+        recursive = TRUE
       )
-  }
-  rm(file_name, file_names, design_name)
+    ))
+  )
+
+for (design_name in design_names) {
+  summary_tibble <-
+    dplyr::bind_rows(
+      summary_tibble,
+      bsfR::bsfrd_read_contrast_tibble(
+        genome_directory = argument_list$genome_directory,
+        design_name = design_name,
+        summary = TRUE
+      )
+    )
 }
-rm(directory_name, directory_names)
+rm(design_name, design_names)
 
 # Drop the "Exclude" variable.
-summary_tibble <- dplyr::select(.data = summary_tibble,-Exclude)
+summary_tibble <- dplyr::select(.data = summary_tibble, -Exclude)
 
 # Replace NA and "" values in the Numerator and Denominator with character "1".
 summary_tibble <-
   dplyr::mutate_at(
     .tbl = summary_tibble,
     .vars = c("Numerator", "Denominator"),
-    .funs = list(~ replace(., is.na(x = .) | . == "", "1"))
+    .funs = list( ~ replace(., is.na(x = .) | . == "", "1"))
   )
 
 # Summarise by Numerator and Denominator ----------------------------------
@@ -152,7 +150,7 @@ key_tibble <-
   dplyr::select(.data = summary_tibble, Design, Numerator, Denominator)
 duplicated_tibble <-
   summary_tibble[duplicated(x = key_tibble) |
-                   duplicated(x = key_tibble, fromLast = TRUE), ]
+                   duplicated(x = key_tibble, fromLast = TRUE),]
 if (nrow(x = duplicated_tibble)) {
   print(x = "Duplicated Design, Numerator and Denominator rows:")
   print(x = duplicated_tibble)
@@ -163,11 +161,11 @@ rm(duplicated_tibble, key_tibble)
 # then spread "Significant" values on the "Design" key.
 readr::write_tsv(
   x = tidyr::spread(
-    data = dplyr::select(.data = summary_tibble,-Label),
+    data = dplyr::select(.data = summary_tibble, -Label),
     key = Design,
     value = Significant
   ),
-  path = "rnaseq_deseq_summary_design.tsv",
+  path = file.path(output_directory, "rnaseq_deseq_summary_design.tsv"),
   col_names = TRUE
 )
 
@@ -178,7 +176,7 @@ readr::write_tsv(
 key_tibble <- dplyr::select(.data = summary_tibble, Design, Label)
 duplicated_tibble <-
   summary_tibble[duplicated(x = key_tibble) |
-                   duplicated(x = key_tibble, fromLast = TRUE), ]
+                   duplicated(x = key_tibble, fromLast = TRUE),]
 if (nrow(x = duplicated_tibble)) {
   print(x = "Duplicated Design and Label rows:")
   print(x = duplicated_tibble)
@@ -189,15 +187,15 @@ rm(duplicated_tibble, key_tibble)
 # then spread "Significant" values on the "Design" key.
 readr::write_tsv(
   x = tidyr::spread(
-    data = dplyr::select(.data = summary_tibble,-Numerator,-Denominator),
+    data = dplyr::select(.data = summary_tibble, -Numerator, -Denominator),
     key = Design,
     value = Significant
   ),
-  path = "rnaseq_deseq_summary_labels.tsv",
+  path = file.path(output_directory, "rnaseq_deseq_summary_labels.tsv"),
   col_names = TRUE
 )
 
-rm(summary_tibble, argument_list)
+rm(summary_tibble, output_directory, argument_list)
 
 message("All done")
 
