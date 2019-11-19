@@ -41,6 +41,44 @@ bsfrd_get_prefix_deseq <- function(design_name) {
                sep = "_"))
 }
 
+#' Get a design-specific Enrichr analysis prefix.
+#'
+#' @param design_name A \code{character} scalar with the design name.
+#'
+#' @return A \code{character} scalar with the DESeq2 Enrichr prefix.
+#' @export
+#'
+#' @examples
+#' design_name <- "global"
+#' prefix_enrichr <- bsfrd_get_prefix_enrichr(
+#'   design_name = design_name)
+bsfrd_get_prefix_enrichr <- function(design_name) {
+  return(paste("rnaseq",
+               "deseq",
+               design_name,
+               "enrichr",
+               sep = "_"))
+}
+
+#' Get a design-specific GO analysis prefix.
+#'
+#' @param design_name A \code{character} scalar with the design name.
+#'
+#' @return A \code{character} scalar with the DESeq2 GO prefix.
+#' @export
+#'
+#' @examples
+#' design_name <- "global"
+#' prefix_go <- bsfrd_get_prefix_go(
+#'   design_name = design_name)
+bsfrd_get_prefix_go <- function(design_name) {
+  return(paste("rnaseq",
+               "deseq",
+               design_name,
+               "go",
+               sep = "_"))
+}
+
 #' Get a design-specific DESeq2 heatmap prefix.
 #'
 #' @param design_name A \code{character} scalar with the design name.
@@ -87,6 +125,7 @@ bsfrd_get_prefix_volcano <- function(design_name) {
 #' @param design_name A \code{character} scalar with the design name.
 #' @param summary A \code{logical} scalar to load a contrast summary rather than
 #'   a contrast \code{tibble}.
+#' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A \code{tibble} with contrast information.
 #' @export
@@ -96,10 +135,14 @@ bsfrd_get_prefix_volcano <- function(design_name) {
 #' \dontrun{
 #' contrast_tibble <- bsfrd_read_contrast_tibble(
 #'   genome_directory = genome_directory,
-#'   design_name = design_name, summary = FALSE)
+#'   design_name = design_name, summary = FALSE,
+#'   verbose = FALSE)
 #' }
 bsfrd_read_contrast_tibble <-
-  function(genome_directory, design_name, summary = FALSE) {
+  function(genome_directory,
+           design_name,
+           summary = FALSE,
+           verbose = FALSE) {
     prefix_deseq <- bsfrd_get_prefix_deseq(design_name = design_name)
 
     file_path_components <- c(prefix_deseq, "contrasts")
@@ -124,6 +167,10 @@ bsfrd_read_contrast_tibble <-
             SignificantDown = readr::col_integer()
           )$cols
         )
+    }
+
+    if (verbose) {
+      message("Loading a contrast tibble ...")
     }
 
     contrast_tibble <- readr::read_tsv(
@@ -231,6 +278,7 @@ bsfrd_get_contrast_character <- function(contrast_tibble, index) {
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
 #' @param design_name A \code{character} scalar with the design name.
+#' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A \code{tibble} with design information.
 #' @export
@@ -240,11 +288,16 @@ bsfrd_get_contrast_character <- function(contrast_tibble, index) {
 #' \dontrun{
 #' design_tibble <- bsfrd_read_design_tibble(
 #'   genome_directory = genome_directory,
-#'   design_name = design_name, summary = FALSE)
+#'   design_name = design_name, summary = FALSE,
+#'   verbose = FALSE)
 #' }
 bsfrd_read_design_tibble <-
-  function(genome_directory, design_name) {
+  function(genome_directory, design_name, verbose = FALSE) {
     prefix_deseq <- bsfrd_get_prefix_deseq(design_name = design_name)
+
+    if (verbose) {
+      message("Loading a design tibble ...")
+    }
 
     design_tibble <- readr::read_tsv(
       file = file.path(
@@ -271,6 +324,7 @@ bsfrd_read_design_tibble <-
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
 #' @param design_name A \code{character} scalar with the design name.
+#' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A \code{DESeqDataSet} object or \code{NULL}.
 #' @export
@@ -279,10 +333,11 @@ bsfrd_read_design_tibble <-
 #' \dontrun{
 #' deseq_data_set <- bsfrd_read_deseq_data_set(
 #'   genome_directory = genome_directory,
-#'   design_name = design_name)
+#'   design_name = design_name,
+#'   verbose = FALSE)
 #' }
 bsfrd_read_deseq_data_set <-
-  function(genome_directory, design_name) {
+  function(genome_directory, design_name, verbose = FALSE) {
     deseq_data_set <- NULL
     prefix_deseq <-
       bsfrd_get_prefix_deseq(design_name = design_name)
@@ -293,7 +348,9 @@ bsfrd_read_deseq_data_set <-
                 paste0(prefix_deseq, "_deseq_data_set.Rdata"))
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
-      message("Loading a DESeqDataSet object ...")
+      if (verbose) {
+        message("Loading a DESeqDataSet object ...")
+      }
       load(file = file_path)
     } else {
       warning("Require a pre-calculated DESeqDataSet object in file: ",
@@ -311,6 +368,7 @@ bsfrd_read_deseq_data_set <-
 #' @param design_name A \code{character} scalar with the design name.
 #' @param model A \code{logical} scalar to retrieve a model aware (\code{TRUE})
 #'   or a blind (\code{FALSE}) \code{DESeqTransform} object.
+#' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A \code{DESeqTransform} object or \code{NULL}.
 #' @export
@@ -320,10 +378,14 @@ bsfrd_read_deseq_data_set <-
 #' deseq_transform <- bsfrd_read_deseq_transform(
 #'   genome_directory = genome_directory,
 #'   design_name = design_name,
-#'   model = TRUE)
+#'   model = TRUE,
+#'   verbose = FALSE)
 #' }
 bsfrd_read_deseq_transform <-
-  function(genome_directory, design_name, model = TRUE) {
+  function(genome_directory,
+           design_name,
+           model = TRUE,
+           verbose = FALSE) {
     deseq_transform <- NULL
     suffix <- if (model) {
       "model"
@@ -342,7 +404,9 @@ bsfrd_read_deseq_transform <-
                 ))
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
-      message(paste("Loading a", suffix, "DESeqTransform object"))
+      if (verbose) {
+        message(paste("Loading a", suffix, "DESeqTransform object ..."))
+      }
       load(file = file_path)
     } else {
       warning("Require a pre-calculated DESeqTransform object in file: ",
@@ -366,6 +430,7 @@ bsfrd_read_deseq_transform <-
 #' @param index An \code{integer} scalar pointing at a particular \code{tibble}
 #'   row.
 #' @param contrast_character A \code{character} scalar specifying the contrast.
+#' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A \code{tibble} of DESeq results for a particular contrast.
 #' @export
@@ -376,19 +441,22 @@ bsfrd_read_deseq_transform <-
 #'   genome_directory = genome_directory,
 #'   design_name = design_name,
 #'   contrast_tibble = contrast_tibble,
-#'   index = index)
+#'   index = index,
+#'   verbose = FALSE)
 #'
 #' result_tibble <- bsfrd_read_result_tibble(
 #'   genome_directory = genome_directory,
 #'   design_name = design_name,
-#'   contrast_character = contrast_character)
+#'   contrast_character = contrast_character,
+#'   verbose = FALSE)
 #' }
 bsfrd_read_result_tibble <-
   function(genome_directory,
            design_name,
            contrast_tibble = NULL,
            index = NULL,
-           contrast_character = NULL) {
+           contrast_character = NULL,
+           verbose = FALSE) {
     deseq_results_tibble <- NULL
     prefix_deseq <-
       bsfrd_get_prefix_deseq(design_name = design_name)
@@ -417,8 +485,10 @@ bsfrd_read_result_tibble <-
 
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
-      message("Loading DESeqResults tibble for contrast: ",
-              contrast_character)
+      if (verbose) {
+        message("Loading a DESeqResults tibble for contrast: ",
+                contrast_character)
+      }
 
       deseq_results_tibble <-
         readr::read_tsv(
@@ -457,6 +527,7 @@ bsfrd_read_result_tibble <-
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
 #' @param design_name A \code{character} scalar with the design name.
+#' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A \code{tibble} or \code{NULL}.
 #' @export
@@ -465,10 +536,11 @@ bsfrd_read_result_tibble <-
 #' \dontrun{
 #' annotation_tibble <- bsfrd_read_annotation_tibble(
 #'   genome_directory = genome_directory,
-#'   design_name = design_name)
+#'   design_name = design_name,
+#'   verbose = FALSE)
 #' }
 bsfrd_read_annotation_tibble <-
-  function(genome_directory, design_name) {
+  function(genome_directory, design_name, verbose = FALSE) {
     annotation_tibble <- NULL
     prefix_deseq <-
       bsfrd_get_prefix_deseq(design_name = design_name)
@@ -478,7 +550,9 @@ bsfrd_read_annotation_tibble <-
 
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
-      message("Loading a gene annotation tibble ...")
+      if (verbose) {
+        message("Loading a gene annotation tibble ...")
+      }
 
       annotation_tibble <-
         readr::read_tsv(file = file.path(
@@ -504,6 +578,7 @@ bsfrd_read_annotation_tibble <-
 #'   path.
 #' @param design_name A \code{character} scalar with the design name.
 #' @param gene_set_path A \code{character} scalar with the gene set file path.
+#' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A \code{tibble} object of gene set information.
 #' @export
@@ -513,13 +588,18 @@ bsfrd_read_annotation_tibble <-
 #' gene_set_tibble <- bsfrd_read_gene_set_tibble(
 #'   genome_directory = genome_directory,
 #'   design_name = design_name,
-#'   gene_set_path = gene_set_path)
+#'   gene_set_path = gene_set_path,
+#'   verbose = FALSE)
 #' }
 bsfrd_read_gene_set_tibble <-
   function(genome_directory,
            design_name,
-           gene_set_path) {
-    message("Loading gene set tibble ...")
+           gene_set_path,
+           verbose = FALSE) {
+    if (verbose) {
+      message("Loading a gene set tibble ...")
+    }
+
     gene_set_tibble <-
       readr::read_csv(
         file = gene_set_path,
