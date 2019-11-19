@@ -197,7 +197,6 @@ suffix <- "model"
 
 
 # Read a contrast tibble with variables "Design", "Numerator", "Denominator" and "Label".
-message("Loading contrast tibble")
 contrast_tibble <-
   bsfR::bsfrd_read_contrast_tibble(
     genome_directory = argument_list$genome_directory,
