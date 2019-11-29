@@ -319,6 +319,49 @@ bsfrd_read_design_tibble <-
     return(dplyr::filter(.data = design_tibble, .data$design == !!design_name))
   }
 
+#' Read a pre-calculated RangedSummarizedExperiment object.
+#'
+#' @param genome_directory A \code{character} scalar with the genome directory
+#'   path.
+#' @param design_name A \code{character} scalar with the design name.
+#' @param verbose A \code{logical} scalar to emit messages.
+#'
+#' @return A \code{RangedSummarizedExperiment} object or \code{NULL}.
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' bsfrd_read_summarized_experiment <- bsfrd_read_summarized_experiment(
+#'   genome_directory = genome_directory,
+#'   design_name = design_name,
+#'   verbose = FALSE)
+#' }
+bsfrd_read_summarized_experiment <-
+  function(genome_directory, design_name, verbose = FALSE) {
+    ranged_summarized_experiment <- NULL
+
+  prefix_deseq <-
+    bsfrd_get_prefix_deseq(design_name = design_name)
+
+  file_path <-
+    file.path(genome_directory,
+              prefix_deseq,
+              paste0(prefix_deseq, "_ranged_summarized_experiment.Rdata"))
+  if (file.exists(file_path) &&
+      file.info(file_path)$size > 0L) {
+    if (verbose) {
+      message("Loading a RangedSummarizedExperiment object ...")
+    }
+    load(file = file_path)
+  } else {
+    warning("Require a pre-calculated RangedSummarizedExperiment object in file: ",
+            file_path)
+  }
+  rm(file_path, prefix_deseq)
+
+  return(ranged_summarized_experiment)
+}
+
 #' Read a pre-calculated DESeqDataSet object.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
