@@ -101,6 +101,18 @@ argument_list <- parse_args(object = OptionParser(
       type = "character"
     ),
     make_option(
+      opt_str = c("--x-limits"),
+      dest = "x_limits",
+      help = "x-axis limits separated by a comma (lower,upper) [NULL]",
+      type = "character"
+    ),
+    make_option(
+      opt_str = c("--y-limits"),
+      dest = "y_limits",
+      help = "y-axis limits separated by a comma (lower,upper) [NULL]",
+      type = "character"
+    ),
+    make_option(
       opt_str = c("--plot-dpi"),
       default = 72,
       dest = "plot_dpi",
@@ -221,16 +233,44 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
                             ))
   }
 
+  deseq_results_frame <- base::as.data.frame(deseq_results_tibble)
+  x <- "log2FoldChange"
+  y <- if (argument_list$plot_padj) {
+    "padj"
+  } else {
+    "pvalue"
+  }
+
   ggplot_object <- EnhancedVolcano::EnhancedVolcano(
     # Without base::as.data.frame(), the log2FoldChange variable is reported to
     # be not numeric, when in fact it is.
-    toptable = base::as.data.frame(deseq_results_tibble),
-    lab = deseq_results_tibble$gene_name,
-    x = "log2FoldChange",
-    y = if (argument_list$plot_padj) {
-      "padj"
+    toptable = deseq_results_frame,
+    lab = deseq_results_frame$gene_name,
+    x = x,
+    y = y,
+    xlim = if (is.null(x = argument_list$x_limits)) {
+      # Use the function default limits.
+      c(min(deseq_results_frame[, x], na.rm = TRUE),
+        max(deseq_results_frame[, x], na.rm =
+              TRUE))
     } else {
-      "pvalue"
+      # Split the x-limits argument into a character matrix and convert into a numeric vector.
+      as.numeric(x = stringr::str_split_fixed(
+        string = argument_list$x_limits,
+        pattern = ",",
+        n = 2L
+      ))
+    },
+    ylim = if (is.null(x = argument_list$y_limits)) {
+      # Use the function default limits.
+      c(0, max(-log10(deseq_results_frame[, y]), na.rm = TRUE) + 5)
+    } else {
+      # Split the y-limits argument into a character matrix and convert into a numeric vector.
+      as.numeric(x = stringr::str_split_fixed(
+        string = argument_list$y_limits,
+        pattern = ",",
+        n = 2L
+      ))
     },
     pCutoff = if (argument_list$plot_padj) {
       argument_list$padj_threshold
@@ -254,7 +294,6 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     } else {
       c("NS", "Log2 FC", "P", "P & Log2 FC")
     },
-
     selectLab = plot_labels,
     drawConnectors = TRUE,
     endsConnectors = 'last'
@@ -271,11 +310,16 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       limitsize = FALSE
     )
   }
-  rm(plot_path,
-     ggplot_object,
-     plot_paths,
-     deseq_results_tibble,
-     contrast_character)
+  rm(
+    plot_path,
+    ggplot_object,
+    plot_paths,
+    y,
+    x,
+    deseq_results_frame,
+    deseq_results_tibble,
+    contrast_character
+  )
 }
 rm(
   contrast_index,
