@@ -598,11 +598,7 @@ bsfrd_read_annotation_tibble <-
       }
 
       annotation_tibble <-
-        readr::read_tsv(file = file.path(
-          genome_directory,
-          prefix_deseq,
-          paste0(prefix_deseq, "_annotation.tsv")
-        ))
+        readr::read_tsv(file = file_path)
     } else {
       warning("Require a pre-calculated annotation tibble in file: ",
               file_path)
