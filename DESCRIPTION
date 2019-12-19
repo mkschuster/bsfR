@@ -16,6 +16,7 @@ Imports:
     tidyr,
     readr,
     rlang
-RoxygenNote: 6.1.1
+RoxygenNote: 7.0.2
 Collate:
+    'bsf_rnaseq_cufflinks.R'
     'bsf_rnaseq_deseq.R'
