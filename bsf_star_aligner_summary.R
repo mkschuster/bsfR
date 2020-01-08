@@ -82,9 +82,7 @@ argument_list <- parse_args(object = OptionParser(
   )
 ))
 
-suppressPackageStartupMessages(expr = library(package = "ggplot2"))
-suppressPackageStartupMessages(expr = library(package = "reshape2"))
-suppressPackageStartupMessages(expr = library(package = "tibble"))
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 # Save plots in the following formats.
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
@@ -250,8 +248,10 @@ write.table(
 # Scatter plot of read number versus alignment rate per read group --------
 
 
+message("Creating a scatter plot of read number versus alignment rate per read group")
+
 plotting_frame <-
-  reshape2::melt(
+  tidyr::pivot_longer(
     data = tibble::tibble(
       "read_group" = summary_frame$read_group_name,
       "input" = summary_frame$input_reads,
@@ -260,21 +260,21 @@ plotting_frame <-
       "unmapped" = summary_frame$input_reads - summary_frame$uniquely_mapped_reads - summary_frame$multi_mapped_number,
       stringsAsFactors = FALSE
     ),
-    id.vars = c("read_group", "input"),
-    measure.vars = c("unmapped", "multi", "unique"),
-    variable.name = "status",
-    value.name = "mapped"
+    cols = c(.data$unmapped, .data$multi, .data$unique),
+    names_to = "status",
+    values_to = "mapped"
   )
 
-message("Creating a scatter plot of read number versus alignment rate per read group")
 ggplot_object <- ggplot2::ggplot(data = plotting_frame)
 ggplot_object <-
-  ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
-    x = mapped,
-    y = mapped / input,
-    colour = read_group,
-    shape = status
-  ))
+  ggplot_object + ggplot2::geom_point(
+    mapping = ggplot2::aes(
+      x = .data$mapped,
+      y = .data$mapped / .data$input,
+      colour = .data$read_group,
+      shape = .data$status
+    )
+  )
 ggplot_object <-
   ggplot_object + ggplot2::labs(
     x = "Reads Number",
@@ -319,8 +319,10 @@ rm(graphics_format, plot_width, ggplot_object, plotting_frame)
 # Column plot of read numbers per read group ------------------------------
 
 
+message("Creating a column plot of read numbers per read group")
+
 plotting_frame <-
-  reshape2::melt(
+  tidyr::pivot_longer(
     data = tibble::tibble(
       "read_group" = summary_frame$read_group_name,
       "unique" = summary_frame$uniquely_mapped_reads,
@@ -328,17 +330,19 @@ plotting_frame <-
       "unmapped" =
         summary_frame$input_reads - summary_frame$uniquely_mapped_reads - summary_frame$multi_mapped_number
     ),
-    id.vars = c("read_group"),
-    measure.vars = c("unmapped", "multi", "unique"),
-    variable.name = "status",
-    value.name = "number"
+    cols = c(.data$unmapped, .data$multi, .data$unique),
+    names_to = "status",
+    values_to = "number"
   )
 
-message("Creating a column plot of read numbers per read group")
 ggplot_object <- ggplot2::ggplot(data = plotting_frame)
 ggplot_object <-
   ggplot_object + ggplot2::geom_col(
-    mapping = ggplot2::aes(x = read_group, y = number, fill = status),
+    mapping = ggplot2::aes(
+      x = .data$read_group,
+      y = .data$number,
+      fill = .data$status
+    ),
     alpha = I(1 / 3)
   )
 ggplot_object <-
@@ -389,27 +393,31 @@ rm(graphics_format, plot_width, ggplot_object, plotting_frame)
 # Column plot of read fractions per read group ----------------------------
 
 
-plotting_frame <- reshape2::melt(
-  data = tibble::tibble(
-    "read_group" = summary_frame$read_group_name,
-    "unique" = summary_frame$uniquely_mapped_reads / summary_frame$input_reads,
-    "multi" = summary_frame$multi_mapped_number / summary_frame$input_reads,
-    "unmapped" = (
-      summary_frame$input_reads - summary_frame$uniquely_mapped_reads - summary_frame$multi_mapped_number
-    ) / summary_frame$input_reads,
-    stringsAsFactors = FALSE
-  ),
-  id.vars = c("read_group"),
-  measure.vars = c("unmapped", "multi", "unique"),
-  variable.name = "status",
-  value.name = "fraction"
-)
-
 message("Creating a column plot of read fractions per read group")
+plotting_frame <-
+  tidyr::pivot_longer(
+    data = tibble::tibble(
+      "read_group" = summary_frame$read_group_name,
+      "unique" = summary_frame$uniquely_mapped_reads / summary_frame$input_reads,
+      "multi" = summary_frame$multi_mapped_number / summary_frame$input_reads,
+      "unmapped" = (
+        summary_frame$input_reads - summary_frame$uniquely_mapped_reads - summary_frame$multi_mapped_number
+      ) / summary_frame$input_reads,
+      stringsAsFactors = FALSE
+    ),
+    cols = c(.data$unmapped, .data$multi, .data$unique),
+    names_to = "status",
+    values_to = "fraction"
+  )
+
 ggplot_object <- ggplot2::ggplot(data = plotting_frame)
 ggplot_object <-
   ggplot_object + ggplot2::geom_col(
-    mapping = ggplot2::aes(x = read_group, y = fraction, fill = status),
+    mapping = ggplot2::aes(
+      x = .data$read_group,
+      y = .data$fraction,
+      fill = .data$status
+    ),
     alpha = I(1 / 3)
   )
 ggplot_object <-
@@ -462,26 +470,31 @@ rm(graphics_format, plot_width, ggplot_object, plotting_frame)
 # Column plot of splice junction numbers per read group -------------------
 
 
-plotting_frame <- reshape2::melt(
-  data = tibble::tibble(
-    "read_group" = summary_frame$read_group_name,
-    "gtag" = summary_frame$number_splice_gtag,
-    "gcag" = summary_frame$number_splice_gcag,
-    "atac" = summary_frame$number_splice_atac,
-    "non_canonical" = summary_frame$number_splice_non_canonical,
-    stringsAsFactors = FALSE
-  ),
-  id.vars = c("read_group"),
-  measure.vars = c("non_canonical", "atac", "gcag", "gtag"),
-  variable.name = "splice_junction",
-  value.name = "number"
-)
-
 message("Creating a column plot of splice junction numbers per read group")
+
+plotting_frame <-
+  tidyr::pivot_longer(
+    data = tibble::tibble(
+      "read_group" = summary_frame$read_group_name,
+      "gtag" = summary_frame$number_splice_gtag,
+      "gcag" = summary_frame$number_splice_gcag,
+      "atac" = summary_frame$number_splice_atac,
+      "non_canonical" = summary_frame$number_splice_non_canonical,
+      stringsAsFactors = FALSE
+    ),
+    cols = c(.data$non_canonical, .data$atac, .data$gcag, .data$gtag),
+    names_to = "splice_junction",
+    values_to = "number"
+  )
+
 ggplot_object <- ggplot2::ggplot(data = plotting_frame)
 ggplot_object <-
   ggplot_object + ggplot2::geom_col(
-    mapping = ggplot2::aes(x = read_group, y = number, fill = splice_junction),
+    mapping = ggplot2::aes(
+      x = .data$read_group,
+      y = .data$number,
+      fill = .data$splice_junction
+    ),
     alpha = I(1 / 3)
   )
 ggplot_object <-
@@ -534,25 +547,30 @@ rm(graphics_format, plot_width, ggplot_object, plotting_frame)
 # Column plot of splice junction fractions per read group -----------------
 
 
-plotting_frame <- reshape2::melt(
-  data = tibble::tibble(
-    "read_group" = summary_frame$read_group_name,
-    "gtag" = summary_frame$number_splice_gtag / summary_frame$number_splice_total,
-    "gcag" = summary_frame$number_splice_gcag / summary_frame$number_splice_total,
-    "atac" = summary_frame$number_splice_atac / summary_frame$number_splice_total,
-    "non_canonical" = summary_frame$number_splice_non_canonical / summary_frame$number_splice_total
-  ),
-  id.vars = c("read_group"),
-  measure.vars = c("non_canonical", "atac", "gcag", "gtag"),
-  variable.name = "junction",
-  value.name = "fraction"
-)
-
 message("Creating a column plot of splice junction fractions per read group")
+
+plotting_frame <-
+  tidyr::pivot_longer(
+    data = tibble::tibble(
+      "read_group" = summary_frame$read_group_name,
+      "gtag" = summary_frame$number_splice_gtag / summary_frame$number_splice_total,
+      "gcag" = summary_frame$number_splice_gcag / summary_frame$number_splice_total,
+      "atac" = summary_frame$number_splice_atac / summary_frame$number_splice_total,
+      "non_canonical" = summary_frame$number_splice_non_canonical / summary_frame$number_splice_total
+    ),
+    cols = c(.data$non_canonical, .data$atac, .data$gcag, .data$gtag),
+    names_to = "junction",
+    values_to = "fraction"
+  )
+
 ggplot_object <- ggplot2::ggplot(data = plotting_frame)
 ggplot_object <-
   ggplot_object + ggplot2::geom_col(
-    mapping = ggplot2::aes(x = read_group, y = fraction, fill = junction),
+    mapping = ggplot2::aes(
+      x = .data$read_group,
+      y = .data$fraction,
+      fill = .data$junction
+    ),
     alpha = I(1 / 3)
   )
 ggplot_object <-
@@ -677,30 +695,32 @@ if (file.exists(file_path)) {
   # Scatter plot of read number versus alignment rate per sample ----------
 
 
-  plotting_frame <- reshape2::melt(
-    data = tibble::tibble(
-      "sample" = aggregate_frame$sample,
-      "input" = aggregate_frame$reads_input,
-      "multi" = aggregate_frame$reads_multi,
-      "unique" = aggregate_frame$reads_unique,
-      "unmapped" = aggregate_frame$reads_unmapped,
-      stringsAsFactors = FALSE
-    ),
-    id.vars = c("sample", "input"),
-    measure.vars = c("unmapped", "multi", "unique"),
-    variable.name = "status",
-    value.name = "mapped"
-  )
-
   message("Creating a scatter plot of read number versus alignment rate per sample")
+  plotting_frame <-
+    tidyr::pivot_longer(
+      data = tibble::tibble(
+        "sample" = aggregate_frame$sample,
+        "input" = aggregate_frame$reads_input,
+        "multi" = aggregate_frame$reads_multi,
+        "unique" = aggregate_frame$reads_unique,
+        "unmapped" = aggregate_frame$reads_unmapped,
+        stringsAsFactors = FALSE
+      ),
+      cols = c(.data$unmapped, .data$multi, .data$unique),
+      names_to = "status",
+      values_to = "mapped"
+    )
+
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
-      x = mapped,
-      y = mapped / input,
-      colour = sample,
-      shape = status
-    ))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$mapped,
+        y = .data$mapped / .data$input,
+        colour = .data$sample,
+        shape = .data$status
+      )
+    )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Reads Number",
@@ -746,30 +766,38 @@ if (file.exists(file_path)) {
   # Column plot of read numbers per sample --------------------------------
 
 
-  plotting_frame <- reshape2::melt(
-    data = tibble::tibble(
-      "sample" = aggregate_frame$sample,
-      "unmapped" = aggregate_frame$reads_unmapped,
-      "multi" = aggregate_frame$reads_multi,
-      "unique" = aggregate_frame$reads_unique,
-      stringsAsFactors = FALSE
-    ),
-    id.vars = c("sample"),
-    measure.vars = c("unmapped", "multi", "unique"),
-    variable.name = "status",
-    value.name = "number"
-  )
-
   message("Creating a column plot of read numbers per sample")
+  plotting_frame <-
+    tidyr::pivot_longer(
+      data = tibble::tibble(
+        "sample" = aggregate_frame$sample,
+        "unmapped" = aggregate_frame$reads_unmapped,
+        "multi" = aggregate_frame$reads_multi,
+        "unique" = aggregate_frame$reads_unique,
+        stringsAsFactors = FALSE
+      ),
+      cols = c(.data$unmapped, .data$multi, .data$unique),
+      names_to = "status",
+      values_to = "number"
+    )
+
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::geom_col(mapping = ggplot2::aes(x = sample, y = number, fill = status),
-                                      alpha = I(1 / 3))
+    ggplot_object + ggplot2::geom_col(
+      mapping = ggplot2::aes(
+        x = .data$sample,
+        y = .data$number,
+        fill = .data$status
+      ),
+      alpha = I(1 / 3)
+    )
   ggplot_object <-
-    ggplot_object + ggplot2::labs(x = "Sample",
-                                  y = "Reads Number",
-                                  fill = "Mapping Status",
-                                  title = "STAR Aligner Mapped Numbers per Sample")
+    ggplot_object + ggplot2::labs(
+      x = "Sample",
+      y = "Reads Number",
+      fill = "Mapping Status",
+      title = "STAR Aligner Mapped Numbers per Sample"
+    )
   # Reduce the label font size and the legend key size and allow a maximum of 24
   # guide legend rows.
   ggplot_object <-
@@ -815,31 +843,38 @@ if (file.exists(file_path)) {
   # Column plot of read fractions per sample ------------------------------
 
 
-  plotting_frame <- reshape2::melt(
-    data = tibble::tibble(
-      "sample" = aggregate_frame$sample,
-      "unmapped" = aggregate_frame$reads_unmapped / aggregate_frame$reads_input,
-      "multi" = aggregate_frame$reads_multi / aggregate_frame$reads_input,
-      "unique" = aggregate_frame$reads_unique / aggregate_frame$reads_input
-    ),
-    id.vars = c("sample"),
-    measure.vars = c("unmapped", "multi", "unique"),
-    variable.name = "status",
-    value.name = "fraction"
-  )
-
   message("Creating a column plot of read fractions per sample")
+
+  plotting_frame <-
+    tidyr::pivot_longer(
+      data = tibble::tibble(
+        "sample" = aggregate_frame$sample,
+        "unmapped" = aggregate_frame$reads_unmapped / aggregate_frame$reads_input,
+        "multi" = aggregate_frame$reads_multi / aggregate_frame$reads_input,
+        "unique" = aggregate_frame$reads_unique / aggregate_frame$reads_input
+      ),
+      cols = c(.data$unmapped, .data$multi, .data$unique),
+      names_to = "status",
+      values_to = "fraction"
+    )
+
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
     ggplot_object + ggplot2::geom_col(
-      mapping = ggplot2::aes(x = sample, y = fraction, fill = status),
+      mapping = ggplot2::aes(
+        x = .data$sample,
+        y = .data$fraction,
+        fill = .data$status
+      ),
       alpha = I(1 / 3)
     )
   ggplot_object <-
-    ggplot_object + ggplot2::labs(x = "Sample",
-                                  y = "Reads Fraction",
-                                  fill = "Mapping Status",
-                                  title = "STAR Aligner Mapped Fractions per Sample")
+    ggplot_object + ggplot2::labs(
+      x = "Sample",
+      y = "Reads Fraction",
+      fill = "Mapping Status",
+      title = "STAR Aligner Mapped Fractions per Sample"
+    )
   # Reduce the label font size and the legend key size and allow a maximum of 24
   # guide legend rows.
   ggplot_object <-
@@ -885,30 +920,39 @@ if (file.exists(file_path)) {
   # Column plot of splice junction numbers per sample ---------------------
 
 
-  plotting_frame <- reshape2::melt(
-    data = tibble::tibble(
-      "sample" = aggregate_frame$sample,
-      "gtag" = aggregate_frame$junctions_gtag,
-      "gcag" = aggregate_frame$junctions_gcag,
-      "atac" = aggregate_frame$junctions_atac,
-      "non_canonical" = aggregate_frame$junctions_non_canonical
-    ),
-    id.vars = c("sample"),
-    measure.vars = c("non_canonical", "atac", "gcag", "gtag"),
-    variable.name = "junction",
-    value.name = "number"
-  )
-
   message("Creating a column plot of splice junction numbers per sample")
+
+  plotting_frame <-
+    tidyr::pivot_longer(
+      data = tibble::tibble(
+        "sample" = aggregate_frame$sample,
+        "gtag" = aggregate_frame$junctions_gtag,
+        "gcag" = aggregate_frame$junctions_gcag,
+        "atac" = aggregate_frame$junctions_atac,
+        "non_canonical" = aggregate_frame$junctions_non_canonical
+      ),
+      cols = c(.data$non_canonical, .data$atac, .data$gcag, .data$gtag),
+      names_to = "junction",
+      values_to = "number"
+    )
+
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::geom_col(mapping = ggplot2::aes(x = sample, y = number, fill = junction),
-                                      alpha = I(1 / 3))
+    ggplot_object + ggplot2::geom_col(
+      mapping = ggplot2::aes(
+        x = .data$sample,
+        y = .data$number,
+        fill = .data$junction
+      ),
+      alpha = I(1 / 3)
+    )
   ggplot_object <-
-    ggplot_object + ggplot2::labs(x = "Sample",
-                                  y = "Splice Junction Number",
-                                  fill = "Splice Junction",
-                                  title = "STAR Aligner Splice Junction Numbers per Sample")
+    ggplot_object + ggplot2::labs(
+      x = "Sample",
+      y = "Splice Junction Number",
+      fill = "Splice Junction",
+      title = "STAR Aligner Splice Junction Numbers per Sample"
+    )
   # Reduce the label font size and the legend key size and allow a maximum of 24
   # guide legend rows.
   ggplot_object <-
@@ -954,32 +998,39 @@ if (file.exists(file_path)) {
   # Column plot of splice junction fractions per sample -------------------
 
 
-  plotting_frame <- reshape2::melt(
-    data = tibble::tibble(
-      "sample" = aggregate_frame$sample,
-      "gtag" = aggregate_frame$junctions_gtag / aggregate_frame$junctions_total,
-      "gcag" = aggregate_frame$junctions_gcag / aggregate_frame$junctions_total,
-      "atac" = aggregate_frame$junctions_atac / aggregate_frame$junctions_total,
-      "non_canonical" = aggregate_frame$junctions_non_canonical / aggregate_frame$junctions_total
-    ),
-    id.vars = c("sample"),
-    measure.vars = c("non_canonical", "atac", "gcag", "gtag"),
-    variable.name = "junction",
-    value.name = "fraction"
-  )
-
   message("Creating a column plot of splice junction fractions per sample")
+
+  plotting_frame <-
+    tidyr::pivot_longer(
+      data = tibble::tibble(
+        "sample" = aggregate_frame$sample,
+        "gtag" = aggregate_frame$junctions_gtag / aggregate_frame$junctions_total,
+        "gcag" = aggregate_frame$junctions_gcag / aggregate_frame$junctions_total,
+        "atac" = aggregate_frame$junctions_atac / aggregate_frame$junctions_total,
+        "non_canonical" = aggregate_frame$junctions_non_canonical / aggregate_frame$junctions_total
+      ),
+      cols = c(.data$non_canonical, .data$atac, .data$gcag, .data$gtag),
+      names_to = "junction",
+      values_to = "fraction"
+    )
+
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
     ggplot_object + ggplot2::geom_col(
-      mapping = ggplot2::aes(x = sample, y = fraction, fill = junction),
+      mapping = ggplot2::aes(
+        x = .data$sample,
+        y = .data$fraction,
+        fill = .data$junction
+      ),
       alpha = I(1 / 3)
     )
   ggplot_object <-
-    ggplot_object + ggplot2::labs(x = "Sample",
-                                  y = "Splice Junction Fraction",
-                                  fill = "Splice Junction",
-                                  title = "STAR Aligner Splice Junction Fractions per Sample")
+    ggplot_object + ggplot2::labs(
+      x = "Sample",
+      y = "Splice Junction Fraction",
+      fill = "Splice Junction",
+      title = "STAR Aligner Splice Junction Fractions per Sample"
+    )
   # Reduce the label font size and the legend key size and allow a maximum of 24
   # guide legend rows.
   ggplot_object <-

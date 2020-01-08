@@ -69,16 +69,15 @@ argument_list <-
     )
   ))
 
-suppressPackageStartupMessages(expr = library(package = "ggplot2"))
-suppressPackageStartupMessages(expr = library(package = "reshape2"))
-suppressPackageStartupMessages(expr = library(package = "stringi"))  # For stringi::stri_split_fixed()
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+suppressPackageStartupMessages(expr = library(package = "stringi"))
 
 #' Process trimmomatic STDOUT files and return a named character vector.
 #' Names are: "line", "input", "both", "first", "second", "dropped"
 #'
-#' @param file_path: File path
-#' @return: Named character vector
-
+#' @noRd
+#' @param file_path A \code{character} scalar with the file path.
+#' @return A named \code{character} vector of parsed components.
 process_stdout <- function(file_path) {
   if (is.null(x = file_path)) {
     stop("Missing file_path argument.")
@@ -117,15 +116,17 @@ process_stdout <- function(file_path) {
 #'
 #' Trimmomatic trimlog files are tab-separated value (TSV) files with the
 #' following variables:
+#'
 #' 1: read name
 #' 2: surviving sequence length
 #' 3: location of the first surviving base, or the amount trimmed from the start
 #' 4: location of the last surviving base in the original read
 #' 5: amount trimmed from the end
-#' @param file_path: File path
-#' @param number: Maximum number of (paired) reads to read
-#' @return:
-
+#' @noRd
+#' @param file_path A \code{character} scalar with the file path.
+#' @param number An \code{integer} scalar indicating the maximum number of
+#'   (paired) reads to read.
+#' @return
 process_trimlog <- function(file_path, number = -1L) {
   file_prefix <- sub(
     pattern = "_trim_log\\.tsv(\\.gz)?",
@@ -175,7 +176,7 @@ process_trimlog <- function(file_path, number = -1L) {
       break()
     }
     trimlog_list <-
-      stri_split_fixed(str = trimlog_line, pattern = " ")
+      stringi::stri_split_fixed(str = trimlog_line, pattern = " ")
     # The read length is the sum of the end trimming position and the amount trimmed from the end.
     # The data frame length is one longer to store the end position.
     frame_length <-
@@ -239,7 +240,7 @@ process_trimlog <- function(file_path, number = -1L) {
       break()
     }
     trimlog_list <-
-      stri_split_fixed(str = trimlog_line, pattern = " ")
+      stringi::stri_split_fixed(str = trimlog_line, pattern = " ")
 
     # Check for read 1.
     if (endsWith(x = trimlog_list[[1]][1], "/1")) {
@@ -335,20 +336,27 @@ process_trimlog <- function(file_path, number = -1L) {
     col.names = TRUE
   )
 
-  # Melt the data frame on measure variables "coverage_5", "coverage_3" and "coverage"
-  # and plot faceted by column on the "read" factor.
-  molten_frame <- melt(
-    data = trimmomatic_frame,
-    id.vars = c("position", "read"),
-    measure.vars = c("coverage_5", "coverage_3", "coverage"),
-    variable.name = "type",
-    value.name = "reads"
+  # Coverage Summary Plot -------------------------------------------------
+
+
+  # Pivot the data frame on measure variables "coverage_5", "coverage_3" and
+  # "coverage" and plot faceted by column on the "read" factor.
+  ggplot_object <- ggplot2::ggplot(
+    data = tidyr::pivot_longer(
+      data = trimmomatic_frame,
+      cols = c(.data$coverage_5, .data$coverage_3, .data$coverage),
+      names_to = "type",
+      values_to = "reads"
+    )
   )
-  ggplot_object <- ggplot2::ggplot(data = molten_frame)
   ggplot_object <-
     ggplot_object + ggplot2::facet_grid(cols = ggplot2::vars(read))
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = position, y = reads, colour = type))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
+      x = .data$position,
+      y = .data$reads,
+      colour = .data$type
+    ))
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Position",
@@ -359,20 +367,27 @@ process_trimlog <- function(file_path, number = -1L) {
   ggplot2::ggsave(filename = paste(file_prefix, "coverage.png", sep = "_"),
                   plot = ggplot_object)
 
-  # Melt the data frame on measure variables "frequency_5" and "frequency_3"
+  # Frequency Summary Plot ------------------------------------------------
+
+
+  # Pivot the data frame on measure variables "frequency_5" and "frequency_3"
   # and plot faceted by column on the "read" factor.
-  molten_frame <- melt(
-    data = trimmomatic_frame,
-    id.vars = c("position", "read"),
-    measure.vars = c("frequency_5", "frequency_3"),
-    variable.name = "type",
-    value.name = "reads"
+  ggplot_object <- ggplot2::ggplot(
+    data = tidyr::pivot_longer(
+      data = trimmomatic_frame,
+      cols = c(.data$frequency_5, .data$frequency_3),
+      names_to = "type",
+      values_to = "reads"
+    )
   )
-  ggplot_object <- ggplot2::ggplot(data = molten_frame)
   ggplot_object <-
     ggplot_object + ggplot2::facet_grid(cols = ggplot2::vars(read))
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = position, y = reads, colour = type))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
+      x = .data$position,
+      y = .data$reads,
+      colour = .data$type
+    ))
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Position",
@@ -383,38 +398,34 @@ process_trimlog <- function(file_path, number = -1L) {
   ggplot2::ggsave(filename = paste(file_prefix, "frequency.png", sep = "_"),
                   plot = ggplot_object)
 
-  # Melt the data frame on measure variables "surviving"
-  # and plot faceted by column on the "read" factor.
-  # molten_frame <- melt(
-  #   data = trimmomatic_frame,
-  #   id.vars = c("position", "read"),
-  #   measure.vars = c("surviving"),
-  #   variable.name = "type",
-  #   value.name = "reads"
-  # )
-  # Rather than melting with a single measure variable, just select from the data frame.
-  molten_frame <-
-    trimmomatic_frame[, c("position", "read", "surviving")]
-  ggplot_object <- ggplot2::ggplot(data = molten_frame)
+  # Surviving Sequence Plot -----------------------------------------------
+
+
+  # Select measure variable "surviving" and variables "position" and "read" and
+  # plot faceted by column on the "read" factor.
+  ggplot_object <-
+    ggplot2::ggplot(
+      data = dplyr::select(.data = trimmomatic_frame, .data$position, .data$read, .data$surviving)
+    )
   ggplot_object <-
     ggplot_object + ggplot2::facet_grid(cols = ggplot2::vars(read))
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = position, y = surviving))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = .data$position, y = .data$surviving))
   ggplot_object <-
     ggplot_object + ggplot2::labs(x = "Position", y = "Reads", title = "Surviving Sequence")
   ggplot2::ggsave(filename = paste(file_prefix, "surviving.png", sep = "_"),
                   plot = ggplot_object)
 
-  rm(ggplot_object, molten_frame, trimmomatic_frame, file_prefix)
+  rm(ggplot_object, trimmomatic_frame, file_prefix)
   return()
 }
 
 #' Process Trimmomatic summary data frame files, produced by this script by
 #' reading Trimmomatic trimlog files.
 #'
-#' @param directory_path: Directory path
-#' @return:
-
+#' @param directory_path A \code{character} scalar with a directory path.
+#' @return
+#' @noRd
 process_summary <- function(directory_path) {
   file_list <- list.files(
     path = directory_path,

@@ -2,7 +2,8 @@
 #
 # BSF R script to summarise a variant caling analysis. Picard Duplication
 # Metrics, Picard Alignment Summary Metrics and Picard Hybrid Selection Metrics
-# reports are read for each sample and plotted at the read group or sample level.
+# reports are read for each sample and plotted at the read group or sample
+# level.
 #
 #
 # Copyright 2013 - 2019 Michael K. Schuster
@@ -69,11 +70,7 @@ argument_list <- parse_args(object = OptionParser(
   )
 ))
 
-suppressPackageStartupMessages(expr = library(package = "dplyr"))
-suppressPackageStartupMessages(expr = library(package = "ggplot2"))
-suppressPackageStartupMessages(expr = library(package = "reshape2"))
-suppressPackageStartupMessages(expr = library(package = "tibble"))
-suppressPackageStartupMessages(expr = library(package = "tidyr"))
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 # Save plots in the following formats.
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
@@ -117,7 +114,8 @@ for (file_name in file_names) {
   message(paste0("  ", sample_name))
 
   # Picard Tools added a histogram section that needs excluding from parsing.
-  # Find the lines starting with "## METRICS CLASS" and "## HISTOGRAM" and read that many lines.
+  # Find the lines starting with "## METRICS CLASS" and "## HISTOGRAM" and read
+  # that many lines.
   metrics_lines <- readLines(con = file_name)
   metrics_line <-
     which(x = grepl(pattern = "## METRICS CLASS", x = metrics_lines))
@@ -201,7 +199,7 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_sample)
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = PERCENT_DUPLICATION))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = .data$SAMPLE, y = .data$PERCENT_DUPLICATION))
   ggplot_object <-
     ggplot_object + ggplot2::labs(x = "Sample", y = "Duplication Fraction", title = "Duplication Fraction per Sample")
   ggplot_object <-
@@ -232,24 +230,26 @@ if (!is.null(x = combined_metrics_sample)) {
   # PERCENT_READ_PAIR_OPTICAL_DUPLICATION and PERCENT_DUPLICATION per sample.
 
   message("Plotting the duplication levels per sample")
-  plotting_frame <- reshape2::melt(
-    data = combined_metrics_sample,
-    id.vars = c("SAMPLE"),
-    measure.vars = c(
-      "PERCENT_UNPAIRED_READ_DUPLICATION",
-      "PERCENT_READ_PAIR_DUPLICATION",
-      "PERCENT_READ_PAIR_OPTICAL_DUPLICATION",
-      "PERCENT_DUPLICATION"
-    ),
-    variable.name = "DUPLICATION",
-    value.name = "fraction"
-  )
 
-  ggplot_object <- ggplot2::ggplot(data = plotting_frame)
+  ggplot_object <- ggplot2::ggplot(
+    data = tidyr::pivot_longer(
+      data = combined_metrics_sample,
+      cols = c(
+        .data$PERCENT_UNPAIRED_READ_DUPLICATION,
+        .data$PERCENT_READ_PAIR_DUPLICATION,
+        .data$PERCENT_READ_PAIR_OPTICAL_DUPLICATION,
+        .data$PERCENT_DUPLICATION
+      ),
+      names_to = "DUPLICATION",
+      values_to = "fraction"
+    )
+  )
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE,
-                                                               y = fraction,
-                                                               colour = DUPLICATION))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
+      x = .data$SAMPLE,
+      y = .data$fraction,
+      colour = .data$DUPLICATION
+    ))
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
@@ -277,7 +277,7 @@ if (!is.null(x = combined_metrics_sample)) {
     )
   }
 
-  rm(graphics_format, ggplot_object, plotting_frame)
+  rm(graphics_format, ggplot_object)
 
   rm(plot_width)
 }
@@ -300,9 +300,10 @@ for (file_name in file_names) {
          replacement = "\\1",
          x = file_name)
   message(paste0("  ", sample_name))
-  # Since the Illumina2bam tools BamIndexDecoder uses a hash character (#) in the read group component
-  # to separate platform unit and sample name, the Picard reports need special parsing.
-  # Find the ## METRICS CLASS line and parse without allowing further comments.
+  # Since the Illumina2bam tools BamIndexDecoder uses a hash character (#) in
+  # the read group component to separate platform unit and sample name, the
+  # Picard reports need special parsing. Find the ## METRICS CLASS line and
+  # parse without allowing further comments.
   metrics_lines <- readLines(con = file_name)
   metrics_line <-
     which(x = grepl(pattern = "## METRICS CLASS", x = metrics_lines))
@@ -317,8 +318,8 @@ for (file_name in file_names) {
       stringsAsFactors = FALSE
     )
   rm(metrics_line, metrics_lines)
-  # To support numeric sample names the read.table(stringsAsFactors = FALSE) is turned off.
-  # Convert SAMPLE, LIBRARY and READ_GROUP into character vectors.
+  # To support numeric sample names the read.table(stringsAsFactors = FALSE) is
+  # turned off. Convert SAMPLE, LIBRARY and READ_GROUP into character vectors.
   picard_metrics_total$SAMPLE <-
     as.character(x = picard_metrics_total$SAMPLE)
   picard_metrics_total$LIBRARY <-
@@ -327,7 +328,8 @@ for (file_name in file_names) {
     as.character(x = picard_metrics_total$READ_GROUP)
 
   # The Picard Alignment Metrics report has changed format through versions.
-  # Columns PF_READS_IMPROPER_PAIRS and PCT_PF_READS_IMPROPER_PAIRS were added at a later stage.
+  # Columns PF_READS_IMPROPER_PAIRS and PCT_PF_READS_IMPROPER_PAIRS were added
+  # at a later stage.
   if (is.null(x = picard_metrics_total$PF_READS_IMPROPER_PAIRS)) {
     picard_metrics_total$PF_READS_IMPROPER_PAIRS <- 0L
   }
@@ -335,7 +337,8 @@ for (file_name in file_names) {
     picard_metrics_total$PCT_PF_READS_IMPROPER_PAIRS <- 0.0
   }
 
-  # Select only rows showing the SAMPLE summary, i.e. showing SAMPLE, but no LIBRARY and READ_GROUP information.
+  # Select only rows showing the SAMPLE summary, i.e. showing SAMPLE, but no
+  # LIBRARY and READ_GROUP information.
   picard_metrics_sample <-
     picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
                            (picard_metrics_total$SAMPLE != "") &
@@ -349,7 +352,8 @@ for (file_name in file_names) {
   }
   rm(picard_metrics_sample)
 
-  # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP information.
+  # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP
+  # information.
   picard_metrics_read_group <-
     picard_metrics_total[(picard_metrics_total$READ_GROUP != ""), ]
   if (is.null(x = combined_metrics_read_group)) {
@@ -368,12 +372,14 @@ if (!is.null(x = combined_metrics_sample)) {
   # Order the data frame by SAMPLE.
   combined_metrics_sample <-
     combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
-  # Manually convert CATEGORY and SAMPLE columns into factors, which are handy for plotting.
+  # Manually convert CATEGORY and SAMPLE columns into factors, which are handy
+  # for plotting.
   combined_metrics_sample$CATEGORY <-
     as.factor(x = combined_metrics_sample$CATEGORY)
   combined_metrics_sample$SAMPLE <-
     as.factor(x = combined_metrics_sample$SAMPLE)
-  # Add an additional LABEL factor column defined as a concatenation of SAMPLE and CATEGORY.
+  # Add an additional LABEL factor column defined as a concatenation of SAMPLE
+  # and CATEGORY.
   combined_metrics_sample$LABEL <-
     as.factor(x = paste(
       combined_metrics_sample$SAMPLE,
@@ -392,12 +398,14 @@ if (!is.null(x = combined_metrics_sample)) {
   # Order the data frame by READ_GROUP
   combined_metrics_read_group <-
     combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP),]
-  # Manually convert CATEGORY and READ_GROUP columns into factors, which are handy for plotting.
+  # Manually convert CATEGORY and READ_GROUP columns into factors, which are
+  # handy for plotting.
   combined_metrics_read_group$CATEGORY <-
     as.factor(x = combined_metrics_read_group$CATEGORY)
   combined_metrics_read_group$READ_GROUP <-
     as.factor(x = combined_metrics_read_group$READ_GROUP)
-  # Add an additional LABEL factor column defined as a concatenation of READ_GROUP and CATEGORY.
+  # Add an additional LABEL factor column defined as a concatenation of
+  # READ_GROUP and CATEGORY.
   combined_metrics_read_group$LABEL <-
     as.factor(
       x = paste(
@@ -426,11 +434,13 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the aligned pass-filter reads number per sample")
   ggplot_object <-
-    ggplot2::ggplot(
-      data = tibble::as_tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "NUMBER", -CATEGORY, -SAMPLE)
-    )
+    ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED"), drop = FALSE])
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = NUMBER, colour = CATEGORY))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
+      x = .data$SAMPLE,
+      y = .data$PF_READS_ALIGNED,
+      colour = .data$CATEGORY
+    ))
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
@@ -464,11 +474,15 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the aligned pass-filter reads number per read group")
   ggplot_object <-
-    ggplot2::ggplot(
-      data = tibble::as_tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "NUMBER", -CATEGORY, -READ_GROUP)
-    )
+    ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PF_READS_ALIGNED"), drop = FALSE])
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP, y = NUMBER, colour = CATEGORY))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$READ_GROUP,
+        y = .data$PF_READS_ALIGNED,
+        colour = .data$CATEGORY
+      )
+    )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Read Group",
@@ -502,11 +516,15 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the aligned pass-filter reads fraction per sample")
   ggplot_object <-
-    ggplot2::ggplot(
-      data = tibble::as_tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PCT_PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -SAMPLE)
-    )
+    ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PCT_PF_READS_ALIGNED"), drop = FALSE])
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = FRACTION, colour = CATEGORY))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$SAMPLE,
+        y = .data$PCT_PF_READS_ALIGNED,
+        colour = .data$CATEGORY
+      )
+    )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
@@ -540,11 +558,15 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the aligned pass-filter reads fraction per read group")
   ggplot_object <-
-    ggplot2::ggplot(
-      data = tibble::as_tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PCT_PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -READ_GROUP)
-    )
+    ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PCT_PF_READS_ALIGNED"), drop = FALSE])
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP, y = FRACTION, colour = CATEGORY))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$READ_GROUP,
+        y = .data$PCT_PF_READS_ALIGNED,
+        colour = .data$CATEGORY
+      )
+    )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Read Group",
@@ -578,11 +600,13 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the strand balance of aligned pass-filter reads per sample")
   ggplot_object <-
-    ggplot2::ggplot(
-      data = tibble::as_tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "STRAND_BALANCE")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -SAMPLE)
-    )
+    ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "STRAND_BALANCE"), drop = FALSE])
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = FRACTION, colour = CATEGORY))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
+      x = .data$SAMPLE,
+      y = .data$STRAND_BALANCE,
+      colour = .data$CATEGORY
+    ))
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
@@ -616,11 +640,15 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the strand balance of aligned pass-filter reads per read group")
   ggplot_object <-
-    ggplot2::ggplot(
-      data = tibble::as_tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "STRAND_BALANCE")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -READ_GROUP)
-    )
+    ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "STRAND_BALANCE"), drop = FALSE])
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP, y = FRACTION, colour = CATEGORY))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$READ_GROUP,
+        y = .data$STRAND_BALANCE,
+        colour = .data$CATEGORY
+      )
+    )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Read Group",
@@ -675,7 +703,8 @@ for (file_name in file_names) {
          x = file_name)
   message(paste0("  ", sample_name))
   # Picard Tools added a histogram section that needs excluding from parsing.
-  # Find the lines starting with "## METRICS CLASS" and "## HISTOGRAM" and read that many lines.
+  # Find the lines starting with "## METRICS CLASS" and "## HISTOGRAM" and read
+  # that many lines.
   metrics_lines <- readLines(con = file_name)
   metrics_line <-
     which(x = grepl(pattern = "## METRICS CLASS", x = metrics_lines))
@@ -706,8 +735,8 @@ for (file_name in file_names) {
      histogram_line,
      metrics_line,
      metrics_lines)
-  # To support numeric sample names the read.table(stringsAsFactors = FALSE) is turned off.
-  # Convert SAMPLE, LIBRARY and READ_GROUP into character vectors.
+  # To support numeric sample names the read.table(stringsAsFactors = FALSE) is
+  # turned off. Convert SAMPLE, LIBRARY and READ_GROUP into character vectors.
   picard_metrics_total$SAMPLE <-
     as.character(x = picard_metrics_total$SAMPLE)
   picard_metrics_total$LIBRARY <-
@@ -717,15 +746,24 @@ for (file_name in file_names) {
 
   # The Picard Hybrid Selection Metrics report has changed format through versions.
   # Column PCT_TARGET_BASES_1X was added at a later stage.
-  if (is.null(x = picard_metrics_total$PCT_TARGET_BASES_1X)) {
+  if (!"PCT_TARGET_BASES_1X" %in% names(x = picard_metrics_total)) {
     picard_metrics_total$PCT_TARGET_BASES_1X <- 0.0
   }
 
-  if (is.null(x = picard_metrics_total$MAX_TARGET_COVERAGE)) {
+  if (!"MAX_TARGET_COVERAGE" %in% names(x = picard_metrics_total)) {
     picard_metrics_total$MAX_TARGET_COVERAGE <- 0L
   }
 
-  # Select only rows showing the SAMPLE summary, i.e. showing SAMPLE, but no LIBRARY and READ_GROUP information.
+  if (!"PCT_EXC_ADAPTER" %in% names(x = picard_metrics_total)) {
+    picard_metrics_total$PCT_EXC_ADAPTER <- 0.0
+  }
+
+  if (!"PF_BASES" %in% names(x = picard_metrics_total)) {
+    picard_metrics_total$PF_BASES <- 0L
+  }
+
+  # Select only rows showing the SAMPLE summary, i.e. showing SAMPLE, but no
+  # LIBRARY and READ_GROUP information.
   picard_metrics_sample <-
     picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
                            (picard_metrics_total$SAMPLE != "") &
@@ -739,7 +777,8 @@ for (file_name in file_names) {
   }
   rm(picard_metrics_sample)
 
-  # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP information.
+  # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP
+  # information.
   picard_metrics_read_group <-
     picard_metrics_total[(picard_metrics_total$READ_GROUP != ""), ]
   if (is.null(x = combined_metrics_read_group)) {
@@ -760,7 +799,8 @@ if (!is.null(x = combined_metrics_sample)) {
   # Sort the data frame by SAMPLE.
   combined_metrics_sample <-
     combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
-  # Manually convert BAIT_SET and SAMPLE columns into factors, which are handy for plotting.
+  # Manually convert BAIT_SET and SAMPLE columns into factors, which are handy
+  # for plotting.
   combined_metrics_sample$BAIT_SET <-
     as.factor(x = combined_metrics_sample$BAIT_SET)
   combined_metrics_sample$SAMPLE <-
@@ -776,7 +816,8 @@ if (!is.null(x = combined_metrics_sample)) {
   # Sort the data frame by READ_GROUP.
   combined_metrics_read_group <-
     combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP), ]
-  # Manually convert BAIT_SET and READ_GROUP columns into factors, which are handy for plotting.
+  # Manually convert BAIT_SET and READ_GROUP columns into factors, which are
+  # handy for plotting.
   combined_metrics_read_group$BAIT_SET <-
     as.factor(x = combined_metrics_read_group$BAIT_SET)
   combined_metrics_read_group$READ_GROUP <-
@@ -804,7 +845,7 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_sample)
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = PCT_PF_UQ_READS))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = .data$SAMPLE, y = .data$PCT_PF_UQ_READS))
   ggplot_object <-
     ggplot_object + ggplot2::labs(x = "Sample" , y = "Fraction PF Unique", title = "Unique Pass-Filter Reads per Sample")
   ggplot_object <-
@@ -835,7 +876,13 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_read_group)
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP, y = PCT_PF_UQ_READS, shape = BAIT_SET))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$READ_GROUP,
+        y = .data$PCT_PF_UQ_READS,
+        shape = .data$BAIT_SET
+      )
+    )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Read Group",
@@ -880,7 +927,7 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_sample)
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = MEAN_TARGET_COVERAGE))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = .data$SAMPLE, y = .data$MEAN_TARGET_COVERAGE))
   ggplot_object <-
     ggplot_object + ggplot2::labs(x = "Sample", y = "Mean Target Coverage", title = "Mean Target Coverage per Sample")
   ggplot_object <-
@@ -911,7 +958,13 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_read_group)
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP, y = MEAN_TARGET_COVERAGE, shape = BAIT_SET))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$READ_GROUP,
+        y = .data$MEAN_TARGET_COVERAGE,
+        shape = .data$BAIT_SET
+      )
+    )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Read Group",
@@ -953,24 +1006,28 @@ if (!is.null(x = combined_metrics_sample)) {
 
 
   message("Plotting the percentage of excluded bases per sample")
-  plotting_frame <- reshape2::melt(
-    data = combined_metrics_sample,
-    id.vars = c("SAMPLE", "BAIT_SET"),
-    measure.vars = c(
-      "PCT_EXC_DUPE",
-      "PCT_EXC_MAPQ",
-      "PCT_EXC_BASEQ",
-      "PCT_EXC_OVERLAP",
-      "PCT_EXC_OFF_TARGET"
-    ),
-    variable.name = "EXCLUDED",
-    value.name = "fraction"
-  )
 
-  ggplot_object <- ggplot2::ggplot(data = plotting_frame)
+  ggplot_object <- ggplot2::ggplot(
+    data = tidyr::pivot_longer(
+      data = combined_metrics_sample,
+      cols = c(
+        .data$PCT_EXC_DUPE,
+        .data$PCT_EXC_MAPQ,
+        .data$PCT_EXC_BASEQ,
+        .data$PCT_EXC_OVERLAP,
+        .data$PCT_EXC_OFF_TARGET
+      ),
+      names_to = "EXCLUDED",
+      values_to = "fraction"
+    )
+  )
   ggplot_object <-
     ggplot_object + ggplot2::geom_col(
-      mapping = ggplot2::aes(x = SAMPLE, y = fraction, fill = EXCLUDED),
+      mapping = ggplot2::aes(
+        x = .data$SAMPLE,
+        y = .data$fraction,
+        fill = .data$EXCLUDED
+      ),
       alpha = I(1 / 3)
     )
   ggplot_object <-
@@ -1001,34 +1058,34 @@ if (!is.null(x = combined_metrics_sample)) {
       limitsize = FALSE
     )
   }
-  rm(graphics_format, ggplot_object, plotting_frame)
+  rm(graphics_format, ggplot_object)
 
   # Plot the percentage of excluded bases per read group ------------------
 
 
   message("Plotting the percentage of excluded bases per read group")
-  plotting_frame <- reshape2::melt(
-    data = combined_metrics_read_group,
-    id.vars = c("READ_GROUP", "BAIT_SET"),
-    measure.vars = c(
-      "PCT_EXC_DUPE",
-      "PCT_EXC_MAPQ",
-      "PCT_EXC_BASEQ",
-      "PCT_EXC_OVERLAP",
-      "PCT_EXC_OFF_TARGET"
-    ),
-    variable.name = "EXCLUDED",
-    value.name = "fraction"
-  )
 
-  ggplot_object <- ggplot2::ggplot(data = plotting_frame)
+  ggplot_object <- ggplot2::ggplot(
+    data = tidyr::pivot_longer(
+      data = combined_metrics_read_group,
+      cols = c(
+        .data$PCT_EXC_DUPE,
+        .data$PCT_EXC_MAPQ,
+        .data$PCT_EXC_BASEQ,
+        .data$PCT_EXC_OVERLAP,
+        .data$PCT_EXC_OFF_TARGET
+      ),
+      names_to = "EXCLUDED",
+      values_to = "fraction"
+    )
+  )
   ggplot_object <-
     ggplot_object + ggplot2::geom_col(
       mapping = ggplot2::aes(
-        x = READ_GROUP,
-        y = fraction,
-        fill = EXCLUDED,
-        colour = BAIT_SET
+        x = .data$READ_GROUP,
+        y = .data$fraction,
+        fill = .data$EXCLUDED,
+        colour = .data$BAIT_SET
       ),
       alpha = I(1 / 3)
     )
@@ -1068,36 +1125,39 @@ if (!is.null(x = combined_metrics_sample)) {
       limitsize = FALSE
     )
   }
-  rm(graphics_format, ggplot_object, plotting_frame)
+  rm(graphics_format, ggplot_object)
 
   # Plot target coverage levels per sample --------------------------------
 
 
-  # Plot PCT_TARGET_BASES_1X, PCT_TARGET_BASES_2X, PCT_TARGET_BASES_10X, PCT_TARGET_BASES_20X,
-  # PCT_TARGET_BASES_30X, PCT_TARGET_BASES_40X, PCT_TARGET_BASES_50X, PCT_TARGET_BASES_100X per sample.
+  # Plot PCT_TARGET_BASES_1X, PCT_TARGET_BASES_2X, PCT_TARGET_BASES_10X,
+  # PCT_TARGET_BASES_20X, PCT_TARGET_BASES_30X, PCT_TARGET_BASES_40X,
+  # PCT_TARGET_BASES_50X, PCT_TARGET_BASES_100X per sample.
   message("Plotting the coverage levels per sample")
-  plotting_frame <- reshape2::melt(
-    data = combined_metrics_sample,
-    id.vars = c("SAMPLE", "BAIT_SET"),
-    measure.vars = c(
-      "PCT_TARGET_BASES_1X",
-      "PCT_TARGET_BASES_2X",
-      "PCT_TARGET_BASES_10X",
-      "PCT_TARGET_BASES_20X",
-      "PCT_TARGET_BASES_30X",
-      "PCT_TARGET_BASES_40X",
-      "PCT_TARGET_BASES_50X",
-      "PCT_TARGET_BASES_100X"
-    ),
-    variable.name = "COVERAGE",
-    value.name = "fraction"
-  )
 
-  ggplot_object <- ggplot2::ggplot(data = plotting_frame)
+  ggplot_object <- ggplot2::ggplot(
+    data = tidyr::pivot_longer(
+      data = combined_metrics_sample,
+      cols = c(
+        .data$PCT_TARGET_BASES_1X,
+        .data$PCT_TARGET_BASES_2X,
+        .data$PCT_TARGET_BASES_10X,
+        .data$PCT_TARGET_BASES_20X,
+        .data$PCT_TARGET_BASES_30X,
+        .data$PCT_TARGET_BASES_40X,
+        .data$PCT_TARGET_BASES_50X,
+        .data$PCT_TARGET_BASES_100X
+      ),
+      names_to = "COVERAGE",
+      values_to = "fraction"
+    )
+  )
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE,
-                                                               y = fraction,
-                                                               colour = COVERAGE))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
+      x = .data$SAMPLE,
+      y = .data$fraction,
+      colour = .data$COVERAGE
+    ))
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
@@ -1128,39 +1188,42 @@ if (!is.null(x = combined_metrics_sample)) {
       limitsize = FALSE
     )
   }
-  rm(graphics_format, ggplot_object, plotting_frame)
+  rm(graphics_format, ggplot_object)
 
   # Plot target coverage levels per read group ----------------------------
 
 
-  # Plot PCT_TARGET_BASES_1X, PCT_TARGET_BASES_2X, PCT_TARGET_BASES_10X, PCT_TARGET_BASES_20X,
-  # PCT_TARGET_BASES_30X, PCT_TARGET_BASES_40X, PCT_TARGET_BASES_50X, PCT_TARGET_BASES_100X per read group.
+  # Plot PCT_TARGET_BASES_1X, PCT_TARGET_BASES_2X, PCT_TARGET_BASES_10X,
+  # PCT_TARGET_BASES_20X, PCT_TARGET_BASES_30X, PCT_TARGET_BASES_40X,
+  # PCT_TARGET_BASES_50X, PCT_TARGET_BASES_100X per read group.
   message("Plotting the coverage levels per read group")
-  plotting_frame <- reshape2::melt(
-    data = combined_metrics_read_group,
-    id.vars = c("READ_GROUP", "BAIT_SET"),
-    measure.vars = c(
-      "PCT_TARGET_BASES_1X",
-      "PCT_TARGET_BASES_2X",
-      "PCT_TARGET_BASES_10X",
-      "PCT_TARGET_BASES_20X",
-      "PCT_TARGET_BASES_30X",
-      "PCT_TARGET_BASES_40X",
-      "PCT_TARGET_BASES_50X",
-      "PCT_TARGET_BASES_100X"
-    ),
-    variable.name = "COVERAGE",
-    value.name = "fraction"
-  )
 
-  ggplot_object <- ggplot2::ggplot(data = plotting_frame)
+  ggplot_object <- ggplot2::ggplot(
+    data = tidyr::pivot_longer(
+      data = combined_metrics_read_group,
+      cols = c(
+        .data$PCT_TARGET_BASES_1X,
+        .data$PCT_TARGET_BASES_2X,
+        .data$PCT_TARGET_BASES_10X,
+        .data$PCT_TARGET_BASES_20X,
+        .data$PCT_TARGET_BASES_30X,
+        .data$PCT_TARGET_BASES_40X,
+        .data$PCT_TARGET_BASES_50X,
+        .data$PCT_TARGET_BASES_100X
+      ),
+      names_to = "COVERAGE",
+      values_to = "fraction"
+    )
+  )
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
-      x = READ_GROUP,
-      y = fraction,
-      colour = COVERAGE,
-      shape = BAIT_SET
-    ))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$READ_GROUP,
+        y = .data$fraction,
+        colour = .data$COVERAGE,
+        shape = .data$BAIT_SET
+      )
+    )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Read Group",
@@ -1202,12 +1265,13 @@ if (!is.null(x = combined_metrics_sample)) {
       limitsize = FALSE
     )
   }
-  rm(graphics_format, ggplot_object, plotting_frame)
+  rm(graphics_format, ggplot_object)
 
   # Plot the nominal coverage per sample ----------------------------------
 
 
-  # Plot the nominal coverage (i.e. PF_BASES_ALIGNED / TARGET_TERRITORY) per sample.
+  # Plot the nominal coverage (i.e. PF_BASES_ALIGNED / TARGET_TERRITORY) per
+  # sample.
 
   message("Plotting the nominal coverage per sample")
   plotting_frame <-
@@ -1221,8 +1285,8 @@ if (!is.null(x = combined_metrics_sample)) {
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE,
-                                                               y = NOMINAL_COVERAGE))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = .data$SAMPLE,
+                                                               y = .data$NOMINAL_COVERAGE))
   ggplot_object <-
     ggplot_object + ggplot2::labs(x = "Sample", y = "Nominal Coverage", title = "Nominal Coverage per Sample")
   ggplot_object <-
@@ -1251,7 +1315,8 @@ if (!is.null(x = combined_metrics_sample)) {
   # Plot the nominal coverage per read group ------------------------------
 
 
-  # Plot the nominal coverage (i.e. PF_BASES_ALIGNED / TARGET_TERRITORY) per read group.
+  # Plot the nominal coverage (i.e. PF_BASES_ALIGNED / TARGET_TERRITORY) per
+  # read group.
 
   message("Plotting the nominal coverage per read group")
   plotting_frame <-
@@ -1265,9 +1330,13 @@ if (!is.null(x = combined_metrics_sample)) {
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP,
-                                                               y = NOMINAL_COVERAGE,
-                                                               shape = BAIT_SET))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$READ_GROUP,
+        y = .data$NOMINAL_COVERAGE,
+        shape = .data$BAIT_SET
+      )
+    )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Read Group",
@@ -1418,8 +1487,9 @@ for (i in seq_len(length.out = nrow(x = combined_metrics_sample))) {
       combined_metrics_sample[i, column_name] <-
         non_callable_metrics_sample[[1, column_name]]
     } else {
-      # With the exception of the "file_name" component, set all components undefined in the
-      # sample-specific data frame to NA in the combined data frame.
+      # With the exception of the "file_name" component, set all components
+      # undefined in the sample-specific data frame to NA in the combined data
+      # frame.
       if (column_name != "file_name") {
         combined_metrics_sample[i, column_name] <- NA
       }
@@ -1433,7 +1503,8 @@ if (nrow(x = combined_metrics_sample) > 0L) {
   # Sort the data frame by sample_name.
   combined_metrics_sample <-
     combined_metrics_sample[order(combined_metrics_sample$sample_name), ]
-  # Convert the sample_name column into factors, which come more handy for plotting.
+  # Convert the sample_name column into factors, which come more handy for
+  # plotting.
   combined_metrics_sample$sample_name <-
     as.factor(x = combined_metrics_sample$sample_name)
 
@@ -1458,25 +1529,28 @@ if (nrow(x = combined_metrics_sample) > 0L) {
     sample_name = combined_metrics_sample$sample_name,
     target_number_constrained = combined_metrics_sample$target_number_constrained
   )
-  # Only columns that begin with "^non_callable_number_constrained\." are required, the remainder is the mapping status.
+  # Only columns that begin with "^non_callable_number_constrained\." are
+  # required, the remainder is the mapping status.
   column_names <- names(x = combined_metrics_sample)
   mapping_status <-
     gsub(pattern = "^non_callable_number_constrained\\.(.*)$",
          replacement = "\\1",
          x = column_names)
-  # Extract only those columns which had a match and set the mapping status as their new name.
+  # Extract only those columns which had a match and set the mapping status as
+  # their new name.
   for (i in which(x = grepl(pattern = "^non_callable_number_constrained\\.", x = column_names))) {
     plotting_frame[, mapping_status[i]] <-
       combined_metrics_sample[, column_names[i]]
   }
   rm(i, mapping_status, column_names)
 
-  # Now, melt the data frame, but keep sample_name and target_width_constrained as identifiers.
-  plotting_frame <- reshape2::melt(
+  # Now, pivot the data frame, but keep sample_name and target_width_constrained
+  # as identifiers.
+  plotting_frame <- tidyr::pivot_longer(
     data = plotting_frame,
-    id.vars = c("sample_name", "target_number_constrained"),
-    variable.name = "mapping_status",
-    value.name = "number"
+    cols = -c(.data$sample_name, .data$target_number_constrained),
+    names_to = "mapping_status",
+    values_to = "number"
   )
   # Calculate the fractions on the basis of the constrained target number.
   plotting_frame[, "fraction"] <-
@@ -1487,7 +1561,13 @@ if (nrow(x = combined_metrics_sample) > 0L) {
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = sample_name, y = number, colour = mapping_status))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$sample_name,
+        y = .data$number,
+        colour = .data$mapping_status
+      )
+    )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
@@ -1520,30 +1600,34 @@ if (nrow(x = combined_metrics_sample) > 0L) {
 
 
   message("Plotting the fraction of non-callable loci per sample")
-  # Reorganise the combined_metrics_sample data frame for plotting non-callable target widths.
+  # Reorganise the combined_metrics_sample data frame for plotting non-callable
+  # target widths.
   plotting_frame <- data.frame(
     sample_name = combined_metrics_sample$sample_name,
     target_width_constrained = combined_metrics_sample$target_width_constrained
   )
-  # Only columns that begin with "^non_callable_width_constrained\." are required, the remainder is the mapping status.
+  # Only columns that begin with "^non_callable_width_constrained\." are
+  # required, the remainder is the mapping status.
   column_names <- names(x = combined_metrics_sample)
   mapping_status <-
     gsub(pattern = "^non_callable_width_constrained\\.(.*)$",
          replacement = "\\1",
          x = column_names)
-  # Extract only those columns which had a match and set the mapping status as their new name.
+  # Extract only those columns which had a match and set the mapping status as
+  # their new name.
   for (i in which(x = grepl(pattern = "^non_callable_width_constrained\\.", x = column_names))) {
     plotting_frame[, mapping_status[i]] <-
       combined_metrics_sample[, column_names[i]]
   }
   rm(i, mapping_status, column_names)
 
-  # Now, melt the data frame, but keep sample_name and target_width_constrained as identifiers.
-  plotting_frame <- reshape2::melt(
+  # Now, pivot the data frame, but keep sample_name and target_width_constrained
+  # as identifiers.
+  plotting_frame <- tidyr::pivot_longer(
     data = plotting_frame,
-    id.vars = c("sample_name", "target_width_constrained"),
-    variable.name = "mapping_status",
-    value.name = "width"
+    cols = -c(.data$sample_name, .data$target_width_constrained),
+    names_to = "mapping_status",
+    values_to = "width"
   )
   # Calculate the fractions on the basis of the constrained target width.
   plotting_frame[, "fraction"] <-
@@ -1554,7 +1638,13 @@ if (nrow(x = combined_metrics_sample) > 0L) {
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = sample_name, y = fraction, colour = mapping_status))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$sample_name,
+        y = .data$fraction,
+        colour = .data$mapping_status
+      )
+    )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",

@@ -172,15 +172,17 @@ merged_count_tibble <-
 rm(star_count_tibble, rse_count_tibble)
 
 ggplot_object <- ggplot2::ggplot(
-  data = tidyr::gather(
+  data = tidyr::pivot_longer(
     data = merged_count_tibble,
-    key = "status",
-    value = "number",
-    .data$total,
-    .data$unique,
-    .data$multi,
-    .data$unmapped,
-    .data$counted
+    cols = c(
+      .data$total,
+      .data$unique,
+      .data$multi,
+      .data$unmapped,
+      .data$counted
+    ),
+    names_to = "status",
+    values_to = "number"
   )
 )
 
@@ -204,7 +206,7 @@ ggplot_object <-
   ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
     angle = 90,
     hjust = 0,
-    size = rel(x = 0.8)
+    size = ggplot2::rel(x = 0.8)
   ))
 
 for (graphics_format in graphics_formats) {
@@ -238,14 +240,14 @@ merged_fraction_tibble <- tibble::tibble(
 )
 
 ggplot_object <- ggplot2::ggplot(
-  data = tidyr::gather(
+  data = tidyr::pivot_longer(
     data = merged_fraction_tibble,
-    key = "status",
-    value = "fraction",
-    .data$unique,
-    .data$multi,
-    .data$unmapped,
-    .data$counted
+    cols = c(.data$unique,
+             .data$multi,
+             .data$unmapped,
+             .data$counted),
+    names_to = "status",
+    values_to = "fraction"
   )
 )
 
@@ -269,7 +271,7 @@ ggplot_object <-
   ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
     angle = 90,
     hjust = 0,
-    size = rel(x = 0.8)
+    size = ggplot2::rel(x = 0.8)
   ))
 
 for (graphics_format in graphics_formats) {

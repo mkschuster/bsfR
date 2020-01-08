@@ -68,13 +68,11 @@ argument_list <- parse_args(object = OptionParser(
   )
 ))
 
-suppressPackageStartupMessages(expr = library(package = "ggplot2"))
-suppressPackageStartupMessages(expr = library(package = "reshape2"))
-suppressPackageStartupMessages(expr = library(package = "tibble"))
-suppressPackageStartupMessages(expr = library(package = "tidyr"))
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 
 # Save plots in the following formats.
+
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
 # Assign a file prefix.
@@ -234,19 +232,14 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the absolute number versus the fraction per sample")
   ggplot_object <-
-    ggplot2::ggplot(
-      data = tibble::as_tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED", "PF_READS")]) %>% tidyr::gather(
-        key = "VARIABLE",
-        value = "PF_READS_ALIGNED",-CATEGORY,-SAMPLE,-PF_READS
-      )
-    )
+    ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED", "PF_READS"), drop = FALSE])
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
-        x = PF_READS_ALIGNED,
-        y = PF_READS_ALIGNED / PF_READS,
-        colour = SAMPLE,
-        shape = CATEGORY
+        x = .data$PF_READS_ALIGNED,
+        y = .data$PF_READS_ALIGNED / .data$PF_READS,
+        colour = .data$SAMPLE,
+        shape = .data$CATEGORY
       )
     )
   ggplot_object <- ggplot_object + ggplot2::labs(
@@ -283,19 +276,14 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the absolute number versus the fraction per read group")
   ggplot_object <-
-    ggplot2::ggplot(
-      data = tibble::as_tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PF_READS_ALIGNED", "PF_READS")]) %>% tidyr::gather(
-        key = "VARIABLE",
-        value = "PF_READS_ALIGNED",-CATEGORY,-READ_GROUP,-PF_READS
-      )
-    )
+    ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PF_READS_ALIGNED", "PF_READS"), drop = FALSE])
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
-        x = PF_READS_ALIGNED,
-        y = PF_READS_ALIGNED / PF_READS,
-        colour = READ_GROUP,
-        shape = CATEGORY
+        x = .data$PF_READS_ALIGNED,
+        y = .data$PF_READS_ALIGNED / .data$PF_READS,
+        colour = .data$READ_GROUP,
+        shape = .data$CATEGORY
       )
     )
   ggplot_object <- ggplot_object + ggplot2::labs(
@@ -340,11 +328,13 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the absolute number of aligned pass-filter reads per sample")
   ggplot_object <-
-    ggplot2::ggplot(
-      data = tibble::as_tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "NUMBER", -CATEGORY, -SAMPLE)
-    )
+    ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED"), drop = FALSE])
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = NUMBER, colour = CATEGORY))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
+      x = .data$SAMPLE,
+      y = .data$PF_READS_ALIGNED,
+      colour = .data$CATEGORY
+    ))
   ggplot_object <- ggplot_object + ggplot2::labs(
     x = "Sample",
     y = "Reads Number",
@@ -355,7 +345,7 @@ if (!is.null(x = combined_metrics_sample)) {
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
       angle = 90,
       hjust = 0,
-      size = rel(x = 0.8)
+      size = ggplot2::rel(x = 0.8)
     ))
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
@@ -381,11 +371,15 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the absolute number of aligned pass-filter reads per read group")
   ggplot_object <-
-    ggplot2::ggplot(
-      data = tibble::as_tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "NUMBER", -CATEGORY, -READ_GROUP)
-    )
+    ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PF_READS_ALIGNED"), drop = FALSE])
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP, y = NUMBER, colour = CATEGORY))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$READ_GROUP,
+        y = .data$PF_READS_ALIGNED,
+        colour = .data$CATEGORY
+      )
+    )
   ggplot_object <- ggplot_object + ggplot2::labs(
     x = "Read Group",
     y = "Reads Number",
@@ -424,11 +418,15 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the percentage of aligned pass-filter reads per sample")
   ggplot_object <-
-    ggplot2::ggplot(
-      data = tibble::as_tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PCT_PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -SAMPLE)
-    )
+    ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PCT_PF_READS_ALIGNED"), drop = FALSE])
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = FRACTION, colour = CATEGORY))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$SAMPLE,
+        y = .data$PCT_PF_READS_ALIGNED,
+        colour = .data$CATEGORY
+      )
+    )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
@@ -466,11 +464,15 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the percentage of aligned pass-filter reads per read group")
   ggplot_object <-
-    ggplot2::ggplot(
-      data = tibble::as_tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PCT_PF_READS_ALIGNED")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -READ_GROUP)
-    )
+    ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PCT_PF_READS_ALIGNED"), drop = FALSE])
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP, y = FRACTION, colour = CATEGORY))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$READ_GROUP,
+        y = .data$PCT_PF_READS_ALIGNED,
+        colour = .data$CATEGORY
+      )
+    )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Read Group",
@@ -510,11 +512,13 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the strand balance of aligned pass-filter reads per sample")
   ggplot_object <-
-    ggplot2::ggplot(
-      data = tibble::as_tibble(x = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "STRAND_BALANCE")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -SAMPLE)
-    )
+    ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "STRAND_BALANCE"), drop = FALSE])
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = FRACTION, colour = CATEGORY))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
+      x = .data$SAMPLE,
+      y = .data$STRAND_BALANCE,
+      colour = .data$CATEGORY
+    ))
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
@@ -554,11 +558,15 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the strand balance of aligned pass-filter reads per read group")
   ggplot_object <-
-    ggplot2::ggplot(
-      data = tibble::as_tibble(x = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "STRAND_BALANCE")]) %>% tidyr::gather(key = "VARIABLE", value = "FRACTION", -CATEGORY, -READ_GROUP)
-    )
+    ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "STRAND_BALANCE"), drop = FALSE])
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = READ_GROUP, y = FRACTION, colour = CATEGORY))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$READ_GROUP,
+        y = .data$STRAND_BALANCE,
+        colour = .data$CATEGORY
+      )
+    )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Read Group",
@@ -712,7 +720,7 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_sample)
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE, y = PERCENT_DUPLICATION))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = .data$SAMPLE, y = .data$PERCENT_DUPLICATION))
   ggplot_object <-
     ggplot_object + ggplot2::labs(x = "Sample", y = "Duplication Fraction", title = "Duplication Fraction per Sample")
   ggplot_object <-
@@ -749,24 +757,26 @@ if (!is.null(x = combined_metrics_sample)) {
   # PERCENT_READ_PAIR_OPTICAL_DUPLICATION and PERCENT_DUPLICATION per sample.
 
   message("Plotting the duplication levels per sample")
-  plotting_frame <- reshape2::melt(
-    data = combined_metrics_sample,
-    id.vars = c("SAMPLE"),
-    measure.vars = c(
-      "PERCENT_UNPAIRED_READ_DUPLICATION",
-      "PERCENT_READ_PAIR_DUPLICATION",
-      "PERCENT_READ_PAIR_OPTICAL_DUPLICATION",
-      "PERCENT_DUPLICATION"
-    ),
-    variable.name = "DUPLICATION",
-    value.name = "fraction"
-  )
 
-  ggplot_object <- ggplot2::ggplot(data = plotting_frame)
+  ggplot_object <- ggplot2::ggplot(
+    data = tidyr::pivot_longer(
+      data = combined_metrics_sample,
+      cols = c(
+        .data$PERCENT_UNPAIRED_READ_DUPLICATION,
+        .data$PERCENT_READ_PAIR_DUPLICATION,
+        .data$PERCENT_READ_PAIR_OPTICAL_DUPLICATION,
+        .data$PERCENT_DUPLICATION
+      ),
+      names_to = "DUPLICATION",
+      values_to = "fraction"
+    )
+  )
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = SAMPLE,
-                                                               y = fraction,
-                                                               colour = DUPLICATION))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
+      x = .data$SAMPLE,
+      y = .data$fraction,
+      colour = .data$DUPLICATION
+    ))
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
@@ -798,7 +808,7 @@ if (!is.null(x = combined_metrics_sample)) {
     )
   }
 
-  rm(graphics_format, ggplot_object, plotting_frame)
+  rm(graphics_format, ggplot_object)
 
   rm(plot_width)
 }

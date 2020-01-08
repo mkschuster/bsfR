@@ -188,7 +188,6 @@ suppressPackageStartupMessages(expr = library(package = "genefilter"))  # for ge
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))  # for ggplot2::ggplot(), etc.
 suppressPackageStartupMessages(expr = library(package = "grid"))  # for grid::grid.newpage() and grid::grid.draw()
 suppressPackageStartupMessages(expr = library(package = "pheatmap"))  # for pheatmap::pheatmap()
-# suppressPackageStartupMessages(expr = library(package = "reshape2"))  # for reshape2::melt()
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))  # for rtracklayer::import() GTF import
 suppressPackageStartupMessages(expr = library(package = "stringi"))  # For stringi::stri_split_fixed()
 
@@ -241,7 +240,7 @@ initialise_annotation_frame <- function() {
     # Extracting a list of gene names from the GrangesList object
     # inside the DESeqDataSet object seemingly takes forever.
     # Therefore, import the GTF file once more, but this time only the "gene" features.
-    # gene_name_list <- lapply(X = rowRanges(x = deseq_data_set), FUN = function(x) { mcols(x = x)[1L, "gene_name"] })
+    # gene_name_list <- lapply(X = rowRanges(x = deseq_data_set), FUN = function(x) { S4Vectors::mcols(x = x)[1L, "gene_name"] })
     message("Reading reference GTF gene features")
     gene_ranges <-
       rtracklayer::import(
@@ -252,11 +251,11 @@ initialise_annotation_frame <- function() {
       )
     message("Creating annotation frame")
     data_frame <-
-      mcols(x = gene_ranges)[, c("gene_id",
-                                 "gene_version",
-                                 "gene_name",
-                                 "gene_biotype",
-                                 "gene_source")]
+      S4Vectors::mcols(x = gene_ranges)[, c("gene_id",
+                                            "gene_version",
+                                            "gene_name",
+                                            "gene_biotype",
+                                            "gene_source")]
     # Add the location as an Ensembl-like location, lacking the coordinate system name and version.
     data_frame$location <-
       as(object = gene_ranges, Class = "character")
@@ -483,7 +482,8 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     # Convert (i.e. split) the GRanges object into a GRangesList object
     # by gene identifiers.
     gene_ranges_list <-
-      split(x = exon_ranges, f = mcols(x = exon_ranges)$gene_id)
+      split(x = exon_ranges,
+            f = S4Vectors::mcols(x = exon_ranges)$gene_id)
 
     # Process per library_type and sequencing_type and merge the RangedSummarizedExperiment objects.
     ranged_summarized_experiment <- NULL
@@ -586,8 +586,10 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     sample_frame <-
       SummarizedExperiment::colData(x = ranged_summarized_experiment)
     sample_frame$total_counts <-
-      base::colSums(x = SummarizedExperiment::assays(x = ranged_summarized_experiment)$counts,
-                    na.rm = TRUE)
+      base::colSums(
+        x = SummarizedExperiment::assays(x = ranged_summarized_experiment)$counts,
+        na.rm = TRUE
+      )
     SummarizedExperiment::colData(x = ranged_summarized_experiment) <-
       sample_frame
 
@@ -646,15 +648,17 @@ fix_model_matrix <- function(model_matrix_local) {
         unlist(x = lapply(
           X = linear_combinations_list$linearCombos,
           FUN = function(x) {
-            return(paste0("  Linear combinations:\n    ", paste(
-              colnames(x = model_matrix_local)[x], collapse = "\n    "
-            )))
+            return(paste0(
+              "  Linear combinations:\n    ",
+              paste(colnames(x = model_matrix_local)[x], collapse = "\n    ")
+            ))
           }
         ))
       message(
         "One or more variables or interaction terms in the design formula are\n",
         "linear combinations of the others.\n",
         message_character,
+        "\n",
         "Attempting to fix the model by removing linear combinations:\n  ",
         paste(colnames(x = model_matrix_local)[linear_combinations_list$remove], collapse = "\n  ")
       )
@@ -727,9 +731,7 @@ initialise_deseq_data_set <- function(design_list) {
       data = SummarizedExperiment::colData(x = ranged_summarized_experiment)
     )
     result_list <-
-      check_model_matrix(
-        model_matrix = model_matrix
-      )
+      check_model_matrix(model_matrix = model_matrix)
     if (argument_list$verbose) {
       message("Writing initial model matrix")
       write.table(
@@ -906,16 +908,19 @@ plot_fpkm_values <- function(object) {
           file.info(plot_paths)$size > 0L)) {
     message("Skipping a FPKM density plot")
   } else {
-    # Melt the data frame to get just a "key" and a "value" variable.
+    # Pivot the data frame to get just a "name" and a "value" variable.
     ggplot_object <-
-      ggplot2::ggplot(data = tidyr::gather(data = tibble::as_tibble(x = object)))
+      ggplot2::ggplot(data = tidyr::pivot_longer(
+        data = tibble::as_tibble(x = object),
+        cols = tidyselect::everything()
+      ))
 
     ggplot_object <-
       ggplot_object + ggplot2::geom_density(
         mapping = ggplot2::aes(
           x = log10(.data$value),
           y = ..density..,
-          colour = .data$key
+          colour = .data$name
         ),
         alpha = I(1 / 3)
       )
@@ -928,7 +933,6 @@ plot_fpkm_values <- function(object) {
         title = "FPKM Density",
         subtitle = paste("Design", argument_list$design_name)
       )
-
     # Increase the plot width per 24 samples.
     # The number of samples is the number of columns of the matrix.
     # Rather than argument_list$plot_factor, a fixed number of 0.25 is used here.
@@ -960,7 +964,12 @@ plot_fpkm_values <- function(object) {
 #' @examples
 #' @noRd
 plot_cooks_distances <- function(object) {
-  plot_paths <- file.path(output_directory, paste(paste(prefix, "cooks", "distances", sep = "_"), graphics_formats, sep = "."))
+  plot_paths <-
+    file.path(output_directory, paste(
+      paste(prefix, "cooks", "distances", sep = "_"),
+      graphics_formats,
+      sep = "."
+    ))
 
   if (all(file.exists(plot_paths) &&
           file.info(plot_paths)$size > 0L)) {
@@ -969,9 +978,16 @@ plot_cooks_distances <- function(object) {
     message("Creating a Cook's distances box plot")
 
     ggplot_object <-
-      ggplot2::ggplot(data = tidyr::gather(data = tibble::as_tibble(x = SummarizedExperiment::assays(x = object)$cooks)))
+      ggplot2::ggplot(data = tidyr::pivot_longer(
+        data = tibble::as_tibble(x = SummarizedExperiment::assays(x = object)$cooks),
+        cols = tidyselect::everything()
+      ))
     ggplot_object <-
-      ggplot_object + ggplot2::geom_boxplot(mapping = ggplot2::aes(x = key, y = value, fill = key))
+      ggplot_object + ggplot2::geom_boxplot(mapping = ggplot2::aes(
+        x = .data$name,
+        y = .data$value,
+        fill = .data$name
+      ))
     ggplot_object <-
       ggplot_object + ggplot2::labs(
         x = "Sample",
@@ -1056,7 +1072,7 @@ plot_rin_scores <- function(object) {
                                             linetype = 2L)
 
       ggplot_object <-
-        ggplot_object + ggplot2::geom_density(mapping = ggplot2::aes(x = RIN, y = ..density..))
+        ggplot_object + ggplot2::geom_density(mapping = ggplot2::aes(x = .data$RIN, y = ..density..))
 
       ggplot_object <-
         ggplot_object + ggplot2::labs(
@@ -1150,7 +1166,7 @@ plot_mds <- function(object,
             ggplot_object <-
               ggplot_object +
               ggplot2::geom_line(
-                mapping = aes_(
+                mapping = ggplot2::aes_(
                   x = quote(expr = X1),
                   y = quote(expr = X2),
                   colour = if (is.null(x = aes_list$geom_line$colour))
@@ -1174,7 +1190,7 @@ plot_mds <- function(object,
           if (!is.null(x = aes_list$geom_point)) {
             ggplot_object <- ggplot_object +
               ggplot2::geom_point(
-                mapping = aes_(
+                mapping = ggplot2::aes_(
                   x = quote(expr = X1),
                   y = quote(expr = X2),
                   colour = if (is.null(x = aes_list$geom_point$colour))
@@ -1202,7 +1218,7 @@ plot_mds <- function(object,
           if (!is.null(x = aes_list$geom_text)) {
             ggplot_object <- ggplot_object +
               ggplot2::geom_text(
-                mapping = aes_(
+                mapping = ggplot2::aes_(
                   x = quote(expr = X1),
                   y = quote(expr = X2),
                   label = if (is.null(x = aes_list$geom_text$label))
@@ -1223,7 +1239,7 @@ plot_mds <- function(object,
           if (!is.null(x = aes_list$geom_path)) {
             ggplot_object <-
               ggplot_object + ggplot2::geom_path(
-                mapping = aes_(
+                mapping = ggplot2::aes_(
                   x = quote(expr = X1),
                   y = quote(expr = X2),
                   colour = if (is.null(x = aes_list$geom_path$colour))
@@ -1474,13 +1490,14 @@ plot_pca <- function(object,
   ggplot_object <-
     ggplot2::ggplot(data = plotting_tibble[seq_len(length.out = min(100L, length(x = pca_object$sdev))), , drop = FALSE])
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = component, y = variance))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = .data$component, y = .data$variance))
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Principal Component",
       y = "Variance",
       title = "Variance by Principal Component",
-      subtitle = paste("Design", argument_list$design_name))
+      subtitle = paste("Design", argument_list$design_name)
+    )
 
   for (plot_path in plot_paths) {
     ggplot2::ggsave(
@@ -1575,14 +1592,14 @@ plot_pca <- function(object,
         }
         rm(column_number)
 
-        ggplot_object <- ggplot(data = plotting_frame)
+        ggplot_object <- ggplot2::ggplot(data = plotting_frame)
 
         # geom_line
         if (!is.null(x = aes_list$geom_line)) {
           ggplot_object <-
             ggplot_object +
-            geom_line(
-              mapping = aes_(
+            ggplot2::geom_line(
+              mapping = ggplot2::aes_(
                 x = quote(expr = x),
                 y = quote(expr = y),
                 colour = if (is.null(x = aes_list$geom_line$colour))
@@ -1601,8 +1618,8 @@ plot_pca <- function(object,
         # geom_point
         if (!is.null(x = aes_list$geom_point)) {
           ggplot_object <- ggplot_object +
-            geom_point(
-              mapping = aes_(
+            ggplot2::geom_point(
+              mapping = ggplot2::aes_(
                 x = quote(expr = x),
                 y = quote(expr = y),
                 colour = if (is.null(x = aes_list$geom_point$colour))
@@ -1629,8 +1646,8 @@ plot_pca <- function(object,
         # geom_text
         if (!is.null(x = aes_list$geom_text)) {
           ggplot_object <- ggplot_object +
-            geom_text(
-              mapping = aes_(
+            ggplot2::geom_text(
+              mapping = ggplot2::aes_(
                 x = quote(expr = x),
                 y = quote(expr = y),
                 label = if (is.null(x = aes_list$geom_text$label))
@@ -1650,8 +1667,8 @@ plot_pca <- function(object,
         # geom_path
         if (!is.null(x = aes_list$geom_path)) {
           ggplot_object <-
-            ggplot_object + geom_path(
-              mapping = aes_(
+            ggplot_object + ggplot2::geom_path(
+              mapping = ggplot2::aes_(
                 x = quote(expr = x),
                 y = quote(expr = y),
                 colour = if (is.null(x = aes_list$geom_path$colour))
@@ -1786,7 +1803,8 @@ temporary_list <- lapply(
   X = reduced_formula_list,
   FUN = function(reduced_formula_character) {
     # Skip NA or empty character vectors.
-    if (is.na(x = reduced_formula_character) | !base::nzchar(x = reduced_formula_character)) {
+    if (is.na(x = reduced_formula_character) |
+        !base::nzchar(x = reduced_formula_character)) {
       return()
     }
     summary_list <- NULL
@@ -1854,14 +1872,11 @@ temporary_list <- lapply(
 
       formula_reduced <-
         as.formula(object = reduced_formula_character)
-      model_matrix_reduced <- stats::model.matrix.default(
-        object = formula_reduced,
-        data = SummarizedExperiment::colData(x = deseq_data_set)
-      )
+      model_matrix_reduced <-
+        stats::model.matrix.default(object = formula_reduced,
+                                    data = SummarizedExperiment::colData(x = deseq_data_set))
       result_list_reduced <-
-        check_model_matrix(
-          model_matrix = model_matrix_reduced
-        )
+        check_model_matrix(model_matrix = model_matrix_reduced)
       if (argument_list$verbose) {
         message("Writing initial reduced model matrix")
         write.table(

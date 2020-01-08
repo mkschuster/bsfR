@@ -87,8 +87,10 @@ if (is.null(x = argument_list$file_path)) {
   stop("Missing --file-path option")
 }
 
-suppressPackageStartupMessages(expr = library(package = "ggplot2"))
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "Rsamtools"))
+
+# Save plots in the following formats.
 
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
@@ -126,8 +128,9 @@ while (TRUE) {
   # The scanBam() function returns a list of lists.
   records_read_chunk <- 0L
   for (i in seq_along(along.with = region_list)) {
+    # Add 1L to adjust to R vector indices starting at 1.
     chunk_vector <-
-      tabulate(bin = abs(x = region_list[[i]]$isize + 1L))  # Add 1L to adjust to R vector indices starting at 1.
+      tabulate(bin = abs(x = region_list[[i]]$isize + 1L))
     maximum_length <-
       max(length(x = summary_vector), length(x = chunk_vector))
     length(x = summary_vector) <- maximum_length
@@ -150,50 +153,38 @@ while (TRUE) {
 close(con = bam_file)
 rm(bam_file)
 
-summary_frame <-
-  data.frame(size = seq_along(along.with = summary_vector) - 1L,
-             # Subtract 1L to adjust to R vector indices starting at 1.
-             frequency = summary_vector)
+summary_tibble <-
+  tibble::tibble(size = seq_along(along.with = summary_vector) - 1L,
+                 # Subtract 1L to adjust to R vector indices starting at 1.
+                 frequency = summary_vector)
 rm(summary_vector)
 
-write.table(
-  x = summary_frame,
-  file = paste(
-    paste(
-      prefix,
-      sample_name,
-      "insert_size",
-      sep = "_"
-    ),
-    "tsv",
-    sep = "."
-  ),
-  sep = "\t",
-  row.names = FALSE,
-  col.names = TRUE
-)
+readr::write_tsv(x = summary_tibble,
+                 path = paste(paste(prefix,
+                                    sample_name,
+                                    "insert_size",
+                                    sep = "_"),
+                              "tsv",
+                              sep = "."))
 
 # Plot insert size distribution -------------------------------------------
 
 
-plot_paths <- paste(
-  paste(
-    prefix,
-    sample_name,
-    "insert_size",
-    sep = "_"
-  ),
-  graphics_formats,
-  sep = "."
-)
+plot_paths <- paste(paste(prefix,
+                          sample_name,
+                          "insert_size",
+                          sep = "_"),
+                    graphics_formats,
+                    sep = ".")
 
-ggplot_object <- ggplot2::ggplot(data = summary_frame)
+ggplot_object <- ggplot2::ggplot(data = summary_tibble)
 if (argument_list$density_plot) {
   ggplot_object <-
-    ggplot_object + ggplot2::geom_density(mapping = ggplot2::aes(x = size, y = frequency), stat = "identity")
+    ggplot_object + ggplot2::geom_density(mapping = ggplot2::aes(x = .data$size, y = .data$frequency),
+                                          stat = "identity")
 } else {
   ggplot_object <-
-    ggplot_object + ggplot2::geom_col(mapping = ggplot2::aes(x = size, y = frequency))
+    ggplot_object + ggplot2::geom_col(mapping = ggplot2::aes(x = .data$size, y = .data$frequency))
 }
 ggplot_object <-
   ggplot_object + ggplot2::labs(
@@ -215,7 +206,7 @@ rm(
   plot_path,
   ggplot_object,
   plot_paths,
-  summary_frame,
+  summary_tibble,
   records_read_chunk,
   records_read_total,
   sample_name,
