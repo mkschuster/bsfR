@@ -25,7 +25,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
-base::source(file = "http://bioconductor.org/biocLite.R")
+# base::source(file = "http://bioconductor.org/biocLite.R")
 
 # Let the user choose mirror options or ...
 # utils::chooseCRANmirror()
@@ -34,20 +34,26 @@ base::source(file = "http://bioconductor.org/biocLite.R")
 # options(
 #  repos = c("Austria (Vienna) [https]" = "https://cran.wu.ac.at/"),
 #  BioC_mirror = c("United Kingdom (Hinxton) [https]" = "http://mirrors.ebi.ac.uk/bioconductor")
+#  BioC_mirror = c("Department of Statistics, TU Dortmund [https]" = "https://bioconductor.statistik.tu-dortmund.de")
 # )
 
+# R 3.6.0 implemented a staged install that is not compatible with the BeeGFS (formerly FhGFS) file system.
+# A move of a directory on top of an existing one leads to an operating system error.
+# https://stat.ethz.ch/pipermail/r-devel/2019-May/077737.html
+# As a workaround, set the following Bash environment variable.
+# declare -x R_INSTALL_STAGED='false';
+
+# Global install
+# library_location <- .Library
+# Private install
+# library_location <- .libPaths()[1]
+library_location <- NULL
 
 # Update CRAN packages ----------------------------------------------------
 
+
 message("Updating CRAN packages ...")
-utils::update.packages(lib.loc = .Library, ask = FALSE)
-
-# Update Bioconductor packages --------------------------------------------
-
-message("Updating Bioconductor packages ...")
-BiocInstaller::biocUpdatePackages(pkgs = c(),
-                                  lib.loc = .Library,
-                                  ask = FALSE)
+utils::update.packages(lib.loc = library_location, ask = FALSE)
 
 # Check and install CRAN packages -----------------------------------------
 #
@@ -60,12 +66,30 @@ BiocInstaller::biocUpdatePackages(pkgs = c(),
 
 message("Checking CRAN packages ...")
 cran_packages <- c(
-  "caret",
-  # for bsf_rnaseq_deseq_analysis.R
-  "devtools",
-  # Development tools, including installation from GitHub repositories, etc.
-  "ggplot2",
-  # for almost eveything plot related, really ...
+  # Hadley Wickham's Tidyverse
+  #    ggplot2  Create Elegant Data Visualisations Using the Grammar of Graphics
+  #    purrr Functional Programming Tools
+  #    tibble Simple Data Frames
+  #    dplyr A Grammar of Data Manipulation
+  #    tidyr Easily Tidy Data with 'spread()' and 'gather()' Functions
+  #    stringr Simple, Consistent Wrappers for Common String Operations
+  #    readr Read Rectangular Text Data
+  #    forcats Tools for Working with Categorical Variables (Factors)
+  "tidyverse", # Easily Install and Load the 'Tidyverse'
+
+  # For package development
+  "devtools", # Tools to Make Developing R Packages Easier
+  "roxygen2", # In-Line Documentation for R
+  "knitr", # A General-Purpose Package for Dynamic Report Generation in R
+  "testthat", # Unit Testing for R
+
+  # For bsf_rnaseq_deseq_analysis.R (DESeq2)
+  "ashr", # Methods for Adaptive Shrinkage, using Empirical Bayes
+  "caret", # Classification and Regression Training
+  "enrichR", # Provides an R Interface to 'Enrichr'
+
+  "argparser", # Command-Line Argument Parser
+
   "ggrepel",
   # for ggplot2 extension functions geom_text_repel() and geom_label_repel() to repel labes form data points.
   "gplots",
@@ -73,111 +97,142 @@ cran_packages <- c(
   "gsalib",
   # for GATK
   "hexbin",
-  # For RnBeads
-  "impute",
   # for ggplot2 functions geom_binhex() and stat_bin_hex()
   "optparse",
   # for option parsing
-  "reshape",
+  "reshape", # Flexibly Reshape Data
+
+  "spp", # ChIP-Seq Processing Pipeline
+  # For attac-seq pipleine
   # for GATK
-  "VGAM",  # for Bioconductor monocle
-  "simpleCache", # FIXME: LOLA seems to depend on it, yet only suggest it. Why is it not declared?
-  "wordcloud" # FIXME: RnBeads depends on it.
+  "VGAM",
+  # for Bioconductor monocle
+  "simpleCache",
+  # FIXME: LOLA seems to depend on it, yet only suggest it. Why is it not declared?
+  "wordcloud",
+  # FIXME: RnBeads depends on it.
+  "RMariaDB",  # For GenomicFeatures::makeTxDbFromEnsembl(). FIXME: This may require a new installation of MySQ or MariaDB libraries.
+  "BiocManager" # Access the Bioconductor Project Package Repository
 )
 for (i in seq_along(along.with = cran_packages)) {
-  if (suppressPackageStartupMessages(expr = base::require(
-    package = cran_packages[i],
-    lib.loc = .Library,
-    quietly = TRUE,
-    character.only = TRUE
-  ))) {
+  if (base::requireNamespace(package = cran_packages[i],
+                             lib.loc = library_location,
+                             quietly = TRUE)) {
     message(paste0("Skipping package ", cran_packages[i]))
-    # base::detach(
-    #   name = paste("package", cran_packages[i], sep = ":"),
-    #   unload = TRUE,
-    #   character.only = TRUE
-    # )
   } else {
     message(paste0("Installing package ", cran_packages[i]))
-    # utils::install.packages(pkgs = cran_packages[i],
-    #                  lib = .Library)
+    utils::install.packages(pkgs = cran_packages[i],
+                            lib = library_location)
   }
 }
 rm(i, cran_packages)
+
+# Update Bioconductor packages --------------------------------------------
+
+message("Updating Bioconductor packages ...")
+BiocManager::install(lib.loc = library_location,
+                     update = TRUE,
+                     ask = FALSE)
 
 # Check and install Bioconductor packages ---------------------------------
 
 message("Checking Bioconductor packages ...")
 bioconductor_packages <- c(
-  "BiocInstaller",
-  "BiocParallel",
+  # Data packages
+
   # Biostrings genomes
-  "BSgenome.Ggallus.UCSC.galGal5",
-  "BSgenome.Hsapiens.1000genomes.hs37d5",
-  # For bsf_variant_calling_coverage.R
-  "BSgenome.Hsapiens.UCSC.hg19",
-  "BSgenome.Hsapiens.UCSC.hg19.masked",
-  "BSgenome.Hsapiens.UCSC.hg38",
-  "BSgenome.Hsapiens.UCSC.hg38.masked",
-  "BSgenome.Mmusculus.UCSC.mm10",
-  "BSgenome.Mmusculus.UCSC.mm10.masked",
-  #
+  # "BSgenome.Ggallus.UCSC.galGal5",
+  # "BSgenome.Hsapiens.1000genomes.hs37d5", # For bsf_variant_calling_coverage.R
+  # "BSgenome.Hsapiens.UCSC.hg19",
+  # "BSgenome.Hsapiens.UCSC.hg19.masked",
+  # "BSgenome.Hsapiens.UCSC.hg38",
+  # "BSgenome.Hsapiens.UCSC.hg38.masked",
+  # "BSgenome.Mmusculus.UCSC.mm10",
+  # "BSgenome.Mmusculus.UCSC.mm10.masked",
+
+  # "org.Gg.eg.db", # Genome wide annotation for Chicken
+  # "org.Hs.eg.db", # Genome wide annotation for Human
+  # "org.Mm.eg.db", # Genome wide annotation for Mouse
+
+  # "Homo.sapiens", # Annotation package for the Homo.sapiens object
+  # "Mus.musculus", # Annotation package for the Mus.musculus object
+
+  # "IlluminaHumanMethylation450kanno.ilmn12.hg19",
+  # "IlluminaHumanMethylation450kmanifest",
+  # "IlluminaHumanMethylationEPICanno.ilm10b2.hg19",
+  # "IlluminaHumanMethylationEPICanno.ilm10b3.hg19",
+  # "IlluminaHumanMethylationEPICanno.ilm10b4.hg19",
+  # "IlluminaHumanMethylationEPICmanifest",
+
+  # TxDb objects
+  # "TxDb.Hsapiens.UCSC.hg19.knownGene",
+  # "TxDb.Hsapiens.UCSC.hg19.lincRNAsTranscripts",
+  # "TxDb.Hsapiens.UCSC.hg38.knownGene",
+  # "TxDb.Mmusculus.UCSC.mm10.ensGene",
+  # "TxDb.Mmusculus.UCSC.mm10.knownGene",
+
+  "BiocParallel",
+
+  "AnnotationHub", # Client to access AnnotationHub resources
   "ChIPpeakAnno",
-  "ComplexHeatmap",
-  "cummeRbund",
+  # for structural variant calling
+  "CODEX", # A Normalization and Copy Number Variation Detection Method for Whole Exome Sequencing
+  "ComplexHeatmap", # Make Complex Heatmaps
+  "EnhancedVolcano", # Publication-ready volcano plots with enhanced colouring and labeling
   # for Cufflinks mRNA-seq data processing
-  "DESeq2",
+  "cummeRbund", # Analysis, exploration, manipulation, and visualization of Cufflinks high-throughput sequencing data.
   # for RNA-seq analysis
-  "DiffBind",
+  "DESeq2", # Differential gene expression analysis based on the negative binomial distribution
   # for differential ChIP-seq analysis
+  "ChIPQC", # Quality metrics for ChIPseq data
+  "DiffBind", # Differential Binding Analysis of ChIP-Seq Peak Data
+  "BCRANK",  # Motif finding
+  "rGADEM",  # Motif finding
+  # "DNAcopy",  # Not available?
   "goseq",
+  # For ChIP-seq heat maps
+  "heatmaps",
+  # For PWM to JASPAR conversion.
+  "universalmotif",
+  # For RnBeads
+  "impute",
   # for Gene Ontology annotation
   "monocle",
+  "PSCBS",
+  "PureCN",
   # For single cell RNA-seq
-  "RnBeads",
-  "RnBeads.hg38",
-  "doParallel",  # FIXME: RnBeads seems to depend on it, yet only suggest it. Why is it not declared?
-  "LOLA", # FIXME: Same as above. Sigh.
-  "org.Gg.eg.db",
-  "org.Hs.eg.db",
-  "org.Mm.eg.db",
+  # "RnBeads",
+  # "RnBeads.hg19",
+  # "RnBeads.hg38",
+  # "RnBeads.mm10",
+  "doParallel",
+  # FIXME: RnBeads seems to depend on it, yet only suggest it. Why is it not declared?
+  "LOLA",
+  # FIXME: Same as above. Sigh.
   # For Illumina Sequence Analysis Viewer information
   "savR",
-  # For Meth-seq anaylsis (FDb.InfiniumMethylation.hg19)
-  "TxDb.Hsapiens.UCSC.hg19.knownGene",
-  # UCSC gene set
-  "TxDb.Hsapiens.UCSC.hg19.lincRNAsTranscripts",
-  # UCSC gene set
-  "TxDb.Hsapiens.UCSC.hg38.knownGene",
-  # UCSC gene set
-  "TxDb.Mmusculus.UCSC.mm10.ensGene",
-  # Ensembl gene set
-  "TxDb.Mmusculus.UCSC.mm10.knownGene",
-  # UCSC gene set
-  "VariantAnnotation"
+  # For Meth-seq analysis (FDb.InfiniumMethylation.hg19)
+
+  "topGO",  # Enrichment analysis for Gene Ontology
+
+  "VariantAnnotation" # Annotation of Genetic Variants
 )
 for (i in seq_along(along.with = bioconductor_packages)) {
-  if (suppressPackageStartupMessages(expr = base::require(
-    package = bioconductor_packages[i],
-    lib.loc = .Library,
-    quietly = TRUE,
-    character.only = TRUE
-  ))) {
+  if (base::requireNamespace(package = bioconductor_packages[i],
+                             lib.loc = library_location,
+                             quietly = FALSE)) {
     message(paste0("Skipping package ", bioconductor_packages[i]))
-    if (!bioconductor_packages[i] %in% c("BiocInstaller")) {
-      # base::detach(
-      #   name = paste("package", bioconductor_packages[i], sep = ":"),
-      #   unload = TRUE,
-      #   character.only = TRUE
-      # )
-    }
   } else {
     message(paste0("Installing package ", bioconductor_packages[i]))
-    # BiocInstaller::biocLite(pkgs = bioconductor_packages[i],
-    #          lib = .Library)
+    BiocManager::install(
+      pkgs = bioconductor_packages[i],
+      lib = library_location,
+      update = FALSE,
+      ask = FALSE
+    )
   }
 }
-rm(bioconductor_packages, i)
+rm(i, bioconductor_packages, library_location)
 
 message("All done")
 
