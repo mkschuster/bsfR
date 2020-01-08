@@ -487,7 +487,7 @@ if (is.null(x = argument_list$biomart_data_set)) {
     genome = argument_list$genome_version,
     feature.type = "transcript"
   )
-  reference_mcols <- mcols(x = reference_granges)
+  reference_mcols <- S4Vectors::mcols(x = reference_granges)
 
   # Standard GTF attributes
   gene_annotation_frame <- data.frame(
@@ -684,36 +684,38 @@ write.table(
 rm(file_path)
 
 # Alignment summary plot.
-ggplot_object <- ggplot(data = summary_frame)
+ggplot_object <- ggplot2::ggplot(data = summary_frame)
 ggplot_object <-
-  ggplot_object + ggtitle(label = "TopHat Alignment Summary")
-ggplot_object <-
-  ggplot_object + geom_point(mapping = aes(
+  ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
     x = mapped,
     y = mapped / input,
     colour = sample
   ))
+ggplot_object <-
+  ggplot_object + ggplot2::labs(x = "Reads Number",
+                                y = "Reads Fraction",
+                                title = "TopHat Alignment Summary")
 # Reduce the label font size and the legend key size and allow a maximum of 24
 # guide legend rows.
 ggplot_object <-
-  ggplot_object + guides(colour = guide_legend(
-    keywidth = rel(x = 0.8),
-    keyheight = rel(x = 0.8),
+  ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(
+    keywidth = ggplot2::rel(x = 0.8),
+    keyheight = ggplot2::rel(x = 0.8),
     nrow = 24L
   ))
 ggplot_object <-
-  ggplot_object + theme(legend.text = element_text(size = rel(x = 0.7)))
+  ggplot_object + ggplot2::theme(legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7)))
 # Scale the plot width with the number of samples, by adding a quarter of
 # the original width for each 24 samples.
 plot_width <-
   argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
-ggsave(
+ggplot2::ggsave(
   filename = "rnaseq_tophat_alignment_summary.png",
   plot = ggplot_object,
   width = plot_width,
   height = argument_list$plot_height
 )
-ggsave(
+ggplot2::ggsave(
   filename = "rnaseq_tophat_alignment_summary.pdf",
   plot = ggplot_object,
   width = plot_width,

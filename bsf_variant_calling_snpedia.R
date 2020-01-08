@@ -204,7 +204,7 @@ rm(snpedia_connection, temporary_connection)
 
 message("Loading rewritten SNPedia GFF3 file")
 snpedia_granges <- import.gff3(con = temporary_path)
-snpedia_frame <- mcols(x = snpedia_granges)
+snpedia_frame <- S4Vectors::mcols(x = snpedia_granges)
 
 file.remove(temporary_path)
 rm(temporary_path)
@@ -223,12 +223,12 @@ while (nrow(x = vcf_object <- readVcf(file = vcf_file,
                                       genome = argument_list$genome_assembly))) {
   sum_records_read <- sum_records_read + nrow(x = vcf_object)
   # message(sprintf(fmt = "Number of VCF records read: %i (%i total)", nrow(x = vcf_object), sum_records_read))
-  
+
   # Since the INFO variable "VEP_Existing_variation" contains ampersand-separated values,
   # they need further splitting. Convert into a character vector of variation identifiers.
   # info(x = vcf_object)$VEP_Existing_variation returns a CharacterList so that
   # unlist() needs calling before stri_split_fixed().
-  
+
   existing_variation <-
     unlist(x = stri_split_fixed(
       str = unlist(x = info(x = vcf_object)$VEP_Existing_variation),

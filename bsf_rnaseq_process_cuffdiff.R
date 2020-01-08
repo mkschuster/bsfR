@@ -276,7 +276,7 @@ if (file.exists(plot_path_pdf) &&
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = rep_name, y = log10(internal_scale)))
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = element_text(angle = -90, hjust = 0))
+    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(angle = -90, hjust = 0))
   plot_width <-
     argument_list$plot_width + (ceiling(x = replicate_number / 24L) - 1L) * argument_list$plot_width * 0.25
   ggplot2::ggsave(
@@ -346,28 +346,30 @@ if (file.exists(plot_path_pdf) &&
   message("Skipping a Dispersion Plot on Isoforms")
 } else {
   message("Creating a Dispersion Plot on Isoforms")
-  tryCatch({
-    ggplot_object <-
-      cummeRbund::dispersionPlot(object = cummeRbund::isoforms(object = cuff_set))
-    ggplot2::ggsave(
-      filename = plot_path_pdf,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    ggplot2::ggsave(
-      filename = plot_path_png,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    rm(ggplot_object)
-  },
-  error = function(cond) {
-    message("Dispersion Plot on Isoforms failed with message:")
-    message(cond, appendLF = TRUE)
-    return(NULL)
-  })
+  base::tryCatch(
+    expr = {
+      ggplot_object <-
+        cummeRbund::dispersionPlot(object = cummeRbund::isoforms(object = cuff_set))
+      ggplot2::ggsave(
+        filename = plot_path_pdf,
+        plot = ggplot_object,
+        width = argument_list$plot_width,
+        height = argument_list$plot_height
+      )
+      ggplot2::ggsave(
+        filename = plot_path_png,
+        plot = ggplot_object,
+        width = argument_list$plot_width,
+        height = argument_list$plot_height
+      )
+      rm(ggplot_object)
+    },
+    error = function(cond) {
+      message("Dispersion Plot on Isoforms failed with message:")
+      message(cond, appendLF = TRUE)
+      return(NULL)
+    }
+  )
 }
 rm(plot_path_pdf, plot_path_png)
 
@@ -626,8 +628,8 @@ if (file.exists(plot_path_pdf) &&
     )
   ggplot_object <-
     ggplot_object + ggplot2::theme(
-      axis.text.x = element_text(angle = -90, hjust = 0),
-      legend.text = element_text(size = ggplot2::rel(x = 0.8))
+      axis.text.x = ggplot2::element_text(angle = -90, hjust = 0),
+      legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.8))
     )
   ggplot_object <-
     ggplot_object + ggplot2::scale_fill_hue(l = 50, h.start = 200)
@@ -691,8 +693,8 @@ if (file.exists(plot_path_pdf) &&
     )
   ggplot_object <-
     ggplot_object + ggplot2::theme(
-      axis.text.x = element_text(angle = -90, hjust = 0),
-      legend.text = element_text(size = ggplot2::rel(x = 0.8))
+      axis.text.x = ggplot2::element_text(angle = -90, hjust = 0),
+      legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.8))
     )
   ggplot_object <-
     ggplot_object + ggplot2::scale_fill_hue(l = 50, h.start = 200)
@@ -760,8 +762,8 @@ if (file.exists(plot_path_pdf) &&
     )
   ggplot_object <-
     ggplot_object + ggplot2::theme(
-      axis.text.x = element_text(angle = -90, hjust = 0),
-      legend.text = element_text(size = ggplot2::rel(x = 0.8))
+      axis.text.x = ggplot2::element_text(angle = -90, hjust = 0),
+      legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.8))
     )
   ggplot_object <-
     ggplot_object + ggplot2::scale_fill_hue(l = 50, h.start = 200)
@@ -825,8 +827,8 @@ if (file.exists(plot_path_pdf) &&
     )
   ggplot_object <-
     ggplot_object + ggplot2::theme(
-      axis.text.x = element_text(angle = -90, hjust = 0),
-      legend.text = element_text(size = ggplot2::rel(x = 0.8))
+      axis.text.x = ggplot2::element_text(angle = -90, hjust = 0),
+      legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.8))
     )
   ggplot_object <-
     ggplot_object + ggplot2::scale_fill_hue(l = 50, h.start = 200)
@@ -1039,7 +1041,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
     ggplot_object <-
       ggplot_object + ggplot2::geom_rug(size = 0.8, alpha = 0.01)
     # ggplot_object <-
-    #   ggplot_object + stat_smooth(method = "lm", fill = "blue", alpha = 0.2)
+    #   ggplot_object + ggplot2::stat_smooth(method = "lm", fill = "blue", alpha = 0.2)
     ggplot_object <-
       ggplot_object + ggplot2::scale_y_log10() + ggplot2::scale_x_log10()
 
@@ -1522,11 +1524,11 @@ if (file.exists(frame_path_genes) &&
     genome = argument_list$genome_version,
     feature.type = "transcript"
   )
-  # Selecting via mcols()[] returns a S4Vectors::DataFrame object.
+  # Selecting via S4Vectors::mcols()[] returns a S4Vectors::DataFrame object.
   reference_frame <- unique.data.frame(
     x = data.frame(
-      "ensembl_gene_id" = mcols(x = reference_granges)$gene_id,
-      "ensembl_transcript_id" = mcols(x = reference_granges)$transcript_id,
+      "ensembl_gene_id" = S4Vectors::mcols(x = reference_granges)$gene_id,
+      "ensembl_transcript_id" = S4Vectors::mcols(x = reference_granges)$transcript_id,
       stringsAsFactors = TRUE
     )
   )
@@ -1544,20 +1546,20 @@ if (file.exists(frame_path_genes) &&
     genome = argument_list$genome_version,
     feature.type = "exon"
   )
-  if ("nearest_ref" %in% names(x = mcols(x = assembly_granges))) {
+  if ("nearest_ref" %in% names(x = S4Vectors::mcols(x = assembly_granges))) {
     # If a "nearest_ref" variable is defined, the GTF is a Cuffmerge assembly.
     #
     # Example: gene_id "XLOC_000001"; transcript_id "TCONS_00000001"; exon_number "1";
     #          gene_name "DDX11L1"; oId "CUFF.1.2"; nearest_ref "ENST00000450305";
     #          class_code "="; tss_id "TSS1";
     #
-    # Selecting via mcols()[] returns a S4Vectors::DataFrame object.
+    # Selecting via S4Vectors::mcols()[] returns a S4Vectors::DataFrame object.
     assembly_frame <- unique.data.frame(
       x = data.frame(
-        "gene_id" = mcols(x = assembly_granges)$gene_id,
-        "transcript_id" = mcols(x = assembly_granges)$transcript_id,
-        "gene_name" = mcols(x = assembly_granges)$gene_name,
-        "ensembl_transcript_id" = mcols(x = assembly_granges)$nearest_ref,
+        "gene_id" = S4Vectors::mcols(x = assembly_granges)$gene_id,
+        "transcript_id" = S4Vectors::mcols(x = assembly_granges)$transcript_id,
+        "gene_name" = S4Vectors::mcols(x = assembly_granges)$gene_name,
+        "ensembl_transcript_id" = S4Vectors::mcols(x = assembly_granges)$nearest_ref,
         stringsAsFactors = TRUE
       )
     )
@@ -1896,7 +1898,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
 
 # Aggregate the "status" variable of differential data frames to inform about
 # the number of NOTEST, HIDATA, LOWDATA and FAIL states.
-# It is silly to redo this outside of the loops spltting the results, but if
+# It is silly to redo this outside of the loops splitting the results, but if
 # files above were partially written, the status frame would not be complete.
 
 # Status frame to aggregate the test status columns in pairwise comparisons of genes.

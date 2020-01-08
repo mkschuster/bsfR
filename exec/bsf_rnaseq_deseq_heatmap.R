@@ -297,7 +297,7 @@ draw_complex_heatmap <-
         complex_heatmap + ComplexHeatmap::HeatmapAnnotation(
           df = deseq_results_frame[top_gene_identifiers, c("gene_biotype", "significant"), drop = FALSE],
           which = "row",
-          text = anno_text(
+          text = ComplexHeatmap::anno_text(
             x = deseq_results_frame[top_gene_identifiers, "gene_name", drop = TRUE],
             which = "row",
             gp = gpar(fontsize = 6),
@@ -386,7 +386,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     next()
   }
 
-  # Coerce into a conventinal data.frame object and
+  # Coerce into a conventional data.frame object and
   # reset the row names from the "gene_id" variable.
   deseq_results_frame <- as.data.frame(x = deseq_results_tibble)
   rm(deseq_results_tibble)
