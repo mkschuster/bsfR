@@ -98,13 +98,6 @@ argument_list <- parse_args(object = OptionParser(
       type = "integer"
     ),
     make_option(
-      opt_str = c("--threads"),
-      default = 1L,
-      dest = "threads",
-      help = "Number of parallel processing threads [1]",
-      type = "integer"
-    ),
-    make_option(
       opt_str = c("--genome-directory"),
       default = ".",
       dest = "genome_directory",
@@ -147,26 +140,25 @@ if (is.null(x = argument_list$design_name)) {
   stop("Missing --design-name option")
 }
 
-suppressPackageStartupMessages(expr = library(package = "DESeq2"))  # for DESeq2::DESeqDataSet() and DESeq2::DESeq()
+suppressPackageStartupMessages(expr = library(package = "bsfR"))
+suppressPackageStartupMessages(expr = library(package = "DESeq2"))
 suppressPackageStartupMessages(expr = library(package = "ggplot2"))
-suppressPackageStartupMessages(expr = library(package = "stringi"))  # For stringi::stri_split_fixed()
+suppressPackageStartupMessages(expr = library(package = "stringi"))
 
 # Save plots in the following formats.
 
-graphics_formats <- c("pdf", "png")
+graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
 message(paste0("Processing design '", argument_list$design_name, "'"))
 
-# The working directory is the analyis genome directory.
+prefix_deseq <-
+  bsfR::bsfrd_get_prefix_deseq(design_name = argument_list$design_name)
+
+# The working directory is the analysis genome directory.
 # Create a new sub-directory for results if it does not exist.
 
-prefix <-
-  paste("rnaseq",
-        "deseq",
-        argument_list$design_name,
-        sep = "_")
-
-output_directory <- file.path(argument_list$output_directory, prefix)
+output_directory <-
+  file.path(argument_list$output_directory, prefix_deseq)
 if (!file.exists(output_directory)) {
   dir.create(path = output_directory,
              showWarnings = TRUE,
@@ -174,23 +166,19 @@ if (!file.exists(output_directory)) {
 }
 
 # Load a pre-calculated DESeqDataSet object.
-deseq_data_set <- NULL
+deseq_data_set <-
+  bsfR::bsfrd_read_deseq_data_set(
+    genome_directory = argument_list$genome_directory,
+    design_name = argument_list$design_name
+  )
 
-file_path <-
-  file.path(argument_list$genome_directory,
-            prefix,
-            paste0(prefix, "_deseq_data_set.Rdata"))
-if (file.exists(file_path) &&
-    file.info(file_path)$size > 0L) {
-  message("Loading a DESeqDataSet object")
-  load(file = file_path)
-} else {
-  stop(paste0(
-    "Require a pre-calculated DESeqDataSet object in file: ",
-    file_path
-  ))
-}
-rm(file_path)
+# Read a tibble of genes to plot.
+genes_tibble <-
+  bsfR::bsfrd_read_gene_set_tibble(
+    genome_directory = argument_list$genome_directory,
+    design_name = argument_list$design_name,
+    gene_set_path = argument_list$genes_path
+  )
 
 # Read a data frame of genes to plot.
 genes_frame <-
@@ -203,19 +191,20 @@ genes_frame <-
     stringsAsFactors = FALSE
   )
 
-if (!is.null(x = genes_frame$padj) &
+if ("padj" %in% names(x = genes_frame) &
     nrow(x = genes_frame) > argument_list$maximum_number) {
-  message(paste0(
+  message(
     "Plotting only ",
     argument_list$maximum_number,
     " out of ",
     nrow(x = genes_frame),
     " genes."
-  ))
+  )
   # Order by adjusted p-value.
-  genes_frame <- genes_frame[order(genes_frame$padj),]
   genes_frame <-
-    genes_frame[seq_len(length.out = argument_list$maximum_number),]
+    genes_frame[order(genes_frame$padj), , drop = FALSE]
+  genes_frame <-
+    genes_frame[seq_len(length.out = argument_list$maximum_number), , drop = FALSE]
 }
 
 for (i in seq_len(length.out = nrow(x = genes_frame))) {
@@ -224,25 +213,25 @@ for (i in seq_len(length.out = nrow(x = genes_frame))) {
     file_path <-
       file.path(output_directory,
                 paste(
-                  paste(prefix,
+                  paste(prefix_deseq,
                         "gene",
-                        genes_frame[i, "gene_id"],
-                        genes_frame[i, "gene_name"],
+                        genes_frame[i, "gene_id", drop = TRUE],
+                        genes_frame[i, "gene_name", drop = TRUE],
                         sep = "_"),
                   graphics_format,
                   sep = "."
                 ))
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
-      message(paste("Skipping plot", genes_frame[i, "gene_id"], genes_frame[i, "gene_name"], sep = " "))
+      message(paste("Skipping plot", genes_frame[i, "gene_id", drop = TRUE], genes_frame[i, "gene_name", drop = TRUE], sep = " "))
     } else {
-      message(paste("Creating plot", genes_frame[i, "gene_id"], genes_frame[i, "gene_name"], sep = " "))
+      message(paste("Creating plot", genes_frame[i, "gene_id", drop = TRUE], genes_frame[i, "gene_name", drop = TRUE], sep = " "))
       count_frame <- DESeq2::plotCounts(
         dds = deseq_data_set,
-        gene = genes_frame[i, "gene_id"],
+        gene = genes_frame[i, "gene_id", drop = TRUE],
         intgroup = stri_split(str = argument_list$groups, fixed = ",")[[1L]],
         normalized = argument_list$normalised,
-        xlab = paste(genes_frame[i, "gene_name"], "(", genes_frame[i, "gene_id"], ")", sep = " "),
+        xlab = paste(genes_frame[i, "gene_name", drop = TRUE], "(", genes_frame[i, "gene_id", drop = TRUE], ")", sep = " "),
         returnData = TRUE
       )
       # Create a new covariates variable pasting all values selected by the --groups option.
@@ -269,7 +258,7 @@ for (i in seq_len(length.out = nrow(x = genes_frame))) {
           } else {
             "Counts"
           },
-          title = paste("Gene", "Counts", genes_frame[i, "gene_id"], genes_frame[i, "gene_name"], sep = " ")
+          title = paste("Gene", "Counts", genes_frame[i, "gene_id", drop = TRUE], genes_frame[i, "gene_name", drop = TRUE], sep = " ")
         )
       ggplot_object <-
         ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
@@ -296,7 +285,7 @@ rm(
   deseq_data_set,
   argument_list,
   output_directory,
-  prefix,
+  prefix_deseq,
   graphics_formats
 )
 

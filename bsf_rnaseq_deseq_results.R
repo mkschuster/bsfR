@@ -73,6 +73,20 @@ argument_list <- parse_args(object = OptionParser(
       type = "integer"
     ),
     make_option(
+      opt_str = c("--genome-directory"),
+      default = ".",
+      dest = "genome_directory",
+      help = "Genome directory path [.]",
+      type = "character"
+    ),
+    make_option(
+      opt_str = c("--output-directory"),
+      default = ".",
+      dest = "output_directory",
+      help = "Output directory path [.]",
+      type = "character"
+    ),
+    make_option(
       opt_str = c("--plot-width"),
       default = 7.0,
       dest = "plot_width",
@@ -95,6 +109,8 @@ if (is.null(x = argument_list$design_name)) {
   stop("Missing --design-name option")
 }
 
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+suppressPackageStartupMessages(expr = library(package = "bsfR"))
 suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
 suppressPackageStartupMessages(expr = library(package = "DESeq2"))
 suppressPackageStartupMessages(expr = library(package = "EnhancedVolcano"))
@@ -113,109 +129,68 @@ BiocParallel::register(BPPARAM = MulticoreParam(workers = argument_list$threads)
 # Create a new sub-directory for results if it does not exist.
 
 prefix <-
-  paste("rnaseq",
-        "deseq",
-        argument_list$design_name,
-        sep = "_")
+  bsfR::bsfrd_get_prefix_deseq(design_name = argument_list$design_name)
 
-output_directory <- prefix
+output_directory <-
+  file.path(argument_list$output_directory, prefix)
 if (!file.exists(output_directory)) {
   dir.create(path = output_directory,
              showWarnings = TRUE,
              recursive = FALSE)
 }
 
-# Annotation data.frame ---------------------------------------------------
+# Plot Annotation ---------------------------------------------------------
 
 
 # Load a pre-calculated annotation frame.
-annotation_frame <- NULL
-
-file_path <-
-  file.path(output_directory,
-            paste(prefix, "annotation.tsv", sep = "_"))
-if (file.exists(file_path) &&
-    file.info(file_path)$size > 0L) {
-  message("Loading annotation frame")
-  annotation_frame <-
-    read.table(
-      file = file_path,
-      header = TRUE,
-      sep = "\t",
-      stringsAsFactors = FALSE
-    )
-} else {
-  stop(paste0("Requiring an annotation frame in file: ", file_path))
-}
-rm(file_path)
+annotation_tibble <- bsfR::bsfrd_read_annotation_tibble(
+  genome_directory = argument_list$genome_directory,
+  design_name = argument_list$design_name
+)
 
 # DESeqDataSet ------------------------------------------------------------
 
 
 # Load a pre-calculated DESeqDataSet object.
-deseq_data_set <- NULL
-
-file_path <-
-  file.path(output_directory,
-            paste0(prefix, "_deseq_data_set.Rdata"))
-if (file.exists(file_path) &&
-    file.info(file_path)$size > 0L) {
-  message("Loading a DESeqDataSet object")
-  load(file = file_path)
-} else {
-  stop(paste0(
-    "Require a pre-calculated DESeqDataSet object in file: ",
-    file_path
-  ))
-}
-rm(file_path)
+deseq_data_set <-
+  bsfR::bsfrd_read_deseq_data_set(
+    genome_directory = argument_list$genome_directory,
+    design_name = argument_list$design_name
+  )
 
 
-# Contrasts data.frame ----------------------------------------------------
+# Contrasts Frame ---------------------------------------------------------
 
 
 # Read a data frame of contrasts with variables "Design", "Numerator", "Denominator" and "Label".
-contrast_frame <-
-  read.table(
-    file = file.path(output_directory, paste(prefix, "contrasts.tsv", sep = "_")),
-    header = TRUE,
-    sep = "\t",
-    colClasses = c(
-      "Design" = "character",
-      "Numerator" = "character",
-      "Denominator" = "character",
-      "Label" = "character"
-    ),
-    stringsAsFactors = FALSE
+contrast_tibble <-
+  bsfR::bsfrd_read_contrast_tibble(
+    genome_directory = argument_list$genome_directory,
+    design_name = argument_list$design_name,
+    summary = FALSE
   )
-# Subset to the selected design.
-contrast_frame <-
-  contrast_frame[contrast_frame$Design == argument_list$design_name, , drop = FALSE]
-if (nrow(contrast_frame) == 0L) {
-  stop("No design remaining after selection for design name.")
+if (nrow(x = contrast_tibble) == 0L) {
+  stop("No contrast remaining after selection for design name.")
 }
-contrast_frame$Significant <- 0L
-contrast_frame$SignificantUp <- 0L
-contrast_frame$SignificantDown <- 0L
 
-for (i in seq_len(length.out = nrow(x = contrast_frame))) {
-  # The "contrast" option of the DESeq results() function expects a list of numerator and denominator.
+# Add new variables for the summary.
+contrast_tibble <-
+  tibble::add_column(
+    .data = contrast_tibble,
+    Significant = 0L,
+    SignificantUp = 0L,
+    SignificantDown = 0L
+  )
+
+for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
   contrast_list <-
-    list("numerator" = unlist(x = strsplit(x = contrast_frame[i, "Numerator", drop = TRUE], split = ",")),
-         "denominator" = unlist(x = strsplit(x = contrast_frame[i, "Denominator", drop = TRUE], split = ",")))
+    bsfR::bsfrd_get_contrast_list(contrast_tibble = contrast_tibble, index = contrast_index)
+
   contrast_character <-
-    paste(paste(contrast_list$numerator, collapse = "_"),
-          "against",
-          if (length(x = contrast_list$denominator) > 0L) {
-            paste(contrast_list$denominator, collapse = "_")
-          } else {
-            "intercept"
-          },
-          sep = "_")
+    bsfR::bsfrd_get_contrast_character(contrast_tibble = contrast_tibble, index = contrast_index)
 
   # Check for the significant genes table and if it exist already,
   # read it to get the number of significant genes for the summary data frame.
-
   file_path <-
     file.path(output_directory,
               paste(
@@ -241,13 +216,13 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
       )
 
     # Record the number of significant genes.
-    contrast_frame[i, "Significant"] <-
+    contrast_tibble[contrast_index, "Significant"] <-
       nrow(x = deseq_merge_significant)
 
-    contrast_frame[i, "SignificantUp"] <-
+    contrast_tibble[contrast_index, "SignificantUp"] <-
       nrow(x = deseq_merge_significant[deseq_merge_significant$log2FoldChange > 0.0, , drop = FALSE])
 
-    contrast_frame[i, "SignificantDown"] <-
+    contrast_tibble[contrast_index, "SignificantDown"] <-
       nrow(x = deseq_merge_significant[deseq_merge_significant$log2FoldChange < 0.0, , drop = FALSE])
 
     rm(deseq_merge_significant)
@@ -265,8 +240,6 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
         # If tidy is TRUE, a classical data.frame is returned.
         parallel = TRUE
       )
-
-    # print(x = summary(object = deseq_results_default))
 
     # Run lfcShrink() if possible.
     deseq_results_shrunk <- NULL
@@ -347,34 +320,33 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
                               graphics_formats,
                               sep = "."
                             ))
-    # To annotate gene symbols rather than Ensembl gene identifiers,
-    # the DESeqResults DataFrame needs merging with the annotation frame.
+    # To annotate gene symbols rather than Ensembl gene identifiers, the
+    # DESeqResults DataFrame needs subsetting into a data.frame and merging with
+    # the annotation tibble.
     message(paste0("Creating an EnhancedVolcano plot for ", contrast_character))
     deseq_results_frame <-
       if (is.null(x = deseq_results_shrunk))
-        DataFrame(
+        data.frame(
           gene_id = rownames(x = deseq_results_default),
           deseq_results_default[, c("baseMean",
                                     "log2FoldChange",
                                     "lfcSE",
                                     "stat",
                                     "pvalue",
-                                    "padj"), drop = FALSE],
-          significant = factor(x = "no", levels = c("no", "yes"))
+                                    "padj"), drop = FALSE]
         )
     else
-      DataFrame(
+      data.frame(
         gene_id = rownames(x = deseq_results_shrunk),
         deseq_results_shrunk[, c("baseMean",
                                  "log2FoldChange",
                                  "lfcSE",
                                  "pvalue", # no "stat" column
-                                 "padj"), drop = FALSE],
-        significant = factor(x = "no", levels = c("no", "yes"))
+                                 "padj"), drop = FALSE]
       )
 
     deseq_results_merged <-
-      merge(x = annotation_frame, y = deseq_results_frame, by = "gene_id")
+      base::merge(x = annotation_tibble, y = deseq_results_frame, by = "gene_id")
 
     ggplot_object <- EnhancedVolcano::EnhancedVolcano(
       toptable = deseq_results_merged,
@@ -402,7 +374,7 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
     # Adjust the DESeqResults DataFrame for merging with the annotation DataFrame,
     # by setting the rownames() as "gene_id" variable.
     deseq_results_frame <-
-      DataFrame(
+      S4Vectors::DataFrame(
         gene_id = rownames(x = deseq_results_default),
         deseq_results_default[, c("baseMean",
                                   "log2FoldChange",
@@ -452,7 +424,7 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
       )
 
     deseq_merge_complete <-
-      merge(x = annotation_frame, y = deseq_results_frame, by = "gene_id")
+      merge(x = annotation_tibble, y = deseq_results_frame, by = "gene_id")
 
     write.table(
       x = deseq_merge_complete,
@@ -478,13 +450,13 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
       subset(x = deseq_merge_complete, padj <= argument_list$padj_threshold)
 
     # Record the number of significant genes.
-    contrast_frame[i, "Significant"] <-
+    contrast_tibble[contrast_index, "Significant"] <-
       nrow(x = deseq_merge_significant)
 
-    contrast_frame[i, "SignificantUp"] <-
+    contrast_tibble[contrast_index, "SignificantUp"] <-
       nrow(x = deseq_merge_significant[deseq_merge_significant$log2FoldChange > 0.0, , drop = FALSE])
 
-    contrast_frame[i, "SignificantDown"] <-
+    contrast_tibble[contrast_index, "SignificantDown"] <-
       nrow(x = deseq_merge_significant[deseq_merge_significant$log2FoldChange < 0.0, , drop = FALSE])
 
     write.table(
@@ -518,26 +490,21 @@ for (i in seq_len(length.out = nrow(x = contrast_frame))) {
   }
   rm(file_path)
 }
+rm(contrast_index)
 
 # Write summary frame -----------------------------------------------------
 
 
-write.table(
-  x = contrast_frame,
-  file = file.path(
-    output_directory,
-    paste(prefix, "contrasts", "summary.tsv", sep = "_")
-  ),
-  sep = "\t",
-  col.names = TRUE,
-  row.names = FALSE
-)
+readr::write_tsv(x = contrast_tibble,
+                 path = file.path(
+                   output_directory,
+                   paste(prefix, "contrasts", "summary.tsv", sep = "_")
+                 ))
 
 rm(
-  i,
-  contrast_frame,
+  contrast_tibble,
   deseq_data_set,
-  annotation_frame,
+  annotation_tibble,
   output_directory,
   prefix,
   graphics_formats,
