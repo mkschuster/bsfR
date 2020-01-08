@@ -340,27 +340,29 @@ bsfrd_read_summarized_experiment <-
   function(genome_directory, design_name, verbose = FALSE) {
     ranged_summarized_experiment <- NULL
 
-  prefix_deseq <-
-    bsfrd_get_prefix_deseq(design_name = design_name)
+    prefix_deseq <-
+      bsfrd_get_prefix_deseq(design_name = design_name)
 
-  file_path <-
-    file.path(genome_directory,
-              prefix_deseq,
-              paste0(prefix_deseq, "_ranged_summarized_experiment.Rdata"))
-  if (file.exists(file_path) &&
-      file.info(file_path)$size > 0L) {
-    if (verbose) {
-      message("Loading a RangedSummarizedExperiment object ...")
+    file_path <-
+      file.path(
+        genome_directory,
+        prefix_deseq,
+        paste0(prefix_deseq, "_ranged_summarized_experiment.Rdata")
+      )
+    if (file.exists(file_path) &&
+        file.info(file_path)$size > 0L) {
+      if (verbose) {
+        message("Loading a RangedSummarizedExperiment object ...")
+      }
+      load(file = file_path)
+    } else {
+      warning("Require a pre-calculated RangedSummarizedExperiment object in file: ",
+              file_path)
     }
-    load(file = file_path)
-  } else {
-    warning("Require a pre-calculated RangedSummarizedExperiment object in file: ",
-            file_path)
-  }
-  rm(file_path, prefix_deseq)
+    rm(file_path, prefix_deseq)
 
-  return(ranged_summarized_experiment)
-}
+    return(ranged_summarized_experiment)
+  }
 
 #' Read a pre-calculated DESeqDataSet object.
 #'
@@ -598,7 +600,17 @@ bsfrd_read_annotation_tibble <-
       }
 
       annotation_tibble <-
-        readr::read_tsv(file = file_path)
+        readr::read_tsv(
+          file = file_path,
+          col_types = readr::cols(
+            gene_id = readr::col_character(),
+            gene_version = readr::col_integer(),
+            gene_name = readr::col_character(),
+            gene_biotype = readr::col_character(),
+            gene_source = readr::col_character(),
+            location = readr::col_character()
+          )
+        )
     } else {
       warning("Require a pre-calculated annotation tibble in file: ",
               file_path)
