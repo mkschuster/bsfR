@@ -433,6 +433,15 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
         # position = "dodge"
       )
 
+    ggplot_object <- ggplot_object +
+      ggplot2::labs(
+        x = "Term",
+        y = "Combined Enrichr Score",
+        fill = "Direction",
+        title = "Enrichr Analysis",
+        subtitle = enrichr_databases[enrichr_index]
+      )
+
     # ggplot_object <- ggplot_object + ggplot2::facet_grid(rows = ggplot2::vars(Direction))
 
     ggplot_object <- ggplot_object +
@@ -442,14 +451,6 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
         values = c("down" = "#00ba38", "up" = "#f8766d")
       )
     ggplot_object <- ggplot_object + ggplot2::coord_flip()
-
-    ggplot_object <- ggplot_object +
-      ggplot2::labs(
-        title = "Enrichr Analysis",
-        subtitle = enrichr_databases[enrichr_index],
-        x = "Term",
-        y = "Combined Enrichr Score"
-      )
 
     ggplot_object <-
       ggplot_object + ggplot2::theme(axis.text.y = ggplot2::element_text(size = ggplot2::rel(x = 0.5)))

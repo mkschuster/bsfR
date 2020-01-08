@@ -83,7 +83,7 @@ suppressPackageStartupMessages(expr = library(package = "ggplot2"))
 
 # Save plots in the following formats.
 
-graphics_formats <- c("pdf", "png")
+graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
 #' Parse Tophat alignment summary (align_summary.txt) files and
 #' return a data frame.
@@ -95,7 +95,7 @@ process_align_summary <- function(summary_frame) {
   if (is.null(x = summary_frame)) {
     stop("Missing summary_frame argument")
   }
-  
+
   # Initialise further columns in the data frame.
   frame_length <- nrow(x = summary_frame)
   # R integer vector of the number of input reads.
@@ -109,20 +109,20 @@ process_align_summary <- function(summary_frame) {
   # R integer vector of the mapping threshold.
   summary_frame$threshold = integer(length = frame_length)
   rm(frame_length)
-  
+
   for (i in seq_len(length.out = nrow(x = summary_frame))) {
     prefix_tophat <-
       paste("rnaseq", "tophat", summary_frame[i, "sample"], sep = "_")
     file_path <- file.path(prefix_tophat, "align_summary.txt")
-    
+
     if (!file.exists(file_path)) {
       warning(paste0("Missing Tophat alignment summary file ", file_path))
       rm(prefix_tophat, file_path)
       next
     }
-    
+
     align_summary <- readLines(con = file_path)
-    
+
     # This is the layout of a Tophat align_summary.txt file.
     #
     #   [1] "Reads:"
@@ -130,7 +130,7 @@ process_align_summary <- function(summary_frame) {
     #   [3] "           Mapped   :  21518402 (98.7% of input)"
     #   [4] "            of these:   2010462 ( 9.3%) have multiple alignments (8356 have >20)"
     #   [5] "98.7% overall read mapping rate."
-    
+
     # Parse the second line of "input" reads.
     summary_frame[i, "input"] <- as.integer(
       x = sub(
@@ -139,7 +139,7 @@ process_align_summary <- function(summary_frame) {
         x = align_summary[2L]
       )
     )
-    
+
     # Parse the third line of "mapped" reads.
     summary_frame[i, "mapped"] <- as.integer(
       x = sub(
@@ -148,7 +148,7 @@ process_align_summary <- function(summary_frame) {
         x = align_summary[3L]
       )
     )
-    
+
     # Get the number of "multiply" aligned reads from the fourth line.
     summary_frame[i, "multiple"] <- as.integer(
       x = sub(
@@ -157,7 +157,7 @@ process_align_summary <- function(summary_frame) {
         x = align_summary[4L]
       )
     )
-    
+
     # Get the number of multiply aligned reads "above" the multiple alignment threshold.
     summary_frame[i, "above"] <- as.integer(
       x = sub(
@@ -166,18 +166,18 @@ process_align_summary <- function(summary_frame) {
         x = align_summary[4L]
       )
     )
-    
+
     # Get the multiple alignment "threshold".
     summary_frame[i, "threshold"] <- as.integer(x = sub(
       pattern = ".+ >([[:digit:]]+)\\)",
       replacement = "\\1",
       x = align_summary[4L]
     ))
-    
+
     rm(align_summary, prefix_tophat)
   }
   rm(i)
-  
+
   return(summary_frame)
 }
 
@@ -219,32 +219,37 @@ rm(file_path)
 # Alignment Summary Plot --------------------------------------------------
 
 
-ggplot_object <- ggplot(data = summary_frame)
+ggplot_object <- ggplot2::ggplot(data = summary_frame)
 ggplot_object <-
-  ggplot_object + ggtitle(label = "TopHat Alignment Summary")
-ggplot_object <-
-  ggplot_object + geom_point(mapping = aes(
+  ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
     x = mapped,
     y = mapped / input,
     colour = sample
   ))
+ggplot_object <-
+  ggplot_object + ggplot2::labs(
+    x = "Reads Number",
+    y = "Reads Fraction",
+    colour = "Sample",
+    title = "TopHat Alignment Summary"
+  )
 # Reduce the label font size and the legend key size and allow a maximum of 24
 # guide legend rows.
 ggplot_object <-
-  ggplot_object + guides(colour = guide_legend(
-    keywidth = rel(x = 0.8),
-    keyheight = rel(x = 0.8),
+  ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(
+    keywidth = ggplot2::rel(x = 0.8),
+    keyheight = ggplot2::rel(x = 0.8),
     nrow = 24L
   ))
 ggplot_object <-
-  ggplot_object + theme(legend.text = element_text(size = rel(x = 0.7)))
+  ggplot_object + ggplot2::theme(legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7)))
 # Scale the plot width with the number of samples, by adding a quarter of
 # the original width for each 24 samples.
 plot_width <-
   argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * argument_list$plot_factor
 
 for (graphics_format in graphics_formats) {
-  ggsave(
+  ggplot2::ggsave(
     filename = paste("rnaseq_tophat_alignment_summary", graphics_format, sep = "."),
     plot = ggplot_object,
     width = plot_width,
