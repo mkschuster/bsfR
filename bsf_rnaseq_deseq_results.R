@@ -326,24 +326,20 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     message(paste0("Creating an EnhancedVolcano plot for ", contrast_character))
     deseq_results_frame <-
       if (is.null(x = deseq_results_shrunk))
-        data.frame(
-          gene_id = rownames(x = deseq_results_default),
-          deseq_results_default[, c("baseMean",
-                                    "log2FoldChange",
-                                    "lfcSE",
-                                    "stat",
-                                    "pvalue",
-                                    "padj"), drop = FALSE]
-        )
+        data.frame(gene_id = rownames(x = deseq_results_default),
+                   deseq_results_default[, c("baseMean",
+                                             "log2FoldChange",
+                                             "lfcSE",
+                                             "stat",
+                                             "pvalue",
+                                             "padj"), drop = FALSE])
     else
-      data.frame(
-        gene_id = rownames(x = deseq_results_shrunk),
-        deseq_results_shrunk[, c("baseMean",
-                                 "log2FoldChange",
-                                 "lfcSE",
-                                 "pvalue", # no "stat" column
-                                 "padj"), drop = FALSE]
-      )
+      data.frame(gene_id = rownames(x = deseq_results_shrunk),
+                 deseq_results_shrunk[, c("baseMean",
+                                          "log2FoldChange",
+                                          "lfcSE",
+                                          "pvalue", # no "stat" column
+                                          "padj"), drop = FALSE])
 
     deseq_results_merged <-
       base::merge(x = annotation_tibble, y = deseq_results_frame, by = "gene_id")
@@ -483,12 +479,12 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       deseq_merge_complete,
       deseq_results_frame,
       deseq_results_shrunk,
-      deseq_results_default,
-      contrast_character,
-      contrast_list
+      deseq_results_default
     )
   }
-  rm(file_path)
+  rm(file_path,
+     contrast_character,
+     contrast_list)
 }
 rm(contrast_index)
 
