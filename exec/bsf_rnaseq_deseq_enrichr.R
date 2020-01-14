@@ -172,19 +172,19 @@ load_contrast_frame <- function(contrast_character) {
           nrow(x = deseq_results_tibble))
 
   deseq_results_tibble <-
-    dplyr::filter(.data = deseq_results_tibble, !is.na(x = padj))
+    dplyr::filter(.data = deseq_results_tibble, !is.na(x = .data$padj))
 
   message("Number of genes after NA removal: ",
           nrow(x = deseq_results_tibble))
 
   deseq_results_tibble <-
-    dplyr::filter(.data = deseq_results_tibble, padj <= argument_list$padj_threshold)
+    dplyr::filter(.data = deseq_results_tibble, .data$padj <= argument_list$padj_threshold)
 
   message("Number of genes after applying the padj threshold: ",
           nrow(x = deseq_results_tibble))
 
   deseq_results_tibble <-
-    dplyr::filter(.data = deseq_results_tibble, abs(log2FoldChange) <= argument_list$l2fc_threshold)
+    dplyr::filter(.data = deseq_results_tibble, abs(x = .data$log2FoldChange) >= argument_list$l2fc_threshold)
 
   message("Number of gene after applying the l2fc threshold: ",
           nrow(x = deseq_results_tibble))
@@ -248,6 +248,14 @@ load_enrichr_results <-
       }
       rm(direction_index)
     } else {
+      message(
+        paste(
+          "Loading:",
+          contrast_character,
+          enrichr_database,
+          sep = " "
+        )
+      )
       deseq_results_tibble <-
         load_contrast_frame(contrast_character = contrast_character)
 
@@ -265,10 +273,10 @@ load_enrichr_results <-
         enrichr_tibble <- NULL
         if (directions[direction_index] == "up") {
           enrichr_tibble <-
-            dplyr::filter(.data = deseq_results_tibble, log2FoldChange > 0)
+            dplyr::filter(.data = deseq_results_tibble, .data$log2FoldChange > 0)
         } else {
           enrichr_tibble <-
-            dplyr::filter(.data = deseq_results_tibble, log2FoldChange < 0)
+            dplyr::filter(.data = deseq_results_tibble, .data$log2FoldChange < 0)
         }
         readr::write_tsv(x = enrichr_tibble,
                          path = file.path(output_directory,
@@ -427,7 +435,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
 
     ggplot_object <- ggplot_object +
       ggplot2::geom_bar(
-        mapping = ggplot2::aes(x = Term, y = Combined.Score, fill = Direction),
+        mapping = ggplot2::aes(x = .data$Term, y = .data$Combined.Score, fill = .data$Direction),
         stat = "identity",
         width = 0.5
         # position = "dodge"
