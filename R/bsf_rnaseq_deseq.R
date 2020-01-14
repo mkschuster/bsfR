@@ -202,6 +202,7 @@ bsfrd_read_contrast_tibble <-
 #' @return A named \code{list} of "numerator" and "denominator" \code{character}
 #'   vectors. \code{NA} values in the contrast \code{tibble} are replaced by
 #'   empty \code{character} vectors.
+#' @importFrom stringi stri_split_fixed
 #' @export
 #'
 #' @examples
@@ -212,25 +213,21 @@ bsfrd_read_contrast_tibble <-
 #' }
 bsfrd_get_contrast_list <- function(contrast_tibble, index) {
   numerator_character <-
-    unlist(x = strsplit(
-      x = contrast_tibble[index, "Numerator", drop = TRUE],
-      split = ",",
-      fixed = TRUE
-    ))
+    stringi::stri_split_fixed(str = contrast_tibble[index, "Numerator", drop = TRUE],
+                              pattern = ",")[[1L]]
   denomintor_character <-
-    unlist(x = strsplit(
-      x = contrast_tibble[index, "Denominator", drop = TRUE],
-      split = ",",
-      fixed = TRUE
-    ))
+    stringi::stri_split_fixed(str = contrast_tibble[index, "Denominator", drop = TRUE],
+                              pattern = ",")[[1L]]
 
   character_list <-
-    list("numerator" = if (is.na(x = numerator_character)) {
+    list("numerator" = if (length(x = numerator_character == 1L) &&
+                           is.na(x = numerator_character)) {
       character()
     } else {
       numerator_character
     },
-    "denominator" = if (is.na(x = denomintor_character)) {
+    "denominator" = if (length(x = denomintor_character) == 1L &&
+                        is.na(x = denomintor_character)) {
       character()
     } else {
       denomintor_character
@@ -308,6 +305,7 @@ bsfrd_read_design_tibble <-
       col_names = TRUE,
       col_types = readr::cols(
         design = readr::col_character(),
+        exclude = readr::col_logical(),
         full_formula = readr::col_character(),
         reduced_formulas = readr::col_character(),
         factor_levels = readr::col_character(),

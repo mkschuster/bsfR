@@ -10,12 +10,18 @@ License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Imports:
-    dplyr,
-    ggplot2,
+    stringi,
     methods,
+    rlang,
+    tidyverse,
+    ggplot2,
+    purrr,
+    tibble,
+    dplyr,
     tidyr,
+    stringr,
     readr,
-    rlang
+    forcats
 RoxygenNote: 7.0.2
 Collate:
     'bsf_rnaseq_cufflinks.R'
