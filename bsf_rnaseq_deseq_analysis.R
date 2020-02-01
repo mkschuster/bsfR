@@ -177,19 +177,19 @@ if (is.null(x = argument_list$design_name)) {
   stop("Missing --design-name option")
 }
 
-suppressPackageStartupMessages(expr = library(package = "DESeq2"))  # for DESeq2::DESeqDataSet() and DESeq2::DESeq()
-suppressPackageStartupMessages(expr = library(package = "BiocParallel"))  # for BiocParallel::register()
-suppressPackageStartupMessages(expr = library(package = "GenomicAlignments"))  # for GenomicAlignments::summarizeOverlaps()
-suppressPackageStartupMessages(expr = library(package = "RColorBrewer"))  # for RColorBrewer::brewer.pal()
-suppressPackageStartupMessages(expr = library(package = "Rsamtools"))  # for Rsamtools::BamFileList()
-suppressPackageStartupMessages(expr = library(package = "caret"))  # For caret::findLinearCombos()
-suppressPackageStartupMessages(expr = library(package = "plyr"))  # For plyr::ldply()
-suppressPackageStartupMessages(expr = library(package = "genefilter"))  # for genefilter::rowVars()
-suppressPackageStartupMessages(expr = library(package = "tidyverse"))  # for ggplot2::ggplot(), etc.
-suppressPackageStartupMessages(expr = library(package = "grid"))  # for grid::grid.newpage() and grid::grid.draw()
-suppressPackageStartupMessages(expr = library(package = "pheatmap"))  # for pheatmap::pheatmap()
-suppressPackageStartupMessages(expr = library(package = "rtracklayer"))  # for rtracklayer::import() GTF import
-suppressPackageStartupMessages(expr = library(package = "stringi"))  # For stringi::stri_split_fixed()
+suppressPackageStartupMessages(expr = library(package = "DESeq2"))
+suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
+suppressPackageStartupMessages(expr = library(package = "GenomicAlignments"))
+suppressPackageStartupMessages(expr = library(package = "RColorBrewer"))
+suppressPackageStartupMessages(expr = library(package = "Rsamtools"))
+suppressPackageStartupMessages(expr = library(package = "caret"))
+suppressPackageStartupMessages(expr = library(package = "plyr"))
+suppressPackageStartupMessages(expr = library(package = "genefilter"))
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+suppressPackageStartupMessages(expr = library(package = "grid"))
+suppressPackageStartupMessages(expr = library(package = "pheatmap"))
+suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
+suppressPackageStartupMessages(expr = library(package = "stringi"))
 
 # Save plots in the following formats.
 
@@ -373,21 +373,13 @@ initialise_sample_frame <- function(factor_levels) {
                  levels = factor_list[[i]])
         # Check for NA values in case a factor level was missing.
         if (any(is.na(x = data_frame[, factor_name]))) {
-          stop(
-            paste0(
-              "Missing values after assigning factor levels for factor name ",
-              factor_name
-            )
-          )
+          stop("Missing values after assigning factor levels for factor name ",
+               factor_name)
         }
       } else {
-        stop(
-          paste0(
-            "Factor name ",
-            factor_name,
-            " does not resemble a variable of the design frame."
-          )
-        )
+        stop("Factor name ",
+             factor_name,
+             " does not resemble a variable of the design frame.")
       }
     }
     rm(factor_name)
@@ -491,12 +483,10 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     for (library_type in levels(x = sample_frame$library_type)) {
       for (sequencing_type in levels(x = sample_frame$sequencing_type)) {
         message(
-          paste0(
-            "Processing library_type: ",
-            library_type,
-            " sequencing_type: ",
-            sequencing_type
-          )
+          "Processing library_type: ",
+          library_type,
+          " sequencing_type: ",
+          sequencing_type
         )
         sub_sample_frame <-
           sample_frame[(sample_frame$library_type == library_type) &
@@ -542,7 +532,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
             ),
             # Invert the strand for protocols that sequence the second strand.
             preprocess.reads = if (library_type == "second")
-              invertStrand
+              GenomicAlignments::invertStrand
           )
         SummarizedExperiment::colData(x = sub_ranged_summarized_experiment) <-
           sub_sample_frame
@@ -650,7 +640,8 @@ fix_model_matrix <- function(model_matrix_local) {
           FUN = function(x) {
             return(paste0(
               "  Linear combinations:\n    ",
-              paste(colnames(x = model_matrix_local)[x], collapse = "\n    ")
+              paste(colnames(x = model_matrix_local)[x], collapse = "\n    "),
+              "\n"
             ))
           }
         ))
@@ -835,10 +826,10 @@ initialise_deseq_transform <-
                 ))
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
-      message(paste("Loading a", suffix, "DESeqTransform object"))
+      message("Loading a ", suffix, " DESeqTransform object")
       load(file = file_path)
     } else {
-      message(paste("Creating a", suffix, "DESeqTransform object"))
+      message("Creating a ", suffix, " DESeqTransform object")
       # Run variance stabilizing transformation (VST) to get homoskedastic data for PCA plots.
       deseq_transform <-
         DESeq2::varianceStabilizingTransformation(object = deseq_data_set, blind = blind)
@@ -983,16 +974,12 @@ plot_cooks_distances <- function(object) {
         cols = tidyselect::everything()
       ))
     ggplot_object <-
-      ggplot_object + ggplot2::geom_boxplot(mapping = ggplot2::aes(
-        x = .data$name,
-        y = .data$value,
-        fill = .data$name
-      ))
+      ggplot_object + ggplot2::geom_boxplot(mapping = ggplot2::aes(x = .data$name,
+                                                                   y = .data$value))
     ggplot_object <-
       ggplot_object + ggplot2::labs(
         x = "Sample",
         y = "Cook's Distance",
-        fill = "Sample",
         title = "Cook's Distance per Sample",
         subtitle = paste("Design", argument_list$design_name)
       )
@@ -1122,7 +1109,7 @@ plot_mds <- function(object,
   else
     "model"
 
-  message(paste("Creating", suffix, "MDS plots"))
+  message("Creating ", suffix, " MDS plots:")
 
   dist_object <-
     stats::dist(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)))
@@ -1139,6 +1126,9 @@ plot_mds <- function(object,
     lapply(
       X = plot_list,
       FUN = function(aes_list) {
+        aes_character <-
+          unique(x = unlist(x = aes_list, use.names = TRUE))
+
         plot_paths <- file.path(output_directory,
                                 paste(
                                   paste(
@@ -1154,9 +1144,9 @@ plot_mds <- function(object,
 
         if (all(file.exists(plot_paths) &&
                 file.info(plot_paths)$size > 0L)) {
-          message("Skipping a MDS plot")
+          message(paste(c("  Skipping MDS plot:", aes_character), collapse = " "))
         } else {
-          message("Creating a MDS plot")
+          message(paste(c("  Creating MDS plot:", aes_character), collapse = " "))
 
           ggplot_object <-
             ggplot2::ggplot(data = mds_frame)
@@ -1283,6 +1273,7 @@ plot_mds <- function(object,
           }
           rm(plot_path, ggplot_object)
         }
+        rm(plot_paths, aes_character)
       }
     )
 
@@ -1303,7 +1294,8 @@ plot_mds <- function(object,
 #' of transformed counts for each gene.
 #'
 #' @param object A \code{DESeqTransform} object.
-#' @param aes_list A \code{list} of \code{ggplot2} aesthethics.
+#' @param plot_list A \code{list} of \code{list} objects configuring plots and
+#'   their \code{ggplot2} aesthetic mappings.
 #' @param blind A \code{logical} scalar to indicate a blind or model-based
 #'   \code{DESeqTransform} object.
 #'
@@ -1311,26 +1303,14 @@ plot_mds <- function(object,
 #'
 #' @examples
 plot_heatmap <- function(object,
-                         aes_list = list(),
+                         plot_list = list(),
                          blind = FALSE) {
   suffix <- if (blind)
     "blind"
   else
     "model"
 
-  message(paste("Creating a", suffix, "Heatmap plot"))
-
-  aes_character <-
-    unique(x = unlist(x = aes_list, use.names = TRUE))
-  message(paste(c("  Heat map plot:", aes_character), collapse = " "))
-  if (!all(aes_character %in% names(x = SummarizedExperiment::colData(x = object)))) {
-    stop(
-      "the argument 'aes_character' should specify columns of SummarizedExperiment::colData(x = dds)"
-    )
-  }
-
-  plotting_frame <-
-    BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object))[, aes_character, drop = FALSE]
+  message("Creating ", suffix, " Heatmap plots:")
 
   # Transpose the counts table, since dist() works with columns and
   # assign the sample names as column and row names to the resulting matrix.
@@ -1340,96 +1320,114 @@ plot_heatmap <- function(object,
   base::colnames(x = dist_matrix) <- object$sample
   base::rownames(x = dist_matrix) <- object$sample
 
-  pheatmap_object <- NULL
+  dummy_list <-
+    lapply(
+      X = plot_list,
+      FUN = function(aes_list) {
+        aes_character <-
+          unique(x = unlist(x = aes_list, use.names = TRUE))
+        message(paste(c(
+          "  Creating heat map plot:", aes_character
+        ), collapse = " "))
 
-  if (FALSE) {
-    # Add the aes_character factors together to create a new grouping factor
-    group_factor <- if (length(x = aes_character) > 1) {
-      factor(x = apply(
-        X = plotting_frame,
-        MARGIN = 1,
-        FUN = paste,
-        collapse = " : "
-      ))
-    } else {
-      SummarizedExperiment::colData(x = object)[[aes_character]]
-    }
+        plotting_frame <-
+          BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object))[, aes_character, drop = FALSE]
 
-    # Assign the grouping factor to the distance matrix row names.
-    base::colnames(x = dist_matrix) <- NULL
-    base::rownames(x = dist_matrix) <-
-      paste(object$sample, group_factor, sep = " - ")
+        pheatmap_object <- NULL
 
-    pheatmap_object <-
-      pheatmap::pheatmap(
-        mat = dist_matrix,
-        color = grDevices::colorRampPalette(colors = rev(x = RColorBrewer::brewer.pal(
-          n = 9, name = "Blues"
-        )))(255),
-        clustering_distance_rows = dist_object,
-        clustering_distance_cols = dist_object,
-        fontsize_row = 6,
-        silent = TRUE
-      )
-    rm(group_factor)
-  } else {
-    # Draw a heatmap with covariate column annotation.
-    pheatmap_object <-
-      pheatmap::pheatmap(
-        mat = dist_matrix,
-        color = grDevices::colorRampPalette(colors = rev(x = RColorBrewer::brewer.pal(
-          n = 9, name = "Blues"
-        )))(255),
-        clustering_distance_rows = dist_object,
-        clustering_distance_cols = dist_object,
-        annotation_col = plotting_frame,
-        show_rownames = TRUE,
-        show_colnames = FALSE,
-        fontsize_row = 6,
-        silent = TRUE
-      )
-  }
-  plot_paths <- file.path(output_directory,
-                          paste(
-                            paste(
-                              prefix,
-                              "heatmap",
-                              paste(aes_character, collapse = "_"),
-                              suffix,
-                              sep = "_"
-                            ),
-                            graphics_formats,
-                            sep = "."
-                          ))
-  names(x = plot_paths) <- names(x = graphics_formats)
+        if (FALSE) {
+          # Add the aes_character factors together to create a new grouping factor
+          group_factor <- if (length(x = aes_character) > 1) {
+            factor(x = apply(
+              X = plotting_frame,
+              MARGIN = 1,
+              FUN = paste,
+              collapse = " : "
+            ))
+          } else {
+            SummarizedExperiment::colData(x = object)[[aes_character]]
+          }
 
-  # PDF output
-  grDevices::pdf(
-    file = plot_paths["pdf"],
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  # grid::grid.newpage()
-  grid::grid.draw(pheatmap_object$gtable)
-  base::invisible(x = grDevices::dev.off())
+          # Assign the grouping factor to the distance matrix row names.
+          base::colnames(x = dist_matrix) <- NULL
+          base::rownames(x = dist_matrix) <-
+            paste(object$sample, group_factor, sep = " - ")
 
-  # PNG output
-  grDevices::png(
-    filename = plot_paths["png"],
-    width = argument_list$plot_width,
-    height = argument_list$plot_height,
-    units = "in",
-    res = 300L
-  )
-  # grid::grid.newpage()
-  grid::grid.draw(pheatmap_object$gtable)
-  base::invisible(x = grDevices::dev.off())
+          pheatmap_object <-
+            pheatmap::pheatmap(
+              mat = dist_matrix,
+              color = grDevices::colorRampPalette(colors = rev(x = RColorBrewer::brewer.pal(
+                n = 9, name = "Blues"
+              )))(255),
+              clustering_distance_rows = dist_object,
+              clustering_distance_cols = dist_object,
+              fontsize_row = 6,
+              silent = TRUE
+            )
+          rm(group_factor)
+        } else {
+          # Draw a heatmap with covariate column annotation.
+          pheatmap_object <-
+            pheatmap::pheatmap(
+              mat = dist_matrix,
+              color = grDevices::colorRampPalette(colors = rev(x = RColorBrewer::brewer.pal(
+                n = 9, name = "Blues"
+              )))(255),
+              clustering_distance_rows = dist_object,
+              clustering_distance_cols = dist_object,
+              annotation_col = plotting_frame,
+              show_rownames = TRUE,
+              show_colnames = FALSE,
+              fontsize_row = 6,
+              silent = TRUE
+            )
+        }
+        plot_paths <- file.path(output_directory,
+                                paste(
+                                  paste(
+                                    prefix,
+                                    "heatmap",
+                                    paste(aes_character, collapse = "_"),
+                                    suffix,
+                                    sep = "_"
+                                  ),
+                                  graphics_formats,
+                                  sep = "."
+                                ))
+        names(x = plot_paths) <- names(x = graphics_formats)
 
-  rm(plot_paths,
+        # PDF output
+        grDevices::pdf(
+          file = plot_paths["pdf"],
+          width = argument_list$plot_width,
+          height = argument_list$plot_height
+        )
+        # grid::grid.newpage()
+        grid::grid.draw(pheatmap_object$gtable)
+        base::invisible(x = grDevices::dev.off())
+
+        # PNG output
+        grDevices::png(
+          filename = plot_paths["png"],
+          width = argument_list$plot_width,
+          height = argument_list$plot_height,
+          units = "in",
+          res = 300L
+        )
+        # grid::grid.newpage()
+        grid::grid.draw(pheatmap_object$gtable)
+        base::invisible(x = grDevices::dev.off())
+
+        rm(plot_paths,
+           pheatmap_object,
+           plotting_frame,
+           aes_character)
+      }
+    )
+
+  rm(dummy_list,
      dist_matrix,
      dist_object,
-     plotting_frame,
-     aes_character,
      suffix)
 }
 
@@ -1455,7 +1453,7 @@ plot_pca <- function(object,
   else
     "model"
 
-  message(paste("Creating", suffix, "PCA plots"))
+  message("Creating ", suffix, " PCA plots:")
 
   # Calculate the variance for each gene.
   row_variance <-
@@ -1537,12 +1535,7 @@ plot_pca <- function(object,
       FUN = function(aes_list) {
         aes_character <-
           unique(x = unlist(x = aes_list, use.names = TRUE))
-        message(paste(c("  PCA plot:", aes_character), collapse = " "))
-        if (!all(aes_character %in% names(x = SummarizedExperiment::colData(x = object)))) {
-          stop(
-            "the argument 'aes_character' should specify columns of SummarizedExperiment::colData(x = dds)"
-          )
-        }
+        message(paste(c("  Creating PCA plot:", aes_character), collapse = " "))
 
         plot_paths <- file.path(output_directory,
                                 paste(
@@ -1750,7 +1743,7 @@ plot_pca <- function(object,
 # Start of main script ----------------------------------------------------
 
 
-message(paste0("Processing design '", argument_list$design_name, "'"))
+message("Processing design '", argument_list$design_name, "'")
 
 # Set the number of parallel threads in the MulticoreParam instance.
 BiocParallel::register(BPPARAM = MulticoreParam(workers = argument_list$threads))
@@ -1836,10 +1829,10 @@ temporary_list <- lapply(
 
     if (file.exists(file_path_significant) &&
         file.info(file_path_significant)$size > 0L) {
-      message(paste0(
+      message(
         "Skipping reduced formula: ",
         attr(x = reduced_formula_character, which = "reduced_name")
-      ))
+      )
       # Read the existing table to count the number of significant genes after LRT.
       deseq_merge_significant <-
         read.table(file = file_path_significant,
@@ -1854,10 +1847,10 @@ temporary_list <- lapply(
       )
       rm(deseq_merge_significant)
     } else {
-      message(paste0(
+      message(
         "Processing reduced formula: ",
         attr(x = reduced_formula_character, which = "reduced_name")
-      ))
+      )
       # DESeq LRT testing requires either two model formulas or two model matrices.
       # Create a reduced model matrix and check whether it is full rank.
       formula_full <-
@@ -2171,16 +2164,9 @@ for (blind in c(FALSE, TRUE)) {
            plot_list = plot_list,
            blind = blind)
 
-  dummy_list <-
-    lapply(
-      X = plot_list,
-      FUN = function(aes_list) {
-        plot_heatmap(object = deseq_transform,
-                     aes_list = aes_list,
-                     blind = blind)
-      }
-    )
-  rm(dummy_list)
+  plot_heatmap(object = deseq_transform,
+               plot_list = plot_list,
+               blind = blind)
 
   # Export the vst counts from the DESeqTransform object
   counts_frame <-
@@ -2202,9 +2188,8 @@ for (blind in c(FALSE, TRUE)) {
     col.names = TRUE,
     row.names = FALSE
   )
-  rm(counts_frame)
 
-  rm(suffix)
+  rm(counts_frame, deseq_transform, suffix)
 }
 rm(blind, plot_list)
 
@@ -2213,7 +2198,6 @@ rm(blind, plot_list)
 
 rm(
   annotation_frame,
-  deseq_transform,
   deseq_data_set,
   global_design_list,
   output_directory,
