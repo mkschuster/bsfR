@@ -149,7 +149,7 @@ suppressPackageStartupMessages(expr = library(package = "stringi"))
 
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
-message(paste0("Processing design '", argument_list$design_name, "'"))
+message("Processing design '", argument_list$design_name, "'")
 
 prefix_deseq <-
   bsfR::bsfrd_get_prefix_deseq(design_name = argument_list$design_name)
@@ -223,9 +223,9 @@ for (i in seq_len(length.out = nrow(x = genes_frame))) {
                 ))
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
-      message(paste("Skipping plot", genes_frame[i, "gene_id", drop = TRUE], genes_frame[i, "gene_name", drop = TRUE], sep = " "))
+      message("Skipping plot", genes_frame[i, "gene_id", drop = TRUE], genes_frame[i, "gene_name", drop = TRUE], sep = " ")
     } else {
-      message(paste("Creating plot", genes_frame[i, "gene_id", drop = TRUE], genes_frame[i, "gene_name", drop = TRUE], sep = " "))
+      message("Creating plot", genes_frame[i, "gene_id", drop = TRUE], genes_frame[i, "gene_name", drop = TRUE], sep = " ")
       count_frame <- DESeq2::plotCounts(
         dds = deseq_data_set,
         gene = genes_frame[i, "gene_id", drop = TRUE],

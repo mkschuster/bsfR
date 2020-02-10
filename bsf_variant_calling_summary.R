@@ -86,7 +86,7 @@ if (is.null(x = argument_list$prefix)) {
       gsub(pattern = "^variant_calling_process_cohort_(.*?)_genotyped_raw_snp_raw_indel.vcf.gz$",
            replacement = "\\1",
            x = file_name)
-    message(paste0("Cohort name: ", cohort_name))
+    message("Cohort name: ", cohort_name)
     prefix_summary <-
       paste("variant_calling_summary", cohort_name, sep = "_")
     rm(cohort_name)
@@ -111,7 +111,7 @@ for (file_name in file_names) {
     gsub(pattern = "^variant_calling_process_sample_(.*?)_duplicate_metrics.tsv$",
          replacement = "\\1",
          x = file_name)
-  message(paste0("  ", sample_name))
+  message("  ", sample_name)
 
   # Picard Tools added a histogram section that needs excluding from parsing.
   # Find the lines starting with "## METRICS CLASS" and "## HISTOGRAM" and read
@@ -299,7 +299,7 @@ for (file_name in file_names) {
     gsub(pattern = "^variant_calling_process_sample_(.*?)_alignment_summary_metrics.tsv$",
          replacement = "\\1",
          x = file_name)
-  message(paste0("  ", sample_name))
+  message("  ", sample_name)
   # Since the Illumina2bam tools BamIndexDecoder uses a hash character (#) in
   # the read group component to separate platform unit and sample name, the
   # Picard reports need special parsing. Find the ## METRICS CLASS line and
@@ -701,7 +701,7 @@ for (file_name in file_names) {
     gsub(pattern = "^variant_calling_diagnose_sample_(.*?)_hybrid_selection_metrics.tsv$",
          replacement = "\\1",
          x = file_name)
-  message(paste0("  ", sample_name))
+  message("  ", sample_name)
   # Picard Tools added a histogram section that needs excluding from parsing.
   # Find the lines starting with "## METRICS CLASS" and "## HISTOGRAM" and read
   # that many lines.
@@ -1441,7 +1441,7 @@ for (i in seq_len(length.out = nrow(x = combined_metrics_sample))) {
     gsub(pattern = "^variant_calling_diagnose_sample_(.*?)_non_callable_summary.tsv$",
          replacement = "\\1",
          x = combined_metrics_sample[i, "file_name"])
-  message(paste0("  ", sample_name))
+  message("  ", sample_name)
   non_callable_metrics_sample <-
     read.table(
       file = combined_metrics_sample[i, "file_name"],

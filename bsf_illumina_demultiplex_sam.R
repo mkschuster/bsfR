@@ -102,10 +102,8 @@ suppressPackageStartupMessages(expr = library(package = "PicardReports"))
 
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
-message(paste0(
-  "Reading metrics files obeying pattern: ",
-  argument_list$file_pattern
-))
+message("Reading metrics files obeying pattern: ",
+        argument_list$file_pattern)
 metrics_files <- NULL
 if (is.null(x = argument_list$directory_path)) {
   argument_list$directory_path <-
@@ -120,10 +118,10 @@ if (is.null(x = argument_list$directory_path)) {
       recursive = TRUE
     )
 }
-message(paste0("Number of metrics files: ", length(x = metrics_files)))
+message("Number of metrics files: ", length(x = metrics_files))
 
 for (i in seq_along(along.with = metrics_files)) {
-  message(paste("Processing Picard report:", metrics_files[i]))
+  message("Processing Picard report: ", metrics_files[i])
   picard_report <-
     PicardMetricsFromFilePath(file_path = file.path(argument_list$directory_path, metrics_files[i]))
 

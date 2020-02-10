@@ -111,7 +111,7 @@ for (file_name in file_names) {
       replacement = "\\1",
       x = base::basename(path = file_name)
     )
-  message(paste0("  ", sample_name))
+  message("  ", sample_name)
   # Since the Illumina2bam tools BamIndexDecoder uses a hash character (#) in the read group component
   # to separate platform unit and sample name, the Picard reports need special parsing.
   # Find the ## METRICS CLASS line and parse without allowing further comments.
@@ -633,7 +633,7 @@ for (file_name in file_names) {
       replacement = "\\1",
       x = base::basename(path = file_name)
     )
-  message(paste0("  ", sample_name))
+  message("  ", sample_name)
 
   # Picard Tools added a histogram section that needs excluding from parsing.
   # Find the lines starting with "## METRICS CLASS" and "## HISTOGRAM" and read that many lines.

@@ -223,13 +223,14 @@ load_enrichr_results <-
     if (all(file.exists(file_paths)) &&
         all(file.info(file_paths)$size > 0L)) {
       for (direction_index in seq_along(along.with = directions)) {
-        message(paste(
-          "Loading:",
+        message(
+          "Loading: ",
           contrast_character,
+          " ",
           enrichr_database,
-          directions[direction_index],
-          sep = " "
-        ))
+          " ",
+          directions[direction_index]
+        )
         result_list[[directions[direction_index]]] <-
           readr::read_tsv(
             file = file_paths[direction_index],
@@ -248,28 +249,21 @@ load_enrichr_results <-
       }
       rm(direction_index)
     } else {
-      message(
-        paste(
-          "Loading:",
-          contrast_character,
-          enrichr_database,
-          sep = " "
-        )
-      )
+      message("Loading: ",
+              contrast_character,
+              " ",
+              enrichr_database)
       deseq_results_tibble <-
         load_contrast_frame(contrast_character = contrast_character)
 
       for (direction_index in seq_along(along.with = directions)) {
         # Split the results into up- and down-regulated genes.
-        message(
-          paste(
-            "Processing:",
-            contrast_character,
-            enrichr_database,
-            directions[direction_index],
-            sep = " "
-          )
-        )
+        message("Processing: ",
+                contrast_character,
+                " ",
+                enrichr_database,
+                " ",
+                directions[direction_index])
         enrichr_tibble <- NULL
         if (directions[direction_index] == "up") {
           enrichr_tibble <-

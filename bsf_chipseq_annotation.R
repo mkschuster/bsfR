@@ -178,10 +178,8 @@ if (file.exists(file_path) &&
       pre = paste0(prefix, "_")
     )
 } else {
-  stop(paste0(
-    "Require a pre-calculated DiffBind DBA object in file: ",
-    file_path
-  ))
+  stop("Require a pre-calculated DiffBind DBA object in file: ",
+       file_path)
 }
 rm(file_path)
 

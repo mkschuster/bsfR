@@ -97,10 +97,10 @@ if (file.exists(file_path) &&
   diffbind_dba <-
     DiffBind::dba.load(dir = prefix, pre = paste0(prefix, "_"))
 } else {
-  stop(paste0(
+  stop(
     "Require a pre-calculated DiffBind DBA object in file: ",
     file_path
-  ))
+  )
 }
 rm(file_path)
 

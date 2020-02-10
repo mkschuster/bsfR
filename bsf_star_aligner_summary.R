@@ -95,10 +95,8 @@ summary_frame <- data.frame(
     base::list.files(pattern = argument_list$pattern_file, recursive = TRUE),
   stringsAsFactors = FALSE
 )
-message(paste0(
-  "Processing STAR alignment reports for number of read groups: ",
-  nrow(x = summary_frame)
-))
+message("Processing STAR alignment reports for number of read groups: ",
+        nrow(x = summary_frame))
 
 star_frame <- NULL
 
@@ -107,9 +105,9 @@ for (i in seq_len(length.out = nrow(x = summary_frame))) {
     gsub(
       pattern = argument_list$pattern_sample,
       replacement = "\\1",
-      x = base::basename(summary_frame[i, "file_name"])
+      x = base::basename(summary_frame[i, "file_name", drop = TRUE])
     )
-  message(paste0("  ", summary_frame[i, "read_group_name"]))
+  message("  ", summary_frame[i, "read_group_name", drop = TRUE])
 
   # This is the layout of a STAR alignment summary file.
   #
@@ -150,7 +148,7 @@ for (i in seq_len(length.out = nrow(x = summary_frame))) {
 
   temporary_frame <- as.data.frame(t(
     x = read.table(
-      file = summary_frame[i, "file_name"],
+      file = summary_frame[i, "file_name", drop = TRUE],
       sep = "|",
       fill = TRUE,
       strip.white = TRUE,

@@ -307,7 +307,7 @@ while (nrow(
   sum_records_read <- sum_records_read + nrow(x = vcf_object)
   message(sprintf(fmt = "Number of VCF records read: %i (%i total)", nrow(x = vcf_object), sum_records_read))
   # TODO: Get a list of samples, create a data frame and write it to disk.
-  
+
   if (selected_tsv_first_chunk) {
     # Get the VCF header.
     vcf_header_object <- header(x = vcf_object)
@@ -325,10 +325,8 @@ while (nrow(
           x = basename(path = argument_list$vcf_file_path)
         )
       )
-    message(paste0(
-      "Writing VCF information file: ",
-      filtered_vcf_annotation_path
-    ))
+    message("Writing VCF information file: ",
+            filtered_vcf_annotation_path)
     info_frame <- info(x = vcf_header_object)
     # Add another "Variable" column to properly list row names and reorder the data frame.
     info_frame[["Variable"]] <- row.names(x = info_frame)
@@ -355,10 +353,8 @@ while (nrow(
           x = basename(path = argument_list$vcf_file_path)
         )
       )
-    message(paste0(
-      "Writing VCF genotype file: ",
-      filtered_vcf_annotation_path
-    ))
+    message("Writing VCF genotype file: ",
+            filtered_vcf_annotation_path)
     geno_frame <- geno(x = vcf_header_object)
     # Add another "Variable" column to properly list row names and reorder the data frame.
     geno_frame[["Variable"]] <- row.names(x = geno_frame)
@@ -374,7 +370,7 @@ while (nrow(
     rm(filtered_vcf_annotation_path, geno_frame)
     rm(vcf_header_object)
   }
-  
+
   # Firstly, retrieve the GRanges object via rowRanges() and convert into a
   # data frame, whereby several columns need adjusting.
   row_ranges_frame <-
@@ -412,7 +408,7 @@ while (nrow(
                        "ALT",
                        "QUAL",
                        "FILTER")]
-  
+
   # Secondly, get the VCF INFO frame.
   info_frame <- info(x = vcf_object)
   # Convert List objects into character vector objects of comma-separated strings.
@@ -478,7 +474,7 @@ while (nrow(
         paste(x, collapse = ",")
       }
     ))
-  
+
   # Thirdly, process sample-specific genotype information and build up a new sample frame.
   # Get sample meta information as a DataFrame.
   column_data_frame <- colData(x = vcf_object)
@@ -518,7 +514,7 @@ while (nrow(
     }
   }
   rm(column_name, variable_name, sample_name)
-  
+
   # Calculate the recurrence of variant sites and store it in an integer vector.
   # Check the "GT" matrix line for line, if a genotype has a number from 1 to 9,
   # i.e. not ".", unphased "./.", "0/0", any other ploidy such as "0/0/0/0" or
@@ -531,7 +527,7 @@ while (nrow(
       sum(grepl(pattern = "[1-9]", x = genotype_list[["GT"]][i, ]))
   }
   rm(i, genotype_list, column_data_frame)
-  
+
   # Simply combine the row ranges, info and column data frames via cbind, as they are all in the same order.
   # message("Merging filtered VCF file.")
   combined_frame <-
@@ -541,7 +537,7 @@ while (nrow(
   # Select only rows which Recurrence variable is equal to or more than the recurrence threshold option.
   combined_frame <-
     combined_frame[combined_frame$Recurrence >= argument_list$recurrence,]
-  
+
   sum_records_written <-
     sum_records_written + nrow(x = combined_frame)
   message(

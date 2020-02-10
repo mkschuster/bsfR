@@ -165,14 +165,12 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
 
   # Filter in a data frame to have access to padj and SE.
   # Importantly, NA values need removing.
-  message(paste(
-    "Number of genes before NA removal:",
-    nrow(x = deseq_results_frame)
-  ))
+  message("Number of genes before NA removal: ",
+          nrow(x = deseq_results_frame))
   deseq_go_frame <-
-    deseq_results_frame[!is.na(x = deseq_results_frame$padj),]
-  message(paste("Number of genes after NA removal:",
-                nrow(x = deseq_go_frame)))
+    deseq_results_frame[!is.na(x = deseq_results_frame$padj), , drop = FALSE]
+  message("Number of genes after NA removal: ",
+          nrow(x = deseq_go_frame))
 
   # Introduce a go_status factor variable for plotting.
   deseq_go_frame$go_status <-
@@ -186,7 +184,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
   names(x = all_genes_numeric) <- deseq_go_frame$gene_id
 
   for (sub_go in c("BP", "CC", "MF")) {
-    message(paste("Create a topGOdata object for ontology", sub_go))
+    message("Create a topGOdata object for ontology ", sub_go)
     topgo_data <-
       new(
         Class = "topGOdata",
@@ -194,7 +192,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
         ontology = sub_go,
         allGenes = all_genes_numeric,
         geneSelectionFun = gene_selection_function,
-        description = contrast_tibble[contrast_index, "Label"],
+        description = contrast_tibble[contrast_index, "Label", drop = TRUE],
         # expressionMatrix = ,
         # phenotype =
         # nodeSize =
@@ -233,7 +231,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
           x = "Adjusted p-value",
           y = "Log2 fold-change standard error",
           colour = "GO Status",
-          title = contrast_tibble[contrast_index, "Label"],
+          title = contrast_tibble[contrast_index, "Label", drop = TRUE],
           subtitle = paste("Ontology:", go_names[sub_go])
         )
       ggplot2::ggsave(
@@ -257,7 +255,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       rm(ggplot_object)
     }
 
-    message(paste("Running topGO::runTest() for ontology", sub_go))
+    message("Running topGO::runTest() for ontology ", sub_go)
     topgo_result <-
       topGO::runTest(object = topgo_data,
                      algorithm = "weight01",

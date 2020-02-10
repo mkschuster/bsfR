@@ -118,9 +118,9 @@ for (i in seq_along(along.with = cran_packages)) {
   if (base::requireNamespace(package = cran_packages[i],
                              lib.loc = library_location,
                              quietly = TRUE)) {
-    message(paste0("Skipping package ", cran_packages[i]))
+    message("Skipping package ", cran_packages[i])
   } else {
-    message(paste0("Installing package ", cran_packages[i]))
+    message("Installing package ", cran_packages[i])
     utils::install.packages(pkgs = cran_packages[i],
                             lib = library_location)
   }
@@ -221,9 +221,9 @@ for (i in seq_along(along.with = bioconductor_packages)) {
   if (base::requireNamespace(package = bioconductor_packages[i],
                              lib.loc = library_location,
                              quietly = FALSE)) {
-    message(paste0("Skipping package ", bioconductor_packages[i]))
+    message("Skipping package ", bioconductor_packages[i])
   } else {
-    message(paste0("Installing package ", bioconductor_packages[i]))
+    message("Installing package ", bioconductor_packages[i])
     BiocManager::install(
       pkgs = bioconductor_packages[i],
       lib = library_location,

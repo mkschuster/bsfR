@@ -958,23 +958,15 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       (file.info(plot_path_pdf)$size > 0L) &&
       file.exists(plot_path_png) &&
       (file.info(plot_path_png)$size > 0L)) {
-    message(
-      paste(
-        "Skipping a Scatter Plot on Genes for",
-        sample_pairs[1L, i],
-        "versus",
-        sample_pairs[2L, i]
-      )
-    )
+    message("Skipping a Scatter Plot on Genes for ",
+            sample_pairs[1L, i],
+            " versus ",
+            sample_pairs[2L, i])
   } else {
-    message(
-      paste(
-        "Creating a Scatter Plot on Genes for",
-        sample_pairs[1L, i],
-        "versus",
-        sample_pairs[2L, i]
-      )
-    )
+    message("Creating a Scatter Plot on Genes for ",
+            sample_pairs[1L, i],
+            " versus ",
+            sample_pairs[2L, i])
 
     # Unfortunately, the standard cummeRbund csScatter() function
     # does not allow colouring by significance.
@@ -1173,19 +1165,15 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       (file.info(plot_path_pdf)$size > 0L) &&
       file.exists(plot_path_png) &&
       (file.info(plot_path_png)$size > 0L)) {
-    message(paste(
-      "Skipping a MAplot on Genes for",
-      sample_pairs[1L, i],
-      "versus",
-      sample_pairs[2L, i]
-    ))
+    message("Skipping a MAplot on Genes for ",
+            sample_pairs[1L, i],
+            " versus ",
+            sample_pairs[2L, i])
   } else {
-    message(paste(
-      "Creating a MAplot on Genes for",
-      sample_pairs[1L, i],
-      "versus",
-      sample_pairs[2L, i]
-    ))
+    message("Creating a MAplot on Genes for ",
+            sample_pairs[1L, i],
+            " versus ",
+            sample_pairs[2L, i])
     ggplot_object <-
       cummeRbund::MAplot(
         object = cummeRbund::genes(object = cuff_set),
@@ -1275,23 +1263,15 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       (file.info(plot_path_pdf)$size > 0L) &&
       file.exists(plot_path_png) &&
       (file.info(plot_path_png)$size > 0L)) {
-    message(
-      paste(
-        "Skipping a Volcano Plot on Genes for",
-        sample_pairs[1L, i],
-        "versus",
-        sample_pairs[2L, i]
-      )
-    )
+    message("Skipping a Volcano Plot on Genes for ",
+            sample_pairs[1L, i],
+            " versus ",
+            sample_pairs[2L, i])
   } else {
-    message(
-      paste(
-        "Creating a Volcano Plot on Genes for",
-        sample_pairs[1L, i],
-        "versus",
-        sample_pairs[2L, i]
-      )
-    )
+    message("Creating a Volcano Plot on Genes for ",
+            sample_pairs[1L, i],
+            " versus ",
+            sample_pairs[2L, i])
     # FIXME: The definition of the generic function "csVolcano" does not
     # include the "alpha" and "showSignificant" options, although the function
     # definition contains them. It does not seem that the option defaults are
@@ -1728,21 +1708,17 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
     )
   if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
     message(
-      paste(
-        "Skipping a differential data frame on Genes for",
-        sample_pairs[1L, i],
-        "versus",
-        sample_pairs[2L, i]
-      )
+      "Skipping a differential data frame on Genes for ",
+      sample_pairs[1L, i],
+      " versus ",
+      sample_pairs[2L, i]
     )
   } else {
     message(
-      paste(
-        "Creating a differential data frame on Genes for",
-        sample_pairs[1L, i],
-        "versus",
-        sample_pairs[2L, i]
-      )
+      "Creating a differential data frame on Genes for ",
+      sample_pairs[1L, i],
+      " versus ",
+      sample_pairs[2L, i]
     )
     # The diffData function allows automatic merging with feature annotation,
     # but that includes some empty columns. For cleaner result tables, merge
@@ -1820,21 +1796,17 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
     )
   if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
     message(
-      paste(
-        "Skipping a differential data frame on Isoforms for",
-        sample_pairs[1L, i],
-        "versus",
-        sample_pairs[2L, i]
-      )
+      "Skipping a differential data frame on Isoforms for ",
+      sample_pairs[1L, i],
+      " versus ",
+      sample_pairs[2L, i]
     )
   } else {
     message(
-      paste(
-        "Creating a differential data frame on Isoforms for",
-        sample_pairs[1L, i],
-        "versus",
-        sample_pairs[2L, i]
-      )
+      "Creating a differential data frame on Isoforms for ",
+      sample_pairs[1L, i],
+      " versus ",
+      sample_pairs[2L, i]
     )
     # The diffData function allows automatic merging with feature annotation,
     # but that includes some empty columns. For cleaner result tables, merge

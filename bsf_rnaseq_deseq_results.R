@@ -119,7 +119,7 @@ suppressPackageStartupMessages(expr = library(package = "EnhancedVolcano"))
 
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
-message(paste0("Processing design '", argument_list$design_name, "'"))
+message("Processing design '", argument_list$design_name, "'")
 
 # Set the number of parallel threads in the MulticoreParam instance.
 
@@ -162,7 +162,8 @@ deseq_data_set <-
 # Contrasts Frame ---------------------------------------------------------
 
 
-# Read a data frame of contrasts with variables "Design", "Numerator", "Denominator" and "Label".
+# Read a data frame of contrasts with variables "Design", "Numerator",
+# "Denominator" and "Label".
 contrast_tibble <-
   bsfR::bsfrd_read_contrast_tibble(
     genome_directory = argument_list$genome_directory,
@@ -189,8 +190,11 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
   contrast_character <-
     bsfR::bsfrd_get_contrast_character(contrast_tibble = contrast_tibble, index = contrast_index)
 
-  # Check for the significant genes table and if it exist already,
-  # read it to get the number of significant genes for the summary data frame.
+  # Results ---------------------------------------------------------------
+
+
+  # Check for the significant genes table and if it exists already, read it to
+  # get the number of significant genes for the summary data frame.
   file_path <-
     file.path(output_directory,
               paste(
@@ -205,7 +209,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
 
   if (file.exists(file_path) &&
       file.info(file_path)$size > 0L) {
-    message(paste0("Skipping DESeqResults for ", contrast_character))
+    message("Skipping DESeqResults for ", contrast_character)
 
     deseq_merge_significant <-
       read.table(
@@ -227,7 +231,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
 
     rm(deseq_merge_significant)
   } else {
-    message(paste0("Creating DESeqResults for ", contrast_character))
+    message("Creating DESeqResults for ", contrast_character)
 
     deseq_results_default <-
       DESeq2::results(
@@ -242,14 +246,14 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       )
 
     # Run lfcShrink() if possible.
-    deseq_results_shrunk <- NULL
+    # deseq_results_shrunk <- NULL
     # NOTE: The "ashr" method shrinks log2-fold changes on the basis of the
     # results table and can thus deal with model matrices not being full rank.
     #
     # if (any(attr(x = deseq_data_set, which = "full_rank"))) {
     # The original DESEqDataSet object is full rank, so that log2-fold changes
     # can be shrunk. The any() function returns FALSE for NULL values.
-    message(paste0("Shrinking log2-fold changes for ", contrast_character))
+    message("Shrinking log2-fold changes for ", contrast_character)
     deseq_results_shrunk <- DESeq2::lfcShrink(
       dds = deseq_data_set,
       # For "ashr", if "res" is provided, then "coef" and "contrast" are ignored.
@@ -262,11 +266,11 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     )
     # }
 
-    # MA Plot ---------------------------------------------------------------
+    # MA Plot -------------------------------------------------------------
 
 
     # Create a MA plot.
-    message(paste0("Creating a MA plot for ", contrast_character))
+    message("Creating a MA plot for ", contrast_character)
     plot_paths <-
       file.path(output_directory,
                 paste(
@@ -323,7 +327,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     # To annotate gene symbols rather than Ensembl gene identifiers, the
     # DESeqResults DataFrame needs subsetting into a data.frame and merging with
     # the annotation tibble.
-    message(paste0("Creating an EnhancedVolcano plot for ", contrast_character))
+    message("Creating an EnhancedVolcano plot for ", contrast_character)
     deseq_results_frame <-
       if (is.null(x = deseq_results_shrunk))
         data.frame(gene_id = rownames(x = deseq_results_default),
@@ -367,8 +371,8 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     # DESeqResults DataFrame ----------------------------------------------
 
 
-    # Adjust the DESeqResults DataFrame for merging with the annotation DataFrame,
-    # by setting the rownames() as "gene_id" variable.
+    # Adjust the DESeqResults DataFrame for merging with the annotation
+    # DataFrame, by setting the rownames() as "gene_id" variable.
     deseq_results_frame <-
       S4Vectors::DataFrame(
         gene_id = rownames(x = deseq_results_default),
@@ -381,7 +385,8 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
         significant = factor(x = "no", levels = c("no", "yes"))
       )
 
-    # Assign the "significant" factor on the basis of the adjusted p-value threshold.
+    # Assign the "significant" factor on the basis of the adjusted p-value
+    # threshold.
     deseq_results_frame[!is.na(x = deseq_results_frame$padj) &
                           deseq_results_frame$padj <= argument_list$padj_threshold, "significant"] <-
       "yes"

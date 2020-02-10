@@ -448,7 +448,7 @@ bsfrd_read_deseq_transform <-
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
       if (verbose) {
-        message(paste("Loading a", suffix, "DESeqTransform object ..."))
+        message("Loading a ", suffix, " DESeqTransform object ...")
       }
       load(file = file_path)
     } else {

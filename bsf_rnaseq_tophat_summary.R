@@ -116,7 +116,7 @@ process_align_summary <- function(summary_frame) {
     file_path <- file.path(prefix_tophat, "align_summary.txt")
 
     if (!file.exists(file_path)) {
-      warning(paste0("Missing Tophat alignment summary file ", file_path))
+      warning("Missing Tophat alignment summary file ", file_path)
       rm(prefix_tophat, file_path)
       next
     }

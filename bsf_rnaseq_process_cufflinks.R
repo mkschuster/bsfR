@@ -55,13 +55,13 @@ process_sample <- function(summary_frame = NULL) {
   }
 
   for (i in seq_len(length.out = nrow(x = summary_frame))) {
-    message(paste0("Processing sample ", summary_frame[i, "sample"]))
+    message("Processing sample ", summary_frame[i, "sample", drop = TRUE])
 
     # Construct sample-specific prefixes for Cufflinks and Tophat directories.
     prefix_cufflinks <-
-      paste("rnaseq", "cufflinks", summary_frame[i, "sample"], sep = "_")
+      paste("rnaseq", "cufflinks", summary_frame[i, "sample", drop = TRUE], sep = "_")
     prefix_tophat <-
-      paste("rnaseq", "tophat", summary_frame[i, "sample"], sep = "_")
+      paste("rnaseq", "tophat", summary_frame[i, "sample", drop = TRUE], sep = "_")
 
     # Read, summarise, merge, write and delete gene (genes.fpkm_tracking) tables.
 
@@ -95,7 +95,7 @@ process_sample <- function(summary_frame = NULL) {
     # Assign the aggregate "FPKM_status" levels (rows) as summary frame columns.
     for (j in seq_len(length.out = nrow(x = aggregate_frame))) {
       summary_frame[i, paste("FPKM_status_gene", aggregate_frame[j, 1L], sep = ".")] <-
-        aggregate_frame[j, 2L]
+        aggregate_frame[j, 2L, drop = TRUE]
     }
     rm(aggregate_frame, j)
 
@@ -157,7 +157,7 @@ process_sample <- function(summary_frame = NULL) {
     # Assign the aggregate "FPKM_status" levels (rows) as summary frame columns.
     for (j in seq_len(length.out = nrow(x = aggregate_frame))) {
       summary_frame[i, paste("FPKM_status_isoforms", aggregate_frame[j, 1L], sep = ".")] <-
-        aggregate_frame[j, 2L]
+        aggregate_frame[j, 2L, drop = TRUE]
     }
     rm(aggregate_frame, j)
 
@@ -303,11 +303,11 @@ process_align_summary <- function(summary_frame) {
 
   for (i in seq_len(length.out = nrow(x = summary_frame))) {
     prefix_tophat <-
-      paste("rnaseq", "tophat", summary_frame[i, "sample"], sep = "_")
+      paste("rnaseq", "tophat", summary_frame[i, "sample", drop = TRUE], sep = "_")
     file_path <- file.path(prefix_tophat, "align_summary.txt")
 
     if (!file.exists(file_path)) {
-      warning(paste0("Missing Tophat alignment summary file ", file_path))
+      warning("Missing Tophat alignment summary file ", file_path)
       rm(prefix_tophat, file_path)
       next
     }
@@ -481,7 +481,7 @@ if (is.null(x = argument_list$biomart_data_set)) {
     argument_list$genome_version <- NA
   }
   message("Import GTF annotation file")
-  reference_granges <- import(
+  reference_granges <- rtracklayer::import(
     con = argument_list$gtf_reference,
     format = "gtf",
     genome = argument_list$genome_version,
