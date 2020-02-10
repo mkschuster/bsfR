@@ -127,7 +127,7 @@ if (length(x = argument_list$samples) > 0L) {
 
 # Check the recurrence option.
 selected_sample_names_length <- length(x = selected_sample_names)
-if (selected_sample_names_length > 0L &
+if (selected_sample_names_length > 0L &&
     selected_sample_names_length < argument_list$recurrence) {
   stop(
     sprintf(

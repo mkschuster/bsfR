@@ -1799,7 +1799,7 @@ reduced_formula_frame <- plyr::ldply(
   .fun = function(reduced_formula_character) {
     summary_frame <- NULL
     # Skip NA or empty character vectors.
-    if (is.na(x = reduced_formula_character) |
+    if (is.na(x = reduced_formula_character) ||
         !base::nzchar(x = reduced_formula_character)) {
       # Return NULL instead of a data.frame, which can still be processed by rbind().
       return(summary_frame)

@@ -504,7 +504,7 @@ bsfrd_read_result_tibble <-
     prefix_deseq <-
       bsfrd_get_prefix_deseq(design_name = design_name)
     if (is.null(x = contrast_character)) {
-      if (is.null(x = contrast_tibble) | is.null(x = index)) {
+      if (is.null(x = contrast_tibble) || is.null(x = index)) {
         warning(
           "Either a contrast_tibble and index or a (valid) contrast_character option are required."
         )

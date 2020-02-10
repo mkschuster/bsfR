@@ -191,7 +191,7 @@ genes_frame <-
     stringsAsFactors = FALSE
   )
 
-if ("padj" %in% names(x = genes_frame) &
+if ("padj" %in% names(x = genes_frame) &&
     nrow(x = genes_frame) > argument_list$maximum_number) {
   message(
     "Plotting only ",
