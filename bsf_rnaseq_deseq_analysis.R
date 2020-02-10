@@ -474,7 +474,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     # Convert (i.e. split) the GRanges object into a GRangesList object
     # by gene identifiers.
     gene_ranges_list <-
-      split(x = exon_ranges,
+      GenomicRanges::split(x = exon_ranges,
             f = S4Vectors::mcols(x = exon_ranges)$gene_id)
 
     # Process per library_type and sequencing_type and merge the RangedSummarizedExperiment objects.
@@ -1792,15 +1792,18 @@ reduced_formula_list <-
     }
   )
 
-temporary_list <- lapply(
-  X = reduced_formula_list,
-  FUN = function(reduced_formula_character) {
+# The plyr::ldply() function interates over a list and returns a data frame.
+# Each list element should yield a data frame.
+reduced_formula_frame <- plyr::ldply(
+  .data = reduced_formula_list,
+  .fun = function(reduced_formula_character) {
+    summary_frame <- NULL
     # Skip NA or empty character vectors.
     if (is.na(x = reduced_formula_character) |
         !base::nzchar(x = reduced_formula_character)) {
-      return()
+      # Return NULL instead of a data.frame, which can still be processed by rbind().
+      return(summary_frame)
     }
-    summary_list <- NULL
 
     file_path_all <-
       file.path(output_directory,
@@ -1838,12 +1841,13 @@ temporary_list <- lapply(
         read.table(file = file_path_significant,
                    header = TRUE,
                    sep = "\t")
-      summary_list <- list(
+      summary_frame <- data.frame(
         "design" = global_design_list$design,
         "full_formula" = global_design_list$full_formula,
         "reduced_name" = attr(x = reduced_formula_character, which = "reduced_name"),
         "reduced_formula" = reduced_formula_character,
-        "significant" = nrow(deseq_merge_significant)
+        "significant" = nrow(deseq_merge_significant),
+        stringsAsFactors = FALSE
       )
       rm(deseq_merge_significant)
     } else {
@@ -1977,12 +1981,13 @@ temporary_list <- lapply(
         col.names = TRUE,
         row.names = FALSE
       )
-      summary_list <- list(
+      summary_frame <- data.frame(
         "design" = global_design_list$design,
         "full_formula" = global_design_list$full_formula,
         "reduced_name" = attr(x = reduced_formula_character, which = "reduced_name"),
         "reduced_formula" = reduced_formula_character,
-        "significant" = nrow(deseq_merge_significant)
+        "significant" = nrow(deseq_merge_significant),
+        stringsAsFactors = FALSE
       )
       rm(
         deseq_merge_significant,
@@ -1993,13 +1998,13 @@ temporary_list <- lapply(
       )
     }
     rm(file_path_all, file_path_significant)
-    return(summary_list)
+    return(summary_frame)
   }
 )
 
-# Convert the (temporary) list of (summary) lists into a data.frame and write to disk.
+# Write the reduced formula (LRT) summary frame to disk.
 write.table(
-  x = plyr::ldply(.data = temporary_list, .fun = data.frame),
+  x = reduced_formula_frame,
   file = file.path(output_directory,
                    paste(
                      paste(prefix,
@@ -2013,7 +2018,7 @@ write.table(
   row.names = FALSE,
   col.names = TRUE
 )
-rm(temporary_list, reduced_formula_list)
+rm(reduced_formula_frame, reduced_formula_list)
 
 
 # Plot Aesthetics ---------------------------------------------------------
