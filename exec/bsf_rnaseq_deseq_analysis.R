@@ -189,7 +189,6 @@ suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "grid"))
 suppressPackageStartupMessages(expr = library(package = "pheatmap"))
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
-suppressPackageStartupMessages(expr = library(package = "stringi"))
 
 # Save plots in the following formats.
 
@@ -305,14 +304,16 @@ initialise_sample_frame <- function(factor_levels) {
   # Select only those samples, which have the design name annotated in the designs variable.
   index_logical <-
     unlist(x = lapply(
-      X = stringi::stri_split_fixed(str = as.character(data_frame$designs),
-                                    pattern = ","),
+      X = stringr::str_split(
+        string = as.character(data_frame$designs),
+        pattern = stringr::fixed(pattern = ",")
+      ),
       FUN = function(character_1) {
         # character_1 is a character vector resulting from the split on ",".
         return(any(argument_list$design_name %in% character_1))
       }
     ))
-  data_frame <- data_frame[index_logical, ]
+  data_frame <- data_frame[index_logical,]
   rm(index_logical)
 
   if (nrow(x = data_frame) == 0L) {
@@ -345,16 +346,20 @@ initialise_sample_frame <- function(factor_levels) {
   factor_list <- lapply(
     # The "factor_levels" variable is a character vector, always with just a single component.
     # Split by ';' then by ':' character.
-    X = stringi::stri_split_fixed(
-      str = stringi::stri_split_fixed(str = factor_levels[1L],
-                                      pattern = ";")[[1L]],
-      pattern = ":"
+    X = stringr::str_split(
+      string = stringr::str_split(
+        string = factor_levels[1L],
+        pattern = stringr::fixed(pattern = ";")
+      )[[1L]],
+      pattern = stringr::fixed(pattern = ":")
     ),
     FUN = function(character_1) {
       # Split the second component of character_1, the factor levels, on ",".
       character_2 <-
-        unlist(x = stringi::stri_split_fixed(str = character_1[2L],
-                                             pattern = ","))
+        unlist(x = stringr::str_split(
+          string = character_1[2L],
+          pattern = stringr::fixed(pattern = ",")
+        ))
       # Set the first component of character_1, the factor name, as attribute.
       attr(x = character_2, which = "factor") <-
         character_1[1L]
@@ -424,7 +429,7 @@ initialise_design_list <- function() {
       Class = "DataFrame"
     )
   data_frame <-
-    data_frame[data_frame$design == argument_list$design_name, ]
+    data_frame[data_frame$design == argument_list$design_name,]
 
   if (nrow(data_frame) == 0L) {
     stop("No design remaining after selection for design name.")
@@ -475,7 +480,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     # by gene identifiers.
     gene_ranges_list <-
       GenomicRanges::split(x = exon_ranges,
-            f = S4Vectors::mcols(x = exon_ranges)$gene_id)
+                           f = S4Vectors::mcols(x = exon_ranges)$gene_id)
 
     # Process per library_type and sequencing_type and merge the RangedSummarizedExperiment objects.
     ranged_summarized_experiment <- NULL
@@ -490,7 +495,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
         )
         sub_sample_frame <-
           sample_frame[(sample_frame$library_type == library_type) &
-                         (sample_frame$sequencing_type == sequencing_type),]
+                         (sample_frame$sequencing_type == sequencing_type), ]
 
         if (nrow(x = sub_sample_frame) == 0L) {
           rm(sub_sample_frame)
@@ -630,7 +635,7 @@ fix_model_matrix <- function(model_matrix_local) {
         "Attempting to fix the model matrix by removing empty columns."
       )
       model_matrix_local <-
-        model_matrix_local[, -which(x = model_all_zero)]
+        model_matrix_local[,-which(x = model_all_zero)]
     } else {
       linear_combinations_list <-
         caret::findLinearCombos(x = model_matrix_local)
@@ -654,7 +659,7 @@ fix_model_matrix <- function(model_matrix_local) {
         paste(colnames(x = model_matrix_local)[linear_combinations_list$remove], collapse = "\n  ")
       )
       model_matrix_local <-
-        model_matrix_local[,-linear_combinations_list$remove]
+        model_matrix_local[, -linear_combinations_list$remove]
     }
     rm(model_all_zero)
   }
@@ -1464,7 +1469,7 @@ plot_pca <- function(object,
 
   # Perform a PCA on the (count) matrix returned by SummarizedExperiment::assay() for the selected genes.
   pca_object <-
-    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows, ]))
+    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows,]))
   rm(selected_rows)
 
   # Plot the variance for a maximum of 100 components.
@@ -1563,7 +1568,7 @@ plot_pca <- function(object,
             x = numeric(),
             y = numeric(),
             # Also initalise all variables of the column data, but do not include data (i.e. 0L rows).
-            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L,])
+            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L, ])
           )
 
         for (column_number in seq_len(length.out = ncol(x = pca_pair_matrix))) {
@@ -1780,9 +1785,12 @@ plot_rin_scores(object = deseq_data_set)
 # formulas for LRT. Example: "name_1:~genotype + gender;name_2:~1"
 reduced_formula_list <-
   lapply(
-    X = stringi::stri_split_fixed(
-      str = stringi::stri_split_fixed(str = global_design_list$reduced_formulas[1L], pattern = ";")[[1L]],
-      pattern = ":"
+    X = stringr::str_split(
+      string = stringr::str_split(
+        string = global_design_list$reduced_formulas[1L],
+        pattern = stringr::fixed(pattern = ";")
+      )[[1L]],
+      pattern = stringr::fixed(pattern = ":")
     ),
     FUN = function(character_1) {
       reduced_formula_character <- character_1[2L]
@@ -2033,22 +2041,32 @@ rm(reduced_formula_frame, reduced_formula_list)
 # Convert into a list of list objects with variables and aesthetics as names.
 plot_list <-
   lapply(
-    X = stringi::stri_split_fixed(str = global_design_list$plot_aes[1L], pattern = "|")[[1L]],
+    X = stringr::str_split(
+      string = global_design_list$plot_aes[1L],
+      pattern = stringr::fixed(pattern = "|")
+    )[[1L]],
     FUN = function(plot_character) {
       single_geom_list <- lapply(
-        X = stringi::stri_split_fixed(
-          str = stringi::stri_split_fixed(str = plot_character[1L], pattern = ";")[[1L]],
-          pattern = ":"
+        X = stringr::str_split(
+          string = stringr::str_split(
+            string = plot_character[1L],
+            pattern = stringr::fixed(pattern = ";")
+          )[[1L]],
+          pattern = stringr::fixed(pattern = ":")
         ),
         FUN = function(geom_aes_character) {
           # Split on "," characters and assign names (geometric names) to the list components (aesthetic list).
           geom_aes_list <-
             lapply(
-              X = stringi::stri_split_fixed(str = geom_aes_character[2L], pattern = ","),
+              X = stringr::str_split(
+                string = geom_aes_character[2L],
+                pattern = stringr::fixed(pattern = ",")
+              ),
               FUN = function(aes_character) {
                 # Split on "=" characters and assign names (aestetic names) to the list components (variable names).
                 temporary_list <-
-                  stringi::stri_split_fixed(str = aes_character, pattern = "=")
+                  stringr::str_split(string = aes_character,
+                                     pattern = stringr::fixed(pattern = "="))
                 aes_list <-
                   lapply(
                     X = temporary_list,

@@ -129,6 +129,8 @@ bsfrd_get_prefix_volcano <- function(design_name) {
 #'
 #' @return A \code{tibble} with contrast information.
 #' @export
+#' @importFrom dplyr filter
+#' @importFrom readr cols col_character col_integer col_logical read_tsv
 #' @importFrom rlang .data
 #'
 #' @examples
@@ -202,7 +204,7 @@ bsfrd_read_contrast_tibble <-
 #' @return A named \code{list} of "numerator" and "denominator" \code{character}
 #'   vectors. \code{NA} values in the contrast \code{tibble} are replaced by
 #'   empty \code{character} vectors.
-#' @importFrom stringi stri_split_fixed
+#' @importFrom stringr fixed str_split
 #' @export
 #'
 #' @examples
@@ -213,11 +215,11 @@ bsfrd_read_contrast_tibble <-
 #' }
 bsfrd_get_contrast_list <- function(contrast_tibble, index) {
   numerator_character <-
-    stringi::stri_split_fixed(str = contrast_tibble[index, "Numerator", drop = TRUE],
-                              pattern = ",")[[1L]]
+    stringr::str_split(string = contrast_tibble[index, "Numerator", drop = TRUE],
+                       pattern = stringr::fixed(pattern = ","))[[1L]]
   denomintor_character <-
-    stringi::stri_split_fixed(str = contrast_tibble[index, "Denominator", drop = TRUE],
-                              pattern = ",")[[1L]]
+    stringr::str_split(string = contrast_tibble[index, "Denominator", drop = TRUE],
+                       pattern = stringr::fixed(pattern = ","))[[1L]]
 
   character_list <-
     list("numerator" = if (length(x = numerator_character == 1L) &&
@@ -279,6 +281,7 @@ bsfrd_get_contrast_character <- function(contrast_tibble, index) {
 #'
 #' @return A \code{tibble} with design information.
 #' @export
+#' @importFrom readr cols col_character col_integer col_logical read_tsv
 #' @importFrom rlang .data
 #'
 #' @examples
@@ -477,6 +480,7 @@ bsfrd_read_deseq_transform <-
 #'
 #' @return A \code{tibble} of DESeq results for a particular contrast.
 #' @export
+#' @importFrom readr cols col_character col_double col_integer col_logical read_tsv
 #'
 #' @examples
 #' \dontrun{
@@ -574,6 +578,7 @@ bsfrd_read_result_tibble <-
 #'
 #' @return A \code{tibble} or \code{NULL}.
 #' @export
+#' @importFrom readr cols col_character col_double col_integer col_logical read_tsv
 #'
 #' @examples
 #' \dontrun{
@@ -631,6 +636,7 @@ bsfrd_read_annotation_tibble <-
 #'
 #' @return A \code{tibble} object of gene set information.
 #' @export
+#' @importFrom readr cols col_character col_double col_integer col_logical read_csv read_tsv
 #'
 #' @examples
 #' \dontrun{

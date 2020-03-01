@@ -33,8 +33,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "biomaRt"))
-suppressPackageStartupMessages(expr = library(package = "ggplot2"))
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
 suppressPackageStartupMessages(expr = library(package = "Biostrings"))
@@ -687,9 +687,9 @@ rm(file_path)
 ggplot_object <- ggplot2::ggplot(data = summary_frame)
 ggplot_object <-
   ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
-    x = mapped,
-    y = mapped / input,
-    colour = sample
+    x = .data$mapped,
+    y = .data$mapped / .data$input,
+    colour = .data$sample
   ))
 ggplot_object <-
   ggplot_object + ggplot2::labs(x = "Reads Number",

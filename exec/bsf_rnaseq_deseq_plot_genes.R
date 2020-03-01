@@ -142,8 +142,7 @@ if (is.null(x = argument_list$design_name)) {
 
 suppressPackageStartupMessages(expr = library(package = "bsfR"))
 suppressPackageStartupMessages(expr = library(package = "DESeq2"))
-suppressPackageStartupMessages(expr = library(package = "ggplot2"))
-suppressPackageStartupMessages(expr = library(package = "stringi"))
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 # Save plots in the following formats.
 
@@ -229,7 +228,10 @@ for (i in seq_len(length.out = nrow(x = genes_frame))) {
       count_frame <- DESeq2::plotCounts(
         dds = deseq_data_set,
         gene = genes_frame[i, "gene_id", drop = TRUE],
-        intgroup = stri_split(str = argument_list$groups, fixed = ",")[[1L]],
+        intgroup = stringr::str_split(
+          string = argument_list$groups,
+          pattern = stringr::fixed(pattern = ",")
+        )[[1L]],
         normalized = argument_list$normalised,
         xlab = paste(genes_frame[i, "gene_name", drop = TRUE], "(", genes_frame[i, "gene_id", drop = TRUE], ")", sep = " "),
         returnData = TRUE
@@ -248,8 +250,10 @@ for (i in seq_len(length.out = nrow(x = genes_frame))) {
         ))
       ggplot_object <- ggplot2::ggplot(data = count_frame)
       ggplot_object <-
-        ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = covariates, y = count),
-                                            alpha = I(1 / 3))
+        ggplot_object + ggplot2::geom_point(
+          mapping = ggplot2::aes(x = .data$covariates, y = .data$count),
+          alpha = I(1 / 3)
+        )
       ggplot_object <-
         ggplot_object + ggplot2::labs(
           x = "Covariates",

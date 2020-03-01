@@ -10,10 +10,9 @@ License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Imports:
-    stringi,
     methods,
-    rlang,
     tidyverse,
+    rlang,
     ggplot2,
     purrr,
     tibble,
@@ -21,8 +20,12 @@ Imports:
     tidyr,
     stringr,
     readr,
-    forcats
+    forcats,
+    S4Vectors,
+    GenomicRanges,
+    rtracklayer
 RoxygenNote: 7.0.2
+Depends: R (>= 3.6)
 Collate:
     'bsf_rnaseq_cufflinks.R'
     'bsf_rnaseq_deseq.R'

@@ -241,7 +241,7 @@ replicate_number <- nrow(x = replicate_frame)
 # Some plots require replicates. Check whether at least one row has a
 # replicate column value greater than 0.
 have_replicates <-
-  (nrow(x = replicate_frame[replicate_frame$replicate > 0L, ]) > 0L)
+  (nrow(x = replicate_frame[replicate_frame$replicate > 0L,]) > 0L)
 # Write the replicate_frame.
 frame_path <-
   file.path(output_directory, paste0(prefix, "_replicates.tsv"))
@@ -274,7 +274,7 @@ if (file.exists(plot_path_pdf) &&
   message("Creating a library scale plot on replicates")
   ggplot_object <- ggplot2::ggplot(data = replicate_frame)
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = rep_name, y = log10(internal_scale)))
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = .data$rep_name, y = log10(.data$internal_scale)))
   ggplot_object <-
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(angle = -90, hjust = 0))
   plot_width <-
@@ -619,9 +619,9 @@ if (file.exists(plot_path_pdf) &&
   ggplot_object <-
     ggplot_object + ggplot2::geom_boxplot(
       mapping = ggplot2::aes(
-        x = condition,
-        y = log10(fpkm),
-        fill = condition
+        x = .data$condition,
+        y = log10(.data$fpkm),
+        fill = .data$condition
       ),
       size = 0.3,
       alpha = I(1 / 3)
@@ -684,9 +684,9 @@ if (file.exists(plot_path_pdf) &&
   ggplot_object <-
     ggplot_object + ggplot2::geom_boxplot(
       mapping = ggplot2::aes(
-        x = condition,
-        y = log10(fpkm),
-        fill = condition
+        x = .data$condition,
+        y = log10(.data$fpkm),
+        fill = .data$condition
       ),
       size = 0.3,
       alpha = I(1 / 3)
@@ -753,9 +753,9 @@ if (file.exists(plot_path_pdf) &&
   ggplot_object <-
     ggplot_object + ggplot2::geom_boxplot(
       mapping = ggplot2::aes(
-        x = condition,
-        y = log10(fpkm),
-        fill = condition
+        x = .data$condition,
+        y = log10(.data$fpkm),
+        fill = .data$condition
       ),
       size = 0.3,
       alpha = I(1 / 3)
@@ -818,9 +818,9 @@ if (file.exists(plot_path_pdf) &&
   ggplot_object <-
     ggplot_object + ggplot2::geom_boxplot(
       mapping = ggplot2::aes(
-        x = condition,
-        y = log10(fpkm),
-        fill = condition
+        x = .data$condition,
+        y = log10(.data$fpkm),
+        fill = .data$condition
       ),
       size = 0.3,
       alpha = I(1 / 3)
@@ -931,7 +931,7 @@ if (sample_number <= 20L) {
 # Scatter Plot on Genes for each sample pair ------------------------------
 
 
-for (i in seq_along(along.with = sample_pairs[1L, ])) {
+for (i in seq_along(along.with = sample_pairs[1L,])) {
   plot_path_pdf <-
     file.path(
       output_directory,
@@ -988,7 +988,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       )
     ggplot_object <-
       ggplot2::ggplot(data = diff_data_genes,
-                      mapping = ggplot2::aes(x = value_1, y = value_2))
+                      mapping = ggplot2::aes(x = .data$value_1, y = .data$value_2))
     ggplot_object <- ggplot_object + ggplot2::theme_light()
     ggplot_object <-
       ggplot_object + ggplot2::labs(x = sample_pairs[1L, i], y = sample_pairs[2L, i])
@@ -997,7 +997,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       # which performs much better with typical numbers of genes.
       ggplot_object <-
         ggplot_object + ggplot2::geom_hex(
-          data = diff_data_genes[diff_data_genes$significant == "no", ],
+          data = diff_data_genes[diff_data_genes$significant == "no",],
           alpha = I(1 / 3),
           show.legend = TRUE,
           bins = 50
@@ -1009,7 +1009,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       # Plot the significant genes with ggplot2::geom_point() in red.
       ggplot_object <-
         ggplot_object + ggplot2::geom_point(
-          data = diff_data_genes[diff_data_genes$significant == "yes", ],
+          data = diff_data_genes[diff_data_genes$significant == "yes",],
           colour = "red",
           size = 1.2,
           alpha = I(1 / 3)
@@ -1018,7 +1018,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       # Plot significant and non-significant genes with ggplot2::geom_point().
       ggplot_object <-
         ggplot_object + ggplot2::geom_point(
-          mapping = ggplot2::aes(colour = significant),
+          mapping = ggplot2::aes(colour = .data$significant),
           size = 1.2,
           alpha = I(1 / 3)
         )
@@ -1042,9 +1042,9 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
     # For defining the data range for label placement,
     # eliminate rows with value 0.0.
     range_value_1 <-
-      range(diff_data_genes[diff_data_genes$value_1 > 0.0, ]$value_1)
+      range(diff_data_genes[diff_data_genes$value_1 > 0.0,]$value_1)
     range_value_2 <-
-      range(diff_data_genes[diff_data_genes$value_2 > 0.0, ]$value_2)
+      range(diff_data_genes[diff_data_genes$value_2 > 0.0,]$value_2)
 
     # Calculate the (Pearson) correlation coefficient and place it on the plot
     # in the lower right corner at 95% x and 5% y.
@@ -1077,11 +1077,11 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
         label = paste0(
           "Up: ",
           nrow(x = diff_data_genes[diff_data_genes$log2_fold_change > 0.0 &
-                                     diff_data_genes$significant == "yes", ]),
+                                     diff_data_genes$significant == "yes",]),
           "\n",
           "Down: ",
           nrow(x = diff_data_genes[diff_data_genes$log2_fold_change < 0.0 &
-                                     diff_data_genes$significant == "yes", ])
+                                     diff_data_genes$significant == "yes",])
         ),
         colour = "red",
         hjust = 0
@@ -1150,7 +1150,7 @@ rm(plot_path_png)
 # MA Plot on Genes for each sample pair based on FPKM values --------------
 
 
-for (i in seq_along(along.with = sample_pairs[1L, ])) {
+for (i in seq_along(along.with = sample_pairs[1L,])) {
   plot_path_pdf <-
     file.path(
       output_directory,
@@ -1236,7 +1236,7 @@ rm(plot_path_pdf, plot_path_png)
 # Volcano Plot on Genes for each sample pair ------------------------------
 
 
-for (i in seq_along(along.with = sample_pairs[1L, ])) {
+for (i in seq_along(along.with = sample_pairs[1L,])) {
   plot_path_pdf <-
     file.path(
       output_directory,
@@ -1367,9 +1367,9 @@ if (replicate_number > 2L) {
         ggplot_object + ggplot2::theme_bw()  # Add theme black and white.
       ggplot_object <-
         ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
-          x = M1,
-          y = M2,
-          colour = names
+          x = .data$M1,
+          y = .data$M2,
+          colour = .data$names
         ))  # Draw points in any case.
       if (replicate_number <= 24L) {
         # Only add text for a sensible number of replicates i.e. less than or
@@ -1377,10 +1377,10 @@ if (replicate_number > 2L) {
         ggplot_object <-
           ggplot_object + ggplot2::geom_text(
             mapping = ggplot2::aes(
-              x = M1,
-              y = M2,
-              label = names,
-              colour = names
+              x = .data$M1,
+              y = .data$M2,
+              label = .data$names,
+              colour = .data$names
             ),
             size = 4
           )
@@ -1700,7 +1700,7 @@ if ("ensembl_gene_ids" %in% names(x = annotation(object = cummeRbund::genes(obje
 
 
 # Create an annotated differential genes data frame for each sample pair.
-for (i in seq_along(along.with = sample_pairs[1L, ])) {
+for (i in seq_along(along.with = sample_pairs[1L,])) {
   frame_path <-
     file.path(
       output_directory,
@@ -1732,7 +1732,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       )
     # Remove the second column, which is duplicated as a consequence of a
     # SQL table join between the "genes" and "geneExpDiffData" tables.
-    diff_data_genes <- diff_data_genes[,-c(2L)]
+    diff_data_genes <- diff_data_genes[, -c(2L)]
     # Calculate ranks for the effect size (log2_fold_change), absolute level
     # and statistical significance (q_value).
     diff_data_genes$rank_log2_fold_change <-
@@ -1782,7 +1782,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
 
 
 # Create an annotated differential isoforms data frame for each sample pair.
-for (i in seq_along(along.with = sample_pairs[1L, ])) {
+for (i in seq_along(along.with = sample_pairs[1L,])) {
   frame_path <-
     file.path(
       output_directory,
@@ -1820,7 +1820,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       )
     # Remove the second column, which is duplicated as a consequence of a
     # SQL table join between the "isoforms" and "isoformsExpDiffData" tables.
-    diff_data_isoform <- diff_data_isoform[,-c(2L)]
+    diff_data_isoform <- diff_data_isoform[, -c(2L)]
     # Calculate ranks for the effect size (log2_fold_change), absolute level
     # and statistical significance (q_value).
     diff_data_isoform$rank_log2_fold_change <-
@@ -1892,12 +1892,12 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
           paste(x, collapse = "__")
         }
       ),
-      "OK" = integer(length = length(x = sample_pairs[1L, ])),
-      "NOTEST" = integer(length = length(x = sample_pairs[1L, ])),
-      "HIDATA" = integer(length = length(x = sample_pairs[1L, ])),
-      "LOWDATA" = integer(length = length(x = sample_pairs[1L, ])),
-      "FAIL" = integer(length = length(x = sample_pairs[1L, ])),
-      "SUM" = integer(length = length(x = sample_pairs[1L, ])),
+      "OK" = integer(length = length(x = sample_pairs[1L,])),
+      "NOTEST" = integer(length = length(x = sample_pairs[1L,])),
+      "HIDATA" = integer(length = length(x = sample_pairs[1L,])),
+      "LOWDATA" = integer(length = length(x = sample_pairs[1L,])),
+      "FAIL" = integer(length = length(x = sample_pairs[1L,])),
+      "SUM" = integer(length = length(x = sample_pairs[1L,])),
       row.names = apply(
         X = sample_pairs,
         MARGIN = 2L,
@@ -1907,7 +1907,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
       )
     )
 
-  for (i in seq_along(along.with = sample_pairs[1L, ])) {
+  for (i in seq_along(along.with = sample_pairs[1L,])) {
     diff_data_genes <-
       cummeRbund::diffData(
         object = cummeRbund::genes(object = cuff_set),
@@ -1954,12 +1954,12 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
           paste(x, collapse = "__")
         }
       ),
-      "OK" = integer(length = length(x = sample_pairs[1L, ])),
-      "NOTEST" = integer(length = length(x = sample_pairs[1L, ])),
-      "HIDATA" = integer(length = length(x = sample_pairs[1L, ])),
-      "LOWDATA" = integer(length = length(x = sample_pairs[1L, ])),
-      "FAIL" = integer(length = length(x = sample_pairs[1L, ])),
-      "SUM" = integer(length = length(x = sample_pairs[1L, ])),
+      "OK" = integer(length = length(x = sample_pairs[1L,])),
+      "NOTEST" = integer(length = length(x = sample_pairs[1L,])),
+      "HIDATA" = integer(length = length(x = sample_pairs[1L,])),
+      "LOWDATA" = integer(length = length(x = sample_pairs[1L,])),
+      "FAIL" = integer(length = length(x = sample_pairs[1L,])),
+      "SUM" = integer(length = length(x = sample_pairs[1L,])),
       row.names = apply(
         X = sample_pairs,
         MARGIN = 2L,
@@ -1969,7 +1969,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
       )
     )
 
-  for (i in seq_along(along.with = sample_pairs[1L, ])) {
+  for (i in seq_along(along.with = sample_pairs[1L,])) {
     diff_data_isoforms <-
       cummeRbund::diffData(
         object = cummeRbund::isoforms(object = cuff_set),

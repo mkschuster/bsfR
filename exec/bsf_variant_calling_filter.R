@@ -118,11 +118,16 @@ if (grepl(pattern = "\\W",
   stop("Only word characters [0-9A-Z_a-z] are allowed for the --set-name option.")
 }
 
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+
 # Pre-process the sample names to get a character vector.
 selected_sample_names <- character()
 if (length(x = argument_list$samples) > 0L) {
   selected_sample_names <-
-    unlist(x = strsplit(x = argument_list$samples, split = ","))
+    unlist(x = stringr::str_split(
+      string = argument_list$samples,
+      pattern = stringr::fixed(pattern = ",")
+    ))
 }
 
 # Check the recurrence option.
@@ -347,9 +352,10 @@ while (nrow(
         replacement = ".tsv",
         x = sub(
           pattern = "_annotated",
-          replacement = paste(c(
-            "_genotype_variables", argument_list$set_name
-          ), collapse = "_"),
+          replacement = paste(
+            c("_genotype_variables", argument_list$set_name),
+            collapse = "_"
+          ),
           x = basename(path = argument_list$vcf_file_path)
         )
       )
@@ -524,7 +530,7 @@ while (nrow(
     integer(length = nrow(x = info_frame))
   for (i in seq_len(length.out = dim(genotype_list[["GT"]])[1L])) {
     info_frame[i, "Recurrence"] <-
-      sum(grepl(pattern = "[1-9]", x = genotype_list[["GT"]][i, ]))
+      sum(grepl(pattern = "[1-9]", x = genotype_list[["GT"]][i,]))
   }
   rm(i, genotype_list, column_data_frame)
 
@@ -536,7 +542,7 @@ while (nrow(
   rm(row_ranges_frame, info_frame, sample_frame)
   # Select only rows which Recurrence variable is equal to or more than the recurrence threshold option.
   combined_frame <-
-    combined_frame[combined_frame$Recurrence >= argument_list$recurrence,]
+    combined_frame[combined_frame$Recurrence >= argument_list$recurrence, ]
 
   sum_records_written <-
     sum_records_written + nrow(x = combined_frame)

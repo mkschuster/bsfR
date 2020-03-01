@@ -129,14 +129,12 @@ graphics_formats <- c("pdf" = "pdf", "png" = "png")
 # Define the precedence of regions for the
 # ChIPpeakAnno::assignChromosomeRegion() function so that each peak is assigned
 # only once and all regions sum up to 100%.
-region_precedence <- c(
-  "Promoters",
-  "immediateDownstream",
-  "fiveUTRs",
-  "threeUTRs",
-  "Exons",
-  "Introns"
-)
+region_precedence <- c("Promoters",
+                       "immediateDownstream",
+                       "fiveUTRs",
+                       "threeUTRs",
+                       "Exons",
+                       "Introns")
 
 prefix <-
   paste("chipseq",
@@ -200,11 +198,9 @@ diffbind_peakset_granges <-
 message("Assigning chromosome regions: ",
         length(diffbind_peakset_granges))
 chromosome_region_list <-
-  ChIPpeakAnno::assignChromosomeRegion(
-    peaks.RD = diffbind_peakset_granges,
-    precedence = region_precedence,
-    TxDb = txdb_object
-  )
+  ChIPpeakAnno::assignChromosomeRegion(peaks.RD = diffbind_peakset_granges,
+                                       precedence = region_precedence,
+                                       TxDb = txdb_object)
 
 message("Plotting chromosome regions")
 plot_paths <- file.path(output_directory,
@@ -225,7 +221,7 @@ ggplot_object <-
   ))
 
 ggplot_object <-
-  ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = name, y = percentage))
+  ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = .data$name, y = .data$percentage))
 
 ggplot_object <-
   ggplot_object + ggplot2::labs(
@@ -337,7 +333,7 @@ rm(annotated_frame)
 
 # Order by the numeric "peak" variable.
 merged_frame <-
-  merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)), ]
+  merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)),]
 
 write.table(
   x = merged_frame,
@@ -461,7 +457,7 @@ process_per_contrast <-
 
     # Order by the numeric "peak" variable.
     merged_frame <-
-      merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)), ]
+      merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)),]
 
     utils::write.table(
       x = merged_frame,
@@ -481,7 +477,7 @@ process_per_contrast <-
 
     # Filter by the FDR threshold value.
     merged_frame <-
-      merged_frame[merged_frame$FDR <= argument_list$fdr_threshold, ]
+      merged_frame[merged_frame$FDR <= argument_list$fdr_threshold,]
 
     utils::write.table(
       x = merged_frame,
@@ -502,16 +498,14 @@ process_per_contrast <-
     rm(merged_frame)
 
     significant_granges <-
-      report_granges[report_granges$FDR <= argument_list$fdr_threshold, ]
+      report_granges[report_granges$FDR <= argument_list$fdr_threshold,]
     message(sprintf(fmt = "  Assigning chromosome regions for significant peak set: %d",
                     length(x = significant_granges)))
 
     chromosome_region_list <-
-      ChIPpeakAnno::assignChromosomeRegion(
-        peaks.RD = significant_granges,
-        precedence = region_precedence,
-        TxDb = txdb_object
-      )
+      ChIPpeakAnno::assignChromosomeRegion(peaks.RD = significant_granges,
+                                           precedence = region_precedence,
+                                           TxDb = txdb_object)
 
     if (is.null(x = dimnames(x = chromosome_region_list$percentage)$subjectHits)) {
       warning("  Skipping an empty chromosome regions plot")
@@ -535,7 +529,7 @@ process_per_contrast <-
         ))
 
       ggplot_object <-
-        ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = name, y = percentage))
+        ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = .data$name, y = .data$percentage))
 
       ggplot_object <-
         ggplot_object + ggplot2::labs(
@@ -574,17 +568,13 @@ process_per_contrast <-
         ),
         col_names = TRUE
       )
-      rm(
-        plot_path,
-        ggplot_object,
-        plot_paths
-      )
+      rm(plot_path,
+         ggplot_object,
+         plot_paths)
     }
-    rm(
-      chromosome_region_list,
-      significant_granges,
-      report_granges
-    )
+    rm(chromosome_region_list,
+       significant_granges,
+       report_granges)
   }
 
 # Get a data frame with all contrasts to apply the above function to each row.

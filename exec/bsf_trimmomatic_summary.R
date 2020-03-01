@@ -70,7 +70,6 @@ argument_list <-
   ))
 
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
-suppressPackageStartupMessages(expr = library(package = "stringi"))
 
 #' Process trimmomatic STDOUT files and return a named character vector.
 #' Names are: "line", "input", "both", "first", "second", "dropped"
@@ -176,7 +175,8 @@ process_trimlog <- function(file_path, number = -1L) {
       break()
     }
     trimlog_list <-
-      stringi::stri_split_fixed(str = trimlog_line, pattern = " ")
+      stringr::str_split(string = trimlog_line,
+                         pattern = stringr::fixed(pattern = " "))
     # The read length is the sum of the end trimming position and the amount trimmed from the end.
     # The data frame length is one longer to store the end position.
     frame_length <-
@@ -240,7 +240,8 @@ process_trimlog <- function(file_path, number = -1L) {
       break()
     }
     trimlog_list <-
-      stringi::stri_split_fixed(str = trimlog_line, pattern = " ")
+      stringr::str_split(string = trimlog_line,
+                         pattern = stringr::fixed(pattern = " "))
 
     # Check for read 1.
     if (endsWith(x = trimlog_list[[1]][1], "/1")) {

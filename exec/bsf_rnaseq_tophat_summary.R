@@ -79,7 +79,7 @@ argument_list <- parse_args(object = OptionParser(
   )
 ))
 
-suppressPackageStartupMessages(expr = library(package = "ggplot2"))
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 # Save plots in the following formats.
 
@@ -222,9 +222,9 @@ rm(file_path)
 ggplot_object <- ggplot2::ggplot(data = summary_frame)
 ggplot_object <-
   ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
-    x = mapped,
-    y = mapped / input,
-    colour = sample
+    x = .data$mapped,
+    y = .data$mapped / .data$input,
+    colour = .data$sample
   ))
 ggplot_object <-
   ggplot_object + ggplot2::labs(

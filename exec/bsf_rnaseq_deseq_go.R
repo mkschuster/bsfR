@@ -105,9 +105,9 @@ if (is.null(x = argument_list$annotation_dbi)) {
   stop("Missing --annotation-dbi option")
 }
 
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "bsfR"))
 suppressPackageStartupMessages(expr = library(package = "topGO"))
-suppressPackageStartupMessages(expr = library(package = "ggplot2"))
 # suppressPackageStartupMessages(expr = library(package = "Nozzle.R1"))
 
 # Save plots in the following formats.
@@ -220,9 +220,9 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       ggplot_object <-
         ggplot_object + ggplot2::geom_point(
           mapping = ggplot2::aes(
-            x = padj,
-            y = lfcSE,
-            colour = go_status
+            x = .data$padj,
+            y = .data$lfcSE,
+            colour = .data$go_status
           ),
           alpha = alpha = I(1 / 3)
         )

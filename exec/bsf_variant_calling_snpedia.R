@@ -110,8 +110,8 @@ if (is.null(x = argument_list$genome_assembly)) {
   stop("Missing --genome-assembly option")
 }
 
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
-suppressPackageStartupMessages(expr = library(package = "stringi"))
 suppressPackageStartupMessages(expr = library(package = "VariantAnnotation"))
 
 # Rewrite SNPedia GFF3 file -----------------------------------------------
@@ -147,9 +147,9 @@ while (TRUE) {
     break()
   }
   snpedia_list <- lapply(
-    X = stri_split_fixed(
-      str = snpedia_character,
-      pattern = "\t",
+    X = stringr::str_split(
+      string = snpedia_character,
+      pattern = stringr::fixed(pattern = "\t"),
       n = 9L,
       omit_empty = FALSE
     ),
@@ -227,18 +227,20 @@ while (nrow(x = vcf_object <- readVcf(file = vcf_file,
   # Since the INFO variable "VEP_Existing_variation" contains ampersand-separated values,
   # they need further splitting. Convert into a character vector of variation identifiers.
   # info(x = vcf_object)$VEP_Existing_variation returns a CharacterList so that
-  # unlist() needs calling before stri_split_fixed().
+  # unlist() needs calling before stringr::str_split().
 
   existing_variation <-
-    unlist(x = stri_split_fixed(
-      str = unlist(x = info(x = vcf_object)$VEP_Existing_variation),
-      pattern = "&"
-    ),
-    recursive = TRUE)
+    unlist(
+      x = stringr::str_split(
+        string = unlist(x = info(x = vcf_object)$VEP_Existing_variation),
+        pattern = stringr::fixed(pattern = "&")
+      ),
+      recursive = TRUE
+    )
   # Find those SNPedia identifiers that match an existing variation in the VCF file
   # and extract the corresponding SNPedia records.
   sub_output_frame <-
-    snpedia_frame[snpedia_frame$ID %in% existing_variation, ]
+    snpedia_frame[snpedia_frame$ID %in% existing_variation,]
   sum_records_written <-
     sum_records_written + nrow(x = sub_output_frame)
   if (is.null(x = output_frame)) {

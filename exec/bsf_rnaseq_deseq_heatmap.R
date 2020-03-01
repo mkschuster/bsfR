@@ -122,7 +122,6 @@ suppressPackageStartupMessages(expr = library(package = "bsfR"))
 suppressPackageStartupMessages(expr = library(package = "ComplexHeatmap"))
 suppressPackageStartupMessages(expr = library(package = "DESeq2"))
 suppressPackageStartupMessages(expr = library(package = "Nozzle.R1"))
-suppressPackageStartupMessages(expr = library(package = "stringr"))
 
 # Save plots in the following formats.
 
@@ -224,7 +223,8 @@ if (is.null(argument_list$variables)) {
   rm(design_tibble)
 } else {
   variable_names <-
-    stringr::str_split(string = argument_list$variables, pattern = ",")[[1L]]
+    stringr::str_split(string = argument_list$variables,
+                       pattern = stringr::fixed(pattern = ","))[[1L]]
 }
 column_annotation_frame <-
   data.frame(SummarizedExperiment::colData(x = deseq_data_set)[, variable_names, drop = FALSE])
@@ -264,7 +264,7 @@ draw_complex_heatmap <-
       # z-scores per row to center the scale. Since base::scale() works on
       # columns, two transpositions are required.
       transformed_matrix <-
-        SummarizedExperiment::assay(x = deseq_transform, i = 1L)[top_gene_identifiers, ]
+        SummarizedExperiment::assay(x = deseq_transform, i = 1L)[top_gene_identifiers,]
       # Replace negative transformed count values with 0.
       # https://support.bioconductor.org/p/59369/
       transformed_matrix[transformed_matrix < 0] <- 1e-06
