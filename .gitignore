@@ -1,3 +1,6 @@
 .Rproj.user
 .Rhistory
 .RData
+NAMESPACE
+man
+R/sysdata.rda
