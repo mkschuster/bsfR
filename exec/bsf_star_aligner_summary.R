@@ -105,7 +105,7 @@ for (i in seq_len(length.out = nrow(x = summary_frame))) {
     gsub(
       pattern = argument_list$pattern_sample,
       replacement = "\\1",
-      x = base::basename(summary_frame[i, "file_name", drop = TRUE])
+      x = base::basename(path = summary_frame[i, "file_name", drop = TRUE])
     )
   message("  ", summary_frame[i, "read_group_name", drop = TRUE])
 

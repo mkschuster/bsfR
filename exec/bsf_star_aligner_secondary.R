@@ -122,7 +122,7 @@ granges_list <-
 message("Creating BamFileList object")
 sample_frame <-
   DataFrame(
-    bam_path = list.files(
+    bam_path = base::list.files(
       path = argument_list$directory,
       pattern = "^star_aligner_merge_.*\\.bam$",
       full.names = TRUE

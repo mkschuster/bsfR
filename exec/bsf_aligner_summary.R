@@ -92,7 +92,7 @@ combined_metrics_sample <- NULL
 combined_metrics_read_group <- NULL
 
 file_names <-
-  list.files(
+  base::list.files(
     pattern = paste0(
       "^",
       argument_list$prefix,
@@ -614,7 +614,7 @@ message("Processing Picard Duplication Metrics reports for sample:")
 combined_metrics_sample <- NULL
 
 file_names <-
-  list.files(
+  base::list.files(
     pattern = paste0(
       "^",
       argument_list$prefix,

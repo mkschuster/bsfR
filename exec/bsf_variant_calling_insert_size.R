@@ -100,7 +100,7 @@ sample_name <-
   gsub(
     pattern = "^variant_calling_process_sample_(.*)_realigned.bam$",
     replacement = "\\1",
-    x = basename(path = argument_list$file_path)
+    x = base::basename(path = argument_list$file_path)
   )
 
 # Scan BAM files ----------------------------------------------------------

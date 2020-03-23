@@ -130,7 +130,7 @@ process_trimlog <- function(file_path, number = -1L) {
   file_prefix <- sub(
     pattern = "_trim_log\\.tsv(\\.gz)?",
     replacement = "",
-    x = basename(path = file_path)
+    x = base::basename(path = file_path)
   )
 
   initialise_read_frame <- function(length, read_number = 1L) {
@@ -428,7 +428,7 @@ process_trimlog <- function(file_path, number = -1L) {
 #' @return
 #' @noRd
 process_summary <- function(directory_path) {
-  file_list <- list.files(
+  file_list <- base::list.files(
     path = directory_path,
     pattern = '^trimmomatic_.*_summary.tsv',
     full.names = FALSE,
@@ -485,7 +485,7 @@ if (!is.null(x = argument_list$summary_path)) {
 
 if (!is.null(x = argument_list$directory)) {
   trimmomatic_paths <-
-    list.files(
+    base::list.files(
       path = argument_list$directory,
       pattern = "\\.bsf_run_trimmomatic_.*\\.err",
       all.files = TRUE,

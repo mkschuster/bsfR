@@ -243,7 +243,7 @@ filtered_vcf_path <-
     x = sub(
       pattern = "_annotated",
       replacement = "_filtered",
-      x = basename(path = argument_list$vcf_file_path)
+      x = base::basename(path = argument_list$vcf_file_path)
     )
   )
 filtered_tbi_path <-
@@ -293,7 +293,7 @@ selected_tsv_path <-
       # The underscore-separated list of sample names does not scale.
       # replacement = paste(c("_selected", selected_sample_names), collapse = "_"),
       replacement = paste(c("_selected", argument_list$set_name), collapse = "_"),
-      x = basename(path = argument_list$vcf_file_path)
+      x = base::basename(path = argument_list$vcf_file_path)
     )
   )
 selected_tsv_first_chunk <- TRUE
@@ -327,7 +327,7 @@ while (nrow(
             c("_information_variables", argument_list$set_name),
             collapse = "_"
           ),
-          x = basename(path = argument_list$vcf_file_path)
+          x = base::basename(path = argument_list$vcf_file_path)
         )
       )
     message("Writing VCF information file: ",
@@ -356,7 +356,7 @@ while (nrow(
             c("_genotype_variables", argument_list$set_name),
             collapse = "_"
           ),
-          x = basename(path = argument_list$vcf_file_path)
+          x = base::basename(path = argument_list$vcf_file_path)
         )
       )
     message("Writing VCF genotype file: ",

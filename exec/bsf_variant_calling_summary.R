@@ -80,7 +80,7 @@ prefix_summary <- "variant_calling_summary"
 if (is.null(x = argument_list$prefix)) {
   # If a prefix was not provided, try to get it from a cohort-level file.
   file_names <-
-    list.files(pattern = "^variant_calling_process_cohort_.*_genotyped_raw_snp_raw_indel.vcf.gz$")
+    base::list.files(pattern = "^variant_calling_process_cohort_.*_genotyped_raw_snp_raw_indel.vcf.gz$")
   for (file_name in file_names) {
     cohort_name <-
       gsub(pattern = "^variant_calling_process_cohort_(.*?)_genotyped_raw_snp_raw_indel.vcf.gz$",
@@ -105,7 +105,7 @@ message("Processing Picard Duplication Metrics reports for sample:")
 combined_metrics_sample <- NULL
 
 file_names <-
-  list.files(pattern = "^variant_calling_process_sample_.*_duplicate_metrics.tsv$")
+  base::list.files(pattern = "^variant_calling_process_sample_.*_duplicate_metrics.tsv$")
 for (file_name in file_names) {
   sample_name <-
     gsub(pattern = "^variant_calling_process_sample_(.*?)_duplicate_metrics.tsv$",
@@ -293,7 +293,7 @@ combined_metrics_sample <- NULL
 combined_metrics_read_group <- NULL
 
 file_names <-
-  list.files(pattern = "^variant_calling_process_sample_.*_alignment_summary_metrics.tsv$")
+  base::list.files(pattern = "^variant_calling_process_sample_.*_alignment_summary_metrics.tsv$")
 for (file_name in file_names) {
   sample_name <-
     gsub(pattern = "^variant_calling_process_sample_(.*?)_alignment_summary_metrics.tsv$",
@@ -695,7 +695,7 @@ combined_metrics_sample <- NULL
 combined_metrics_read_group <- NULL
 
 file_names <-
-  list.files(pattern = "^variant_calling_diagnose_sample_.*_hybrid_selection_metrics.tsv$")
+  base::list.files(pattern = "^variant_calling_diagnose_sample_.*_hybrid_selection_metrics.tsv$")
 for (file_name in file_names) {
   sample_name <-
     gsub(pattern = "^variant_calling_diagnose_sample_(.*?)_hybrid_selection_metrics.tsv$",
@@ -1387,7 +1387,7 @@ message("Processing non-callable summary reports for sample:")
 
 # Initialise a data frame with all possible columns and rows at once.
 combined_metrics_sample <- data.frame(
-  row.names = list.files(pattern = "^variant_calling_diagnose_sample_.*_non_callable_summary.tsv$")
+  row.names = base::list.files(pattern = "^variant_calling_diagnose_sample_.*_non_callable_summary.tsv$")
 )
 combined_metrics_sample$file_name <-
   row.names(x = combined_metrics_sample)
