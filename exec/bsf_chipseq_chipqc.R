@@ -27,44 +27,45 @@
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
-argument_list <- parse_args(object = OptionParser(
-  option_list = list(
-    make_option(
-      opt_str = c("-v", "--verbose"),
-      action = "store_true",
-      default = TRUE,
-      help = "Print extra output [default]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("-q", "--quietly"),
-      action = "store_false",
-      default = FALSE,
-      dest = "verbose",
-      help = "Print little output",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--comparison"),
-      dest = "comparison",
-      help = "Comparison name",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--factor"),
-      dest = "factor",
-      help = "ChIP factor",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--threads"),
-      default = 1L,
-      dest = "threads",
-      help = "Number of parallel processing threads [1]",
-      type = "integer"
+argument_list <-
+  optparse::parse_args(object = optparse::OptionParser(
+    option_list = list(
+      optparse::make_option(
+        opt_str = c("-v", "--verbose"),
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("-q", "--quietly"),
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--comparison"),
+        dest = "comparison",
+        help = "Comparison name",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--factor"),
+        dest = "factor",
+        help = "ChIP factor",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--threads"),
+        default = 1L,
+        dest = "threads",
+        help = "Number of parallel processing threads [1]",
+        type = "integer"
+      )
     )
-  )
-))
+  ))
 
 # Start of main script ----------------------------------------------------
 
@@ -97,10 +98,8 @@ if (file.exists(file_path) &&
   diffbind_dba <-
     DiffBind::dba.load(dir = prefix, pre = paste0(prefix, "_"))
 } else {
-  stop(
-    "Require a pre-calculated DiffBind DBA object in file: ",
-    file_path
-  )
+  stop("Require a pre-calculated DiffBind DBA object in file: ",
+       file_path)
 }
 rm(file_path)
 

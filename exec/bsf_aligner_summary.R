@@ -28,45 +28,46 @@
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
-argument_list <- parse_args(object = OptionParser(
-  option_list = list(
-    make_option(
-      opt_str = c("--verbose", "-v"),
-      action = "store_true",
-      default = TRUE,
-      help = "Print extra output [default]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--quiet", "-q"),
-      action = "store_false",
-      default = FALSE,
-      dest = "verbose",
-      help = "Print little output",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--prefix"),
-      dest = "prefix",
-      help = "File name prefix",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--plot-width"),
-      default = 7.0,
-      dest = "plot_width",
-      help = "Plot width in inches [7.0]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--plot-height"),
-      default = 7.0,
-      dest = "plot_height",
-      help = "Plot height in inches [7.0]",
-      type = "numeric"
+argument_list <-
+  optparse::parse_args(object = optparse::OptionParser(
+    option_list = list(
+      optparse::make_option(
+        opt_str = c("--verbose", "-v"),
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--quiet", "-q"),
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--prefix"),
+        dest = "prefix",
+        help = "File name prefix",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-width"),
+        default = 7.0,
+        dest = "plot_width",
+        help = "Plot width in inches [7.0]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-height"),
+        default = 7.0,
+        dest = "plot_height",
+        help = "Plot height in inches [7.0]",
+        type = "numeric"
+      )
     )
-  )
-))
+  ))
 
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
@@ -152,7 +153,7 @@ for (file_name in file_names) {
     picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
                            (picard_metrics_total$SAMPLE != "") &
                            (picard_metrics_total$LIBRARY == "") &
-                           (picard_metrics_total$READ_GROUP == ""), ]
+                           (picard_metrics_total$READ_GROUP == ""),]
   if (is.null(x = combined_metrics_sample)) {
     combined_metrics_sample <- picard_metrics_sample
   } else {
@@ -163,7 +164,7 @@ for (file_name in file_names) {
 
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP information.
   picard_metrics_read_group <-
-    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""), ]
+    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
   if (is.null(x = combined_metrics_read_group)) {
     combined_metrics_read_group <- picard_metrics_read_group
   } else {
@@ -179,7 +180,7 @@ rm(file_name, file_names)
 if (!is.null(x = combined_metrics_sample)) {
   # Order the data frame by SAMPLE.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
   # Manually convert CATEGORY and SAMPLE columns into factors, which are handy for plotting.
   combined_metrics_sample$CATEGORY <-
     as.factor(x = combined_metrics_sample$CATEGORY)
@@ -203,7 +204,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   # Order the data frame by READ_GROUP
   combined_metrics_read_group <-
-    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP), ]
+    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP),]
   # Manually convert CATEGORY and READ_GROUP columns into factors, which are handy for plotting.
   combined_metrics_read_group$CATEGORY <-
     as.factor(x = combined_metrics_read_group$CATEGORY)
@@ -690,7 +691,7 @@ rm(file_name, file_names)
 if (!is.null(x = combined_metrics_sample)) {
   # Order the sample frame by SAMPLE.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
   # Convert the SAMPLE column into factors, which come more handy for plotting.
   combined_metrics_sample$SAMPLE <-
     as.factor(x = combined_metrics_sample$SAMPLE)

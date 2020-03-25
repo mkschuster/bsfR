@@ -29,70 +29,71 @@
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
-argument_list <- parse_args(object = OptionParser(
-  option_list = list(
-    make_option(
-      opt_str = c("--verbose", "-v"),
-      action = "store_true",
-      default = TRUE,
-      help = "Print extra output [default]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--quiet", "-q"),
-      action = "store_false",
-      default = FALSE,
-      dest = "verbose",
-      help = "Print little output",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--snpedia-gff"),
-      dest = "snpedia_gff",
-      help = "SNPedia GFF file path",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--vcf-path"),
-      dest = "vcf_path",
-      help = "Input VCF file path",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--tsv-path"),
-      dest = "tsv_path",
-      help = "Output TSV file path",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--genome-assembly"),
-      dest = "genome_assembly",
-      help = "Genome assembly version (e.g. 'b37', 'hg38', 'hg19', ...)",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--chunk-size"),
-      default = 10000L,
-      dest = "chunk_size",
-      help = "Chunk size, i.e. number of VCF lines to process at once [10000]",
-      type = "integer"
-    ),
-    make_option(
-      opt_str = c("--plot-width"),
-      default = 7.0,
-      dest = "plot_width",
-      help = "Plot width in inches [7.0]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--plot-height"),
-      default = 7.0,
-      dest = "plot_height",
-      help = "Plot height in inches [7.0]",
-      type = "numeric"
+argument_list <-
+  optparse::parse_args(object = optparse::OptionParser(
+    option_list = list(
+      optparse::make_option(
+        opt_str = c("--verbose", "-v"),
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--quiet", "-q"),
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--snpedia-gff"),
+        dest = "snpedia_gff",
+        help = "SNPedia GFF file path",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--vcf-path"),
+        dest = "vcf_path",
+        help = "Input VCF file path",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--tsv-path"),
+        dest = "tsv_path",
+        help = "Output TSV file path",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--genome-assembly"),
+        dest = "genome_assembly",
+        help = "Genome assembly version (e.g. 'b37', 'hg38', 'hg19', ...)",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--chunk-size"),
+        default = 10000L,
+        dest = "chunk_size",
+        help = "Chunk size, i.e. number of VCF lines to process at once [10000]",
+        type = "integer"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-width"),
+        default = 7.0,
+        dest = "plot_width",
+        help = "Plot width in inches [7.0]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-height"),
+        default = 7.0,
+        dest = "plot_height",
+        help = "Plot height in inches [7.0]",
+        type = "numeric"
+      )
     )
-  )
-))
+  ))
 
 if (is.null(x = argument_list$snpedia_gff)) {
   stop("Missing --snpedia-gff option")
@@ -240,7 +241,7 @@ while (nrow(x = vcf_object <- readVcf(file = vcf_file,
   # Find those SNPedia identifiers that match an existing variation in the VCF file
   # and extract the corresponding SNPedia records.
   sub_output_frame <-
-    snpedia_frame[snpedia_frame$ID %in% existing_variation,]
+    snpedia_frame[snpedia_frame$ID %in% existing_variation, ]
   sum_records_written <-
     sum_records_written + nrow(x = sub_output_frame)
   if (is.null(x = output_frame)) {

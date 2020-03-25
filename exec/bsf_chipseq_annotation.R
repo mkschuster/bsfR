@@ -32,85 +32,86 @@
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
-argument_list <- parse_args(object = OptionParser(
-  option_list = list(
-    make_option(
-      opt_str = c("-v", "--verbose"),
-      action = "store_true",
-      default = TRUE,
-      help = "Print extra output [default]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("-q", "--quietly"),
-      action = "store_false",
-      default = FALSE,
-      dest = "verbose",
-      help = "Print little output",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--comparison"),
-      dest = "comparison",
-      help = "Comparison name",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--factor"),
-      dest = "factor",
-      help = "ChIP factor",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--fdr-threshold"),
-      default = 0.05,
-      dest = "fdr_threshold",
-      help = "FDR threshold [0.05]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--gtf-reference"),
-      default = NULL,
-      dest = "gtf_reference",
-      help = "Reference transcriptome GTF file path",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--txdb-path"),
-      dest = "txdb_path",
-      help = "Reference transcriptome Bioconductor TxDb file path",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--genome-directory"),
-      default = ".",
-      dest = "genome_directory",
-      help = "Genome directory path [.]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--output-directory"),
-      default = ".",
-      dest = "output_directory",
-      help = "Output directory path [.]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--plot-width"),
-      default = 7.0,
-      dest = "plot_width",
-      help = "Plot width in inches [7.0]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--plot-height"),
-      default = 7.0,
-      dest = "plot_height",
-      help = "Plot height in inches [7.0]",
-      type = "numeric"
+argument_list <-
+  optparse::parse_args(object = optparse::OptionParser(
+    option_list = list(
+      optparse::make_option(
+        opt_str = c("-v", "--verbose"),
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("-q", "--quietly"),
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--comparison"),
+        dest = "comparison",
+        help = "Comparison name",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--factor"),
+        dest = "factor",
+        help = "ChIP factor",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--fdr-threshold"),
+        default = 0.05,
+        dest = "fdr_threshold",
+        help = "FDR threshold [0.05]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--gtf-reference"),
+        default = NULL,
+        dest = "gtf_reference",
+        help = "Reference transcriptome GTF file path",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--txdb-path"),
+        dest = "txdb_path",
+        help = "Reference transcriptome Bioconductor TxDb file path",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--genome-directory"),
+        default = ".",
+        dest = "genome_directory",
+        help = "Genome directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--output-directory"),
+        default = ".",
+        dest = "output_directory",
+        help = "Output directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-width"),
+        default = 7.0,
+        dest = "plot_width",
+        help = "Plot width in inches [7.0]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-height"),
+        default = 7.0,
+        dest = "plot_height",
+        help = "Plot height in inches [7.0]",
+        type = "numeric"
+      )
     )
-  )
-))
+  ))
 
 # Start of main script ----------------------------------------------------
 
@@ -333,7 +334,7 @@ rm(annotated_frame)
 
 # Order by the numeric "peak" variable.
 merged_frame <-
-  merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)),]
+  merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)), ]
 
 write.table(
   x = merged_frame,
@@ -457,7 +458,7 @@ process_per_contrast <-
 
     # Order by the numeric "peak" variable.
     merged_frame <-
-      merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)),]
+      merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)), ]
 
     utils::write.table(
       x = merged_frame,
@@ -477,7 +478,7 @@ process_per_contrast <-
 
     # Filter by the FDR threshold value.
     merged_frame <-
-      merged_frame[merged_frame$FDR <= argument_list$fdr_threshold,]
+      merged_frame[merged_frame$FDR <= argument_list$fdr_threshold, ]
 
     utils::write.table(
       x = merged_frame,
@@ -498,7 +499,7 @@ process_per_contrast <-
     rm(merged_frame)
 
     significant_granges <-
-      report_granges[report_granges$FDR <= argument_list$fdr_threshold,]
+      report_granges[report_granges$FDR <= argument_list$fdr_threshold, ]
     message(sprintf(fmt = "  Assigning chromosome regions for significant peak set: %d",
                     length(x = significant_granges)))
 

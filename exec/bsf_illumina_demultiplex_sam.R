@@ -29,16 +29,16 @@
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
-  parse_args(object = OptionParser(
+  optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
-      make_option(
+      optparse::make_option(
         opt_str = c("--verbose", "-v"),
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--quiet", "-q"),
         action = "store_false",
         default = FALSE,
@@ -46,40 +46,40 @@ argument_list <-
         help = "Print little output",
         type = "logical"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--directory-path"),
         dest = "directory_path",
         help = "Directory path of EXPERIMENT_LANE_metrics.tsv files",
         type = "character"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--file-pattern"),
         default = "_metrics.tsv$",
         dest = "file_pattern",
         help = "File pattern to capture EXPERIMENT_LANE_metrics.tsv files",
         type = "character"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--file-path"),
         dest = "file_path",
         help = "File path of a EXPERIMENT_LANE_metrics.tsv file",
         type = "character"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--plot-factor"),
         default = 0.5,
         dest = "plot_factor",
         help = "Plot width increase per 24 samples [0.5]",
         type = "numeric"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--plot-width"),
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
         type = "numeric"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--plot-height"),
         default = 7.0,
         dest = "plot_height",
@@ -192,7 +192,6 @@ for (i in seq_along(along.with = metrics_files)) {
   }
 
   if (is(object = picard_report, class2 = "PicardAlignmentSummaryMetrics")) {
-
     file_prefix <- base::sub(
       pattern = "^(.*)_metrics.tsv$",
       replacement = "\\1",
@@ -200,10 +199,8 @@ for (i in seq_along(along.with = metrics_files)) {
     )
 
     plot_object <-
-      plot_cluster_numbers(
-        object = picard_report,
-        name = file_prefix
-      )
+      plot_cluster_numbers(object = picard_report,
+                           name = file_prefix)
 
     for (graphics_format in graphics_formats) {
       ggplot2::ggsave(
@@ -212,12 +209,10 @@ for (i in seq_along(along.with = metrics_files)) {
           base::dirname(path = metrics_files[i]),
           # Sub-directory of the metrics report.
           paste(
-            paste(
-              file_prefix,
-              "metrics",
-              "number",
-              sep = "_"
-            ),
+            paste(file_prefix,
+                  "metrics",
+                  "number",
+                  sep = "_"),
             graphics_format,
             sep = "."
           )

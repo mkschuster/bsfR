@@ -32,60 +32,61 @@
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
-argument_list <- parse_args(object = OptionParser(
-  option_list = list(
-    make_option(
-      opt_str = c("--verbose", "-v"),
-      action = "store_true",
-      default = TRUE,
-      help = "Print extra output [default]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--quiet", "-q"),
-      action = "store_false",
-      default = FALSE,
-      dest = "verbose",
-      help = "Print little output",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--pattern-file"),
-      default = "^run_info\\.json$",
-      dest = "pattern_file",
-      help = "Kallisto report file name pattern",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--pattern-sample"),
-      default = "^kallisto_sample_(.*)$",
-      dest = "pattern_sample",
-      help = "Kallisto report sample name pattern",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--prefix"),
-      default = "kallisto_summary",
-      dest = "prefix",
-      help = "File name prefix",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--plot-width"),
-      default = 7.0,
-      dest = "plot_width",
-      help = "Plot width in inches [7.0]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--plot-height"),
-      default = 7.0,
-      dest = "plot_height",
-      help = "Plot height in inches [7.0]",
-      type = "numeric"
+argument_list <-
+  optparse::parse_args(object = optparse::OptionParser(
+    option_list = list(
+      optparse::make_option(
+        opt_str = c("--verbose", "-v"),
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--quiet", "-q"),
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--pattern-file"),
+        default = "^run_info\\.json$",
+        dest = "pattern_file",
+        help = "Kallisto report file name pattern",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--pattern-sample"),
+        default = "^kallisto_sample_(.*)$",
+        dest = "pattern_sample",
+        help = "Kallisto report sample name pattern",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--prefix"),
+        default = "kallisto_summary",
+        dest = "prefix",
+        help = "File name prefix",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-width"),
+        default = 7.0,
+        dest = "plot_width",
+        help = "Plot width in inches [7.0]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-height"),
+        default = 7.0,
+        dest = "plot_height",
+        help = "Plot height in inches [7.0]",
+        type = "numeric"
+      )
     )
-  )
-))
+  ))
 
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "rjson"))

@@ -27,81 +27,82 @@
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
-argument_list <- parse_args(object = OptionParser(
-  option_list = list(
-    make_option(
-      opt_str = c("--verbose", "-v"),
-      action = "store_true",
-      default = TRUE,
-      help = "Print extra output [default]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--quiet", "-q"),
-      action = "store_false",
-      default = FALSE,
-      dest = "verbose",
-      help = "Print little output",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--design-name"),
-      # default = "global",
-      dest = "design_name",
-      help = "design name",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--lfc-threshold"),
-      default = 0.0,
-      dest = "lfc_threshold",
-      help = "Log-fold change threshold [0.0]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--padj-threshold"),
-      default = 0.1,
-      dest = "padj_threshold",
-      help = "Adjusted p-value threshold [0.1]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--threads"),
-      default = 1L,
-      dest = "threads",
-      help = "Number of parallel processing threads",
-      type = "integer"
-    ),
-    make_option(
-      opt_str = c("--genome-directory"),
-      default = ".",
-      dest = "genome_directory",
-      help = "Genome directory path [.]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--output-directory"),
-      default = ".",
-      dest = "output_directory",
-      help = "Output directory path [.]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--plot-width"),
-      default = 7.0,
-      dest = "plot_width",
-      help = "Plot width in inches [7.0]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--plot-height"),
-      default = 7.0,
-      dest = "plot_height",
-      help = "Plot height in inches [7.0]",
-      type = "numeric"
+argument_list <-
+  optparse::parse_args(object = optparse::OptionParser(
+    option_list = list(
+      optparse::make_option(
+        opt_str = c("--verbose", "-v"),
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--quiet", "-q"),
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--design-name"),
+        # default = "global",
+        dest = "design_name",
+        help = "design name",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--lfc-threshold"),
+        default = 0.0,
+        dest = "lfc_threshold",
+        help = "Log-fold change threshold [0.0]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--padj-threshold"),
+        default = 0.1,
+        dest = "padj_threshold",
+        help = "Adjusted p-value threshold [0.1]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--threads"),
+        default = 1L,
+        dest = "threads",
+        help = "Number of parallel processing threads",
+        type = "integer"
+      ),
+      optparse::make_option(
+        opt_str = c("--genome-directory"),
+        default = ".",
+        dest = "genome_directory",
+        help = "Genome directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--output-directory"),
+        default = ".",
+        dest = "output_directory",
+        help = "Output directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-width"),
+        default = 7.0,
+        dest = "plot_width",
+        help = "Plot width in inches [7.0]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-height"),
+        default = 7.0,
+        dest = "plot_height",
+        help = "Plot height in inches [7.0]",
+        type = "numeric"
+      )
     )
-  )
-))
+  ))
 
 # Check the input.
 

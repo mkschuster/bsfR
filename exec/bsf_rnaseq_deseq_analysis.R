@@ -80,98 +80,99 @@
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
-argument_list <- parse_args(object = OptionParser(
-  option_list = list(
-    make_option(
-      opt_str = c("--verbose", "-v"),
-      action = "store_true",
-      default = TRUE,
-      help = "Print extra output [default]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--quiet", "-q"),
-      action = "store_false",
-      default = FALSE,
-      dest = "verbose",
-      help = "Print little output",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--design-name"),
-      # default = "global",
-      dest = "design_name",
-      help = "Design name",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--gtf-reference"),
-      default = NULL,
-      dest = "gtf_reference",
-      help = "GTF file specifying a reference transcriptome",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--genome-version"),
-      default = NULL,
-      dest = "genome_version",
-      help = "Genome version",
-      type = "character"
-    ),
-    make_option(
-      # This option is required for Likelihood Ratio Testing (LRT)
-      opt_str = c("--padj-threshold"),
-      default = 0.1,
-      dest = "padj_threshold",
-      help = "Adjusted p-value threshold [0.1]",
-      type = "numeric"
-    ),
-    make_option(
-      # This option is required for PCA plots
-      opt_str = c("--pca-dimensions"),
-      default = 4L,
-      dest = "pca_dimensions",
-      help = "Principal components to plot [4]",
-      type = "integer"
-    ),
-    make_option(
-      # This option is required for PCA plots
-      opt_str = c("--pca-top-number"),
-      default = 500L,
-      dest = "pca_top_number",
-      help = "Number of most variable genes for PCA [500]",
-      type = "integer"
-    ),
-    make_option(
-      opt_str = c("--threads"),
-      default = 1L,
-      dest = "threads",
-      help = "Number of parallel processing threads [1]",
-      type = "integer"
-    ),
-    # make_option(
-    #   opt_str = c("--plot-factor"),
-    #   default = 0.5,
-    #   dest = "plot_factor",
-    #   help = "Plot width increase per 24 samples [0.5]",
-    #   type = "numeric"
-    # ),
-    make_option(
-      opt_str = c("--plot-width"),
-      default = 7.0,
-      dest = "plot_width",
-      help = "Plot width in inches [7.0]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--plot-height"),
-      default = 7.0,
-      dest = "plot_height",
-      help = "Plot height in inches [7.0]",
-      type = "numeric"
+argument_list <-
+  optparse::parse_args(object = optparse::OptionParser(
+    option_list = list(
+      optparse::make_option(
+        opt_str = c("--verbose", "-v"),
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--quiet", "-q"),
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--design-name"),
+        # default = "global",
+        dest = "design_name",
+        help = "Design name",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--gtf-reference"),
+        default = NULL,
+        dest = "gtf_reference",
+        help = "GTF file specifying a reference transcriptome",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--genome-version"),
+        default = NULL,
+        dest = "genome_version",
+        help = "Genome version",
+        type = "character"
+      ),
+      optparse::make_option(
+        # This option is required for Likelihood Ratio Testing (LRT)
+        opt_str = c("--padj-threshold"),
+        default = 0.1,
+        dest = "padj_threshold",
+        help = "Adjusted p-value threshold [0.1]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        # This option is required for PCA plots
+        opt_str = c("--pca-dimensions"),
+        default = 4L,
+        dest = "pca_dimensions",
+        help = "Principal components to plot [4]",
+        type = "integer"
+      ),
+      optparse::make_option(
+        # This option is required for PCA plots
+        opt_str = c("--pca-top-number"),
+        default = 500L,
+        dest = "pca_top_number",
+        help = "Number of most variable genes for PCA [500]",
+        type = "integer"
+      ),
+      optparse::make_option(
+        opt_str = c("--threads"),
+        default = 1L,
+        dest = "threads",
+        help = "Number of parallel processing threads [1]",
+        type = "integer"
+      ),
+      # optparse::make_option(
+      #   opt_str = c("--plot-factor"),
+      #   default = 0.5,
+      #   dest = "plot_factor",
+      #   help = "Plot width increase per 24 samples [0.5]",
+      #   type = "numeric"
+      # ),
+      optparse::make_option(
+        opt_str = c("--plot-width"),
+        default = 7.0,
+        dest = "plot_width",
+        help = "Plot width in inches [7.0]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-height"),
+        default = 7.0,
+        dest = "plot_height",
+        help = "Plot height in inches [7.0]",
+        type = "numeric"
+      )
     )
-  )
-))
+  ))
 
 if (is.null(x = argument_list$design_name)) {
   stop("Missing --design-name option")
@@ -313,7 +314,7 @@ initialise_sample_frame <- function(factor_levels) {
         return(any(argument_list$design_name %in% character_1))
       }
     ))
-  data_frame <- data_frame[index_logical,]
+  data_frame <- data_frame[index_logical, ]
   rm(index_logical)
 
   if (nrow(x = data_frame) == 0L) {
@@ -429,7 +430,7 @@ initialise_design_list <- function() {
       Class = "DataFrame"
     )
   data_frame <-
-    data_frame[data_frame$design == argument_list$design_name,]
+    data_frame[data_frame$design == argument_list$design_name, ]
 
   if (nrow(data_frame) == 0L) {
     stop("No design remaining after selection for design name.")
@@ -495,7 +496,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
         )
         sub_sample_frame <-
           sample_frame[(sample_frame$library_type == library_type) &
-                         (sample_frame$sequencing_type == sequencing_type), ]
+                         (sample_frame$sequencing_type == sequencing_type),]
 
         if (nrow(x = sub_sample_frame) == 0L) {
           rm(sub_sample_frame)
@@ -635,7 +636,7 @@ fix_model_matrix <- function(model_matrix_local) {
         "Attempting to fix the model matrix by removing empty columns."
       )
       model_matrix_local <-
-        model_matrix_local[,-which(x = model_all_zero)]
+        model_matrix_local[, -which(x = model_all_zero)]
     } else {
       linear_combinations_list <-
         caret::findLinearCombos(x = model_matrix_local)
@@ -659,7 +660,7 @@ fix_model_matrix <- function(model_matrix_local) {
         paste(colnames(x = model_matrix_local)[linear_combinations_list$remove], collapse = "\n  ")
       )
       model_matrix_local <-
-        model_matrix_local[, -linear_combinations_list$remove]
+        model_matrix_local[,-linear_combinations_list$remove]
     }
     rm(model_all_zero)
   }
@@ -1469,7 +1470,7 @@ plot_pca <- function(object,
 
   # Perform a PCA on the (count) matrix returned by SummarizedExperiment::assay() for the selected genes.
   pca_object <-
-    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows,]))
+    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows, ]))
   rm(selected_rows)
 
   # Plot the variance for a maximum of 100 components.
@@ -1568,7 +1569,7 @@ plot_pca <- function(object,
             x = numeric(),
             y = numeric(),
             # Also initalise all variables of the column data, but do not include data (i.e. 0L rows).
-            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L, ])
+            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L,])
           )
 
         for (column_number in seq_len(length.out = ncol(x = pca_pair_matrix))) {

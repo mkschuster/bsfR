@@ -24,71 +24,72 @@
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
-argument_list <- parse_args(object = OptionParser(
-  option_list = list(
-    make_option(
-      opt_str = c("-v", "--verbose"),
-      action = "store_true",
-      default = TRUE,
-      help = "Print extra output [default]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("-q", "--quietly"),
-      action = "store_false",
-      default = FALSE,
-      dest = "verbose",
-      help = "Print little output",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--comparison"),
-      dest = "comparison",
-      help = "Comparison name",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--factor"),
-      dest = "factor",
-      help = "ChIP factor",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--sample-annotation"),
-      dest = "sample_annotation",
-      help = "Sample annotation sheet",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--fdr-threshold"),
-      default = 0.05,
-      dest = "fdr_threshold",
-      help = "FDR threshold [0.05]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--threads"),
-      default = 1L,
-      dest = "threads",
-      help = "Number of parallel processing threads [1]",
-      type = "integer"
-    ),
-    make_option(
-      opt_str = c("--plot-width"),
-      default = 7.0,
-      dest = "plot_width",
-      help = "Plot width in inches [14.0]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--plot-height"),
-      default = 7.0,
-      dest = "plot_height",
-      help = "Plot height in inches [36.0]",
-      type = "numeric"
+argument_list <-
+  optparse::parse_args(object = optparse::OptionParser(
+    option_list = list(
+      optparse::make_option(
+        opt_str = c("-v", "--verbose"),
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("-q", "--quietly"),
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--comparison"),
+        dest = "comparison",
+        help = "Comparison name",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--factor"),
+        dest = "factor",
+        help = "ChIP factor",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--sample-annotation"),
+        dest = "sample_annotation",
+        help = "Sample annotation sheet",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--fdr-threshold"),
+        default = 0.05,
+        dest = "fdr_threshold",
+        help = "FDR threshold [0.05]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--threads"),
+        default = 1L,
+        dest = "threads",
+        help = "Number of parallel processing threads [1]",
+        type = "integer"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-width"),
+        default = 7.0,
+        dest = "plot_width",
+        help = "Plot width in inches [14.0]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-height"),
+        default = 7.0,
+        dest = "plot_height",
+        help = "Plot height in inches [36.0]",
+        type = "numeric"
+      )
     )
-  )
-))
+  ))
 
 # Start of main script ----------------------------------------------------
 
@@ -232,7 +233,7 @@ if (file.exists(file_path) &&
     if (nrow(x = diffbind_dba$samples) == 2) {
       message("In lack of replicates, setting contrasts on the basis of the first two conditions")
       diffbind_conditions <-
-        unique(x = diffbind_dba$class[DiffBind::DBA_CONDITION, ])
+        unique(x = diffbind_dba$class[DiffBind::DBA_CONDITION,])
       diffbind_dba <- DiffBind::dba.contrast(
         DBA = diffbind_dba,
         group1 = DiffBind::dba.mask(
@@ -467,7 +468,7 @@ process_per_contrast <-
 
       # Extract only significant peaks by filtering for the FDR threshold.
       report_frame <-
-        report_frame[report_frame$FDR <= argument_list$fdr_threshold, ]
+        report_frame[report_frame$FDR <= argument_list$fdr_threshold,]
       write.table(
         x = report_frame,
         file = sprintf(fmt = "%s_significant_%s__%s.tsv", prefix, group1, group2),

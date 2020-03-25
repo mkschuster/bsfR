@@ -27,114 +27,115 @@
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
-argument_list <- parse_args(object = OptionParser(
-  option_list = list(
-    make_option(
-      opt_str = c("--verbose", "-v"),
-      action = "store_true",
-      default = TRUE,
-      help = "Print extra output [default]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--quiet", "-q"),
-      action = "store_false",
-      default = FALSE,
-      dest = "verbose",
-      help = "Print little output",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--design-name"),
-      # default = "global",
-      dest = "design_name",
-      help = "Design name",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--l2fc-threshold"),
-      default = 1.0,
-      dest = "l2fc_threshold",
-      help = "Threshold for the log2(fold-change) [1.0]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--p-threshold"),
-      default = 1e-05,
-      dest = "p_threshold",
-      help = "Threshold for the unadjusted p-value [1e-05]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--padj-threshold"),
-      default = 0.1,
-      dest = "padj_threshold",
-      help = "Threshold for the adjusted p-value [0.1]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--padj"),
-      action = "store_true",
-      default = FALSE,
-      dest = "plot_padj",
-      help = "Plot adjusted p-values [FALSE]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--gene-path"),
-      dest = "gene_path",
-      help = "Gene list file path for annotation [NULL]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--genome-directory"),
-      default = ".",
-      dest = "genome_directory",
-      help = "Genome directory path [.]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--output-directory"),
-      default = ".",
-      dest = "output_directory",
-      help = "Output directory path [.]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--x-limits"),
-      dest = "x_limits",
-      help = "x-axis limits separated by a comma (lower,upper) [NULL]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--y-limits"),
-      dest = "y_limits",
-      help = "y-axis limits separated by a comma (lower,upper) [NULL]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--plot-dpi"),
-      default = 72,
-      dest = "plot_dpi",
-      help = "Plot resolution in dpi [72]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--plot-width"),
-      default = 7.0,
-      dest = "plot_width",
-      help = "Plot width in inches [7.0]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--plot-height"),
-      default = 7.0,
-      dest = "plot_height",
-      help = "Plot height in inches [7.0]",
-      type = "numeric"
+argument_list <-
+  optparse::parse_args(object = optparse::OptionParser(
+    option_list = list(
+      optparse::make_option(
+        opt_str = c("--verbose", "-v"),
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--quiet", "-q"),
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--design-name"),
+        # default = "global",
+        dest = "design_name",
+        help = "Design name",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--l2fc-threshold"),
+        default = 1.0,
+        dest = "l2fc_threshold",
+        help = "Threshold for the log2(fold-change) [1.0]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--p-threshold"),
+        default = 1e-05,
+        dest = "p_threshold",
+        help = "Threshold for the unadjusted p-value [1e-05]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--padj-threshold"),
+        default = 0.1,
+        dest = "padj_threshold",
+        help = "Threshold for the adjusted p-value [0.1]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--padj"),
+        action = "store_true",
+        default = FALSE,
+        dest = "plot_padj",
+        help = "Plot adjusted p-values [FALSE]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--gene-path"),
+        dest = "gene_path",
+        help = "Gene list file path for annotation [NULL]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--genome-directory"),
+        default = ".",
+        dest = "genome_directory",
+        help = "Genome directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--output-directory"),
+        default = ".",
+        dest = "output_directory",
+        help = "Output directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--x-limits"),
+        dest = "x_limits",
+        help = "x-axis limits separated by a comma (lower,upper) [NULL]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--y-limits"),
+        dest = "y_limits",
+        help = "y-axis limits separated by a comma (lower,upper) [NULL]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-dpi"),
+        default = 72,
+        dest = "plot_dpi",
+        help = "Plot resolution in dpi [72]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-width"),
+        default = 7.0,
+        dest = "plot_width",
+        help = "Plot width in inches [7.0]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-height"),
+        default = 7.0,
+        dest = "plot_height",
+        help = "Plot height in inches [7.0]",
+        type = "numeric"
+      )
     )
-  )
-))
+  ))
 
 # Check the input.
 
@@ -278,14 +279,14 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       argument_list$p_threshold
     },
     xlab = if (argument_list$plot_padj) {
-      bquote(~ Log[2] ~ "fold change")
+      bquote( ~ Log[2] ~ "fold change")
     } else {
-      bquote(~ Log[2] ~ "fold change")
+      bquote( ~ Log[2] ~ "fold change")
     },
     ylab = if (argument_list$plot_padj) {
-      bquote(~ -Log[10] ~ adjusted ~ italic(P))
+      bquote( ~ -Log[10] ~ adjusted ~ italic(P))
     } else {
-      bquote(~ -Log[10] ~ italic(P))
+      bquote( ~ -Log[10] ~ italic(P))
     },
     subtitle = ggplot2::waiver(),
     caption = ggplot2::waiver(),

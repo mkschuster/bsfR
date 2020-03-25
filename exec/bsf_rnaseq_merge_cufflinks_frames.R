@@ -96,12 +96,12 @@ process_cufflinks_table <-
                             "tss_id")
     }
     subset_frame <-
-      cufflinks_frame[, !(colnames(cufflinks_frame) %in% obsolete_columns)]
+      cufflinks_frame[,!(colnames(cufflinks_frame) %in% obsolete_columns)]
     rm(cufflinks_frame, obsolete_columns)
 
     # Select only Ensembl objects i.e. those that have a gene_biotype set.
     ensembl_frame <-
-      subset_frame[!is.na(x = subset_frame$gene_biotype), ]
+      subset_frame[!is.na(x = subset_frame$gene_biotype),]
     rm(subset_frame)
 
     # Rename columns to include the replicate name.
@@ -136,23 +136,25 @@ process_cufflinks_table <-
 # otherwise if options not found on command line then set defaults,
 
 argument_list <-
-  parse_args(object = OptionParser(option_list = list(
-    make_option(
-      opt_str = c("--verbose", "-v"),
-      action = "store_true",
-      default = TRUE,
-      help = "Print extra output [default]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--quiet", "-q"),
-      action = "store_false",
-      default = FALSE,
-      dest = "verbose",
-      help = "Print little output",
-      type = "logical"
+  optparse::parse_args(object = optparse::OptionParser(
+    option_list = list(
+      optparse::make_option(
+        opt_str = c("--verbose", "-v"),
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--quiet", "-q"),
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      )
     )
-  )))
+  ))
 
 # Process all "rnaseq_cufflinks_*" directories in the current working directory.
 # List all rnaseq_cufflinks directories via their common prefix and

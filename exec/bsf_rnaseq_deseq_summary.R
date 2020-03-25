@@ -38,53 +38,54 @@
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
-argument_list <- parse_args(object = OptionParser(
-  option_list = list(
-    make_option(
-      opt_str = c("--verbose", "-v"),
-      action = "store_true",
-      default = TRUE,
-      help = "Print extra output [default]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--quiet", "-q"),
-      action = "store_false",
-      default = FALSE,
-      dest = "verbose",
-      help = "Print little output",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--genome-directory"),
-      default = ".",
-      dest = "genome_directory",
-      help = "Genome directory path [.]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--output-directory"),
-      default = ".",
-      dest = "output_directory",
-      help = "Output directory path [.]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--plot-width"),
-      default = 7.0,
-      dest = "plot_width",
-      help = "Plot width in inches [7.0]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--plot-height"),
-      default = 7.0,
-      dest = "plot_height",
-      help = "Plot height in inches [7.0]",
-      type = "numeric"
+argument_list <-
+  optparse::parse_args(object = optparse::OptionParser(
+    option_list = list(
+      optparse::make_option(
+        opt_str = c("--verbose", "-v"),
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--quiet", "-q"),
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--genome-directory"),
+        default = ".",
+        dest = "genome_directory",
+        help = "Genome directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--output-directory"),
+        default = ".",
+        dest = "output_directory",
+        help = "Output directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-width"),
+        default = 7.0,
+        dest = "plot_width",
+        help = "Plot width in inches [7.0]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-height"),
+        default = 7.0,
+        dest = "plot_height",
+        help = "Plot height in inches [7.0]",
+        type = "numeric"
+      )
     )
-  )
-))
+  ))
 
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
@@ -132,14 +133,14 @@ for (design_name in design_names) {
 rm(design_name, design_names)
 
 # Drop the "Exclude" variable.
-summary_tibble <- dplyr::select(.data = summary_tibble, -Exclude)
+summary_tibble <- dplyr::select(.data = summary_tibble,-Exclude)
 
 # Replace NA and "" values in the Numerator and Denominator with character "1".
 summary_tibble <-
   dplyr::mutate_at(
     .tbl = summary_tibble,
     .vars = c("Numerator", "Denominator"),
-    .funs = list( ~ replace(., is.na(x = .) | . == "", "1"))
+    .funs = list(~ replace(., is.na(x = .) | . == "", "1"))
   )
 
 # Summarise by Numerator and Denominator ----------------------------------
@@ -150,7 +151,7 @@ key_tibble <-
   dplyr::select(.data = summary_tibble, Design, Numerator, Denominator)
 duplicated_tibble <-
   summary_tibble[duplicated(x = key_tibble) |
-                   duplicated(x = key_tibble, fromLast = TRUE),]
+                   duplicated(x = key_tibble, fromLast = TRUE), ]
 if (nrow(x = duplicated_tibble)) {
   print(x = "Duplicated Design, Numerator and Denominator rows:")
   print(x = duplicated_tibble)
@@ -161,7 +162,7 @@ rm(duplicated_tibble, key_tibble)
 # then spread "Significant" values on the "Design" key.
 readr::write_tsv(
   x = tidyr::spread(
-    data = dplyr::select(.data = summary_tibble, -Label),
+    data = dplyr::select(.data = summary_tibble,-Label),
     key = Design,
     value = Significant
   ),
@@ -176,7 +177,7 @@ readr::write_tsv(
 key_tibble <- dplyr::select(.data = summary_tibble, Design, Label)
 duplicated_tibble <-
   summary_tibble[duplicated(x = key_tibble) |
-                   duplicated(x = key_tibble, fromLast = TRUE),]
+                   duplicated(x = key_tibble, fromLast = TRUE), ]
 if (nrow(x = duplicated_tibble)) {
   print(x = "Duplicated Design and Label rows:")
   print(x = duplicated_tibble)
@@ -187,7 +188,7 @@ rm(duplicated_tibble, key_tibble)
 # then spread "Significant" values on the "Design" key.
 readr::write_tsv(
   x = tidyr::spread(
-    data = dplyr::select(.data = summary_tibble, -Numerator, -Denominator),
+    data = dplyr::select(.data = summary_tibble,-Numerator,-Denominator),
     key = Design,
     value = Significant
   ),

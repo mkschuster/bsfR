@@ -35,72 +35,73 @@
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
-argument_list <- parse_args(object = OptionParser(
-  option_list = list(
-    make_option(
-      opt_str = c("--verbose", "-v"),
-      action = "store_true",
-      default = TRUE,
-      help = "Print extra output [default]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--quiet", "-q"),
-      action = "store_false",
-      default = FALSE,
-      dest = "verbose",
-      help = "Print little output",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--exons"),
-      dest = "exon_path",
-      help = "File path to the gene, transcript and exon annotation GTF",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--exon-flanks"),
-      default = 0L,
-      dest = "exon_flanks",
-      help = "Exon flanking regions [0]",
-      type = "integer"
-    ),
-    make_option(
-      opt_str = c("--no-filter"),
-      action = "store_true",
-      default = FALSE,
-      dest = "no_filter",
-      help = "Do not filter GTF annotation by 'tag \"basic\";' [FALSE]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--callable-loci"),
-      dest = "callable_loci_path",
-      help = "File path to the GATK Callable Loci BED",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--targets"),
-      dest = "target_path",
-      help = "File path to the enrichment targets BED",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--plot-width"),
-      default = 7.0,
-      dest = "plot_width",
-      help = "Plot width in inches [7.0]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--plot-height"),
-      default = 7.0,
-      dest = "plot_height",
-      help = "Plot height in inches [7.0]",
-      type = "numeric"
+argument_list <-
+  optparse::parse_args(object = optparse::OptionParser(
+    option_list = list(
+      optparse::make_option(
+        opt_str = c("--verbose", "-v"),
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--quiet", "-q"),
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--exons"),
+        dest = "exon_path",
+        help = "File path to the gene, transcript and exon annotation GTF",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--exon-flanks"),
+        default = 0L,
+        dest = "exon_flanks",
+        help = "Exon flanking regions [0]",
+        type = "integer"
+      ),
+      optparse::make_option(
+        opt_str = c("--no-filter"),
+        action = "store_true",
+        default = FALSE,
+        dest = "no_filter",
+        help = "Do not filter GTF annotation by 'tag \"basic\";' [FALSE]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--callable-loci"),
+        dest = "callable_loci_path",
+        help = "File path to the GATK Callable Loci BED",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--targets"),
+        dest = "target_path",
+        help = "File path to the enrichment targets BED",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-width"),
+        default = 7.0,
+        dest = "plot_width",
+        help = "Plot width in inches [7.0]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-height"),
+        default = 7.0,
+        dest = "plot_height",
+        help = "Plot height in inches [7.0]",
+        type = "numeric"
+      )
     )
-  )
-))
+  ))
 
 if (file.size(argument_list$callable_loci_path) > 1e+09) {
   message("The file specified by the --callable-loci option is too large to process")
@@ -143,7 +144,7 @@ if ("tag" %in% names(x = S4Vectors::mcols(x = exon_ranges)) &&
   # Use the %in% operator for character matching as it sets NA values to FALSE,
   # automatically.
   exon_ranges <-
-    exon_ranges[S4Vectors::mcols(x = exon_ranges)$tag %in% "basic", ]
+    exon_ranges[S4Vectors::mcols(x = exon_ranges)$tag %in% "basic",]
 }
 
 summary_frame[i, "exon_number"] <- length(x = exon_ranges)
@@ -276,7 +277,7 @@ message("Processing sample name: ", summary_frame[i, "sample_name", drop = TRUE]
 callable_ranges <-
   rtracklayer::import(con = summary_frame[i, "callable_loci_path", drop = TRUE])
 non_callable_ranges <-
-  callable_ranges[callable_ranges$name != "CALLABLE", ]
+  callable_ranges[callable_ranges$name != "CALLABLE",]
 non_callable_ranges$name <-
   as.factor(x = non_callable_ranges$name)
 summary_frame[i, "non_callable_number_raw"] <-

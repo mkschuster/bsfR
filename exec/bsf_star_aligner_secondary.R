@@ -31,67 +31,68 @@
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
-argument_list <- parse_args(object = OptionParser(
-  option_list = list(
-    make_option(
-      opt_str = c("--verbose", "-v"),
-      action = "store_true",
-      default = TRUE,
-      help = "Print extra output [default]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--quiet", "-q"),
-      action = "store_false",
-      default = FALSE,
-      dest = "verbose",
-      help = "Print little output",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--bsgenome"),
-      default = "BSgenome.Hsapiens.UCSC.hg38",
-      dest = "bsgenome",
-      help = "Bioconductor BSgenome package [BSgenome.Hsapiens.UCSC.hg38]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--directory"),
-      default = ".",
-      dest = "directory",
-      help = "Directory of star_aligner_merged_*.bam files [.]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--tile-width"),
-      default = 1000000L,
-      dest = "tile_width",
-      help = "Tile width [1,000,000]",
-      type = "integer"
-    ),
-    make_option(
-      opt_str = c("--threads"),
-      default = 1L,
-      dest = "threads",
-      help = "Number of parallel processing threads [1]",
-      type = "integer"
-    ),
-    make_option(
-      opt_str = c("--plot-width"),
-      default = 7.0,
-      dest = "plot_width",
-      help = "Plot width in inches [7.0]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--plot-height"),
-      default = 7.0,
-      dest = "plot_height",
-      help = "Plot height in inches [7.0]",
-      type = "numeric"
+argument_list <-
+  optparse::parse_args(object = optparse::OptionParser(
+    option_list = list(
+      optparse::make_option(
+        opt_str = c("--verbose", "-v"),
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--quiet", "-q"),
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--bsgenome"),
+        default = "BSgenome.Hsapiens.UCSC.hg38",
+        dest = "bsgenome",
+        help = "Bioconductor BSgenome package [BSgenome.Hsapiens.UCSC.hg38]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--directory"),
+        default = ".",
+        dest = "directory",
+        help = "Directory of star_aligner_merged_*.bam files [.]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--tile-width"),
+        default = 1000000L,
+        dest = "tile_width",
+        help = "Tile width [1,000,000]",
+        type = "integer"
+      ),
+      optparse::make_option(
+        opt_str = c("--threads"),
+        default = 1L,
+        dest = "threads",
+        help = "Number of parallel processing threads [1]",
+        type = "integer"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-width"),
+        default = 7.0,
+        dest = "plot_width",
+        help = "Plot width in inches [7.0]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-height"),
+        default = 7.0,
+        dest = "plot_height",
+        help = "Plot height in inches [7.0]",
+        type = "numeric"
+      )
     )
-  )
-))
+  ))
 
 # Check the input.
 if (is.null(x = argument_list$directory)) {

@@ -32,70 +32,71 @@
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
-argument_list <- parse_args(object = OptionParser(
-  option_list = list(
-    make_option(
-      opt_str = c("--verbose", "-v"),
-      action = "store_true",
-      default = TRUE,
-      help = "Print extra output [default]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--quiet", "-q"),
-      action = "store_false",
-      default = FALSE,
-      dest = "verbose",
-      help = "Print little output",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--vcf"),
-      dest = "vcf_file_path",
-      help = "Multi-sample VCF file path",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--genome-assembly"),
-      dest = "genome_assembly",
-      help = "Genome assembly version (e.g. 'b37', 'hg38', 'hg19', ...)",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--set-name"),
-      dest = "set_name",
-      help = "Set name to automatically name output files",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--maf"),
-      default = 0.01,
-      dest = "maf",
-      help = "Minor allele frequency (MAF) threshold [0.01]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--recurrence"),
-      default = 1L,
-      dest = "recurrence",
-      help = "Variant recurrence threshold [1]",
-      type = "integer"
-    ),
-    make_option(
-      opt_str = c("--samples"),
-      dest = "samples",
-      help = "Comma-separated sample name filter [NULL]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--chunk-size"),
-      default = 10000L,
-      dest = "chunk_size",
-      help = "Chunk size, i.e. number of VCF lines to process at once [10000]",
-      type = "integer"
+argument_list <-
+  optparse::parse_args(object = optparse::OptionParser(
+    option_list = list(
+      optparse::make_option(
+        opt_str = c("--verbose", "-v"),
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--quiet", "-q"),
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--vcf"),
+        dest = "vcf_file_path",
+        help = "Multi-sample VCF file path",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--genome-assembly"),
+        dest = "genome_assembly",
+        help = "Genome assembly version (e.g. 'b37', 'hg38', 'hg19', ...)",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--set-name"),
+        dest = "set_name",
+        help = "Set name to automatically name output files",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--maf"),
+        default = 0.01,
+        dest = "maf",
+        help = "Minor allele frequency (MAF) threshold [0.01]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--recurrence"),
+        default = 1L,
+        dest = "recurrence",
+        help = "Variant recurrence threshold [1]",
+        type = "integer"
+      ),
+      optparse::make_option(
+        opt_str = c("--samples"),
+        dest = "samples",
+        help = "Comma-separated sample name filter [NULL]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--chunk-size"),
+        default = 10000L,
+        dest = "chunk_size",
+        help = "Chunk size, i.e. number of VCF lines to process at once [10000]",
+        type = "integer"
+      )
     )
-  )
-))
+  ))
 
 # Check for missing options.
 
@@ -530,7 +531,7 @@ while (nrow(
     integer(length = nrow(x = info_frame))
   for (i in seq_len(length.out = dim(genotype_list[["GT"]])[1L])) {
     info_frame[i, "Recurrence"] <-
-      sum(grepl(pattern = "[1-9]", x = genotype_list[["GT"]][i,]))
+      sum(grepl(pattern = "[1-9]", x = genotype_list[["GT"]][i, ]))
   }
   rm(i, genotype_list, column_data_frame)
 
@@ -542,7 +543,7 @@ while (nrow(
   rm(row_ranges_frame, info_frame, sample_frame)
   # Select only rows which Recurrence variable is equal to or more than the recurrence threshold option.
   combined_frame <-
-    combined_frame[combined_frame$Recurrence >= argument_list$recurrence, ]
+    combined_frame[combined_frame$Recurrence >= argument_list$recurrence,]
 
   sum_records_written <-
     sum_records_written + nrow(x = combined_frame)

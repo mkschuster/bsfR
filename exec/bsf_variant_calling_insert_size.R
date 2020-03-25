@@ -28,16 +28,16 @@
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
-  parse_args(object = OptionParser(
+  optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
-      make_option(
+      optparse::make_option(
         opt_str = c("--verbose", "-v"),
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--quiet", "-q"),
         action = "store_false",
         default = FALSE,
@@ -45,20 +45,20 @@ argument_list <-
         help = "Print little output",
         type = "logical"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--file-path"),
         dest = "file_path",
         help = "BAM file path",
         type = "character"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--chunk-size"),
         default = 1000000L,
         dest = "chunk_size",
         help = "Chunk size, i.e. number of BAM lines to process at once [1,000,000]",
         type = "integer"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--density-plot"),
         action = "store_true",
         default = FALSE,
@@ -66,14 +66,14 @@ argument_list <-
         help = "Draw a density rather than a column plot",
         type = "logical"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--plot-width"),
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
         type = "numeric"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--plot-height"),
         default = 7.0,
         dest = "plot_height",

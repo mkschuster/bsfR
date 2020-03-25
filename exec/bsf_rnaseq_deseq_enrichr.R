@@ -27,81 +27,82 @@
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
-argument_list <- parse_args(object = OptionParser(
-  option_list = list(
-    make_option(
-      opt_str = c("--verbose", "-v"),
-      action = "store_true",
-      default = TRUE,
-      help = "Print extra output [default]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--quiet", "-q"),
-      action = "store_false",
-      default = FALSE,
-      dest = "verbose",
-      help = "Print little output",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--design-name"),
-      # default = "global",
-      dest = "design_name",
-      help = "Design name",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--padj-threshold"),
-      default = 0.1,
-      dest = "padj_threshold",
-      help = "Threshold for the adjusted p-value [0.1]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--l2fc-threshold"),
-      default = 1.0,
-      dest = "l2fc_threshold",
-      help = "Threshold for the log2(fold-change) [1.0]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--maximum-terms"),
-      default = 20L,
-      dest = "maximum_terms",
-      help = "Maximum number of terms [20]",
-      type = "integer"
-    ),
-    make_option(
-      opt_str = c("--genome-directory"),
-      default = ".",
-      dest = "genome_directory",
-      help = "Genome directory path [.]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--output-directory"),
-      default = ".",
-      dest = "output_directory",
-      help = "Output directory path [.]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--plot-width"),
-      default = 7.0,
-      dest = "plot_width",
-      help = "Plot width in inches [7.0]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--plot-height"),
-      default = 7.0,
-      dest = "plot_height",
-      help = "Plot height in inches [7.0]",
-      type = "numeric"
+argument_list <-
+  optparse::parse_args(object = optparse::OptionParser(
+    option_list = list(
+      optparse::make_option(
+        opt_str = c("--verbose", "-v"),
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--quiet", "-q"),
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--design-name"),
+        # default = "global",
+        dest = "design_name",
+        help = "Design name",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--padj-threshold"),
+        default = 0.1,
+        dest = "padj_threshold",
+        help = "Threshold for the adjusted p-value [0.1]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--l2fc-threshold"),
+        default = 1.0,
+        dest = "l2fc_threshold",
+        help = "Threshold for the log2(fold-change) [1.0]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--maximum-terms"),
+        default = 20L,
+        dest = "maximum_terms",
+        help = "Maximum number of terms [20]",
+        type = "integer"
+      ),
+      optparse::make_option(
+        opt_str = c("--genome-directory"),
+        default = ".",
+        dest = "genome_directory",
+        help = "Genome directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--output-directory"),
+        default = ".",
+        dest = "output_directory",
+        help = "Output directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-width"),
+        default = 7.0,
+        dest = "plot_width",
+        help = "Plot width in inches [7.0]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-height"),
+        default = 7.0,
+        dest = "plot_height",
+        help = "Plot height in inches [7.0]",
+        type = "numeric"
+      )
     )
-  )
-))
+  ))
 
 # Check the input.
 
@@ -172,7 +173,7 @@ load_contrast_frame <- function(contrast_character) {
           nrow(x = deseq_results_tibble))
 
   deseq_results_tibble <-
-    dplyr::filter(.data = deseq_results_tibble, !is.na(x = .data$padj))
+    dplyr::filter(.data = deseq_results_tibble,!is.na(x = .data$padj))
 
   message("Number of genes after NA removal: ",
           nrow(x = deseq_results_tibble))
@@ -184,7 +185,8 @@ load_contrast_frame <- function(contrast_character) {
           nrow(x = deseq_results_tibble))
 
   deseq_results_tibble <-
-    dplyr::filter(.data = deseq_results_tibble, abs(x = .data$log2FoldChange) >= argument_list$l2fc_threshold)
+    dplyr::filter(.data = deseq_results_tibble,
+                  abs(x = .data$log2FoldChange) >= argument_list$l2fc_threshold)
 
   message("Number of gene after applying the l2fc threshold: ",
           nrow(x = deseq_results_tibble))
@@ -223,14 +225,12 @@ load_enrichr_results <-
     if (all(file.exists(file_paths)) &&
         all(file.info(file_paths)$size > 0L)) {
       for (direction_index in seq_along(along.with = directions)) {
-        message(
-          "Loading: ",
-          contrast_character,
-          " ",
-          enrichr_database,
-          " ",
-          directions[direction_index]
-        )
+        message("Loading: ",
+                contrast_character,
+                " ",
+                enrichr_database,
+                " ",
+                directions[direction_index])
         result_list[[directions[direction_index]]] <-
           readr::read_tsv(
             file = file_paths[direction_index],
@@ -429,7 +429,11 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
 
     ggplot_object <- ggplot_object +
       ggplot2::geom_bar(
-        mapping = ggplot2::aes(x = .data$Term, y = .data$Combined.Score, fill = .data$Direction),
+        mapping = ggplot2::aes(
+          x = .data$Term,
+          y = .data$Combined.Score,
+          fill = .data$Direction
+        ),
         stat = "identity",
         width = 0.5
         # position = "dodge"
@@ -525,7 +529,11 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
         )
       )
 
-    rm(file_path, file_path_character, ggplot_object, result_tibble, result_list)
+    rm(file_path,
+       file_path_character,
+       ggplot_object,
+       result_tibble,
+       result_list)
   }
   nozzle_section_enrichr <-
     Nozzle.R1::addTo(parent = nozzle_section_enrichr, nozzle_section_contrast)

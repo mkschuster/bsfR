@@ -28,16 +28,16 @@
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
-  parse_args(object = OptionParser(
+  optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
-      make_option(
+      optparse::make_option(
         opt_str = c("--verbose", "-v"),
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--quiet", "-q"),
         action = "store_false",
         default = FALSE,
@@ -45,23 +45,23 @@ argument_list <-
         help = "Print little output",
         type = "logical"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--directory"),
         help = "Trimmomatic directory",
         type = "character"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--file_path"),
         help = "Trimmomatic trimlog file path",
         type = "character"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--number"),
         help = "Maximum number of Trimmomatic trimlog lines, or -1 (default) for unlimited",
         default = -1L,
         type = "integer"
       ),
-      make_option(
+      optparse::make_option(
         opt_str = c("--summary_path"),
         help = "Trimmomatic summary data frame directory path",
         type = "character"

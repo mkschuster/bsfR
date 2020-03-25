@@ -376,87 +376,88 @@ process_align_summary <- function(summary_frame) {
 # Get command line options, if help option encountered print help and exit,
 # otherwise if options not found on command line then set defaults.
 
-argument_list <- parse_args(object = OptionParser(
-  option_list = list(
-    make_option(
-      opt_str = c("--verbose", "-v"),
-      action = "store_true",
-      default = TRUE,
-      help = "Print extra output [default]",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--quiet", "-q"),
-      action = "store_false",
-      default = FALSE,
-      dest = "verbose",
-      help = "Print little output",
-      type = "logical"
-    ),
-    make_option(
-      opt_str = c("--gtf-reference"),
-      default = NULL,
-      dest = "gtf_reference",
-      help = "GTF file specifying a reference transcriptome",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--genome-version"),
-      default = NULL,
-      dest = "genome_version",
-      help = "Genome version",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--biomart-instance"),
-      default = "ENSEMBL_MART_ENSEMBL",
-      dest = "biomart_instance",
-      help = "BioMart instance [ENSEMBL_MART_ENSEMBL]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--biomart-data-set"),
-      dest = "biomart_data_set",
-      help = "BioMart data set",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--biomart-host"),
-      dest = "biomart_host",
-      default = "www.ensembl.org",
-      help = "BioMart host [www.ensembl.org]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--biomart-port"),
-      default = 80L,
-      dest = "biomart_port",
-      help = "BioMart port [80]",
-      type = "integer"
-    ),
-    make_option(
-      opt_str = c("--biomart-path"),
-      default = "/biomart/martservice",
-      dest = "biomart_path",
-      help = "BioMart path [/biomart/martservice]",
-      type = "character"
-    ),
-    make_option(
-      opt_str = c("--plot-width"),
-      default = 7.0,
-      dest = "plot_width",
-      help = "Plot width in inches [7.0]",
-      type = "numeric"
-    ),
-    make_option(
-      opt_str = c("--plot-height"),
-      default = 7.0,
-      dest = "plot_height",
-      help = "Plot height in inches [7.0]",
-      type = "numeric"
+argument_list <-
+  optparse::parse_args(object = optparse::OptionParser(
+    option_list = list(
+      optparse::make_option(
+        opt_str = c("--verbose", "-v"),
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--quiet", "-q"),
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = c("--gtf-reference"),
+        default = NULL,
+        dest = "gtf_reference",
+        help = "GTF file specifying a reference transcriptome",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--genome-version"),
+        default = NULL,
+        dest = "genome_version",
+        help = "Genome version",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--biomart-instance"),
+        default = "ENSEMBL_MART_ENSEMBL",
+        dest = "biomart_instance",
+        help = "BioMart instance [ENSEMBL_MART_ENSEMBL]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--biomart-data-set"),
+        dest = "biomart_data_set",
+        help = "BioMart data set",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--biomart-host"),
+        dest = "biomart_host",
+        default = "www.ensembl.org",
+        help = "BioMart host [www.ensembl.org]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--biomart-port"),
+        default = 80L,
+        dest = "biomart_port",
+        help = "BioMart port [80]",
+        type = "integer"
+      ),
+      optparse::make_option(
+        opt_str = c("--biomart-path"),
+        default = "/biomart/martservice",
+        dest = "biomart_path",
+        help = "BioMart path [/biomart/martservice]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-width"),
+        default = 7.0,
+        dest = "plot_width",
+        help = "Plot width in inches [7.0]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-height"),
+        default = 7.0,
+        dest = "plot_height",
+        help = "Plot height in inches [7.0]",
+        type = "numeric"
+      )
     )
-  )
-))
+  ))
 
 # Validate the argument_list.
 
