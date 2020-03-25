@@ -3,7 +3,7 @@
 # BSF R script to annotate DESeq2 results with the Enrichr tool.
 #
 #
-# Copyright 2013 - 2019 Michael K. Schuster
+# Copyright 2013 - 2020 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -196,7 +196,7 @@ load_contrast_frame <- function(contrast_character) {
 #' Load an Enrichr result tibble for a specific contrast and database.
 #'
 #' @param contrast_character A \code{character} scalar with the contrast.
-#' @param enrichr_database A \code{character} scalar with teh Enrichr database.
+#' @param enrichr_database A \code{character} scalar with the Enrichr database.
 #'
 #' @return A \code{tibble} of Enrichr results.
 #' @noRd

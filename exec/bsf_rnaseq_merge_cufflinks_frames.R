@@ -12,7 +12,7 @@
 # thus perfectly comaprable data.
 #
 #
-# Copyright 2013 - 2019 Michael K. Schuster
+# Copyright 2013 - 2020 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -55,17 +55,17 @@ process_cufflinks_table <-
     if (is.null(x = replicate_name)) {
       stop("Missing replicate_name argument")
     }
-    
+
     if (is.null(x = object_type)) {
       stop("Missing object_type argument")
     }
-    
+
     message(paste("Processing", object_type, replicate_name, sep = ' '))
-    
+
     # Construct replicate-specific prefixes for Cufflinks directories.
     prefix_cufflinks <-
       paste("rnaseq", "cufflinks", replicate_name, sep = "_")
-    
+
     file_path <-
       file.path(
         prefix_cufflinks,
@@ -76,7 +76,7 @@ process_cufflinks_table <-
                  header = TRUE,
                  stringsAsFactors = FALSE)
     rm(file_path)
-    
+
     # Subset the data frame by removing unused columns.
     obsolete_columns = NULL
     if (object_type == "genes") {
@@ -98,12 +98,12 @@ process_cufflinks_table <-
     subset_frame <-
       cufflinks_frame[, !(colnames(cufflinks_frame) %in% obsolete_columns)]
     rm(cufflinks_frame, obsolete_columns)
-    
+
     # Select only Ensembl objects i.e. those that have a gene_biotype set.
     ensembl_frame <-
       subset_frame[!is.na(x = subset_frame$gene_biotype), ]
     rm(subset_frame)
-    
+
     # Rename columns to include the replicate name.
     if (object_type == "isoforms") {
       colnames(ensembl_frame)[grepl('^coverage$', colnames(ensembl_frame))] <-
@@ -117,7 +117,7 @@ process_cufflinks_table <-
       paste('FPKM_conf_hi', replicate_name, sep = '_')
     colnames(ensembl_frame)[grepl('^FPKM_status$', colnames(ensembl_frame))] <-
       paste('FPKM_status', replicate_name, sep = '_')
-    
+
     if (is.null(x = merge_frame)) {
       return(ensembl_frame)
     } else {

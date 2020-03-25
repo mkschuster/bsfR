@@ -3,7 +3,7 @@
 # BSF R script to quickly setup the BSF environment after an R upgrade.
 #
 #
-# Copyright 2013 - 2019 Michael K. Schuster
+# Copyright 2013 - 2020 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -106,6 +106,7 @@ cran_packages <- c(
   # For attac-seq pipleine
   # for GATK
   "VGAM",
+  "Seurat",
   # for Bioconductor monocle
   "simpleCache",
   # FIXME: LOLA seems to depend on it, yet only suggest it. Why is it not declared?
@@ -183,15 +184,16 @@ bioconductor_packages <- c(
   "cummeRbund", # Analysis, exploration, manipulation, and visualization of Cufflinks high-throughput sequencing data.
   # for RNA-seq analysis
   "DESeq2", # Differential gene expression analysis based on the negative binomial distribution
+  "apeglm", # Approximate posterior estimation for GLM coefficients
+  "vsn", # Variance stabilization and calibration for microarray data
   # for differential ChIP-seq analysis
   "ChIPQC", # Quality metrics for ChIPseq data
   "DiffBind", # Differential Binding Analysis of ChIP-Seq Peak Data
-  "BCRANK",  # Motif finding
-  "rGADEM",  # Motif finding
-  # "DNAcopy",  # Not available?
-  "goseq",
-  # For ChIP-seq heat maps
-  "heatmaps",
+  "BCRANK",  # Predicting binding site consensus from ranked DNA sequences
+  "rGADEM",  # de novo motif discovery
+  "DNAcopy",  # DNA copy number data analysis
+  "goseq", # Gene Ontology analyser for RNA-seq and other length biased data
+  "heatmaps", # Flexible Heatmaps for Functional Genomics and Sequence Features
   # For PWM to JASPAR conversion.
   "universalmotif",
   # For RnBeads
@@ -211,6 +213,9 @@ bioconductor_packages <- c(
   # FIXME: Same as above. Sigh.
   # For Illumina Sequence Analysis Viewer information
   "savR",
+  # For single cell analysis.
+  "SingleR", # Reference-Based Single-Cell RNA-Seq Annotation
+  "scater", # Single-Cell Analysis Toolkit for Gene Expression Data in R
   # For Meth-seq analysis (FDb.InfiniumMethylation.hg19)
 
   "topGO",  # Enrichment analysis for Gene Ontology

@@ -4,7 +4,7 @@
 # and plot at the read group or sample level.
 #
 #
-# Copyright 2013 - 2019 Michael K. Schuster
+# Copyright 2013 - 2020 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
