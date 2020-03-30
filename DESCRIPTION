@@ -22,10 +22,13 @@ Imports:
     readr,
     forcats,
     S4Vectors,
+    GenomeInfoDb,
     GenomicRanges,
     rtracklayer
 RoxygenNote: 7.0.2
 Depends: R (>= 3.6)
 Collate:
+    'bsf_genomes.R'
     'bsf_rnaseq_cufflinks.R'
     'bsf_rnaseq_deseq.R'
+    'bsf_variant_calling.R'
