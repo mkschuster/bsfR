@@ -229,12 +229,15 @@ initialise_annotation_frame <- function() {
       file.info(file_path)$size > 0L) {
     message("Loading an annotation frame")
     data_frame <-
-      read.table(
-        file = file_path,
-        header = TRUE,
-        sep = "\t",
-        comment.char = "",
-        stringsAsFactors = FALSE
+      as(
+        object = read.table(
+          file = file_path,
+          header = TRUE,
+          sep = "\t",
+          comment.char = "",
+          stringsAsFactors = FALSE
+        ),
+        Class = "DataFrame"
       )
   } else {
     # Extracting a list of gene names from the GrangesList object
