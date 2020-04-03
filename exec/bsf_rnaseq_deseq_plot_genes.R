@@ -169,7 +169,8 @@ if (!file.exists(output_directory)) {
 deseq_data_set <-
   bsfR::bsfrd_read_deseq_data_set(
     genome_directory = argument_list$genome_directory,
-    design_name = argument_list$design_name
+    design_name = argument_list$design_name,
+    verbose = argument_list$verbose
   )
 
 # Read a tibble of genes to plot.
@@ -177,7 +178,8 @@ genes_tibble <-
   bsfR::bsfrd_read_gene_set_tibble(
     genome_directory = argument_list$genome_directory,
     design_name = argument_list$design_name,
-    gene_set_path = argument_list$genes_path
+    gene_set_path = argument_list$genes_path,
+    verbose = argument_list$verbose
   )
 
 # Read a data frame of genes to plot.

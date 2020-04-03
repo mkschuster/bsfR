@@ -148,7 +148,8 @@ if (!is.null(x = argument_list$gene_path)) {
     bsfR::bsfrd_read_gene_set_tibble(
       genome_directory = argument_list$genome_directory,
       design_name = argument_list$design_name,
-      gene_set_path = argument_list$gene_path
+      gene_set_path = argument_list$gene_path,
+      verbose = argument_list$verbose
     )
 
   readr::write_tsv(
@@ -175,7 +176,8 @@ if (!is.null(x = argument_list$gene_path)) {
 deseq_data_set <-
   bsfR::bsfrd_read_deseq_data_set(
     genome_directory = argument_list$genome_directory,
-    design_name = argument_list$design_name
+    design_name = argument_list$design_name,
+    verbose = argument_list$verbose
   )
 
 # DESeqTransform ----------------------------------------------------------
@@ -187,7 +189,8 @@ deseq_transform <-
   bsfR::bsfrd_read_deseq_transform(
     genome_directory = argument_list$genome_directory,
     design_name = argument_list$design_name,
-    model = TRUE
+    model = TRUE,
+    verbose = argument_list$verbose
   )
 
 suffix <- "model"
@@ -201,7 +204,8 @@ contrast_tibble <-
   bsfR::bsfrd_read_contrast_tibble(
     genome_directory = argument_list$genome_directory,
     design_name = argument_list$design_name,
-    summary = TRUE
+    summary = TRUE,
+    verbose = argument_list$verbose
   )
 
 # Select column data variables to annotate in the heat map.
@@ -211,17 +215,18 @@ if (is.null(argument_list$variables)) {
   # to ~1 and the Wald testing is based on a model matrix. To get the design
   # variables, load the initial design tibble and call the all.vars()
   # function on the formula object.
-  design_tibble <-
-    bsfR::bsfrd_read_design_tibble(
+  design_list <-
+    bsfR::bsfrd_read_design_list(
       genome_directory = argument_list$genome_directory,
-      design_name = argument_list$design_name
+      design_name = argument_list$design_name,
+      verbose = argument_list$verbose
     )
-  if (nrow(x = design_tibble) == 0L) {
+  if (length(x = design_list) == 0L) {
     stop("No design remaining after selection for design name.")
   }
   variable_names <-
-    all.vars(expr = as.formula(object = design_tibble[1L, "full_formula", drop = TRUE]))
-  rm(design_tibble)
+    all.vars(expr = as.formula(object = design_list$full_formula))
+  rm(design_list)
 } else {
   variable_names <-
     stringr::str_split(string = argument_list$variables,
@@ -380,7 +385,8 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       genome_directory = argument_list$genome_directory,
       design_name = argument_list$design_name,
       contrast_tibble = contrast_tibble,
-      index = contrast_index
+      index = contrast_index,
+      verbose = argument_list$verbose
     )
   if (is.null(x = deseq_results_tibble)) {
     rm(deseq_results_tibble, contrast_character)

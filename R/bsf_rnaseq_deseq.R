@@ -320,6 +320,35 @@ bsfrd_read_design_tibble <-
     return(dplyr::filter(.data = design_tibble, .data$design == !!design_name))
   }
 
+#' Read a DESeq2 analysis design tibble, automatically sub-set to a
+#' particular design and return as a list.
+#'
+#' @param genome_directory A \code{character} scalar with the genome directory
+#'   path.
+#' @param design_name A \code{character} scalar with the design name.
+#' @param verbose A \code{logical} scalar to emit messages.
+#'
+#' @return A \code{list} with design information.
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' design_list <- bsfrd_read_design_list(
+#'   genome_directory = genome_directory,
+#'   design_name = design_name, summary = FALSE,
+#'   verbose = FALSE)
+#' }
+bsfrd_get_design_list <-
+  function(genome_directory, design_name, verbose = FALSE) {
+    return(as.list(
+      x = bsfR::bsfrd_read_design_tibble(
+        genome_directory = genome_directory,
+        design_name = design_name,
+        verbose = verbose
+      )
+    ))
+  }
+
 #' Read a pre-calculated RangedSummarizedExperiment object.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
@@ -686,3 +715,146 @@ bsfrd_read_gene_set_tibble <-
 
     return(gene_set_tibble)
   }
+
+#' Initialise a Sample Annotation DataFrame.
+#'
+#' @param genome_directory A \code{character} scalar with the genome directory
+#'   path.
+#' @param design_name A \code{character} scalar with the design name.
+#' @param factor_levels A \code{character} vector with a packed string to assign
+#'   factor levels.
+#' @param verbose A \code{logical} scalar to emit messages.
+#' @return A \code{DataFrame} with sample annotation.
+#' @export
+#' @importFrom methods as
+#' @importFrom utils read.table
+#'
+#' @examples
+#' \dontrun{
+#' sample_frame <- initialise_sample_frame(
+#'   genome_directory = genome_directory,
+#'   design_name = design_name,
+#'   factor_levels="factor_1:level_1,level_2;factor_2:level_A,level_B"
+#' )
+#' }
+bsfrd_initialise_sample_frame <- function(genome_directory,
+                                          design_name,
+                                          factor_levels,
+                                          verbose = FALSE) {
+  prefix_deseq <-
+    bsfrd_get_prefix_deseq(design_name = design_name)
+  # Read the BSF Python sample TSV file as a data.frame and convert into a DataFrame.
+  # Import strings as factors and cast to character vectors where required.
+  if (verbose) {
+    message("Loading sample DataFrame")
+  }
+  data_frame <-
+    as(
+      object = read.table(
+        file = file.path(
+          genome_directory,
+          prefix_deseq,
+          paste(paste(prefix_deseq, "samples", sep = "_"), "tsv", sep = ".")
+        ),
+        header = TRUE,
+        sep = "\t",
+        comment.char = "",
+        stringsAsFactors = TRUE
+      ),
+      "DataFrame"
+    )
+  rownames(x = data_frame) <- data_frame$sample
+
+  # Select only those samples, which have the design name annotated in the designs variable.
+  index_logical <-
+    unlist(x = lapply(
+      X = stringr::str_split(
+        string = as.character(data_frame$designs),
+        pattern = stringr::fixed(pattern = ",")
+      ),
+      FUN = function(character_1) {
+        # character_1 is a character vector resulting from the split on ",".
+        return(any(design_name %in% character_1))
+      }
+    ))
+  data_frame <- data_frame[index_logical, , drop = FALSE]
+  rm(index_logical)
+
+  if (nrow(x = data_frame) == 0L) {
+    stop("No sample remaining after selection for design name.")
+  }
+
+  # The sequencing_type and library_type variables are required to set options
+  # for the GenomicAlignments::summarizeOverlaps() read counting function.
+
+  if (!"sequencing_type" %in% names(x = data_frame)) {
+    stop("A sequencing_type variable is missing from the sample annotation frame.")
+  }
+
+  if (!"library_type" %in% names(x = data_frame)) {
+    stop("A library_type variable is missing from the sample annotation frame.")
+  }
+
+  # Re-level the library_type and sequencing_type variables.
+  data_frame$library_type <-
+    factor(x = data_frame$library_type,
+           levels = c("unstranded", "first", "second"))
+  data_frame$sequencing_type <-
+    factor(x = data_frame$sequencing_type,
+           levels = c("SE", "PE"))
+
+  # The "factor_levels" variable of the design data frame specifies the order of factor levels.
+  # Turn the factor_levels variable into a list of character vectors, where the factor names are set
+  # as attributes of the list components.
+  # factor_levels="factor_1:level_1,level_2;factor_2:level_A,level_B"
+  factor_list <- lapply(
+    # The "factor_levels" variable is a character vector, always with just a single component.
+    # Split by ";" then by ":" character.
+    X = stringr::str_split(
+      string = stringr::str_split(
+        string = factor_levels[1L],
+        pattern = stringr::fixed(pattern = ";")
+      )[[1L]],
+      pattern = stringr::fixed(pattern = ":")
+    ),
+    FUN = function(character_1) {
+      # Split the second component of character_1, the factor levels, on ",".
+      character_2 <-
+        unlist(x = stringr::str_split(
+          string = character_1[2L],
+          pattern = stringr::fixed(pattern = ",")
+        ))
+      # Set the first component of character_1, the factor name, as attribute.
+      attr(x = character_2, which = "factor") <-
+        character_1[1L]
+      return(character_2)
+    }
+  )
+
+  # Apply the factor levels to each factor.
+  design_variables <- names(x = data_frame)
+  for (i in seq_along(along.with = factor_list)) {
+    factor_name <- attr(x = factor_list[[i]], which = "factor")
+    if (factor_name != "") {
+      if (factor_name %in% design_variables) {
+        data_frame[, factor_name] <-
+          factor(x = as.character(x = data_frame[, factor_name]),
+                 levels = factor_list[[i]])
+        # Check for NA values in case a factor level was missing.
+        if (any(is.na(x = data_frame[, factor_name]))) {
+          stop("Missing values after assigning factor levels for factor name ",
+               factor_name)
+        }
+      } else {
+        stop("Factor name ",
+             factor_name,
+             " does not resemble a variable of the design frame.")
+      }
+    }
+    rm(factor_name)
+  }
+  rm(i, design_variables, factor_list)
+
+  # Drop any unused levels from the sample data frame before retrning it.
+  return(droplevels(x = data_frame))
+}

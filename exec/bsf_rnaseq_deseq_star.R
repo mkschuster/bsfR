@@ -118,7 +118,8 @@ if (!file.exists(output_directory)) {
 ranged_summarized_experiment <-
   bsfR::bsfrd_read_summarized_experiment(
     genome_directory = argument_list$genome_directory,
-    design_name = argument_list$design_name
+    design_name = argument_list$design_name,
+    verbose = argument_list$verbose
   )
 
 # Extract just the sample name and the total_counts as the number of "counted" reads.

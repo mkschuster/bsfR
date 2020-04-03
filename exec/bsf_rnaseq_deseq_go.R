@@ -138,7 +138,8 @@ contrast_tibble <-
   bsfR::bsfrd_read_contrast_tibble(
     genome_directory = argument_list$genome_directory,
     design_name = argument_list$design_name,
-    summary = TRUE
+    summary = TRUE,
+    verbose = argument_list$verbose
   )
 
 for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
@@ -151,7 +152,8 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       genome_directory = argument_list$genome_directory,
       design_name = argument_list$design_name,
       contrast_tibble = contrast_tibble,
-      index = contrast_index
+      index = contrast_index,
+      verbose = argument_list$verbose
     )
   if (is.null(x = deseq_results_tibble)) {
     rm(deseq_results_tibble, contrast_character)

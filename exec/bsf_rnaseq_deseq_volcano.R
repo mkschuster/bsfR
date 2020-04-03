@@ -174,7 +174,8 @@ if (!is.null(x = argument_list$gene_path)) {
     bsfR::bsfrd_read_gene_set_tibble(
       genome_directory = argument_list$genome_directory,
       design_name = argument_list$design_name,
-      gene_set_path = argument_list$gene_path
+      gene_set_path = argument_list$gene_path,
+      verbose = argument_list$verbose
     )
   plot_labels <- plot_annotation_tibble$gene_name
   rm(plot_annotation_tibble)
@@ -186,7 +187,8 @@ if (!is.null(x = argument_list$gene_path)) {
 contrast_tibble <-
   bsfR::bsfrd_read_contrast_tibble(
     genome_directory = argument_list$genome_directory,
-    design_name = argument_list$design_name
+    design_name = argument_list$design_name,
+    verbose = argument_list$verbose
   )
 if (nrow(x = contrast_tibble) == 0L) {
   stop("No contrast remaining after selection for design name.")
@@ -201,7 +203,8 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       genome_directory = argument_list$genome_directory,
       design_name = argument_list$design_name,
       contrast_tibble = contrast_tibble,
-      index = contrast_index
+      index = contrast_index,
+      verbose = argument_list$verbose
     )
 
   # deseq_results_tibble <-

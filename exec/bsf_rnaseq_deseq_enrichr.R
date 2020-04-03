@@ -162,7 +162,8 @@ load_contrast_frame <- function(contrast_character) {
     bsfR::bsfrd_read_result_tibble(
       genome_directory = argument_list$genome_directory,
       design_name = argument_list$design_name,
-      contrast_character = contrast_character
+      contrast_character = contrast_character,
+      verbose = argument_list$verbose
     )
 
   if (is.null(x = deseq_results_tibble)) {
@@ -173,7 +174,7 @@ load_contrast_frame <- function(contrast_character) {
           nrow(x = deseq_results_tibble))
 
   deseq_results_tibble <-
-    dplyr::filter(.data = deseq_results_tibble,!is.na(x = .data$padj))
+    dplyr::filter(.data = deseq_results_tibble, !is.na(x = .data$padj))
 
   message("Number of genes after NA removal: ",
           nrow(x = deseq_results_tibble))
@@ -330,7 +331,8 @@ contrast_tibble <-
   bsfR::bsfrd_read_contrast_tibble(
     genome_directory = argument_list$genome_directory,
     design_name = argument_list$design_name,
-    summary = TRUE
+    summary = TRUE,
+    verbose = argument_list$verbose
   )
 
 # Create a "Contrasts" report section

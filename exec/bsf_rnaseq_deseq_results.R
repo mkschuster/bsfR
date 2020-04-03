@@ -146,7 +146,8 @@ if (!file.exists(output_directory)) {
 # Load a pre-calculated annotation frame.
 annotation_tibble <- bsfR::bsfrd_read_annotation_tibble(
   genome_directory = argument_list$genome_directory,
-  design_name = argument_list$design_name
+  design_name = argument_list$design_name,
+  verbose = argument_list$verbose
 )
 
 # DESeqDataSet ------------------------------------------------------------
@@ -156,7 +157,8 @@ annotation_tibble <- bsfR::bsfrd_read_annotation_tibble(
 deseq_data_set <-
   bsfR::bsfrd_read_deseq_data_set(
     genome_directory = argument_list$genome_directory,
-    design_name = argument_list$design_name
+    design_name = argument_list$design_name,
+    verbose = argument_list$verbose
   )
 
 
@@ -169,7 +171,8 @@ contrast_tibble <-
   bsfR::bsfrd_read_contrast_tibble(
     genome_directory = argument_list$genome_directory,
     design_name = argument_list$design_name,
-    summary = FALSE
+    summary = FALSE,
+    verbose = argument_list$verbose
   )
 if (nrow(x = contrast_tibble) == 0L) {
   stop("No contrast remaining after selection for design name.")

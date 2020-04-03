@@ -87,6 +87,7 @@ argument_list <-
     )
   ))
 
+suppressPackageStartupMessages(expr = library(package = "bsfR"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 # For the moment, no other prefix-based directory gets created under the output
@@ -126,21 +127,22 @@ for (design_name in design_names) {
       bsfR::bsfrd_read_contrast_tibble(
         genome_directory = argument_list$genome_directory,
         design_name = design_name,
-        summary = TRUE
+        summary = TRUE,
+        verbose = argument_list$verbose
       )
     )
 }
 rm(design_name, design_names)
 
 # Drop the "Exclude" variable.
-summary_tibble <- dplyr::select(.data = summary_tibble,-Exclude)
+summary_tibble <- dplyr::select(.data = summary_tibble, -Exclude)
 
 # Replace NA and "" values in the Numerator and Denominator with character "1".
 summary_tibble <-
   dplyr::mutate_at(
     .tbl = summary_tibble,
     .vars = c("Numerator", "Denominator"),
-    .funs = list(~ replace(., is.na(x = .) | . == "", "1"))
+    .funs = list( ~ replace(., is.na(x = .) | . == "", "1"))
   )
 
 # Summarise by Numerator and Denominator ----------------------------------
@@ -151,7 +153,7 @@ key_tibble <-
   dplyr::select(.data = summary_tibble, Design, Numerator, Denominator)
 duplicated_tibble <-
   summary_tibble[duplicated(x = key_tibble) |
-                   duplicated(x = key_tibble, fromLast = TRUE), ]
+                   duplicated(x = key_tibble, fromLast = TRUE),]
 if (nrow(x = duplicated_tibble)) {
   print(x = "Duplicated Design, Numerator and Denominator rows:")
   print(x = duplicated_tibble)
@@ -162,7 +164,7 @@ rm(duplicated_tibble, key_tibble)
 # then spread "Significant" values on the "Design" key.
 readr::write_tsv(
   x = tidyr::spread(
-    data = dplyr::select(.data = summary_tibble,-Label),
+    data = dplyr::select(.data = summary_tibble, -Label),
     key = Design,
     value = Significant
   ),
@@ -177,7 +179,7 @@ readr::write_tsv(
 key_tibble <- dplyr::select(.data = summary_tibble, Design, Label)
 duplicated_tibble <-
   summary_tibble[duplicated(x = key_tibble) |
-                   duplicated(x = key_tibble, fromLast = TRUE), ]
+                   duplicated(x = key_tibble, fromLast = TRUE),]
 if (nrow(x = duplicated_tibble)) {
   print(x = "Duplicated Design and Label rows:")
   print(x = duplicated_tibble)
@@ -188,7 +190,7 @@ rm(duplicated_tibble, key_tibble)
 # then spread "Significant" values on the "Design" key.
 readr::write_tsv(
   x = tidyr::spread(
-    data = dplyr::select(.data = summary_tibble,-Numerator,-Denominator),
+    data = dplyr::select(.data = summary_tibble, -Numerator, -Denominator),
     key = Design,
     value = Significant
   ),
