@@ -249,8 +249,8 @@ write.table(
 
 message("Creating a scatter plot of read number versus alignment rate per read group")
 
-plotting_frame <-
-  tidyr::pivot_longer(
+ggplot_object <- ggplot2::ggplot(
+  data = tidyr::pivot_longer(
     data = tibble::tibble(
       "read_group" = summary_frame$read_group_name,
       "input" = summary_frame$input_reads,
@@ -263,8 +263,7 @@ plotting_frame <-
     names_to = "status",
     values_to = "mapped"
   )
-
-ggplot_object <- ggplot2::ggplot(data = plotting_frame)
+)
 ggplot_object <-
   ggplot_object + ggplot2::geom_point(
     mapping = ggplot2::aes(
@@ -272,7 +271,8 @@ ggplot_object <-
       y = .data$mapped / .data$input,
       colour = .data$read_group,
       shape = .data$status
-    )
+    ),
+    alpha = I(1 / 3)
   )
 ggplot_object <-
   ggplot_object + ggplot2::labs(
@@ -296,7 +296,7 @@ ggplot_object <-
 # the original width for each 24 read groups.
 # Because read group names are quite long, extend already for the first column.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 0L) * argument_list$plot_width * 1.0
+  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.75
 for (graphics_format in graphics_formats) {
   ggplot2::ggsave(
     filename = paste(
@@ -313,15 +313,15 @@ for (graphics_format in graphics_formats) {
     limitsize = FALSE
   )
 }
-rm(graphics_format, plot_width, ggplot_object, plotting_frame)
+rm(graphics_format, plot_width, ggplot_object)
 
 # Column plot of read numbers per read group ------------------------------
 
 
 message("Creating a column plot of read numbers per read group")
 
-plotting_frame <-
-  tidyr::pivot_longer(
+ggplot_object <- ggplot2::ggplot(
+  data = tidyr::pivot_longer(
     data = tibble::tibble(
       "read_group" = summary_frame$read_group_name,
       "unique" = summary_frame$uniquely_mapped_reads,
@@ -333,8 +333,7 @@ plotting_frame <-
     names_to = "status",
     values_to = "number"
   )
-
-ggplot_object <- ggplot2::ggplot(data = plotting_frame)
+)
 ggplot_object <-
   ggplot_object + ggplot2::geom_col(
     mapping = ggplot2::aes(
@@ -387,14 +386,15 @@ for (graphics_format in graphics_formats) {
     limitsize = FALSE
   )
 }
-rm(graphics_format, plot_width, ggplot_object, plotting_frame)
+rm(graphics_format, plot_width, ggplot_object)
 
 # Column plot of read fractions per read group ----------------------------
 
 
 message("Creating a column plot of read fractions per read group")
-plotting_frame <-
-  tidyr::pivot_longer(
+
+ggplot_object <- ggplot2::ggplot(
+  data = tidyr::pivot_longer(
     data = tibble::tibble(
       "read_group" = summary_frame$read_group_name,
       "unique" = summary_frame$uniquely_mapped_reads / summary_frame$input_reads,
@@ -408,8 +408,7 @@ plotting_frame <-
     names_to = "status",
     values_to = "fraction"
   )
-
-ggplot_object <- ggplot2::ggplot(data = plotting_frame)
+)
 ggplot_object <-
   ggplot_object + ggplot2::geom_col(
     mapping = ggplot2::aes(
@@ -464,15 +463,15 @@ for (graphics_format in graphics_formats) {
     limitsize = FALSE
   )
 }
-rm(graphics_format, plot_width, ggplot_object, plotting_frame)
+rm(graphics_format, plot_width, ggplot_object)
 
 # Column plot of splice junction numbers per read group -------------------
 
 
 message("Creating a column plot of splice junction numbers per read group")
 
-plotting_frame <-
-  tidyr::pivot_longer(
+ggplot_object <- ggplot2::ggplot(
+  data = tidyr::pivot_longer(
     data = tibble::tibble(
       "read_group" = summary_frame$read_group_name,
       "gtag" = summary_frame$number_splice_gtag,
@@ -485,8 +484,7 @@ plotting_frame <-
     names_to = "splice_junction",
     values_to = "number"
   )
-
-ggplot_object <- ggplot2::ggplot(data = plotting_frame)
+)
 ggplot_object <-
   ggplot_object + ggplot2::geom_col(
     mapping = ggplot2::aes(
@@ -541,15 +539,15 @@ for (graphics_format in graphics_formats) {
     limitsize = FALSE
   )
 }
-rm(graphics_format, plot_width, ggplot_object, plotting_frame)
+rm(graphics_format, plot_width, ggplot_object)
 
 # Column plot of splice junction fractions per read group -----------------
 
 
 message("Creating a column plot of splice junction fractions per read group")
 
-plotting_frame <-
-  tidyr::pivot_longer(
+ggplot_object <- ggplot2::ggplot(
+  data = tidyr::pivot_longer(
     data = tibble::tibble(
       "read_group" = summary_frame$read_group_name,
       "gtag" = summary_frame$number_splice_gtag / summary_frame$number_splice_total,
@@ -561,8 +559,7 @@ plotting_frame <-
     names_to = "junction",
     values_to = "fraction"
   )
-
-ggplot_object <- ggplot2::ggplot(data = plotting_frame)
+)
 ggplot_object <-
   ggplot_object + ggplot2::geom_col(
     mapping = ggplot2::aes(
@@ -617,7 +614,7 @@ for (graphics_format in graphics_formats) {
     limitsize = FALSE
   )
 }
-rm(graphics_format, plot_width, ggplot_object, plotting_frame)
+rm(graphics_format, plot_width, ggplot_object)
 
 # Integrate read group data on sample level -------------------------------
 
@@ -695,8 +692,9 @@ if (file.exists(file_path)) {
 
 
   message("Creating a scatter plot of read number versus alignment rate per sample")
-  plotting_frame <-
-    tidyr::pivot_longer(
+
+  ggplot_object <- ggplot2::ggplot(
+    data = tidyr::pivot_longer(
       data = tibble::tibble(
         "sample" = aggregate_frame$sample,
         "input" = aggregate_frame$reads_input,
@@ -709,8 +707,7 @@ if (file.exists(file_path)) {
       names_to = "status",
       values_to = "mapped"
     )
-
-  ggplot_object <- ggplot2::ggplot(data = plotting_frame)
+  )
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -718,7 +715,8 @@ if (file.exists(file_path)) {
         y = .data$mapped / .data$input,
         colour = .data$sample,
         shape = .data$status
-      )
+      ),
+      alpha = I(1 / 3)
     )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
@@ -743,7 +741,7 @@ if (file.exists(file_path)) {
   # Scale the plot width with the number of read groups, by adding a quarter of
   # the original width for each 24 read groups.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = aggregate_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+    argument_list$plot_width + (ceiling(x = nrow(x = aggregate_frame) / 24L) - 1L) * argument_list$plot_width * 0.33
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -760,14 +758,15 @@ if (file.exists(file_path)) {
       limitsize = FALSE
     )
   }
-  rm(graphics_format, plot_width, ggplot_object, plotting_frame)
+  rm(graphics_format, plot_width, ggplot_object)
 
   # Column plot of read numbers per sample --------------------------------
 
 
   message("Creating a column plot of read numbers per sample")
-  plotting_frame <-
-    tidyr::pivot_longer(
+
+  ggplot_object <- ggplot2::ggplot(
+    data = tidyr::pivot_longer(
       data = tibble::tibble(
         "sample" = aggregate_frame$sample,
         "unmapped" = aggregate_frame$reads_unmapped,
@@ -779,8 +778,7 @@ if (file.exists(file_path)) {
       names_to = "status",
       values_to = "number"
     )
-
-  ggplot_object <- ggplot2::ggplot(data = plotting_frame)
+  )
   ggplot_object <-
     ggplot_object + ggplot2::geom_col(
       mapping = ggplot2::aes(
@@ -837,15 +835,15 @@ if (file.exists(file_path)) {
       limitsize = FALSE
     )
   }
-  rm(graphics_format, plot_width, ggplot_object, plotting_frame)
+  rm(graphics_format, plot_width, ggplot_object)
 
   # Column plot of read fractions per sample ------------------------------
 
 
   message("Creating a column plot of read fractions per sample")
 
-  plotting_frame <-
-    tidyr::pivot_longer(
+  ggplot_object <- ggplot2::ggplot(
+    data = tidyr::pivot_longer(
       data = tibble::tibble(
         "sample" = aggregate_frame$sample,
         "unmapped" = aggregate_frame$reads_unmapped / aggregate_frame$reads_input,
@@ -856,8 +854,7 @@ if (file.exists(file_path)) {
       names_to = "status",
       values_to = "fraction"
     )
-
-  ggplot_object <- ggplot2::ggplot(data = plotting_frame)
+  )
   ggplot_object <-
     ggplot_object + ggplot2::geom_col(
       mapping = ggplot2::aes(
@@ -914,15 +911,15 @@ if (file.exists(file_path)) {
       limitsize = FALSE
     )
   }
-  rm(graphics_format, plot_width, ggplot_object, plotting_frame)
+  rm(graphics_format, plot_width, ggplot_object)
 
   # Column plot of splice junction numbers per sample ---------------------
 
 
   message("Creating a column plot of splice junction numbers per sample")
 
-  plotting_frame <-
-    tidyr::pivot_longer(
+  ggplot_object <- ggplot2::ggplot(
+    data = tidyr::pivot_longer(
       data = tibble::tibble(
         "sample" = aggregate_frame$sample,
         "gtag" = aggregate_frame$junctions_gtag,
@@ -934,8 +931,7 @@ if (file.exists(file_path)) {
       names_to = "junction",
       values_to = "number"
     )
-
-  ggplot_object <- ggplot2::ggplot(data = plotting_frame)
+  )
   ggplot_object <-
     ggplot_object + ggplot2::geom_col(
       mapping = ggplot2::aes(
@@ -992,15 +988,15 @@ if (file.exists(file_path)) {
       limitsize = FALSE
     )
   }
-  rm(graphics_format, plot_width, ggplot_object, plotting_frame)
+  rm(graphics_format, plot_width, ggplot_object)
 
   # Column plot of splice junction fractions per sample -------------------
 
 
   message("Creating a column plot of splice junction fractions per sample")
 
-  plotting_frame <-
-    tidyr::pivot_longer(
+  ggplot_object <- ggplot2::ggplot(
+    data = tidyr::pivot_longer(
       data = tibble::tibble(
         "sample" = aggregate_frame$sample,
         "gtag" = aggregate_frame$junctions_gtag / aggregate_frame$junctions_total,
@@ -1012,8 +1008,7 @@ if (file.exists(file_path)) {
       names_to = "junction",
       values_to = "fraction"
     )
-
-  ggplot_object <- ggplot2::ggplot(data = plotting_frame)
+  )
   ggplot_object <-
     ggplot_object + ggplot2::geom_col(
       mapping = ggplot2::aes(
@@ -1072,7 +1067,7 @@ if (file.exists(file_path)) {
       limitsize = FALSE
     )
   }
-  rm(graphics_format, plot_width, ggplot_object, plotting_frame)
+  rm(graphics_format, plot_width, ggplot_object)
 
   rm(aggregate_frame, merged_frame)
 }

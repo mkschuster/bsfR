@@ -241,7 +241,8 @@ if (!is.null(x = combined_metrics_sample)) {
         y = .data$PF_READS_ALIGNED / .data$PF_READS,
         colour = .data$SAMPLE,
         shape = .data$CATEGORY
-      )
+      ),
+      alpha = I(1 / 3)
     )
   ggplot_object <- ggplot_object + ggplot2::labs(
     x = "Reads Number",
@@ -250,9 +251,21 @@ if (!is.null(x = combined_metrics_sample)) {
     shape = "Category",
     title = "Alignment Summary per Sample"
   )
+  # Reduce the label font size and the legend key size and allow a maximum of 24
+  # guide legend rows.
+  ggplot_object <-
+    ggplot_object + ggplot2::guides(
+      colour = ggplot2::guide_legend(
+        keywidth = ggplot2::rel(x = 0.8),
+        keyheight = ggplot2::rel(x = 0.8),
+        nrow = 24L
+      )
+    )
+  ggplot_object <-
+    ggplot_object + ggplot2::theme(legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7)))
   # Adjust the plot width according to batches of 24 samples or read groups.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample$SAMPLE) / 24L) - 1L) * argument_list$plot_width * 0.25
+    argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample$SAMPLE) / 24L) - 1L) * argument_list$plot_width * 0.33
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -285,7 +298,8 @@ if (!is.null(x = combined_metrics_sample)) {
         y = .data$PF_READS_ALIGNED / .data$PF_READS,
         colour = .data$READ_GROUP,
         shape = .data$CATEGORY
-      )
+      ),
+      alpha = I(1 / 3)
     )
   ggplot_object <- ggplot_object + ggplot2::labs(
     x = "Reads Number",
@@ -294,9 +308,21 @@ if (!is.null(x = combined_metrics_sample)) {
     shape = "Category",
     title = "Alignment Summary per Read Group"
   )
+  # Reduce the label font size and the legend key size and allow a maximum of 24
+  # guide legend rows.
+  ggplot_object <-
+    ggplot_object + ggplot2::guides(
+      colour = ggplot2::guide_legend(
+        keywidth = ggplot2::rel(x = 0.8),
+        keyheight = ggplot2::rel(x = 0.8),
+        nrow = 24L
+      )
+    )
+  ggplot_object <-
+    ggplot_object + ggplot2::theme(legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7)))
   # Adjust the plot width according to batches of 24 samples or read groups.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_read_group$READ_GROUP) / 24L) - 0L) * argument_list$plot_width * 1.0
+    argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_read_group$READ_GROUP) / 24L) - 1L) * argument_list$plot_width * 0.75
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -331,11 +357,14 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED"), drop = FALSE])
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
-      x = .data$SAMPLE,
-      y = .data$PF_READS_ALIGNED,
-      colour = .data$CATEGORY
-    ))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$SAMPLE,
+        y = .data$PF_READS_ALIGNED,
+        colour = .data$CATEGORY
+      ),
+      alpha = I(1 / 3)
+    )
   ggplot_object <- ggplot_object + ggplot2::labs(
     x = "Sample",
     y = "Reads Number",
@@ -379,7 +408,8 @@ if (!is.null(x = combined_metrics_sample)) {
         x = .data$READ_GROUP,
         y = .data$PF_READS_ALIGNED,
         colour = .data$CATEGORY
-      )
+      ),
+      alpha = I(1 / 3)
     )
   ggplot_object <- ggplot_object + ggplot2::labs(
     x = "Read Group",
@@ -426,7 +456,8 @@ if (!is.null(x = combined_metrics_sample)) {
         x = .data$SAMPLE,
         y = .data$PCT_PF_READS_ALIGNED,
         colour = .data$CATEGORY
-      )
+      ),
+      alpha = I(1 / 3)
     )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
@@ -472,7 +503,8 @@ if (!is.null(x = combined_metrics_sample)) {
         x = .data$READ_GROUP,
         y = .data$PCT_PF_READS_ALIGNED,
         colour = .data$CATEGORY
-      )
+      ),
+      alpha = I(1 / 3)
     )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
@@ -515,11 +547,14 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "STRAND_BALANCE"), drop = FALSE])
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
-      x = .data$SAMPLE,
-      y = .data$STRAND_BALANCE,
-      colour = .data$CATEGORY
-    ))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$SAMPLE,
+        y = .data$STRAND_BALANCE,
+        colour = .data$CATEGORY
+      ),
+      alpha = I(1 / 3)
+    )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
@@ -566,7 +601,8 @@ if (!is.null(x = combined_metrics_sample)) {
         x = .data$READ_GROUP,
         y = .data$STRAND_BALANCE,
         colour = .data$CATEGORY
-      )
+      ),
+      alpha = I(1 / 3)
     )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
@@ -721,7 +757,10 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_sample)
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = .data$SAMPLE, y = .data$PERCENT_DUPLICATION))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(x = .data$SAMPLE, y = .data$PERCENT_DUPLICATION),
+      alpha = I(1 / 3)
+    )
   ggplot_object <-
     ggplot_object + ggplot2::labs(x = "Sample", y = "Duplication Fraction", title = "Duplication Fraction per Sample")
   ggplot_object <-
@@ -773,11 +812,14 @@ if (!is.null(x = combined_metrics_sample)) {
     )
   )
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
-      x = .data$SAMPLE,
-      y = .data$fraction,
-      colour = .data$DUPLICATION
-    ))
+    ggplot_object + ggplot2::geom_point(
+      mapping = ggplot2::aes(
+        x = .data$SAMPLE,
+        y = .data$fraction,
+        colour = .data$DUPLICATION
+      ),
+      alpha = I(1 / 3)
+    )
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
