@@ -91,157 +91,142 @@ graphics_formats <- c("pdf" = "pdf", "png" = "png")
 # Parse STAR aligner log files --------------------------------------------
 
 
-summary_frame <- data.frame(
-  file_name =
+read_group_tibble <- tibble::tibble(
+  "file_name" =
     base::list.files(pattern = argument_list$pattern_file, recursive = TRUE),
-  stringsAsFactors = FALSE
-)
-message("Processing STAR alignment reports for number of read groups: ",
-        nrow(x = summary_frame))
-
-star_frame <- NULL
-
-for (i in seq_len(length.out = nrow(x = summary_frame))) {
-  summary_frame[i, "read_group_name"] <-
-    gsub(
-      pattern = argument_list$pattern_sample,
-      replacement = "\\1",
-      x = base::basename(path = summary_frame[i, "file_name", drop = TRUE])
-    )
-  message("  ", summary_frame[i, "read_group_name", drop = TRUE])
-
-  # This is the layout of a STAR alignment summary file.
-  #
-  # Started job on |       May 27 15:24:19
-  # Started mapping on |       May 27 15:32:57
-  # Finished on |       May 27 15:40:35
-  # Mapping speed, Million of reads per hour |       134.93
-  #
-  # Number of input reads |       17166324
-  # Average input read length |       50
-  # UNIQUE READS:
-  #   Uniquely mapped reads number |       13192124
-  # Uniquely mapped reads % |       76.85%
-  #   Average mapped length |       49.86
-  # Number of splices: Total |       1602861
-  # Number of splices: Annotated (sjdb) |       1584501
-  # Number of splices: GT/AG |       1591365
-  # Number of splices: GC/AG |       9392
-  # Number of splices: AT/AC |       1173
-  # Number of splices: Non-canonical |       931
-  # Mismatch rate per base, % |       0.19%
-  #   Deletion rate per base |       0.00%
-  # Deletion average length |       1.44
-  # Insertion rate per base |       0.00%
-  # Insertion average length |       1.28
-  # MULTI-MAPPING READS:
-  #   Number of reads mapped to multiple loci |       3849655
-  # % of reads mapped to multiple loci |       22.43%
-  #   Number of reads mapped to too many loci |       17781
-  # % of reads mapped to too many loci |       0.10%
-  #   UNMAPPED READS:
-  #   % of reads unmapped: too many mismatches |       0.00%
-  #   % of reads unmapped: too short |       0.44%
-  #   % of reads unmapped: other |       0.18%
-  #   CHIMERIC READS:
-  #   Number of chimeric reads |       0
-  # % of chimeric reads |       0.00%
-
-  temporary_frame <- as.data.frame(t(
-    x = read.table(
-      file = summary_frame[i, "file_name", drop = TRUE],
-      sep = "|",
-      fill = TRUE,
-      strip.white = TRUE,
-      stringsAsFactors = FALSE
-    )
-  ))
-  if (is.null(x = star_frame)) {
-    # The first temporary frame has the column headers as the first line.
-    # Unfortunately they are too complex to be useful.
-    # Names are assigned manually below.
-    star_frame <- temporary_frame[2L, , drop = FALSE]
-  } else {
-    star_frame <-
-      rbind(star_frame, temporary_frame[2L, , drop = FALSE], stringsAsFactors = FALSE)
-  }
-  rm(temporary_frame)
-}
-names(x = star_frame) <-
-  c(
-    "started_job",
-    "started_mapping",
-    "finished",
-    "mapping_speed",
-    "input_reads",
-    "average_length",
-    "unique_reads",
-    # placeholder V7
-    "uniquely_mapped_reads",
-    "uniquely_mapped_percentage",
-    "average_mapped_length",
-    "number_splice_total",
-    "number_splice_sjdb",
-    "number_splice_gtag",
-    "number_splice_gcag",
-    "number_splice_atac",
-    "number_splice_non_canonical",
-    "mismatch_rate",
-    "deletion_rate",
-    "average_deletion_length",
-    "insertion_rate",
-    "average_insertion_length",
-    "multi_mapping_reads",
-    # placeholder V22
-    "multi_mapped_number",
-    "multi_mapped_percentage",
-    "multi_unmapped_percentage",
-    "unmapped_reads",
-    # placeholder V26
-    "unmapped_mismatched_percentage",
-    "unmapped_short_percentage",
-    "unmapped_other_percentage",
-    "chimeric_reads",
-    # placeholder V30
-    "chimeric_number",
-    "chimeric_percentage"
+  "read_group_name" = gsub(
+    pattern = argument_list$pattern_sample,
+    replacement = "\\1",
+    x = base::basename(path = .data$file_name)
   )
-# Remove placeholder columns of no value.
-star_frame <-
-  star_frame[, c(1L:6L, 8L:21L, 23L:25L, 27L:29L, 31L:32L), drop = FALSE]
-summary_frame <-
-  cbind(summary_frame, star_frame, stringsAsFactors = FALSE)
-rm(i, star_frame)
+)
+message(
+  "Processing STAR alignment reports for number of read groups: ",
+  nrow(x = read_group_tibble)
+)
+
+# Empty lines and single column rows render parsing STAR Log.final.out files
+# more cumbersome than neccessary. Use base::redLines() and
+# stringr::str_split_fixed() to split into a matrix.
+#
+# > stringr::str_split_fixed(string=star_lines, pattern=fixed(pattern="\t"), n=2)
+# [,1]                                                [,2]
+# [1,] "                                 Started job on |" "Apr 01 20:49:14"
+# [2,] "                             Started mapping on |" "Apr 01 20:50:12"
+# [3,] "                                    Finished on |" "Apr 01 20:51:57"
+# [4,] "       Mapping speed, Million of reads per hour |" "43.78"
+# [5,] ""                                                  ""
+# [6,] "                          Number of input reads |" "1276962"
+# [7,] "                      Average input read length |" "302"
+# [8,] "                                    UNIQUE READS:" ""
+# [9,] "                   Uniquely mapped reads number |" "1128810"
+# [10,] "                        Uniquely mapped reads % |" "88.40%"
+# [11,] "                          Average mapped length |" "297.00"
+# [12,] "                       Number of splices: Total |" "17699"
+# [13,] "            Number of splices: Annotated (sjdb) |" "8"
+# [14,] "                       Number of splices: GT/AG |" "475"
+# [15,] "                       Number of splices: GC/AG |" "16"
+# [16,] "                       Number of splices: AT/AC |" "0"
+# [17,] "               Number of splices: Non-canonical |" "17208"
+# [18,] "                      Mismatch rate per base, % |" "0.92%"
+# [19,] "                         Deletion rate per base |" "0.01%"
+# [20,] "                        Deletion average length |" "2.05"
+# [21,] "                        Insertion rate per base |" "0.00%"
+# [22,] "                       Insertion average length |" "1.07"
+# [23,] "                             MULTI-MAPPING READS:" ""
+# [24,] "        Number of reads mapped to multiple loci |" "3276"
+# [25,] "             % of reads mapped to multiple loci |" "0.26%"
+# [26,] "        Number of reads mapped to too many loci |" "1"
+# [27,] "             % of reads mapped to too many loci |" "0.00%"
+# [28,] "                                  UNMAPPED READS:" ""
+# [29,] "       % of reads unmapped: too many mismatches |" "0.00%"
+# [30,] "                 % of reads unmapped: too short |" "11.28%"
+# [31,] "                     % of reads unmapped: other |" "0.06%"
+# [32,] "                                  CHIMERIC READS:" ""
+# [33,] "                       Number of chimeric reads |" "0"
+# [34,] "                            % of chimeric reads |" "0.00%"
+
+variable_names <- c(
+  "started_job",
+  "started_mapping",
+  "finished",
+  "mapping_speed",
+  # [5,]
+  "input_reads",
+  "average_length",
+  # [8,] UNIQUE READS
+  "uniquely_mapped_reads",
+  "uniquely_mapped_percentage",
+  "average_mapped_length",
+  "number_splice_total",
+  "number_splice_sjdb",
+  "number_splice_gtag",
+  "number_splice_gcag",
+  "number_splice_atac",
+  "number_splice_non_canonical",
+  "mismatch_rate",
+  "deletion_rate",
+  "deletion_average_length",
+  "insertion_rate",
+  "insertion_average_length",
+  # [23,] MULTI-MAPPING READS
+  "multi_mapped_number",
+  "multi_mapped_percentage",
+  "multi_unmapped_number",
+  "multi_unmapped_percentage",
+  # [28,] UNMAPPED READS
+  "unmapped_mismatched_percentage",
+  "unmapped_short_percentage",
+  "unmapped_other_percentage",
+  # [32,] CHIMERIC READS
+  "chimeric_number",
+  "chimeric_percentage"
+)
+
+star_tibble <- tibble::tibble()
+for (i in seq_len(length.out = nrow(x = read_group_tibble))) {
+  message("  ", read_group_tibble[i, "read_group_name", drop = TRUE])
+
+  star_character <- stringr::str_split_fixed(
+    string = base::readLines(con = read_group_tibble[i, "file_name", drop = TRUE]),
+    pattern = "\t",
+    n = 2L
+  )[c(1L:4L, 6L:7L, 9L:22L, 24L:27L, 29L:31L, 33L:34L), 2L]
+  names(x = star_character) <- variable_names
+  star_tibble <- dplyr::bind_rows(star_tibble, star_character)
+  rm(star_character)
+}
+rm(i)
+
+read_group_tibble <-
+  dplyr::bind_cols(read_group_tibble, star_tibble)
+rm(star_tibble, variable_names)
 
 # Convert factor to character to integer vectors.
-summary_frame$input_reads <-
-  as.integer(x = as.character(x = summary_frame$input_reads))
-summary_frame$uniquely_mapped_reads <-
-  as.integer(x = as.character(x = summary_frame$uniquely_mapped_reads))
-summary_frame$number_splice_total <-
-  as.integer(x = as.character(x = summary_frame$number_splice_total))
-summary_frame$number_splice_sjdb <-
-  as.integer(x = as.character(x = summary_frame$number_splice_sjdb))
-summary_frame$number_splice_gtag <-
-  as.integer(x = as.character(x = summary_frame$number_splice_gtag))
-summary_frame$number_splice_gcag <-
-  as.integer(x = as.character(x = summary_frame$number_splice_gcag))
-summary_frame$number_splice_atac <-
-  as.integer(x = as.character(x = summary_frame$number_splice_atac))
-summary_frame$number_splice_non_canonical <-
-  as.integer(x = as.character(x = summary_frame$number_splice_non_canonical))
-summary_frame$multi_mapped_number <-
-  as.integer(x = as.character(x = summary_frame$multi_mapped_number))
-summary_frame$chimeric_number <-
-  as.integer(x = as.character(x = summary_frame$chimeric_number))
+read_group_tibble <- dplyr::mutate(
+  .data = read_group_tibble,
+  "input_reads" = as.integer(x = .data$input_reads),
+  "uniquely_mapped_reads" = as.integer(x = .data$uniquely_mapped_reads),
+  "number_splice_total" = as.integer(x = .data$number_splice_total),
+  "number_splice_sjdb" = as.integer(x = .data$number_splice_sjdb),
+  "number_splice_gtag" = as.integer(x = .data$number_splice_gtag),
+  "number_splice_gcag" = as.integer(x = .data$number_splice_gcag),
+  "number_splice_atac" = as.integer(x = .data$number_splice_atac),
+  "number_splice_non_canonical" = as.integer(x = .data$number_splice_non_canonical),
+  "multi_mapped_number" = as.integer(x = .data$multi_mapped_number),
+  "chimeric_number" = as.integer(x = .data$chimeric_number)
+)
 
 message("Writing read group-level summary table")
-write.table(
-  x = summary_frame,
-  file = paste0(argument_list$prefix, "_table_read_group.tsv"),
-  sep = "\t",
-  row.names = FALSE,
-  col.names = TRUE
+readr::write_tsv(
+  x = read_group_tibble,
+  path = paste(
+    paste(argument_list$prefix, "table", "read_group", "test", sep = "_"),
+    # FIXME: Remove test!
+    "tsv",
+    sep = "."
+  ),
+  col_names = TRUE
 )
 
 # Scatter plot of read number versus alignment rate per read group --------
@@ -251,13 +236,13 @@ message("Creating a scatter plot of read number versus alignment rate per read g
 
 ggplot_object <- ggplot2::ggplot(
   data = tidyr::pivot_longer(
-    data = tibble::tibble(
-      "read_group" = summary_frame$read_group_name,
-      "input" = summary_frame$input_reads,
-      "unique" = summary_frame$uniquely_mapped_reads,
-      "multi" = summary_frame$multi_mapped_number,
-      "unmapped" = summary_frame$input_reads - summary_frame$uniquely_mapped_reads - summary_frame$multi_mapped_number,
-      stringsAsFactors = FALSE
+    data = dplyr::transmute(
+      .data = read_group_tibble,
+      "read_group" = .data$read_group_name,
+      "input" = .data$input_reads,
+      "unique" = .data$uniquely_mapped_reads,
+      "multi" = .data$multi_mapped_number,
+      "unmapped" = .data$input_reads - .data$uniquely_mapped_reads - .data$multi_mapped_number
     ),
     cols = c(.data$unmapped, .data$multi, .data$unique),
     names_to = "status",
@@ -296,7 +281,7 @@ ggplot_object <-
 # the original width for each 24 read groups.
 # Because read group names are quite long, extend already for the first column.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.75
+  argument_list$plot_width + (ceiling(x = nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.75
 for (graphics_format in graphics_formats) {
   ggplot2::ggsave(
     filename = paste(
@@ -322,12 +307,13 @@ message("Creating a column plot of read numbers per read group")
 
 ggplot_object <- ggplot2::ggplot(
   data = tidyr::pivot_longer(
-    data = tibble::tibble(
-      "read_group" = summary_frame$read_group_name,
-      "unique" = summary_frame$uniquely_mapped_reads,
-      "multi" = summary_frame$multi_mapped_number,
+    data = dplyr::transmute(
+      .data = read_group_tibble,
+      "read_group" = .data$read_group_name,
+      "unique" = .data$uniquely_mapped_reads,
+      "multi" = .data$multi_mapped_number,
       "unmapped" =
-        summary_frame$input_reads - summary_frame$uniquely_mapped_reads - summary_frame$multi_mapped_number
+        .data$input_reads - .data$uniquely_mapped_reads - .data$multi_mapped_number
     ),
     cols = c(.data$unmapped, .data$multi, .data$unique),
     names_to = "status",
@@ -368,7 +354,7 @@ ggplot_object <-
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   ggplot2::ggsave(
     filename = paste(
@@ -395,14 +381,14 @@ message("Creating a column plot of read fractions per read group")
 
 ggplot_object <- ggplot2::ggplot(
   data = tidyr::pivot_longer(
-    data = tibble::tibble(
-      "read_group" = summary_frame$read_group_name,
-      "unique" = summary_frame$uniquely_mapped_reads / summary_frame$input_reads,
-      "multi" = summary_frame$multi_mapped_number / summary_frame$input_reads,
+    data = dplyr::transmute(
+      .data = read_group_tibble,
+      "read_group" = .data$read_group_name,
+      "unique" = .data$uniquely_mapped_reads / .data$input_reads,
+      "multi" = .data$multi_mapped_number / .data$input_reads,
       "unmapped" = (
-        summary_frame$input_reads - summary_frame$uniquely_mapped_reads - summary_frame$multi_mapped_number
-      ) / summary_frame$input_reads,
-      stringsAsFactors = FALSE
+        .data$input_reads - .data$uniquely_mapped_reads - .data$multi_mapped_number
+      ) / .data$input_reads
     ),
     cols = c(.data$unmapped, .data$multi, .data$unique),
     names_to = "status",
@@ -443,7 +429,7 @@ ggplot_object <-
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   ggplot2::ggsave(
     filename = paste(
@@ -472,13 +458,13 @@ message("Creating a column plot of splice junction numbers per read group")
 
 ggplot_object <- ggplot2::ggplot(
   data = tidyr::pivot_longer(
-    data = tibble::tibble(
-      "read_group" = summary_frame$read_group_name,
-      "gtag" = summary_frame$number_splice_gtag,
-      "gcag" = summary_frame$number_splice_gcag,
-      "atac" = summary_frame$number_splice_atac,
-      "non_canonical" = summary_frame$number_splice_non_canonical,
-      stringsAsFactors = FALSE
+    data = dplyr::select(
+      .data = read_group_tibble,
+      "read_group" = .data$read_group_name,
+      "gtag" = .data$number_splice_gtag,
+      "gcag" = .data$number_splice_gcag,
+      "atac" = .data$number_splice_atac,
+      "non_canonical" = .data$number_splice_non_canonical
     ),
     cols = c(.data$non_canonical, .data$atac, .data$gcag, .data$gtag),
     names_to = "splice_junction",
@@ -519,7 +505,7 @@ ggplot_object <-
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   ggplot2::ggsave(
     filename = paste(
@@ -548,12 +534,13 @@ message("Creating a column plot of splice junction fractions per read group")
 
 ggplot_object <- ggplot2::ggplot(
   data = tidyr::pivot_longer(
-    data = tibble::tibble(
-      "read_group" = summary_frame$read_group_name,
-      "gtag" = summary_frame$number_splice_gtag / summary_frame$number_splice_total,
-      "gcag" = summary_frame$number_splice_gcag / summary_frame$number_splice_total,
-      "atac" = summary_frame$number_splice_atac / summary_frame$number_splice_total,
-      "non_canonical" = summary_frame$number_splice_non_canonical / summary_frame$number_splice_total
+    data = dplyr::transmute(
+      .data = read_group_tibble,
+      "read_group" = .data$read_group_name,
+      "gtag" = .data$number_splice_gtag / .data$number_splice_total,
+      "gcag" = .data$number_splice_gcag / .data$number_splice_total,
+      "atac" = .data$number_splice_atac / .data$number_splice_total,
+      "non_canonical" = .data$number_splice_non_canonical / .data$number_splice_total
     ),
     cols = c(.data$non_canonical, .data$atac, .data$gcag, .data$gtag),
     names_to = "junction",
@@ -594,7 +581,7 @@ ggplot_object <-
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 samples.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   ggplot2::ggsave(
     filename = paste(
@@ -625,68 +612,66 @@ file_path <-
   paste0(argument_list$prefix, "_read_group_to_sample.tsv")
 if (file.exists(file_path)) {
   message("Integrating on sample-level ...")
-  merged_frame <-
-    merge.data.frame(
+  sample_tibble <-
+    dplyr::left_join(
       # Read the read group to sample mapping data frame provided by BSF Python.
-      x = read.table(
+      x = readr::read_tsv(
         file = file_path,
-        header = TRUE,
-        sep = "\t",
-        stringsAsFactors = FALSE
+        col_names = TRUE,
+        col_types = readr::cols(
+          sample = readr::col_character(),
+          read_group = readr::col_character()
+        )
       ),
-      # Create a smaller data frame for mapping and junction information and include the read group for merging.
-      y = data.frame(
-        "read_group" = summary_frame$read_group_name,
-        "reads_input" = summary_frame$input_reads,
-        "reads_unique" = summary_frame$uniquely_mapped_reads,
-        "reads_multi" = summary_frame$multi_mapped_number,
-        # The reads_mapped and reads_unmapped columns are just linear combinations.
-        # Add them in for plotting later.
-        # "reads_mapped" = summary_frame$uniquely_mapped_reads + summary_frame$multi_mapped_number,
-        # "reads_unmapped" =
-        #   summary_frame$input_reads - summary_frame$uniquely_mapped_reads - summary_frame$multi_mapped_number,
-        "junctions_total" = summary_frame$number_splice_total,
-        "junctions_sjdb" = summary_frame$number_splice_sjdb,
-        "junctions_gtag" = summary_frame$number_splice_gtag,
-        "junctions_gcag" = summary_frame$number_splice_gcag,
-        "junctions_atac" = summary_frame$number_splice_atac,
-        "junctions_non_canonical" = summary_frame$number_splice_non_canonical,
-        stringsAsFactors = FALSE
+      # Create a smaller tibble for mapping and junction information and
+      # include the read group for merging.
+      y = dplyr::select(
+        .data = read_group_tibble,
+        "read_group" = .data$read_group_name,
+        "reads_input" = .data$input_reads,
+        "reads_unique" = .data$uniquely_mapped_reads,
+        "reads_multi" = .data$multi_mapped_number,
+        "junctions_total" = .data$number_splice_total,
+        "junctions_sjdb" = .data$number_splice_sjdb,
+        "junctions_gtag" = .data$number_splice_gtag,
+        "junctions_gcag" = .data$number_splice_gcag,
+        "junctions_atac" = .data$number_splice_atac,
+        "junctions_non_canonical" = .data$number_splice_non_canonical,
       ),
       by = "read_group"
     )
-  # Re-structure the plotting frame for aggregation.
-  # Keep only the numeric vectors and set the read group names
-  # as the row names. Then aggregate by a list of sample names.
-  # seq.int(from = 3L, to = ncol(x = merged_frame))
-  column_names <- names(x = merged_frame)
-  plotting_frame <-
-    merged_frame[, column_names != "read_group" &
-                   column_names != "sample", drop = FALSE]
-  rm(column_names)
-  row.names(x = plotting_frame) <- merged_frame$read_group
-  aggregate_frame <-
-    aggregate.data.frame(x = plotting_frame,
-                         by = list(merged_frame$sample),
-                         FUN = sum)
-  # Rename the "Group.1" column as the result of the aggreagtion by sample list into "sample".
-  names(x = aggregate_frame)[names(x = aggregate_frame) == "Group.1"] <-
-    "sample"
-  # Write the aggregated frame with mapping and junction information to disk.
-  message("Writing sample-level summary table")
-  write.table(
-    x = aggregate_frame,
-    file = paste0(argument_list$prefix, "_table_sample.tsv"),
-    sep = "\t",
-    row.names = FALSE,
-    col.names = TRUE
+  sample_tibble <-
+    dplyr::group_by(.data = sample_tibble, .data$sample)
+  sample_tibble <- dplyr::summarise_at(
+    .tbl = sample_tibble,
+    .vars = c(
+      "reads_input",
+      "reads_unique",
+      "reads_multi",
+      "junctions_total",
+      "junctions_sjdb",
+      "junctions_gtag",
+      "junctions_gcag",
+      "junctions_atac",
+      "junctions_non_canonical"
+    ),
+    .funs = ~ sum(.)
   )
 
-  # For plotting, add in mapped und unmapped reads.
-  aggregate_frame$reads_mapped <-
-    aggregate_frame$reads_unique + aggregate_frame$reads_multi
-  aggregate_frame$reads_unmapped <-
-    aggregate_frame$reads_input - aggregate_frame$reads_mapped
+  # Write the sample-level tibble with mapping and junction information to disk.
+  message("Writing sample-level summary table")
+  readr::write_tsv(
+    x = sample_tibble,
+    path = paste0(argument_list$prefix, "_table_sample.tsv"),
+    col_names = TRUE
+  )
+
+  # For plotting, add calculations of mapped und unmapped reads.
+  sample_tibble <- dplyr::mutate(
+    .data = sample_tibble,
+    "reads_mapped" = .data$reads_unique + .data$reads_multi,
+    "reads_unmapped" = .data$reads_input - .data$reads_mapped
+  )
 
   # Scatter plot of read number versus alignment rate per sample ----------
 
@@ -695,13 +680,13 @@ if (file.exists(file_path)) {
 
   ggplot_object <- ggplot2::ggplot(
     data = tidyr::pivot_longer(
-      data = tibble::tibble(
-        "sample" = aggregate_frame$sample,
-        "input" = aggregate_frame$reads_input,
-        "multi" = aggregate_frame$reads_multi,
-        "unique" = aggregate_frame$reads_unique,
-        "unmapped" = aggregate_frame$reads_unmapped,
-        stringsAsFactors = FALSE
+      data = dplyr::select(
+        .data = sample_tibble,
+        "sample" = .data$sample,
+        "input" = .data$reads_input,
+        "multi" = .data$reads_multi,
+        "unique" = .data$reads_unique,
+        "unmapped" = .data$reads_unmapped
       ),
       cols = c(.data$unmapped, .data$multi, .data$unique),
       names_to = "status",
@@ -741,7 +726,7 @@ if (file.exists(file_path)) {
   # Scale the plot width with the number of read groups, by adding a quarter of
   # the original width for each 24 read groups.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = aggregate_frame) / 24L) - 1L) * argument_list$plot_width * 0.33
+    argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.33
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -767,12 +752,12 @@ if (file.exists(file_path)) {
 
   ggplot_object <- ggplot2::ggplot(
     data = tidyr::pivot_longer(
-      data = tibble::tibble(
-        "sample" = aggregate_frame$sample,
-        "unmapped" = aggregate_frame$reads_unmapped,
-        "multi" = aggregate_frame$reads_multi,
-        "unique" = aggregate_frame$reads_unique,
-        stringsAsFactors = FALSE
+      data = dplyr::select(
+        .data = sample_tibble,
+        "sample" = .data$sample,
+        "unmapped" = .data$reads_unmapped,
+        "multi" = .data$reads_multi,
+        "unique" = .data$reads_unique
       ),
       cols = c(.data$unmapped, .data$multi, .data$unique),
       names_to = "status",
@@ -817,7 +802,7 @@ if (file.exists(file_path)) {
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = aggregate_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+    argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -844,11 +829,12 @@ if (file.exists(file_path)) {
 
   ggplot_object <- ggplot2::ggplot(
     data = tidyr::pivot_longer(
-      data = tibble::tibble(
-        "sample" = aggregate_frame$sample,
-        "unmapped" = aggregate_frame$reads_unmapped / aggregate_frame$reads_input,
-        "multi" = aggregate_frame$reads_multi / aggregate_frame$reads_input,
-        "unique" = aggregate_frame$reads_unique / aggregate_frame$reads_input
+      data = dplyr::transmute(
+        .data = sample_tibble,
+        "sample" = .data$sample,
+        "unmapped" = .data$reads_unmapped / .data$reads_input,
+        "multi" = .data$reads_multi / .data$reads_input,
+        "unique" = .data$reads_unique / .data$reads_input
       ),
       cols = c(.data$unmapped, .data$multi, .data$unique),
       names_to = "status",
@@ -893,7 +879,7 @@ if (file.exists(file_path)) {
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = aggregate_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+    argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -920,12 +906,13 @@ if (file.exists(file_path)) {
 
   ggplot_object <- ggplot2::ggplot(
     data = tidyr::pivot_longer(
-      data = tibble::tibble(
-        "sample" = aggregate_frame$sample,
-        "gtag" = aggregate_frame$junctions_gtag,
-        "gcag" = aggregate_frame$junctions_gcag,
-        "atac" = aggregate_frame$junctions_atac,
-        "non_canonical" = aggregate_frame$junctions_non_canonical
+      data = dplyr::select(
+        .data = sample_tibble,
+        "sample" = .data$sample,
+        "gtag" = .data$junctions_gtag,
+        "gcag" = .data$junctions_gcag,
+        "atac" = .data$junctions_atac,
+        "non_canonical" = .data$junctions_non_canonical
       ),
       cols = c(.data$non_canonical, .data$atac, .data$gcag, .data$gtag),
       names_to = "junction",
@@ -970,7 +957,7 @@ if (file.exists(file_path)) {
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = aggregate_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+    argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -997,12 +984,13 @@ if (file.exists(file_path)) {
 
   ggplot_object <- ggplot2::ggplot(
     data = tidyr::pivot_longer(
-      data = tibble::tibble(
-        "sample" = aggregate_frame$sample,
-        "gtag" = aggregate_frame$junctions_gtag / aggregate_frame$junctions_total,
-        "gcag" = aggregate_frame$junctions_gcag / aggregate_frame$junctions_total,
-        "atac" = aggregate_frame$junctions_atac / aggregate_frame$junctions_total,
-        "non_canonical" = aggregate_frame$junctions_non_canonical / aggregate_frame$junctions_total
+      data = dplyr::transmute(
+        .data = sample_tibble,
+        "sample" = .data$sample,
+        "gtag" = .data$junctions_gtag / .data$junctions_total,
+        "gcag" = .data$junctions_gcag / .data$junctions_total,
+        "atac" = .data$junctions_atac / .data$junctions_total,
+        "non_canonical" = .data$junctions_non_canonical / .data$junctions_total
       ),
       cols = c(.data$non_canonical, .data$atac, .data$gcag, .data$gtag),
       names_to = "junction",
@@ -1047,7 +1035,7 @@ if (file.exists(file_path)) {
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = aggregate_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+    argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -1069,11 +1057,11 @@ if (file.exists(file_path)) {
   }
   rm(graphics_format, plot_width, ggplot_object)
 
-  rm(aggregate_frame, merged_frame)
+  rm(sample_tibble)
 }
 rm(file_path)
 
-rm(summary_frame,
+rm(read_group_tibble,
    graphics_formats,
    argument_list)
 
