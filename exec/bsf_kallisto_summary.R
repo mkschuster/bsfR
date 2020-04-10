@@ -97,7 +97,7 @@ graphics_formats <- c("pdf" = "pdf", "png" = "png")
 # Summarise per-sample run reports ----------------------------------------
 
 
-summary_frame <- tibble::tibble(
+sample_tibble <- tibble::tibble(
   "file_name" =
     base::list.files(pattern = argument_list$pattern_file, recursive = TRUE),
   "sample_name" = gsub(
@@ -107,27 +107,27 @@ summary_frame <- tibble::tibble(
   )
 )
 message("Processing Kallisto reports for number of samples: ",
-        nrow(x = summary_frame))
+        nrow(x = sample_tibble))
 
-kallisto_frame <- tibble::tibble()
+kallisto_tibble <- tibble::tibble()
 
-for (i in seq_len(length.out = nrow(x = summary_frame))) {
-  message("  ", summary_frame[i, "sample_name", drop = TRUE])
+for (i in seq_len(length.out = nrow(x = sample_tibble))) {
+  message("  ", sample_tibble[i, "sample_name", drop = TRUE])
 
   json_list <-
-    rjson::fromJSON(file = summary_frame[i, "file_name", drop = TRUE])
+    rjson::fromJSON(file = sample_tibble[i, "file_name", drop = TRUE])
 
-  kallisto_frame <-
-    dplyr::bind_rows(.data = kallisto_frame, json_list)
+  kallisto_tibble <-
+    dplyr::bind_rows(.data = kallisto_tibble, json_list)
   rm(json_list)
 }
 rm(i)
 
-summary_frame <- dplyr::bind_cols(summary_frame, kallisto_frame)
-rm(kallisto_frame)
+sample_tibble <- dplyr::bind_cols(sample_tibble, kallisto_tibble)
+rm(kallisto_tibble)
 
 readr::write_tsv(
-  x = summary_frame,
+  x = sample_tibble,
   path = paste(paste(argument_list$prefix,
                      "sample",
                      sep = "_"),
@@ -136,16 +136,42 @@ readr::write_tsv(
   col_names = TRUE
 )
 
+# Calculate the number of unmapped reads for plotting.
+sample_tibble <-
+  dplyr::mutate(
+    .data = sample_tibble,
+    "n_unmapped" = .data$n_processed - .data$n_unique - .data$n_pseudoaligned
+  )
+
 # Scatter plot of read number versus alignment rate per sample ------------
 
 
-ggplot_object <- ggplot2::ggplot(data = summary_frame)
+message("Creating a scatter plot of read number versus alignment rate per sample")
+
+ggplot_object <-
+  ggplot2::ggplot(
+    data = tidyr::pivot_longer(
+      data = dplyr::select(
+        .data = sample_tibble,
+        "sample" = .data$sample_name,
+        "unmapped" = .data$n_unmapped,
+        "multi" = .data$n_pseudoaligned,
+        "unique" = .data$n_unique,
+        "processed" = .data$n_processed
+      ),
+      cols = c(.data$unmapped, .data$multi, .data$unique),
+      names_to = "status",
+      values_to = "number"
+    )
+  )
+
 ggplot_object <-
   ggplot_object + ggplot2::geom_point(
     mapping = ggplot2::aes(
-      x = .data$n_pseudoaligned,
-      y = .data$n_pseudoaligned / .data$n_processed,
-      colour = .data$sample_name
+      x = .data$number,
+      y = .data$number / .data$processed,
+      colour = .data$sample,
+      shape = .data$status
     ),
     alpha = I(1 / 3)
   )
@@ -154,6 +180,7 @@ ggplot_object <-
     x = "Number",
     y = "Fraction",
     colour = "Sample",
+    shape = "Mapping Status",
     title = "Kallisto Summary"
   )
 ggplot_object <-
@@ -162,7 +189,7 @@ ggplot_object <-
 # Scale the plot width with the number of samples, by adding a quarter of
 # the original width for each 24 samples.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   ggplot2::ggsave(
     filename = paste(
@@ -180,35 +207,67 @@ for (graphics_format in graphics_formats) {
 }
 rm(graphics_format, plot_width, ggplot_object)
 
-# Fraction of pseudoaligned reads per sample ------------------------------
+# Column plot of read numbers per sample --------------------------------
 
 
-ggplot_object <- ggplot2::ggplot(data = summary_frame)
+message("Creating a column plot of read numbers per sample")
+
 ggplot_object <-
-  ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
-    x = .data$sample_name,
-    y = .data$n_pseudoaligned / .data$n_processed
-  ))
+  ggplot2::ggplot(
+    data = tidyr::pivot_longer(
+      data = dplyr::select(
+        .data = sample_tibble,
+        "sample" = .data$sample_name,
+        "unmapped" = .data$n_unmapped,
+        "multi" = .data$n_pseudoaligned,
+        "unique" = .data$n_unique
+      ),
+      cols = c(.data$unmapped, .data$multi, .data$unique),
+      names_to = "status",
+      values_to = "number"
+    )
+  )
+ggplot_object <-
+  ggplot_object + ggplot2::geom_col(
+    mapping = ggplot2::aes(
+      x = .data$sample,
+      y = .data$number,
+      fill = .data$status
+    ),
+    alpha = I(1 / 3)
+  )
 ggplot_object <-
   ggplot_object + ggplot2::labs(x = "Sample",
-                                y = "Fraction",
-                                title = "Fraction of Pseudoaligned Reads")
+                                y = "Reads Number",
+                                fill = "Mapping Status",
+                                title = "Kallisto Pseudo-Aligned Numbers per Sample")
+# Reduce the label font size and the legend key size and allow a maximum of 24
+# guide legend rows.
 ggplot_object <-
-  ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-    angle = 90,
-    hjust = 0,
-    size = ggplot2::rel(x = 0.7)
+  ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(
+    keywidth = ggplot2::rel(x = 0.8),
+    keyheight = ggplot2::rel(x = 0.8),
+    nrow = 24L
   ))
-
+ggplot_object <-
+  ggplot_object + ggplot2::theme(
+    axis.text.x = ggplot2::element_text(
+      angle = 90,
+      hjust = 0,
+      size = ggplot2::rel(x = 0.7)
+    ),
+    legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
+  )
 # Scale the plot width with the number of samples, by adding a quarter of
 # the original width for each 24 samples.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   ggplot2::ggsave(
     filename = paste(
       paste(argument_list$prefix,
-            "pseudoaligned",
+            "pseudaligned",
+            "number",
             sep = "_"),
       graphics_format,
       sep = "."
@@ -221,35 +280,67 @@ for (graphics_format in graphics_formats) {
 }
 rm(graphics_format, plot_width, ggplot_object)
 
-# Fraction of unique reads per sample -------------------------------------
+# Column plot of read fractions per sample ------------------------------
 
 
-ggplot_object <- ggplot2::ggplot(data = summary_frame)
+message("Creating a column plot of read fractions per sample")
+
 ggplot_object <-
-  ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
-    x = .data$sample_name,
-    y = .data$n_unique / .data$n_processed
-  ))
+  ggplot2::ggplot(
+    data = tidyr::pivot_longer(
+      data = dplyr::transmute(
+        .data = sample_tibble,
+        "sample" = .data$sample_name,
+        "unmapped" = .data$n_unmapped / .data$n_processed,
+        "multi" = .data$n_pseudoaligned / .data$n_processed,
+        "unique" = .data$n_unique / .data$n_processed
+      ),
+      cols = c(.data$unmapped, .data$multi, .data$unique),
+      names_to = "status",
+      values_to = "fraction"
+    )
+  )
+ggplot_object <-
+  ggplot_object + ggplot2::geom_col(
+    mapping = ggplot2::aes(
+      x = .data$sample,
+      y = .data$fraction,
+      fill = .data$status
+    ),
+    alpha = I(1 / 3)
+  )
 ggplot_object <-
   ggplot_object + ggplot2::labs(x = "Sample",
-                                y = "Fraction",
-                                title = "Fraction of Uniquely Pseudoaligned Reads")
+                                y = "Reads Fraction",
+                                fill = "Mapping Status",
+                                title = "Kallisto Pseudo-Aligned Fractions per Sample")
+# Reduce the label font size and the legend key size and allow a maximum of 24
+# guide legend rows.
 ggplot_object <-
-  ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-    angle = 90,
-    hjust = 0,
-    size = ggplot2::rel(x = 0.7)
+  ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(
+    keywidth = ggplot2::rel(x = 0.8),
+    keyheight = ggplot2::rel(x = 0.8),
+    nrow = 24L
   ))
-
+ggplot_object <-
+  ggplot_object + ggplot2::theme(
+    axis.text.x = ggplot2::element_text(
+      angle = 90,
+      hjust = 0,
+      size = ggplot2::rel(x = 0.7)
+    ),
+    legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
+  )
 # Scale the plot width with the number of samples, by adding a quarter of
 # the original width for each 24 samples.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   ggplot2::ggsave(
     filename = paste(
       paste(argument_list$prefix,
-            "uniquely_pseudoaligned",
+            "pseudaligned",
+            "fraction",
             sep = "_"),
       graphics_format,
       sep = "."
@@ -262,7 +353,7 @@ for (graphics_format in graphics_formats) {
 }
 rm(graphics_format, plot_width, ggplot_object)
 
-rm(summary_frame,
+rm(sample_tibble,
    graphics_formats,
    argument_list)
 
