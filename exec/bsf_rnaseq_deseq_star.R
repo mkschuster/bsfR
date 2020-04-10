@@ -122,12 +122,6 @@ ranged_summarized_experiment <-
     verbose = argument_list$verbose
   )
 
-# Extract just the sample name and the total_counts as the number of "counted" reads.
-rse_count_tibble <- tibble::tibble(
-  "sample" = as.character(x = SummarizedExperiment::colData(x = ranged_summarized_experiment)$sample),
-  "counted" = SummarizedExperiment::colData(x = ranged_summarized_experiment)$total_counts
-)
-
 # Read the STAR aligner summary tibble.
 
 star_summary_tibble <-
@@ -150,32 +144,32 @@ star_summary_tibble <-
     )
   )
 
-# Select just the count variables.
-star_count_tibble <- dplyr::select(
-  .data = star_summary_tibble,
-  .data$sample,
-  "total" = .data$reads_input,
-  "unique" = .data$reads_unique,
-  "multi" = .data$reads_multi
-)
-# Calculate the unmapped variable.
-star_count_tibble <-
-  dplyr::mutate(.data = star_count_tibble,
-                "unmapped" = .data$total - .data$unique - .data$multi)
+sample_tibble <-
+  dplyr::inner_join(
+    x = dplyr::transmute(
+      .data = star_summary_tibble,
+      "sample" = .data$sample,
+      "total" = .data$reads_input,
+      "unique" = .data$reads_unique,
+      "multi" = .data$reads_multi,
+      "unmapped" = .data$total - .data$unique - .data$multi
+    ),
+    y = tibble::tibble(
+      "sample" = as.character(x = SummarizedExperiment::colData(x = ranged_summarized_experiment)$sample),
+      "counted" = SummarizedExperiment::colData(x = ranged_summarized_experiment)$total_counts
+    ),
+    by = "sample"
+  )
+
+rm(star_summary_tibble,
+   ranged_summarized_experiment)
 
 # Plot read counts --------------------------------------------------------
 
 
-merged_count_tibble <-
-  dplyr::inner_join(x = star_count_tibble,
-                    y = rse_count_tibble,
-                    by = "sample")
-
-rm(star_count_tibble, rse_count_tibble)
-
 ggplot_object <- ggplot2::ggplot(
   data = tidyr::pivot_longer(
-    data = merged_count_tibble,
+    data = sample_tibble,
     cols = c(
       .data$total,
       .data$unique,
@@ -233,17 +227,16 @@ rm(graphics_format, ggplot_object)
 # Plot read fractions -----------------------------------------------------
 
 
-merged_fraction_tibble <- tibble::tibble(
-  "sample" = merged_count_tibble$sample,
-  "unique" = merged_count_tibble$unique / merged_count_tibble$total,
-  "multi" = merged_count_tibble$multi / merged_count_tibble$total,
-  "unmapped" = merged_count_tibble$unmapped / merged_count_tibble$total,
-  "counted" = merged_count_tibble$counted / merged_count_tibble$total
-)
-
 ggplot_object <- ggplot2::ggplot(
   data = tidyr::pivot_longer(
-    data = merged_fraction_tibble,
+    data = dplyr::transmute(
+      .data = sample_tibble,
+      "sample" = .data$sample,
+      "unique" = .data$unique / .data$total,
+      "multi" = .data$multi / .data$total,
+      "unmapped" = .data$unmapped / .data$total,
+      "counted" = .data$counted / .data$total
+    ),
     cols = c(.data$unique,
              .data$multi,
              .data$unmapped,
@@ -296,10 +289,7 @@ for (graphics_format in graphics_formats) {
 rm(graphics_format, ggplot_object)
 
 rm(
-  merged_fraction_tibble,
-  merged_count_tibble,
-  star_summary_tibble,
-  ranged_summarized_experiment,
+  sample_tibble,
   output_directory,
   prefix,
   graphics_formats,
