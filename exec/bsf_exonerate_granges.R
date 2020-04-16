@@ -65,6 +65,13 @@ argument_list <-
         dest = "target_format",
         help = "Target file format for rtracklayer::export() [bed]",
         type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--chunk-size"),
+        default = 1000L,
+        dest = "chunk_size",
+        help = "Number of lines to process per chunk [1000]",
+        type = "integer"
       )
     )
   ))
@@ -92,35 +99,38 @@ exonerate_connection <-
   file(description = argument_list$source_path, open = "rt")
 while (TRUE) {
   exonerate_lines <-
-    readLines(con = exonerate_connection, n = 1000L) # FIXME: make n configurable.
+    base::readLines(con = exonerate_connection, n = argument_list$chunk_size)
   if (length(x = exonerate_lines) == 0L) {
     rm(exonerate_lines)
     break()
   }
 
-  # Match the relevant VULGAR lines, which look like:
+  # Subset the Exonerate alignment report lines to the relevant VULGAR lines,
+  # which look like:
   #
   # vulgar: nCoV-2019_1_LEFT 0 24 + NC_045512.2 30 54 + 120 M 24 24
   # vulgar: nCoV-2019_1_RIGHT 0 25 + NC_045512.2 410 385 - 125 M 25 25
   vulgar_lines <-
-    exonerate_lines[grepl(pattern = "^vulgar:", x = exonerate_lines)]
+    exonerate_lines[base::startsWith(x = exonerate_lines, prefix = "vulgar:")]
+  rm(exonerate_lines)
 
-  # Split the character vector into a character matrix on space characters,
-  # exclude the first column (vulgar:) and assign column names to the remaining.
-  # Coerce the character matrix into a tibble and bind it to the summary VULGAR
-  # tibble by rows.
+  # Split the character vector on space characters into a character matrix of
+  # eleven columns, so that the CIGAR string remains unsplit in the last column.
+  # Exclude the first column (vulgar:) and assign column names to the remaining
+  # character matrix. Coerce the character matrix into a tibble and bind it to
+  # the summary VULGAR tibble by rows.
   character_matrix <- stringr::str_split_fixed(
     string = vulgar_lines,
     pattern = stringr::fixed(pattern = " "),
     n = 11L
-  )[, -1L]
+  )[,-1L]
   colnames(x = character_matrix) <- variable_names
 
   vulgar_tibble <-
     dplyr::bind_rows(vulgar_tibble,
                      tibble::as_tibble(x = character_matrix))
 
-  rm(character_matrix, vulgar_lines, exonerate_lines)
+  rm(character_matrix, vulgar_lines)
 }
 close(con = exonerate_connection)
 rm(exonerate_connection)
@@ -150,12 +160,14 @@ exonerate_granges <-
       start = dplyr::if_else(
         condition = vulgar_tibble$target_strand == "+",
         true = vulgar_tibble$target_start + 1L,
-        false = vulgar_tibble$target_end
+        false = vulgar_tibble$target_end,
+        missing = vulgar_tibble$target_start + 1L
       ),
       end = dplyr::if_else(
         condition = vulgar_tibble$target_strand == "+",
-        true = vulgar_tibble$target_start + 1L,
-        false = vulgar_tibble$target_end
+        true = vulgar_tibble$target_end,
+        false = vulgar_tibble$target_start + 1L,
+        missing = vulgar_tibble$target_end
       ),
       names = vulgar_tibble$query_name
     ),
