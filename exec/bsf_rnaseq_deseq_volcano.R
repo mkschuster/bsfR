@@ -237,13 +237,27 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
                             ))
   }
 
-  deseq_results_frame <- base::as.data.frame(deseq_results_tibble)
   x <- "log2FoldChange"
   y <- if (argument_list$plot_padj) {
     "padj"
   } else {
     "pvalue"
   }
+
+  # Replace adjusted p-values or p-values == 0.
+  # The correction in EnhanceVolcano does not seem to work, as a comparison with
+  # 0.0 (i.e. x == 0.0) is problematic.
+  if (any(deseq_results_tibble[, y] < .Machine$double.xmin)) {
+    message(
+      "Adjusting some ",
+      y,
+      " lower than machine-specific double minimum ",
+      .Machine$double.xmin
+    )
+    deseq_results_tibble[which(x = deseq_results_tibble[, y] < .Machine$double.xmin), y] <-
+      .Machine$double.xmin
+  }
+  deseq_results_frame <- base::as.data.frame(deseq_results_tibble)
 
   ggplot_object <- EnhancedVolcano::EnhancedVolcano(
     # Without base::as.data.frame(), the log2FoldChange variable is reported to
@@ -255,8 +269,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     xlim = if (is.null(x = argument_list$x_limits)) {
       # Use the function default limits.
       c(min(deseq_results_frame[, x], na.rm = TRUE),
-        max(deseq_results_frame[, x], na.rm =
-              TRUE))
+        max(deseq_results_frame[, x], na.rm = TRUE))
     } else {
       # Split the x-limits argument into a character matrix and convert into a numeric vector.
       as.numeric(x = stringr::str_split_fixed(
@@ -282,14 +295,14 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       argument_list$p_threshold
     },
     xlab = if (argument_list$plot_padj) {
-      bquote( ~ Log[2] ~ "fold change")
+      bquote(expr = ~ Log[2] ~ "fold change")
     } else {
-      bquote( ~ Log[2] ~ "fold change")
+      bquote(expr = ~ Log[2] ~ "fold change")
     },
     ylab = if (argument_list$plot_padj) {
-      bquote( ~ -Log[10] ~ adjusted ~ italic(P))
+      bquote(expr = ~ -Log[10] ~ adjusted ~ italic(P))
     } else {
-      bquote( ~ -Log[10] ~ italic(P))
+      bquote(expr = ~ -Log[10] ~ italic(P))
     },
     subtitle = ggplot2::waiver(),
     caption = ggplot2::waiver(),
