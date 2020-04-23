@@ -333,7 +333,7 @@ bsfrd_read_design_tibble <-
 #'
 #' @examples
 #' \dontrun{
-#' design_list <- bsfrd_read_design_list(
+#' design_list <- bsfrd_get_design_list(
 #'   genome_directory = genome_directory,
 #'   design_name = design_name, summary = FALSE,
 #'   verbose = FALSE)
@@ -716,7 +716,139 @@ bsfrd_read_gene_set_tibble <-
     return(gene_set_tibble)
   }
 
-#' Initialise a Sample Annotation DataFrame.
+#' Initialise or load a Feature Annotation DataFrame.
+#'
+#' Features are extracted from a transcriptome reference GTF file. For the
+#' moment, Ensembl-specific files with "gene", "transcript" and "exon" features
+#' are supported.
+#' @param genome_directory A \code{character} scalar with the genome directory
+#'   path.
+#' @param design_name A \code{character} scalar with the design name.
+#' @param gtf_file_path A \code{character} scalar with the reference GTF file
+#'   path.
+#' @param genome A \code{character} scalar with the genome version or a
+#'   \code{GenomeInfoDb::Seqinfo} object.
+#' @param feature_types A \code{character} vector of GTF feature types to be
+#'   imported.
+#' @param verbose A \code{logical} scalar to emit messages.
+#' @return A \code{DataFrame} with feature annotation.
+#' @export
+#' @importFrom methods as
+#' @importFrom utils read.table write.table
+#'
+#' @examples
+#' \dontrun{
+#' annotation_frame <- bsfR::initialise_annotation_frame(
+#'   genome_directory = genome_directory,
+#'   design_name = design_name,
+#'   gtf_file_path = gtf_file_path,
+#'   genome = "hg38",
+#'   feature_types = "gene",
+#'   verbose = TRUE
+#' )
+#' }
+initialise_annotation_frame <-
+  function(genome_directory,
+           design_name,
+           gtf_file_path,
+           genome = NA,
+           feature_types = "gene",
+           verbose = FALSE) {
+    stopifnot(all(feature_types %in% c("gene", "transcript", "exon")))
+
+    prefix_deseq <-
+      bsfrd_get_prefix_deseq(design_name = design_name)
+
+    # Load pre-existing gene annotation data frame or create it from the reference
+    # GTF file.
+    data_frame <- NULL
+
+    file_path <-
+      file.path(genome_directory,
+                prefix_deseq,
+                paste(
+                  paste(prefix_deseq, paste(sort(feature_types), collapse = "_"), "annotation", sep = "_"),
+                  "tsv",
+                  sep = "."
+                ))
+    if (file.exists(file_path) &&
+        file.info(file_path)$size > 0L) {
+      if (verbose) {
+        message("Loading an annotation DataFrame ...")
+      }
+
+      data_frame <-
+        methods::as(
+          object = utils::read.table(
+            file = file_path,
+            header = TRUE,
+            sep = "\t",
+            comment.char = "",
+            stringsAsFactors = FALSE
+          ),
+          Class = "DataFrame"
+        )
+    } else {
+      if (verbose) {
+        message("Reading reference GTF features ...")
+      }
+      granges_object <-
+        rtracklayer::import(
+          con = gtf_file_path,
+          format = "gtf",
+          genome = genome,
+          feature.type = feature_types
+        )
+
+      if (verbose) {
+        message("Creating an annotation DataFrame ...")
+      }
+      variable_names <- c("gene_id",
+                          "gene_version",
+                          "gene_name",
+                          "gene_biotype",
+                          "gene_source")
+      if (any(c("transcript", "exon") %in% feature_types)) {
+        variable_names <- c(
+          variable_names,
+          "transcript_id",
+          "transcript_version",
+          "transcript_name",
+          "transcript_biotype",
+          "transcript_source"
+        )
+      }
+      if ("exon" %in% feature_types) {
+        variable_names <-
+          c(variable_names,
+            "exon_id",
+            "exon_version",
+            "exon_number")
+      }
+      data_frame <-
+        S4Vectors::mcols(x = granges_object)[, variable_names]
+      rm(variable_names)
+
+      # Add the location as an Ensembl-like location, lacking the coordinate
+      # system name and version.
+      data_frame$location <-
+        methods::as(object = granges_object, Class = "character")
+      rm(granges_object)
+
+      utils::write.table(
+        x = data_frame,
+        file = file_path,
+        sep = "\t",
+        col.names = TRUE,
+        row.names = FALSE
+      )
+    }
+    rm(file_path)
+
+    return(data_frame)
+  }
+
+#' Initialise or load a Sample Annotation DataFrame.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
@@ -743,14 +875,16 @@ bsfrd_initialise_sample_frame <- function(genome_directory,
                                           verbose = FALSE) {
   prefix_deseq <-
     bsfrd_get_prefix_deseq(design_name = design_name)
+
   # Read the BSF Python sample TSV file as a data.frame and convert into a DataFrame.
   # Import strings as factors and cast to character vectors where required.
   if (verbose) {
     message("Loading sample DataFrame")
   }
+
   data_frame <-
-    as(
-      object = read.table(
+    methods::as(
+      object = utils::read.table(
         file = file.path(
           genome_directory,
           prefix_deseq,
