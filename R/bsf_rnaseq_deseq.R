@@ -579,7 +579,7 @@ bsfrd_read_result_tibble <-
             baseMean = readr::col_double(),
             log2FoldChange = readr::col_double(),
             lfcSE = readr::col_double(),
-            stat = readr::col_double(),
+            # stat = readr::col_double(), # No longer available after lfcShrink().
             pvalue = readr::col_double(),
             padj = readr::col_double(),
             significant = readr::col_character(),
@@ -654,8 +654,16 @@ bsfrd_read_annotation_tibble <-
 
 #' Read a gene set tibble for gene annotation or selection.
 #'
+#' The tibble should have the following variables:
+#'   gene_id:    The Ensembl gene identifier from the annotation tibble.
+#'   gene_name:  The offical gene symbol.
+#'   gene_label: The gene label to be plotted instead of the official symbol.
+#'   plot_name:  The sub-plot (i.e. heatmap) to apply this label to.
+#'
 #' Missing 'gene_id' values are filled in on the basis of 'gene_name' values and
-#' the annotation tibble.
+#' the annotation tibble, which in turn is based on the reference GTF file.
+#' Missing 'gene_label' values are then filled in on the basis of the
+#' 'gene_name' variable.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
@@ -665,7 +673,8 @@ bsfrd_read_annotation_tibble <-
 #'
 #' @return A \code{tibble} object of gene set information.
 #' @export
-#' @importFrom readr cols col_character col_double col_integer col_logical read_csv read_tsv
+#' @importFrom readr cols col_character col_double col_integer col_logical
+#'   read_csv read_tsv
 #'
 #' @examples
 #' \dontrun{
@@ -691,9 +700,11 @@ bsfrd_read_gene_set_tibble <-
         col_types = readr::cols(
           gene_id = readr::col_character(),
           gene_name = readr::col_character(),
+          gene_label = readr::col_character(),
           plot_name = readr::col_character()
         )
       )
+
     # Find all those observations in "gene_id" that are NA or empty.
     missing_ids <-
       is.na(x = gene_set_tibble$gene_id) |
@@ -711,6 +722,15 @@ bsfrd_read_gene_set_tibble <-
         annotation_tibble[match(x = missing_names, table = annotation_tibble$gene_name), c("gene_id"), drop = TRUE]
       rm(missing_names, annotation_tibble)
     }
+
+    # Find all those observations in "gene_label" that are NA or empty and
+    # replace with "gene_name" values.
+    missing_ids <-
+      is.na(x = gene_set_tibble$gene_label) |
+      gene_set_tibble$gene_label == ""
+    gene_set_tibble[missing_ids, c("gene_label")] <-
+      gene_set_tibble[missing_ids, c("gene_name"), drop = TRUE]
+
     rm(missing_indices, missing_ids)
 
     return(gene_set_tibble)

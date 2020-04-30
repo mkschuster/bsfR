@@ -142,6 +142,9 @@ if (!file.exists(output_directory)) {
              recursive = FALSE)
 }
 
+# Plot Annotation Tibble --------------------------------------------------
+
+
 plot_annotation_tibble <- NULL
 if (!is.null(x = argument_list$gene_path)) {
   plot_annotation_tibble <-
@@ -158,7 +161,7 @@ if (!is.null(x = argument_list$gene_path)) {
     col_names = TRUE
   )
 
-  # If the tibble exists test for NA values.
+  # If the tibble exists, test for NA values.
   missing_tibble <-
     dplyr::filter(.data = plot_annotation_tibble, is.na(x = .data$gene_id))
   if (nrow(x = missing_tibble) > 0L) {
@@ -236,13 +239,15 @@ column_annotation_frame <-
   data.frame(SummarizedExperiment::colData(x = deseq_data_set)[, variable_names, drop = FALSE])
 rm(variable_names)
 
-# Create a "Contrasts" report section
+# Create a "Contrasts" report section.
 nozzle_section_contrasts <-
   Nozzle.R1::newSection("Contrasts", class = SECTION.CLASS.RESULTS)
 nozzle_section_contrasts <-
   addTo(parent = nozzle_section_contrasts, Nozzle.R1::newTable(table = as.data.frame(x = contrast_tibble)))
+
+# Create a "Heatmaps" report section.
 nozzle_section_heatmaps <-
-  Nozzle.R1::newSection("Heatmaps", class = SECTION.CLASS.RESULTS)
+  Nozzle.R1::newSection("Expression Heatmap Plots", class = SECTION.CLASS.RESULTS)
 
 #' Local function drawing a ComplexHeatmap object.
 #'
@@ -251,7 +256,7 @@ nozzle_section_heatmaps <-
 #' @param top_gene_identifiers A \code{character} vector with the top-scoring gene identifier (gene_id) values.
 #' @param contrast_character A \code{character} scalar defining a particular contrast.
 #' @param plot_title A \code{character} scalar with the plot title.
-#' @param file_index A \code{integer} index for systematic file name generation.
+#' @param plot_index A \code{integer} index for systematic file name generation.
 #'
 #' @return A Nozzle Report Section.
 #' @noRd
@@ -263,7 +268,7 @@ draw_complex_heatmap <-
            top_gene_identifiers,
            contrast_character,
            plot_title = NULL,
-           file_index = NULL) {
+           plot_index = NULL) {
     if (length(x = top_gene_identifiers) > 0L) {
       # Draw a ComplexHeatmap.
       # Select the top (gene) rows from the scaled counts matrix and calculate
@@ -312,18 +317,18 @@ draw_complex_heatmap <-
         )
 
       file_path <-
-        paste(if (is.null(x = file_index)) {
-          # Without a file_index ...
+        paste(if (is.null(x = plot_index)) {
+          # Without a plot_index ...
           paste(prefix_heatmap,
                 contrast_character,
                 suffix,
                 sep = "_")
         } else {
-          # ... or with a file_index.
+          # ... or with a plot_index.
           paste(prefix_heatmap,
                 contrast_character,
                 suffix,
-                file_index,
+                plot_index,
                 sep = "_")
         },
         graphics_formats,
@@ -426,7 +431,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     for (plot_index in seq_along(along.with = plot_names)) {
       # Filter for plot_name values.
       selected_gene_identifiers <-
-        dplyr::filter(.data = plot_annotation_tibble, plot_name == plot_names[plot_index])$gene_id
+        dplyr::filter(.data = plot_annotation_tibble, .data$plot_name == plot_names[plot_index])$gene_id
       nozzle_section_heatmaps <-
         draw_complex_heatmap(
           nozzle_section = nozzle_section_heatmaps,
@@ -434,7 +439,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
           top_gene_identifiers = selected_gene_identifiers,
           contrast_character = contrast_character,
           plot_title = plot_names[plot_index],
-          file_index = plot_index
+          plot_index = plot_index
         )
       rm(selected_gene_identifiers)
     }

@@ -74,14 +74,6 @@ argument_list <-
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--padj"),
-        action = "store_true",
-        default = FALSE,
-        dest = "plot_padj",
-        help = "Plot adjusted p-values [FALSE]",
-        type = "logical"
-      ),
-      optparse::make_option(
         opt_str = c("--gene-path"),
         dest = "gene_path",
         help = "Gene list file path for annotation [NULL]",
@@ -146,6 +138,7 @@ if (is.null(x = argument_list$design_name)) {
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "bsfR"))
 suppressPackageStartupMessages(expr = library(package = "EnhancedVolcano"))
+suppressPackageStartupMessages(expr = library(package = "Nozzle.R1"))
 
 # Save plots in the following formats.
 
@@ -165,10 +158,10 @@ if (!file.exists(output_directory)) {
              recursive = FALSE)
 }
 
-# Plot Annotation ---------------------------------------------------------
+# Plot Annotation Tibble --------------------------------------------------
 
 
-plot_labels <- character()
+plot_annotation_tibble <- NULL
 if (!is.null(x = argument_list$gene_path)) {
   plot_annotation_tibble <-
     bsfR::bsfrd_read_gene_set_tibble(
@@ -177,11 +170,24 @@ if (!is.null(x = argument_list$gene_path)) {
       gene_set_path = argument_list$gene_path,
       verbose = argument_list$verbose
     )
-  plot_labels <- plot_annotation_tibble$gene_name
-  rm(plot_annotation_tibble)
+
+  readr::write_tsv(
+    x = plot_annotation_tibble,
+    path = file.path(output_directory, paste0(prefix_volcano, "_gene_set.tsv")),
+    col_names = TRUE
+  )
+
+  # If the tibble exists, test for NA values.
+  missing_tibble <-
+    dplyr::filter(.data = plot_annotation_tibble, is.na(x = .data$gene_id))
+  if (nrow(x = missing_tibble) > 0L) {
+    print(x = "The following genes_name values could not be resolved into gene_id values:")
+    print(x = missing_tibble)
+  }
+  rm(missing_tibble)
 }
 
-# Contrasts Frame ---------------------------------------------------------
+# Contrasts Tibble --------------------------------------------------------
 
 
 contrast_tibble <-
@@ -193,6 +199,170 @@ contrast_tibble <-
 if (nrow(x = contrast_tibble) == 0L) {
   stop("No contrast remaining after selection for design name.")
 }
+
+# Create a "Contrasts" report section.
+nozzle_section_contrasts <-
+  Nozzle.R1::newSection("Contrasts", class = SECTION.CLASS.RESULTS)
+nozzle_section_contrasts <-
+  addTo(parent = nozzle_section_contrasts, Nozzle.R1::newTable(table = as.data.frame(x = contrast_tibble)))
+
+# Create a "Colcano Plots" report section.
+nozzle_section_list <- list(
+  "padj" = Nozzle.R1::newSection("Volcano Plots (adjusted p-value)", class = SECTION.CLASS.RESULTS),
+  "pvalue" = Nozzle.R1::newSection("Volcano Plots (unadjusted p-value)", class = SECTION.CLASS.RESULTS)
+)
+
+#' Local function drawing an EnhancedVolcano object.
+#'
+#' @param nozzle_section_list A named \code{list} of Nozzle Report Section objects.
+#' @param deseq_results_tibble A results \code{tibble}} object.
+#' @param contrast_character A \code{character} scalar defining a particular contrast.
+#' @param gene_labels A \code{character} vector with the gene labels named by "gene_id".
+#' @param plot_index A \code{integer} index for systematic file name generation.
+#' @param plot_title A \code{character} scalar with the plot title.
+#'
+#' @return A Nozzle Report Section.
+#' @noRd
+#'
+#' @examples
+draw_enhanced_volcano <-
+  function(nozzle_section_list,
+           deseq_results_tibble,
+           contrast_character,
+           gene_labels = character(),
+           plot_index = 0L,
+           plot_title = NULL) {
+    for (plot_padj in c(TRUE, FALSE)) {
+      plot_paths <-
+        paste(
+          paste(
+            prefix_volcano,
+            "contrast",
+            contrast_character,
+            if (plot_padj) {
+              "padj"
+            } else {
+              "pvalue"
+            },
+            plot_index,
+            sep = "_"
+          ),
+          graphics_formats,
+          sep = "."
+        )
+
+      deseq_results_frame <-
+        base::as.data.frame(deseq_results_tibble)
+
+      x <- "log2FoldChange"
+      y <- if (plot_padj) {
+        "padj"
+      } else {
+        "pvalue"
+      }
+
+      ggplot_object <- EnhancedVolcano::EnhancedVolcano(
+        # Without base::as.data.frame(), the log2FoldChange variable is reported to
+        # be not numeric, when in fact it is.
+        toptable = deseq_results_frame,
+        lab = deseq_results_frame$gene_name,
+        x = x,
+        y = y,
+        xlim = if (is.null(x = argument_list$x_limits)) {
+          # Use the function default limits.
+          c(
+            min(deseq_results_frame[, x], na.rm = TRUE),
+            max(deseq_results_frame[, x], na.rm = TRUE)
+          )
+        } else {
+          # Split the x-limits argument into a character matrix and convert into a numeric vector.
+          as.numeric(x = stringr::str_split_fixed(
+            string = argument_list$x_limits,
+            pattern = ",",
+            n = 2L
+          ))
+        },
+        ylim = if (is.null(x = argument_list$y_limits)) {
+          # Use the function default limits.
+          c(0, max(-log10(deseq_results_frame[, y]), na.rm = TRUE) + 5)
+        } else {
+          # Split the y-limits argument into a character matrix and convert into
+          # a numeric vector.
+          as.numeric(x = stringr::str_split_fixed(
+            string = argument_list$y_limits,
+            pattern = ",",
+            n = 2L
+          ))
+        },
+        pCutoff = if (plot_padj) {
+          argument_list$padj_threshold
+        } else {
+          argument_list$p_threshold
+        },
+        xlab = if (plot_padj) {
+          bquote(expr = ~ Log[2] ~ "fold change")
+        } else {
+          bquote(expr = ~ Log[2] ~ "fold change")
+        },
+        ylab = if (plot_padj) {
+          bquote(expr = ~ -Log[10] ~ adjusted ~ italic(P))
+        } else {
+          bquote(expr = ~ -Log[10] ~ italic(P))
+        },
+        subtitle = ggplot2::waiver(),
+        caption = ggplot2::waiver(),
+        legend = if (plot_padj) {
+          c("NS", "Log2 FC", "Adj. P", "Adj. P & Log2 FC")
+        } else {
+          c("NS", "Log2 FC", "P", "P & Log2 FC")
+        },
+        selectLab = gene_labels,
+        drawConnectors = TRUE,
+        endsConnectors = 'last'
+      )
+
+      for (plot_path in plot_paths) {
+        ggplot2::ggsave(
+          filename = file.path(output_directory, plot_path),
+          plot = ggplot_object,
+          width = argument_list$plot_width,
+          height = argument_list$plot_height,
+          units = "in",
+          dpi = argument_list$plot_dpi,
+          limitsize = FALSE
+        )
+      }
+
+      nozzle_section_list[[if (plot_padj) {
+        "padj"
+      } else {
+        "pvalue"
+      }]] <-
+        Nozzle.R1::addTo(
+          parent = nozzle_section_list[[if (plot_padj) {
+            "padj"
+          } else {
+            "pvalue"
+          }]],
+          Nozzle.R1::newFigure(
+            file = plot_paths[2L],
+            "Volcano plot for contrast ",
+            Nozzle.R1::asStrong(contrast_tibble[contrast_index, "Label", drop = TRUE]),
+            fileHighRes = plot_paths[1L]
+          )
+        )
+
+      rm(plot_path,
+         ggplot_object,
+         deseq_results_frame,
+         x,
+         y,
+         plot_paths)
+    }
+    rm(plot_padj)
+
+    return(nozzle_section_list)
+  }
 
 for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
   contrast_character <-
@@ -207,146 +377,117 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       verbose = argument_list$verbose
     )
 
-  # deseq_results_tibble <-
-  #   dplyr::filter(.data = deseq_results_tibble,!is.na(x = log2FoldChange),!is.na(x = pvalue))
+  # Filter genes with NA values in either log2FoldChange, pvalue pr padj, which
+  # are a consequence of Cook's distance filtering in the DESeq2::results()
+  # function.
+  deseq_results_tibble <-
+    dplyr::filter(.data = deseq_results_tibble, !(
+      is.na(x = .data$log2FoldChange) |
+        is.na(x = .data$pvalue) |
+        is.na(x = .data$padj)
+    ))
+
+  # Replace adjusted p-values or p-values == 0.0.
+  # The correction in EnhanceVolcano does not seem to work, as testing equality
+  # with double (i.e. x == 0.0) is problematic.
+  #
+  # FIXME: Should this block be kept to just issue the message?
+  # if (any(deseq_results_tibble[, y, drop = TRUE] < .Machine$double.xmin)) {
+  #   message(
+  #     "Adjusting some ",
+  #     y,
+  #     " lower than machine-specific double minimum ",
+  #     .Machine$double.xmin
+  #   )
+  #   deseq_results_tibble[which(x = deseq_results_tibble[, y, drop = TRUE] < .Machine$double.xmin), y] <-
+  #     .Machine$double.xmin
+  # }
+  deseq_results_tibble <-
+    dplyr::mutate(
+      .data = deseq_results_tibble,
+      "pvalue" = dplyr::if_else(
+        condition = .data$pvalue < .Machine$double.xmin,
+        true = .Machine$double.xmin,
+        false = .data$pvalue
+      ),
+      "padj" = dplyr::if_else(
+        condition = .data$padj < .Machine$double.min,
+        true = .Machine$double.xmin,
+        false = .data$padj
+      )
+    )
 
   # Enhanced Volcano plot -----------------------------------------------
 
-  if (argument_list$plot_padj) {
-    plot_paths <- file.path(output_directory,
-                            paste(
-                              paste(
-                                prefix_volcano,
-                                "contrast",
-                                contrast_character,
-                                "adjp",
-                                sep = "_"
-                              ),
-                              graphics_formats,
-                              sep = "."
-                            ))
-  } else {
-    plot_paths <- file.path(output_directory,
-                            paste(
-                              paste(prefix_volcano,
-                                    "contrast",
-                                    contrast_character,
-                                    sep = "_"),
-                              graphics_formats,
-                              sep = "."
-                            ))
-  }
 
-  x <- "log2FoldChange"
-  y <- if (argument_list$plot_padj) {
-    "padj"
-  } else {
-    "pvalue"
-  }
-
-  # Replace adjusted p-values or p-values == 0.
-  # The correction in EnhanceVolcano does not seem to work, as a comparison with
-  # 0.0 (i.e. x == 0.0) is problematic.
-  if (any(deseq_results_tibble[, y] < .Machine$double.xmin)) {
-    message(
-      "Adjusting some ",
-      y,
-      " lower than machine-specific double minimum ",
-      .Machine$double.xmin
+  # Draw an empty plot with plot index 0L.
+  nozzle_section_list <-
+    draw_enhanced_volcano(
+      nozzle_section_list = nozzle_section_list,
+      deseq_results_tibble = deseq_results_tibble,
+      contrast_character = contrast_character
     )
-    deseq_results_tibble[which(x = deseq_results_tibble[, y] < .Machine$double.xmin), y] <-
-      .Machine$double.xmin
-  }
-  deseq_results_frame <- base::as.data.frame(deseq_results_tibble)
 
-  ggplot_object <- EnhancedVolcano::EnhancedVolcano(
-    # Without base::as.data.frame(), the log2FoldChange variable is reported to
-    # be not numeric, when in fact it is.
-    toptable = deseq_results_frame,
-    lab = deseq_results_frame$gene_name,
-    x = x,
-    y = y,
-    xlim = if (is.null(x = argument_list$x_limits)) {
-      # Use the function default limits.
-      c(min(deseq_results_frame[, x], na.rm = TRUE),
-        max(deseq_results_frame[, x], na.rm = TRUE))
-    } else {
-      # Split the x-limits argument into a character matrix and convert into a numeric vector.
-      as.numeric(x = stringr::str_split_fixed(
-        string = argument_list$x_limits,
-        pattern = ",",
-        n = 2L
-      ))
-    },
-    ylim = if (is.null(x = argument_list$y_limits)) {
-      # Use the function default limits.
-      c(0, max(-log10(deseq_results_frame[, y]), na.rm = TRUE) + 5)
-    } else {
-      # Split the y-limits argument into a character matrix and convert into a numeric vector.
-      as.numeric(x = stringr::str_split_fixed(
-        string = argument_list$y_limits,
-        pattern = ",",
-        n = 2L
-      ))
-    },
-    pCutoff = if (argument_list$plot_padj) {
-      argument_list$padj_threshold
-    } else {
-      argument_list$p_threshold
-    },
-    xlab = if (argument_list$plot_padj) {
-      bquote(expr = ~ Log[2] ~ "fold change")
-    } else {
-      bquote(expr = ~ Log[2] ~ "fold change")
-    },
-    ylab = if (argument_list$plot_padj) {
-      bquote(expr = ~ -Log[10] ~ adjusted ~ italic(P))
-    } else {
-      bquote(expr = ~ -Log[10] ~ italic(P))
-    },
-    subtitle = ggplot2::waiver(),
-    caption = ggplot2::waiver(),
-    legend = if (argument_list$plot_padj) {
-      c("NS", "Log2 FC", "Adj. P", "Adj. P & Log2 FC")
-    } else {
-      c("NS", "Log2 FC", "P", "P & Log2 FC")
-    },
-    selectLab = plot_labels,
-    drawConnectors = TRUE,
-    endsConnectors = 'last'
-  )
+  if (!is.null(x = plot_annotation_tibble)) {
+    # A plot_annotation_tibble exists to select gene labels from.
+    plot_names <- unique(plot_annotation_tibble$plot_name)
+    for (plot_index in seq_along(along.with = plot_names)) {
+      # Filter for plot_name values.
+      filtered_tibble <-
+        dplyr::filter(.data = plot_annotation_tibble,
+                      .data$plot_name == plot_names[plot_index])
+      gene_labels <- filtered_tibble$gene_label
+      names(x = gene_labels) <- filtered_tibble$gene_id
+      rm(filtered_tibble)
 
-  for (plot_path in plot_paths) {
-    ggplot2::ggsave(
-      filename = plot_path,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height,
-      units = "in",
-      dpi = argument_list$plot_dpi,
-      limitsize = FALSE
-    )
+      nozzle_section_list <-
+        draw_enhanced_volcano(
+          nozzle_section_list = nozzle_section_list,
+          deseq_results_tibble = deseq_results_tibble,
+          contrast_character = contrast_character,
+          gene_labels = gene_labels,
+          plot_index = plot_index,
+          plot_title = plot_names[plot_index]
+        )
+      rm(gene_labels)
+    }
+    rm(plot_index, plot_names)
   }
-  rm(
-    plot_path,
-    ggplot_object,
-    plot_paths,
-    y,
-    x,
-    deseq_results_frame,
-    deseq_results_tibble,
-    contrast_character
-  )
+  rm(deseq_results_tibble,
+     contrast_character)
 }
+
+nozzle_report <-
+  Nozzle.R1::newCustomReport("Complex Heatmap Report", version = 0)
+
+nozzle_report <-
+  Nozzle.R1::addTo(parent = nozzle_report, nozzle_section_contrasts)
+
+nozzle_report <-
+  Nozzle.R1::addTo(parent = nozzle_report, nozzle_section_list$padj)
+
+nozzle_report <-
+  Nozzle.R1::addTo(parent = nozzle_report, nozzle_section_list$pvalue)
+
+Nozzle.R1::writeReport(report = nozzle_report,
+                       filename = file.path(output_directory,
+                                            paste(prefix_volcano,
+                                                  "report",
+                                                  sep = "_")))
+
 rm(
+  nozzle_report,
+  nozzle_section_list,
+  nozzle_section_contrasts,
   contrast_index,
-  plot_labels,
   contrast_tibble,
+  plot_annotation_tibble,
   output_directory,
   prefix_volcano,
   prefix_deseq,
   graphics_formats,
-  argument_list
+  argument_list,
+  draw_enhanced_volcano
 )
 
 message("All done")

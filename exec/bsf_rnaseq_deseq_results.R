@@ -143,7 +143,7 @@ if (!file.exists(output_directory)) {
 # Plot Annotation ---------------------------------------------------------
 
 
-# Load a pre-calculated annotation frame.
+# Load a pre-calculated annotation tibble.
 annotation_tibble <- bsfR::bsfrd_read_annotation_tibble(
   genome_directory = argument_list$genome_directory,
   design_name = argument_list$design_name,
@@ -162,11 +162,11 @@ deseq_data_set <-
   )
 
 
-# Contrasts Frame ---------------------------------------------------------
+# Contrasts Tibble --------------------------------------------------------
 
 
-# Read a data frame of contrasts with variables "Design", "Numerator",
-# "Denominator" and "Label".
+# Read a tibble of contrasts with variables "Design", "Numerator", "Denominator"
+# and "Label".
 contrast_tibble <-
   bsfR::bsfrd_read_contrast_tibble(
     genome_directory = argument_list$genome_directory,
@@ -198,7 +198,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
 
 
   # Check for the significant genes table and if it exists already, read it to
-  # get the number of significant genes for the summary data frame.
+  # get the number of significant genes for the contrasts summary tibble.
   file_path <-
     file.path(output_directory,
               paste(
@@ -213,28 +213,34 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
 
   if (file.exists(file_path) &&
       file.info(file_path)$size > 0L) {
+    # Read a DESeqResults Tibble ------------------------------------------
+
     message("Skipping DESeqResults for ", contrast_character)
 
-    deseq_merge_significant <-
-      read.table(
-        file = file_path,
-        header = TRUE,
-        sep = "\t",
-        stringsAsFactors = FALSE
+    deseq_significant_tibble <-
+      bsfR::bsfrd_read_result_tibble(
+        genome_directory = argument_list$genome_directory,
+        design_name = argument_list$design_name,
+        contrast_tibble = contrast_tibble,
+        index = contrast_index,
+        verbose = argument_list$verbose
       )
 
     # Record the number of significant genes.
     contrast_tibble[contrast_index, "Significant"] <-
-      nrow(x = deseq_merge_significant)
+      nrow(x = deseq_significant_tibble)
 
     contrast_tibble[contrast_index, "SignificantUp"] <-
-      nrow(x = deseq_merge_significant[deseq_merge_significant$log2FoldChange > 0.0, , drop = FALSE])
+      nrow(x = dplyr::filter(.data = deseq_significant_tibble,
+                             .data$log2FoldChange > 0.0))
 
     contrast_tibble[contrast_index, "SignificantDown"] <-
-      nrow(x = deseq_merge_significant[deseq_merge_significant$log2FoldChange < 0.0, , drop = FALSE])
+      nrow(x = dplyr::filter(.data = deseq_significant_tibble,
+                             .data$log2FoldChange < 0.0))
 
-    rm(deseq_merge_significant)
+    rm(deseq_significant_tibble)
   } else {
+    # Create a DESeqResults Tibble ----------------------------------------
     message("Creating DESeqResults for ", contrast_character)
 
     deseq_results_default <-
@@ -244,31 +250,88 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
         lfcThreshold = argument_list$lfc_threshold,
         alpha = argument_list$padj_threshold,
         format = "DataFrame",
+        # If option "tidy" is TRUE, a classical data.frame is returned.
         tidy = FALSE,
-        # If tidy is TRUE, a classical data.frame is returned.
         parallel = TRUE
       )
 
-    # Run lfcShrink() if possible.
-    # deseq_results_shrunk <- NULL
-    # NOTE: The "ashr" method shrinks log2-fold changes on the basis of the
-    # results table and can thus deal with model matrices not being full rank.
+    # Shrink log2-fold change values.
     #
-    # if (any(attr(x = deseq_data_set, which = "full_rank"))) {
-    # The original DESEqDataSet object is full rank, so that log2-fold changes
-    # can be shrunk. The any() function returns FALSE for NULL values.
+    # NOTE: The "ashr" method shrinks log2-fold changes on the basis of the
+    # DESeqResults object and can thus deal with model matrices not being full
+    # rank. If a "res" option is provided for type "ashr", then both options,
+    # "coef" and "contrast" are ignored. Type "ashr" also ignores option
+    # "lfcThreshold". The "format" option "DataFrame" implies that a (modified)
+    # DESeqResults object is returned where variable "stat" is missing, but
+    # which extends "DataFrame".
+    #
+    # Method "normal" should no longer be used, while "apeglm" can apparently
+    # deal with contrasts.
+
     message("Shrinking log2-fold changes for ", contrast_character)
     deseq_results_shrunk <- DESeq2::lfcShrink(
       dds = deseq_data_set,
-      # For "ashr", if "res" is provided, then "coef" and "contrast" are ignored.
-      contrast = contrast_list,
       res = deseq_results_default,
       type = "ashr",
-      lfcThreshold = argument_list$lfc_threshold,
       format = "DataFrame",
       parallel = TRUE
     )
-    # }
+
+    # DESeqResults Tibble -------------------------------------------------
+
+
+    # Coerce the DataFrame into a tibble and add lots of useful variables.
+    deseq_results_tibble <-
+      tibble::as_tibble(x = as.data.frame(x = deseq_results_shrunk))
+    deseq_results_tibble <- dplyr::mutate(
+      .data = deseq_results_tibble,
+      "gene_id" = row.names(x = deseq_results_shrunk),
+      # Calculate a factor indicating significance.
+      "significant" = factor(
+        x = if_else(
+          condition = .data$padj <= argument_list$padj_threshold,
+          true = "yes",
+          false = "no",
+          missing = "no"
+        ),
+        levels = c("no", "yes")
+      ),
+      # Calculate ranks for ...
+      # (1) the effect size (log2FoldChange), ...
+      "rank_log2_fold_change" = base::rank(
+        x = -abs(x = .data$log2FoldChange),
+        ties.method = c("min")
+      ),
+      # (2) the absolute level (baseMean) and ...
+      "rank_base_mean" = base::rank(
+        x = -.data$baseMean,
+        ties.method = c("min")
+      ),
+      # (3) the statistical significance (padj).
+      "rank_padj" = base::rank(x = .data$padj, ties.method = c("min")),
+      # Calculate the maximum of the three ranks.
+      "max_rank" = base::pmax(
+        .data$rank_log2_fold_change,
+        .data$rank_base_mean,
+        .data$rank_padj
+      )
+    )
+    # Left join with the reference transcriptome annotation tibble.
+    deseq_results_tibble <- dplyr::left_join(x = annotation_tibble,
+                                             y = deseq_results_tibble,
+                                             by = "gene_id")
+
+    readr::write_tsv(x = deseq_results_tibble,
+                     path = file.path(output_directory,
+                                      paste(
+                                        paste(prefix,
+                                              "contrast",
+                                              contrast_character,
+                                              "genes",
+                                              sep = "_"),
+                                        "tsv",
+                                        sep = "."
+                                      )))
 
     # MA Plot -------------------------------------------------------------
 
@@ -293,11 +356,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       width = argument_list$plot_width,
       height = argument_list$plot_height
     )
-    if (is.null(x = deseq_results_shrunk)) {
-      DESeq2::plotMA(object = deseq_results_default)
-    } else {
-      DESeq2::plotMA(object = deseq_results_shrunk)
-    }
+    DESeq2::plotMA(object = deseq_results_shrunk)
     base::invisible(x = grDevices::dev.off())
 
     grDevices::png(
@@ -307,15 +366,11 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       units = "in",
       res = 300L
     )
-    if (is.null(x = deseq_results_shrunk)) {
-      DESeq2::plotMA(object = deseq_results_default)
-    } else {
-      DESeq2::plotMA(object = deseq_results_shrunk)
-    }
+    DESeq2::plotMA(object = deseq_results_shrunk)
     base::invisible(x = grDevices::dev.off())
     rm(plot_paths)
 
-    # Enhanced Volcano plot -----------------------------------------------
+    # Enhanced Volcano Plot -----------------------------------------------
 
 
     plot_paths <- file.path(output_directory,
@@ -328,37 +383,18 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
                               graphics_formats,
                               sep = "."
                             ))
-    # To annotate gene symbols rather than Ensembl gene identifiers, the
-    # DESeqResults DataFrame needs subsetting into a data.frame and merging with
-    # the annotation tibble.
     message("Creating an EnhancedVolcano plot for ", contrast_character)
-    deseq_results_frame <-
-      if (is.null(x = deseq_results_shrunk))
-        data.frame(gene_id = rownames(x = deseq_results_default),
-                   deseq_results_default[, c("baseMean",
-                                             "log2FoldChange",
-                                             "lfcSE",
-                                             "stat",
-                                             "pvalue",
-                                             "padj"), drop = FALSE])
-    else
-      data.frame(gene_id = rownames(x = deseq_results_shrunk),
-                 deseq_results_shrunk[, c("baseMean",
-                                          "log2FoldChange",
-                                          "lfcSE",
-                                          "pvalue", # no "stat" column
-                                          "padj"), drop = FALSE])
 
-    deseq_results_merged <-
-      base::merge(x = annotation_tibble, y = deseq_results_frame, by = "gene_id")
+    # EnhancedVolcano needs coercing the tibble into a data.frame.
+    deseq_results_frame <- as.data.frame(x = deseq_results_tibble)
 
     ggplot_object <- EnhancedVolcano::EnhancedVolcano(
-      toptable = deseq_results_merged,
-      lab = deseq_results_merged$gene_name,
+      toptable = deseq_results_frame,
+      lab = deseq_results_frame$gene_name,
       x = "log2FoldChange",
       y = "pvalue"
     )
-    rm(deseq_results_merged, deseq_results_frame)
+    rm(deseq_results_frame)
 
     for (plot_path in plot_paths) {
       ggplot2::ggsave(
@@ -370,123 +406,44 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       )
     }
     rm(plot_path,
-       ggplot_object, plot_paths)
+       ggplot_object,
+       plot_paths)
 
-    # DESeqResults DataFrame ----------------------------------------------
+    # Significant DESeqResults Tibble -------------------------------------
 
+    # Filter for significan genes last, as they are the criterion for running
+    # DESeq2::results() above.
+    deseq_significant_tibble <-
+      dplyr::filter(.data = deseq_results_tibble, .data$padj <= argument_list$padj_threshold)
 
-    # Adjust the DESeqResults DataFrame for merging with the annotation
-    # DataFrame, by setting the rownames() as "gene_id" variable.
-    deseq_results_frame <-
-      S4Vectors::DataFrame(
-        gene_id = rownames(x = deseq_results_default),
-        deseq_results_default[, c("baseMean",
-                                  "log2FoldChange",
-                                  "lfcSE",
-                                  "stat",
-                                  "pvalue",
-                                  "padj"), drop = FALSE],
-        significant = factor(x = "no", levels = c("no", "yes"))
-      )
-
-    # Assign the "significant" factor on the basis of the adjusted p-value
-    # threshold.
-    deseq_results_frame[!is.na(x = deseq_results_frame$padj) &
-                          deseq_results_frame$padj <= argument_list$padj_threshold, "significant"] <-
-      "yes"
-
-    # Calculate ranks for ...
-    # (1) the effect size (log2FoldChange), ...
-    if (is.null(x = deseq_results_shrunk)) {
-      deseq_results_frame$rank_log2_fold_change <-
-        base::rank(
-          x = -abs(x = deseq_results_frame$log2FoldChange),
-          ties.method = c("min")
-        )
-    } else {
-      deseq_results_frame$rank_log2_fold_change <-
-        base::rank(
-          x = -abs(x = deseq_results_shrunk$log2FoldChange),
-          ties.method = c("min")
-        )
-    }
-
-    # (2) the absolute level (baseMean) and ...
-    deseq_results_frame$rank_base_mean <-
-      base::rank(x = -deseq_results_frame$baseMean,
-                 ties.method = c("min"))
-
-    # (3) the statistical significance (padj).
-    deseq_results_frame$rank_padj <-
-      base::rank(x = deseq_results_frame$padj, ties.method = c("min"))
-
-    # Calculate the maximum of the three ranks.
-    deseq_results_frame$max_rank <-
-      base::pmax(
-        deseq_results_frame$rank_log2_fold_change,
-        deseq_results_frame$rank_base_mean,
-        deseq_results_frame$rank_padj
-      )
-
-    deseq_merge_complete <-
-      merge(x = annotation_tibble, y = deseq_results_frame, by = "gene_id")
-
-    write.table(
-      x = deseq_merge_complete,
-      file = file.path(output_directory,
-                       paste(
-                         paste(prefix,
-                               "contrast",
-                               contrast_character,
-                               "genes",
-                               sep = "_"),
-                         "tsv",
-                         sep = "."
-                       )),
-      sep = "\t",
-      col.names = TRUE,
-      row.names = FALSE
-    )
-
-    # Significant DESeqResults DataFrame ------------------------------------
-
-
-    deseq_merge_significant <-
-      subset(x = deseq_merge_complete, padj <= argument_list$padj_threshold)
+    readr::write_tsv(x = deseq_significant_tibble, path = file.path(output_directory,
+                                                                    paste(
+                                                                      paste(
+                                                                        prefix,
+                                                                        "contrast",
+                                                                        contrast_character,
+                                                                        "significant",
+                                                                        sep = "_"
+                                                                      ),
+                                                                      "tsv",
+                                                                      sep = "."
+                                                                    )))
 
     # Record the number of significant genes.
     contrast_tibble[contrast_index, "Significant"] <-
-      nrow(x = deseq_merge_significant)
+      nrow(x = deseq_significant_tibble)
 
     contrast_tibble[contrast_index, "SignificantUp"] <-
-      nrow(x = deseq_merge_significant[deseq_merge_significant$log2FoldChange > 0.0, , drop = FALSE])
+      nrow(x = dplyr::filter(.data = deseq_significant_tibble,
+                             .data$log2FoldChange > 0.0))
 
     contrast_tibble[contrast_index, "SignificantDown"] <-
-      nrow(x = deseq_merge_significant[deseq_merge_significant$log2FoldChange < 0.0, , drop = FALSE])
-
-    write.table(
-      x = deseq_merge_significant,
-      file = file.path(output_directory,
-                       paste(
-                         paste(
-                           prefix,
-                           "contrast",
-                           contrast_character,
-                           "significant",
-                           sep = "_"
-                         ),
-                         "tsv",
-                         sep = "."
-                       )),
-      sep = "\t",
-      col.names = TRUE,
-      row.names = FALSE
-    )
+      nrow(x = dplyr::filter(.data = deseq_significant_tibble,
+                             .data$log2FoldChange < 0.0))
 
     rm(
-      deseq_merge_significant,
-      deseq_merge_complete,
-      deseq_results_frame,
+      deseq_significant_tibble,
+      deseq_results_tibble,
       deseq_results_shrunk,
       deseq_results_default
     )
@@ -497,7 +454,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
 }
 rm(contrast_index)
 
-# Write summary frame -----------------------------------------------------
+# Write Summary Tibble ----------------------------------------------------
 
 
 readr::write_tsv(x = contrast_tibble,

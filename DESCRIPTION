@@ -25,7 +25,7 @@ Imports:
     GenomeInfoDb,
     GenomicRanges,
     rtracklayer
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.0
 Depends: R (>= 3.6)
 Collate:
     'bsf_genomes.R'
