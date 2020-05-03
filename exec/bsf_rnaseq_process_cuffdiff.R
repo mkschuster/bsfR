@@ -77,6 +77,20 @@ argument_list <-
         type = "character"
       ),
       optparse::make_option(
+        opt_str = c("--genome-directory"),
+        default = ".",
+        dest = "genome_directory",
+        help = "Genome directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--output-directory"),
+        default = ".",
+        dest = "output_directory",
+        help = "Output directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
         opt_str = c("--plot-width"),
         default = 7.0,
         dest = "plot_width",
@@ -125,23 +139,35 @@ character_to_csv <- function(x) {
   return(paste(sort(x = unique(x = x)), collapse = ","))
 }
 
+# Save plots in the following formats.
+
+graphics_formats <- c("pdf" = "pdf", "png" = "png")
+
 # Define CuffDiff and output directory names relative to the
 # working directory.
 
 cuffdiff_directory <-
-  paste("rnaseq", "cuffdiff", argument_list$comparison_name, sep = "_")
+  file.path(
+    argument_list$genome_directory,
+    paste("rnaseq", "cuffdiff", argument_list$comparison_name, sep = "_")
+  )
 
-output_directory <-
+prefix <-
   paste("rnaseq",
         "process",
         "cuffdiff",
         argument_list$comparison_name,
         sep = "_")
 
-# To avoid name clashes when downloading files, use the output directory
-# name also as a prefix for all files therein.
+# Create a new sub-directory for plots if it does not exist.
 
-prefix <- output_directory
+output_directory <-
+  file.path(argument_list$output_directory, prefix)
+if (!file.exists(output_directory)) {
+  dir.create(path = output_directory,
+             showWarnings = TRUE,
+             recursive = FALSE)
+}
 
 # Create a cummeRbund database --------------------------------------------
 
@@ -160,14 +186,6 @@ cuff_set <-
     gtfFile = argument_list$gtf_assembly,
     genome = argument_list$genome_version
   )
-
-# Create a new sub-directory for plots if it does not exist.
-
-if (!file.exists(output_directory)) {
-  dir.create(path = output_directory,
-             showWarnings = TRUE,
-             recursive = FALSE)
-}
 
 # Process Cuffdiff run information ----------------------------------------
 
@@ -242,7 +260,7 @@ replicate_number <- nrow(x = replicate_frame)
 # Some plots require replicates. Check whether at least one row has a
 # replicate column value greater than 0.
 have_replicates <-
-  (nrow(x = replicate_frame[replicate_frame$replicate > 0L, ]) > 0L)
+  (nrow(x = replicate_frame[replicate_frame$replicate > 0L,]) > 0L)
 # Write the replicate_frame.
 frame_path <-
   file.path(output_directory, paste0(prefix, "_replicates.tsv"))
@@ -262,14 +280,14 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
 rm(frame_path)
 # Plot the log10(internal_scale) of the replicate_frame to
 # visualise outliers.
-plot_path_pdf <-
-  file.path(output_directory, paste0(prefix, "_replicate_scale.pdf"))
-plot_path_png <-
-  file.path(output_directory, paste0(prefix, "_replicate_scale.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0L) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0L)) {
+plot_paths <-
+  file.path(output_directory, paste(
+    paste(prefix, "replicate", "scale", sep = "_"),
+    graphics_formats,
+    sep = "."
+  ))
+if (file.exists(plot_paths) &&
+    (file.info(plot_paths)$size > 0L)) {
   message("Skipping a library scale plot on replicates")
 } else {
   message("Creating a library scale plot on replicates")
@@ -280,21 +298,18 @@ if (file.exists(plot_path_pdf) &&
     ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(angle = -90, hjust = 0))
   plot_width <-
     argument_list$plot_width + (ceiling(x = replicate_number / 24L) - 1L) * argument_list$plot_width * 0.25
-  ggplot2::ggsave(
-    filename = plot_path_pdf,
-    plot = ggplot_object,
-    width = plot_width,
-    height = argument_list$plot_height
-  )
-  ggplot2::ggsave(
-    filename = plot_path_png,
-    plot = ggplot_object,
-    width = plot_width,
-    height = argument_list$plot_height
-  )
-  rm(ggplot_object, plot_width)
+  for (plot_path in plot_paths) {
+    ggplot2::ggsave(
+      filename = plot_path,
+      plot = ggplot_object,
+      width = plot_width,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(plot_path, plot_width, ggplot_object)
 }
-rm(plot_path_pdf, plot_path_png, replicate_frame)
+rm(plot_paths, replicate_frame)
 
 # Starting QC plotting ----------------------------------------------------
 
@@ -304,46 +319,43 @@ message("Starting QC plotting")
 # Dispersion Plot on Genes ------------------------------------------------
 
 
-plot_path_pdf <-
-  file.path(output_directory, paste0(prefix, "_genes_dispersion.pdf"))
-plot_path_png <-
-  file.path(output_directory, paste0(prefix, "_genes_dispersion.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0L) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0L)) {
+plot_paths <-
+  file.path(output_directory, paste(
+    paste(prefix, "genes", "dispersions", sep = "_"),
+    graphics_formats,
+    sep = "."
+  ))
+if (file.exists(plot_paths) &&
+    (file.info(plot_paths)$size > 0L)) {
   message("Skipping a Dispersion Plot on Genes")
 } else {
   message("Creating a Dispersion Plot on Genes")
   ggplot_object <-
     cummeRbund::dispersionPlot(object = cummeRbund::genes(object = cuff_set))
-  ggplot2::ggsave(
-    filename = plot_path_pdf,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  ggplot2::ggsave(
-    filename = plot_path_png,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  rm(ggplot_object)
+  for (plot_path in plot_paths) {
+    ggplot2::ggsave(
+      filename = plot_path,
+      plot = ggplot_object,
+      width = argument_list$plot_width,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(plot_path, ggplot_object)
 }
-rm(plot_path_pdf, plot_path_png)
+rm(plot_paths)
 
 # Dispersion Plot on Isoforms ---------------------------------------------
 
 
-plot_path_pdf <-
-  file.path(output_directory, paste0(prefix, "_isoforms_dispersion.pdf"))
-plot_path_png <-
-  file.path(output_directory, paste0(prefix, "_isoforms_dispersion.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0L) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0L)) {
+plot_paths <-
+  file.path(output_directory, paste(
+    paste(prefix, "isoforms", "dispersion", sep = "_"),
+    graphics_formats,
+    sep = "."
+  ))
+if (file.exists(plot_paths) &&
+    (file.info(plot_paths)$size > 0L)) {
   message("Skipping a Dispersion Plot on Isoforms")
 } else {
   message("Creating a Dispersion Plot on Isoforms")
@@ -351,19 +363,16 @@ if (file.exists(plot_path_pdf) &&
     expr = {
       ggplot_object <-
         cummeRbund::dispersionPlot(object = cummeRbund::isoforms(object = cuff_set))
-      ggplot2::ggsave(
-        filename = plot_path_pdf,
-        plot = ggplot_object,
-        width = argument_list$plot_width,
-        height = argument_list$plot_height
-      )
-      ggplot2::ggsave(
-        filename = plot_path_png,
-        plot = ggplot_object,
-        width = argument_list$plot_width,
-        height = argument_list$plot_height
-      )
-      rm(ggplot_object)
+      for (plot_path in plot_paths) {
+        ggplot2::ggsave(
+          filename = plot_path,
+          plot = ggplot_object,
+          width = argument_list$plot_width,
+          height = argument_list$plot_height,
+          limitsize = FALSE
+        )
+      }
+      rm(plot_path, ggplot_object)
     },
     error = function(cond) {
       message("Dispersion Plot on Isoforms failed with message:")
@@ -372,19 +381,15 @@ if (file.exists(plot_path_pdf) &&
     }
   )
 }
-rm(plot_path_pdf, plot_path_png)
+rm(plot_paths)
 
 # Squared Coefficient of Variation (SCV) Plot on Genes --------------------
 
 
-plot_path_pdf <-
-  file.path(output_directory, paste0(prefix, "_genes_scv.pdf"))
-plot_path_png <-
-  file.path(output_directory, paste0(prefix, "_genes_scv.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0L) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0L)) {
+plot_paths <-
+  file.path(output_directory, paste(paste(prefix, "genes", "scv", sep = "_"), graphics_formats, sep = "."))
+if (file.exists(plot_paths) &&
+    (file.info(plot_paths)$size > 0L)) {
   message("Skipping a SCV Plot on Genes")
 } else {
   # The plot requires replicates.
@@ -392,36 +397,33 @@ if (file.exists(plot_path_pdf) &&
     message("Creating a SCV Plot on Genes")
     ggplot_object <-
       cummeRbund::fpkmSCVPlot(object = cummeRbund::genes(object = cuff_set))
-    ggplot2::ggsave(
-      filename = plot_path_pdf,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    ggplot2::ggsave(
-      filename = plot_path_png,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    rm(ggplot_object)
+    for (plot_path in plot_paths) {
+      ggplot2::ggsave(
+        filename = plot_path,
+        plot = ggplot_object,
+        width = argument_list$plot_width,
+        height = argument_list$plot_height,
+        limitsize = FALSE
+      )
+    }
+    rm(plot_path, ggplot_object)
   } else {
     message("Skipping a SCV Plot on Genes in lack of replicates")
   }
 }
-rm(plot_path_pdf, plot_path_png)
+rm(plot_paths)
 
 # Squared Coefficient of Variation (SCV) Plot on Isoforms -----------------
 
 
-plot_path_pdf <-
-  file.path(output_directory, paste0(prefix, "_isoforms_scv.pdf"))
-plot_path_png <-
-  file.path(output_directory, paste0(prefix, "_isoforms_scv.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0L) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0L)) {
+plot_paths <-
+  file.path(output_directory, paste(
+    paste(prefix, "isoforms", "scv", sep = "_"),
+    graphics_formats,
+    sep = "."
+  ))
+if (file.exists(plot_paths) &&
+    (file.info(plot_paths)$size > 0L)) {
   message("Skipping a SCV Plot on Isoforms")
 } else {
   # The plot requires replicates.
@@ -429,178 +431,153 @@ if (file.exists(plot_path_pdf) &&
     message("Creating a SCV Plot on Isoforms")
     ggplot_object <-
       cummeRbund::fpkmSCVPlot(object = cummeRbund::isoforms(object = cuff_set))
-    ggplot2::ggsave(
-      filename = plot_path_pdf,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    ggplot2::ggsave(
-      filename = plot_path_png,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    rm(ggplot_object)
+    for (plot_path in plot_paths) {
+      ggplot2::ggsave(
+        filename = plot_path,
+        plot = ggplot_object,
+        width = argument_list$plot_width,
+        height = argument_list$plot_height,
+        limitsize = FALSE
+      )
+    }
+    rm(plot_path, ggplot_object)
   } else {
     message("Skipping a SCV Plot on Isoforms in lack of replicates")
   }
 }
-rm(plot_path_pdf, plot_path_png)
+rm(plot_paths)
 
 # Density Plot on Genes without replicates --------------------------------
 
 
-plot_path_pdf <-
-  file.path(output_directory,
-            paste0(prefix, "_genes_density_wo_replicates.pdf"))
-plot_path_png <-
-  file.path(output_directory,
-            paste0(prefix, "_genes_density_wo_replicates.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0L) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0L)) {
+plot_paths <-
+  file.path(output_directory, paste(
+    paste(prefix, "genes", "density", "wo", "replicates", sep = "_"),
+    graphics_formats,
+    sep = "."
+  ))
+if (file.exists(plot_paths) &&
+    (file.info(plot_paths)$size > 0L)) {
   message("Skipping a Density Plot on Genes without replicates")
 } else {
   message("Creating a Density Plot on Genes without replicates")
   ggplot_object <-
     cummeRbund::csDensity(object = cummeRbund::genes(object = cuff_set),
                           replicates = FALSE)
-  ggplot2::ggsave(
-    filename = plot_path_pdf,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  ggplot2::ggsave(
-    filename = plot_path_png,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  rm(ggplot_object)
+  for (plot_path in plot_paths) {
+    ggplot2::ggsave(
+      filename = plot_path,
+      plot = ggplot_object,
+      width = argument_list$plot_width,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(plot_path, ggplot_object)
 }
-rm(plot_path_pdf, plot_path_png)
+rm(plot_paths)
 
 # Density Plot on Genes with replicates -----------------------------------
 
 
-plot_path_pdf <-
-  file.path(output_directory,
-            paste0(prefix, "_genes_density_w_replicates.pdf"))
-plot_path_png <-
-  file.path(output_directory,
-            paste0(prefix, "_genes_density_w_replicates.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0L) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0L)) {
+plot_paths <-
+  file.path(output_directory, paste(
+    paste(prefix, "genes", "density", "w", "replicates", sep = "_"),
+    graphics_formats,
+    sep = "."
+  ))
+if (file.exists(plot_paths) &&
+    (file.info(plot_paths)$size > 0L)) {
   message("Skipping a Density Plot on Genes with replicates")
 } else {
   message("Creating a Density Plot on Genes with replicates")
   ggplot_object <-
     cummeRbund::csDensity(object = cummeRbund::genes(object = cuff_set),
                           replicates = TRUE)
-  ggplot2::ggsave(
-    filename = plot_path_pdf,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  ggplot2::ggsave(
-    filename = plot_path_png,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  rm(ggplot_object)
+  for (plot_path in plot_paths) {
+    ggplot2::ggsave(
+      filename = plot_path,
+      plot = ggplot_object,
+      width = argument_list$plot_width,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(plot_path, ggplot_object)
 }
-rm(plot_path_pdf, plot_path_png)
+rm(plot_paths)
 
 # Density Plot on Isoforms without replicates -----------------------------
 
 
-plot_path_pdf <-
-  file.path(output_directory,
-            paste0(prefix, "_isoforms_density_wo_replicates.pdf"))
-plot_path_png <-
-  file.path(output_directory,
-            paste0(prefix, "_isoforms_density_wo_replicates.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0L) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0L)) {
+plot_paths <-
+  file.path(output_directory, paste(
+    paste(prefix, "isoforms", "density", "wo", "replicates", sep = "_"),
+    graphics_formats,
+    sep = "."
+  ))
+if (file.exists(plot_paths) &&
+    (file.info(plot_paths)$size > 0L)) {
   message("Skipping a Density Plot on Isoforms without replicates")
 } else {
   message("Creating a Density Plot on Isoforms without replicates")
   ggplot_object <-
     cummeRbund::csDensity(object = cummeRbund::isoforms(object = cuff_set),
                           replicates = FALSE)
-  ggplot2::ggsave(
-    filename = plot_path_pdf,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  ggplot2::ggsave(
-    filename = plot_path_png,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  rm(ggplot_object)
+  for (plot_path in plot_paths) {
+    ggplot2::ggsave(
+      filename = plot_path,
+      plot = ggplot_object,
+      width = argument_list$plot_width,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(plot_path, ggplot_object)
 }
-rm(plot_path_pdf, plot_path_png)
+rm(plot_paths)
 
 # Density Plot on Isoforms with replicates --------------------------------
 
 
-plot_path_pdf <-
-  file.path(output_directory,
-            paste0(prefix, "_isoforms_density_w_replicates.pdf"))
-plot_path_png <-
-  file.path(output_directory,
-            paste0(prefix, "_isoforms_density_w_replicates.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0L) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0L)) {
+plot_paths <-
+  file.path(output_directory, paste(
+    paste(prefix, "isoforms", "density", "w", "replicates", sep = "_"),
+    graphics_formats,
+    sep = "."
+  ))
+if (file.exists(plot_paths) &&
+    (file.info(plot_paths)$size > 0L)) {
   message("Skipping a Density Plot on Isoforms with replicates")
 } else {
   message("Creating a Density Plot on Isoforms with replicates")
   ggplot_object <-
     cummeRbund::csDensity(object = cummeRbund::isoforms(object = cuff_set),
                           replicates = TRUE)
-  ggplot2::ggsave(
-    filename = plot_path_pdf,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  ggplot2::ggsave(
-    filename = plot_path_png,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  rm(ggplot_object)
+  for (plot_path in plot_paths) {
+    ggplot2::ggsave(
+      filename = plot_path,
+      plot = ggplot_object,
+      width = argument_list$plot_width,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(plot_path, ggplot_object)
 }
-rm(plot_path_pdf, plot_path_png)
+rm(plot_paths)
 
 # Box Plot on Genes with replicates ---------------------------------------
 
 
-plot_path_pdf <-
-  file.path(output_directory,
-            paste0(prefix, "_genes_box_w_replicates.pdf"))
-plot_path_png <-
-  file.path(output_directory,
-            paste0(prefix, "_genes_box_w_replicates.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0L) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0L)) {
+plot_paths <-
+  file.path(output_directory, paste(
+    paste(prefix, "genes", "box", "w", "replicates", sep = "_"),
+    graphics_formats,
+    sep = "."
+  ))
+if (file.exists(plot_paths) &&
+    (file.info(plot_paths)$size > 0L)) {
   message("Skipping a Box Plot on Genes with replicates")
 } else {
   message("Creating a Box Plot on Genes with replicates")
@@ -641,35 +618,30 @@ if (file.exists(plot_path_pdf) &&
   # guide legend column.
   plot_width <-
     argument_list$plot_width + (ceiling(x = replicate_number / 24L) - 1L) * argument_list$plot_width * 0.25
-  ggplot2::ggsave(
-    filename = plot_path_pdf,
-    plot = ggplot_object,
-    width = plot_width,
-    height = argument_list$plot_height
-  )
-  ggplot2::ggsave(
-    filename = plot_path_png,
-    plot = ggplot_object,
-    width = plot_width,
-    height = argument_list$plot_height
-  )
-  rm(ggplot_object, plot_width, rep_fpkm_genes)
+  for (plot_path in plot_paths) {
+    ggplot2::ggsave(
+      filename = plot_path,
+      plot = ggplot_object,
+      width = plot_width,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(plot_path, plot_width, ggplot_object, rep_fpkm_genes)
 }
-rm(plot_path_pdf, plot_path_png)
+rm(plot_paths)
 
 # Box Plot on Genes without replicates ------------------------------------
 
 
-plot_path_pdf <-
-  file.path(output_directory,
-            paste0(prefix, "_genes_box_wo_replicates.pdf"))
-plot_path_png <-
-  file.path(output_directory,
-            paste0(prefix, "_genes_box_wo_replicates.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0L) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0L)) {
+plot_paths <-
+  file.path(output_directory, paste(
+    paste(prefix, "genes", "box", "wo", "replicates", sep = "_"),
+    graphics_formats,
+    sep = "."
+  ))
+if (file.exists(plot_paths) &&
+    (file.info(plot_paths)$size > 0L)) {
   message("Skipping a Box Plot on Genes without replicates")
 } else {
   message("Creating a Box Plot on Genes without replicates")
@@ -706,35 +678,30 @@ if (file.exists(plot_path_pdf) &&
   # guide legend column.
   plot_width <-
     argument_list$plot_width + (ceiling(x = sample_number / 24L) - 1L) * argument_list$plot_width * 0.25
-  ggplot2::ggsave(
-    filename = plot_path_pdf,
-    plot = ggplot_object,
-    width = plot_width,
-    height = argument_list$plot_height
-  )
-  ggplot2::ggsave(
-    filename = plot_path_png,
-    plot = ggplot_object,
-    width = plot_width,
-    height = argument_list$plot_height
-  )
-  rm(ggplot_object, plot_width, fpkm_genes)
+  for (plot_path in plot_paths) {
+    ggplot2::ggsave(
+      filename = plot_path,
+      plot = ggplot_object,
+      width = plot_width,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(plot_path, plot_width, ggplot_object, fpkm_genes)
 }
-rm(plot_path_pdf, plot_path_png)
+rm(plot_paths)
 
 # Box Plot on Isoforms with replicates ------------------------------------
 
 
-plot_path_pdf <-
-  file.path(output_directory,
-            paste0(prefix, "_isoforms_box_w_replicates.pdf"))
-plot_path_png <-
-  file.path(output_directory,
-            paste0(prefix, "_isoforms_box_w_replicates.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0L) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0L)) {
+plot_paths <-
+  file.path(output_directory, paste(
+    paste(prefix, "isoforms", "box", "w", "replicates", sep = "_"),
+    graphics_formats,
+    sep = "."
+  ))
+if (file.exists(plot_paths) &&
+    (file.info(plot_paths)$size > 0L)) {
   message("Skipping a Box Plot on Isoforms with replicates")
 } else {
   message("Creating a Box Plot on Isoforms with replicates")
@@ -775,35 +742,30 @@ if (file.exists(plot_path_pdf) &&
   # guide legend column.
   plot_width <-
     argument_list$plot_width + (ceiling(x = replicate_number / 24L) - 1L) * argument_list$plot_width * 0.25
-  ggplot2::ggsave(
-    filename = plot_path_pdf,
-    plot = ggplot_object,
-    width = plot_width,
-    height = argument_list$plot_height
-  )
-  ggplot2::ggsave(
-    filename = plot_path_png,
-    plot = ggplot_object,
-    width = plot_width,
-    height = argument_list$plot_height
-  )
-  rm(ggplot_object, plot_width, rep_fpkm_isoforms)
+  for (plot_path in plot_paths) {
+    ggplot2::ggsave(
+      filename = plot_path,
+      plot = ggplot_object,
+      width = plot_width,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(plot_path, plot_width, ggplot_object, rep_fpkm_isoforms)
 }
-rm(plot_path_pdf, plot_path_png)
+rm(plot_paths)
 
 # Box Plot on Isoforms without replicates ---------------------------------
 
 
-plot_path_pdf <-
-  file.path(output_directory,
-            paste0(prefix, "_isoforms_box_wo_replicates.pdf"))
-plot_path_png <-
-  file.path(output_directory,
-            paste0(prefix, "_isoforms_box_wo_replicates.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0L) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0L)) {
+plot_paths <-
+  file.path(output_directory, paste(
+    paste(prefix, "isoforms", "box", "wo", "replicates", sep = "_"),
+    graphics_formats,
+    sep = "."
+  ))
+if (file.exists(plot_paths) &&
+    (file.info(plot_paths)$size > 0L)) {
   message("Skipping a Box Plot on Isoforms without replicates")
 } else {
   message("Creating a Box Plot on Isoforms without replicates")
@@ -840,125 +802,101 @@ if (file.exists(plot_path_pdf) &&
   # guide legend column.
   plot_width <-
     argument_list$plot_width + (ceiling(x = sample_number / 24L) - 1L) * argument_list$plot_width * 0.25
-  ggplot2::ggsave(
-    filename = plot_path_pdf,
-    plot = ggplot_object,
-    width = plot_width,
-    height = argument_list$plot_height
-  )
-  ggplot2::ggsave(
-    filename = plot_path_png,
-    plot = ggplot_object,
-    width = plot_width,
-    height = argument_list$plot_height
-  )
-  rm(ggplot_object, plot_width, fpkm_isoforms)
+  for (plot_path in plot_paths) {
+    ggplot2::ggsave(
+      filename = plot_path,
+      plot = ggplot_object,
+      width = plot_width,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(plot_path, plot_width, ggplot_object, fpkm_isoforms)
 }
-rm(plot_path_pdf, plot_path_png)
+rm(plot_paths)
 
 # Scatter Matrix Plot on Genes --------------------------------------------
 
 
 # Only include the plot for less than or equal to 20 samples.
 if (sample_number <= 20L) {
-  plot_path_pdf <-
-    file.path(output_directory,
-              paste0(prefix, "_genes_scatter_matrix.pdf"))
-  plot_path_png <-
-    file.path(output_directory,
-              paste0(prefix, "_genes_scatter_matrix.png"))
-  if (file.exists(plot_path_pdf) &&
-      (file.info(plot_path_pdf)$size > 0L) &&
-      file.exists(plot_path_png) &&
-      (file.info(plot_path_png)$size > 0L)) {
+  plot_paths <-
+    file.path(output_directory, paste(
+      paste(prefix, "genes", "scatter", "matrix", sep = "_"),
+      graphics_formats,
+      sep = "."
+    ))
+  if (file.exists(plot_paths) &&
+      (file.info(plot_paths)$size > 0L)) {
     message("Skipping a Scatter Matrix Plot on Genes")
   } else {
     message("Creating a Scatter Matrix Plot on Genes")
     ggplot_object <-
       cummeRbund::csScatterMatrix(object = cummeRbund::genes(object = cuff_set))
-    ggplot2::ggsave(
-      filename = plot_path_pdf,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    ggplot2::ggsave(
-      filename = plot_path_png,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    rm(ggplot_object)
+    for (plot_path in plot_paths) {
+      ggplot2::ggsave(
+        filename = plot_path,
+        plot = ggplot_object,
+        width = argument_list$plot_width,
+        height = argument_list$plot_height,
+        limitsize = FALSE
+      )
+    }
+    rm(plot_path, ggplot_object)
   }
-  rm(plot_path_pdf, plot_path_png)
+  rm(plot_paths)
 }
 
 # Scatter Matrix Plot on Isoforms -----------------------------------------
 
 
 if (sample_number <= 20L) {
-  plot_path_pdf <-
-    file.path(output_directory,
-              paste0(prefix, "_isoforms_scatter_matrix.pdf"))
-  plot_path_png <-
-    file.path(output_directory,
-              paste0(prefix, "_isoforms_scatter_matrix.png"))
-  if (file.exists(plot_path_pdf) &&
-      (file.info(plot_path_pdf)$size > 0L) &&
-      file.exists(plot_path_png) &&
-      (file.info(plot_path_png)$size > 0L)) {
+  plot_paths <-
+    file.path(output_directory, paste(
+      paste(prefix, "isoforms", "scatter", "matrix", sep = "_"),
+      graphics_formats,
+      sep = "."
+    ))
+  if (file.exists(plot_paths) &&
+      (file.info(plot_paths)$size > 0L)) {
     message("Skipping a Scatter Matrix Plot on Isoforms")
   } else {
     message("Creating a Scatter Matrix Plot on Isoforms")
     ggplot_object <-
       cummeRbund::csScatterMatrix(object = cummeRbund::isoforms(object = cuff_set))
-    ggplot2::ggsave(
-      filename = plot_path_pdf,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    ggplot2::ggsave(
-      filename = plot_path_png,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    rm(ggplot_object)
+    for (plot_path in plot_paths) {
+      ggplot2::ggsave(
+        filename = plot_path,
+        plot = ggplot_object,
+        width = argument_list$plot_width,
+        height = argument_list$plot_height,
+        limitsize = FALSE
+      )
+    }
+    rm(plot_path, ggplot_object)
   }
-  rm(plot_path_pdf, plot_path_png)
+  rm(plot_paths)
 }
 
 # Scatter Plot on Genes for each sample pair ------------------------------
 
 
-for (i in seq_along(along.with = sample_pairs[1L, ])) {
-  plot_path_pdf <-
-    file.path(
-      output_directory,
+for (i in seq_along(along.with = sample_pairs[1L,])) {
+  plot_paths <-
+    file.path(output_directory, paste(
       paste(
         prefix,
         sample_pairs[1L, i],
         sample_pairs[2L, i],
-        "genes_scatter.pdf",
+        "genes",
+        "scatter",
         sep = "_"
-      )
-    )
-  plot_path_png <-
-    file.path(
-      output_directory,
-      paste(
-        prefix,
-        sample_pairs[1L, i],
-        sample_pairs[2L, i],
-        "genes_scatter.png",
-        sep = "_"
-      )
-    )
-  if (file.exists(plot_path_pdf) &&
-      (file.info(plot_path_pdf)$size > 0L) &&
-      file.exists(plot_path_png) &&
-      (file.info(plot_path_png)$size > 0L)) {
+      ),
+      graphics_formats,
+      sep = "."
+    ))
+  if (file.exists(plot_paths) &&
+      (file.info(plot_paths)$size > 0L)) {
     message("Skipping a Scatter Plot on Genes for ",
             sample_pairs[1L, i],
             " versus ",
@@ -998,7 +936,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       # which performs much better with typical numbers of genes.
       ggplot_object <-
         ggplot_object + ggplot2::geom_hex(
-          data = diff_data_genes[diff_data_genes$significant == "no", ],
+          data = diff_data_genes[diff_data_genes$significant == "no",],
           alpha = I(1 / 3),
           show.legend = TRUE,
           bins = 50
@@ -1010,7 +948,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       # Plot the significant genes with ggplot2::geom_point() in red.
       ggplot_object <-
         ggplot_object + ggplot2::geom_point(
-          data = diff_data_genes[diff_data_genes$significant == "yes", ],
+          data = diff_data_genes[diff_data_genes$significant == "yes",],
           colour = "red",
           size = 1.2,
           alpha = I(1 / 3)
@@ -1043,9 +981,9 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
     # For defining the data range for label placement,
     # eliminate rows with value 0.0.
     range_value_1 <-
-      range(diff_data_genes[diff_data_genes$value_1 > 0.0, ]$value_1)
+      range(diff_data_genes[diff_data_genes$value_1 > 0.0,]$value_1)
     range_value_2 <-
-      range(diff_data_genes[diff_data_genes$value_2 > 0.0, ]$value_2)
+      range(diff_data_genes[diff_data_genes$value_2 > 0.0,]$value_2)
 
     # Calculate the (Pearson) correlation coefficient and place it on the plot
     # in the lower right corner at 95% x and 5% y.
@@ -1078,11 +1016,11 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
         label = paste0(
           "Up: ",
           nrow(x = diff_data_genes[diff_data_genes$log2_fold_change > 0.0 &
-                                     diff_data_genes$significant == "yes", ]),
+                                     diff_data_genes$significant == "yes",]),
           "\n",
           "Down: ",
           nrow(x = diff_data_genes[diff_data_genes$log2_fold_change < 0.0 &
-                                     diff_data_genes$significant == "yes", ])
+                                     diff_data_genes$significant == "yes",])
         ),
         colour = "red",
         hjust = 0
@@ -1090,21 +1028,18 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
 
     rm(range_value_1, range_value_2)
 
-    ggplot2::ggsave(
-      filename = plot_path_pdf,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    ggplot2::ggsave(
-      filename = plot_path_png,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    rm(ggplot_object, diff_data_genes)
+    for (plot_path in plot_paths) {
+      ggplot2::ggsave(
+        filename = plot_path,
+        plot = ggplot_object,
+        width = argument_list$plot_width,
+        height = argument_list$plot_height,
+        limitsize = FALSE
+      )
+    }
+    rm(plot_path, ggplot_object, diff_data_genes)
   }
-  rm(plot_path_pdf, plot_path_png)
+  rm(plot_paths)
 }
 
 # Dendrogram Plot on Genes ------------------------------------------------
@@ -1112,32 +1047,28 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
 
 # The csDendro function returns a dendrogram object that cannot be saved with
 # the ggplot2::ggsave() function.
-plot_path_pdf <-
-  file.path(output_directory, paste0(prefix, "_genes_dendrogram.pdf"))
-if (file.exists(plot_path_pdf) &&
-    file.info(plot_path_pdf)$size > 0L) {
-  message("Skipping a Dendrogram Plot on Genes [PDF]")
+plot_paths <-
+  file.path(output_directory, paste(
+    paste(prefix, "genes", "dendrogram", sep = "_"),
+    graphics_formats,
+    sep = "."
+  ))
+if (file.exists(plot_paths) &&
+    file.info(plot_paths)$size > 0L) {
+  message("Skipping a Dendrogram Plot on Genes")
 } else {
-  message("Creating a Dendrogram Plot on Genes [PDF]")
+  message("Creating a Dendrogram Plot on Genes")
+
   grDevices::pdf(
-    file = plot_path_pdf,
+    file = plot_paths[1L],
     width = argument_list$plot_width,
     height = argument_list$plot_height
   )
   cummeRbund::csDendro(object = cummeRbund::genes(object = cuff_set))
   base::invisible(x = grDevices::dev.off())
-}
-rm(plot_path_pdf)
 
-plot_path_png <-
-  file.path(output_directory, paste0(prefix, "_genes_dendrogram.png"))
-if (file.exists(plot_path_png) &&
-    file.info(plot_path_png)$size > 0L) {
-  message("Skipping a Dendrogram Plot on Genes [PNG]")
-} else {
-  message("Creating a Dendrogram Plot on Genes [PNG]")
   grDevices::png(
-    filename = plot_path_png,
+    filename = plot_paths[2L],
     width = argument_list$plot_width,
     height = argument_list$plot_height,
     units = "in",
@@ -1146,26 +1077,20 @@ if (file.exists(plot_path_png) &&
   cummeRbund::csDendro(object = cummeRbund::genes(object = cuff_set))
   base::invisible(x = grDevices::dev.off())
 }
-rm(plot_path_png)
+rm(plot_paths)
 
 # MA Plot on Genes for each sample pair based on FPKM values --------------
 
 
-for (i in seq_along(along.with = sample_pairs[1L, ])) {
-  plot_path_pdf <-
-    file.path(
-      output_directory,
-      paste(prefix, sample_pairs[1L, i], sample_pairs[2L, i], "genes_ma.pdf", sep = "_")
-    )
-  plot_path_png <-
-    file.path(
-      output_directory,
-      paste(prefix, sample_pairs[1L, i], sample_pairs[2L, i], "genes_ma.png", sep = "_")
-    )
-  if (file.exists(plot_path_pdf) &&
-      (file.info(plot_path_pdf)$size > 0L) &&
-      file.exists(plot_path_png) &&
-      (file.info(plot_path_png)$size > 0L)) {
+for (i in seq_along(along.with = sample_pairs[1L,])) {
+  plot_paths <-
+    file.path(output_directory, paste(
+      paste(prefix, sample_pairs[1L, i], sample_pairs[2L, i], "genes", "ma"),
+      graphics_formats,
+      sep = "."
+    ))
+  if (file.exists(plot_paths) &&
+      (file.info(plot_paths)$size > 0L)) {
     message("Skipping a MAplot on Genes for ",
             sample_pairs[1L, i],
             " versus ",
@@ -1181,21 +1106,18 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
         x = sample_pairs[1L, i],
         y = sample_pairs[2L, i]
       )
-    ggplot2::ggsave(
-      filename = plot_path_pdf,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    ggplot2::ggsave(
-      filename = plot_path_png,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    rm(ggplot_object)
+    for (plot_path in plot_paths) {
+      ggplot2::ggsave(
+        filename = plot_path,
+        plot = ggplot_object,
+        width = argument_list$plot_width,
+        height = argument_list$plot_height,
+        limitsize = FALSE
+      )
+    }
+    rm(plot_path, ggplot_object)
   }
-  rm(plot_path_pdf, plot_path_png)
+  rm(plot_paths)
 }
 
 # TODO: Create a MAplot on genes for each sample pair based on count data.
@@ -1203,67 +1125,52 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
 # Volcano Matrix Plot on Genes --------------------------------------------
 
 
-plot_path_pdf <-
-  file.path(output_directory,
-            paste0(prefix, "_genes_volcano_matrix.pdf"))
-plot_path_png <-
-  file.path(output_directory,
-            paste0(prefix, "_genes_volcano_matrix.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0L) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0L)) {
+plot_paths <-
+  file.path(output_directory, paste(
+    paste(prefix, "genes", "volcano", "matrix", sep = "_"),
+    graphics_formats,
+    sep = "."
+  ))
+if (file.exists(plot_paths) &&
+    (file.info(plot_paths)$size > 0L)) {
   message("Skipping a Volcano Matrix Plot on Genes")
 } else {
   message("Creating a Volcano Matrix Plot on Genes")
   ggplot_object <-
     cummeRbund::csVolcanoMatrix(object = cummeRbund::genes(object = cuff_set))
-  ggplot2::ggsave(
-    filename = plot_path_pdf,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  ggplot2::ggsave(
-    filename = plot_path_png,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  rm(ggplot_object)
+  for (plot_path in plot_paths) {
+    ggplot2::ggsave(
+      filename = plot_path,
+      plot = ggplot_object,
+      width = argument_list$plot_width,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(plot_path, ggplot_object)
 }
-rm(plot_path_pdf, plot_path_png)
+rm(plot_paths)
 
 # Volcano Plot on Genes for each sample pair ------------------------------
 
 
-for (i in seq_along(along.with = sample_pairs[1L, ])) {
-  plot_path_pdf <-
-    file.path(
-      output_directory,
-      paste(
-        prefix,
-        sample_pairs[1L, i],
-        sample_pairs[2L, i],
-        "genes_volcano.pdf",
-        sep = "_"
-      )
-    )
-  plot_path_png <-
-    file.path(
-      output_directory,
-      paste(
-        prefix,
-        sample_pairs[1L, i],
-        sample_pairs[2L, i],
-        "genes_volcano.png",
-        sep = "_"
-      )
-    )
-  if (file.exists(plot_path_pdf) &&
-      (file.info(plot_path_pdf)$size > 0L) &&
-      file.exists(plot_path_png) &&
-      (file.info(plot_path_png)$size > 0L)) {
+for (i in seq_along(along.with = sample_pairs[1L,])) {
+  plot_paths <-
+    file.path(output_directory,
+              paste(
+                paste(
+                  prefix,
+                  sample_pairs[1L, i],
+                  sample_pairs[2L, i],
+                  "genes",
+                  "volcano",
+                  sep = "_"
+                ),
+                graphics_formats,
+                sep = "."
+              ))
+  if (file.exists(plot_paths) &&
+      (file.info(plot_paths)$size > 0L)) {
     message("Skipping a Volcano Plot on Genes for ",
             sample_pairs[1L, i],
             " versus ",
@@ -1293,21 +1200,18 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
         alpha = 0.05,
         showSignificant = TRUE
       )
-    ggplot2::ggsave(
-      filename = plot_path_pdf,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    ggplot2::ggsave(
-      filename = plot_path_png,
-      plot = ggplot_object,
-      width = argument_list$plot_width,
-      height = argument_list$plot_height
-    )
-    rm(ggplot_object)
+    for (plot_path in plot_paths) {
+      ggplot2::ggsave(
+        filename = plot_path,
+        plot = ggplot_object,
+        width = argument_list$plot_width,
+        height = argument_list$plot_height,
+        limitsize = FALSE
+      )
+    }
+    rm(plot_path, ggplot_object)
   }
-  rm(plot_path_pdf, plot_path_png)
+  rm(plot_paths)
 }
 
 # Multidimensional Scaling (MDS) Plot on Genes ----------------------------
@@ -1315,14 +1219,14 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
 
 # Plot only, if the CuffData object contains more than two replicates.
 if (replicate_number > 2L) {
-  plot_path_pdf <-
-    file.path(output_directory, paste0(prefix, "_genes_mds.pdf"))
-  plot_path_png <-
-    file.path(output_directory, paste0(prefix, "_genes_mds.png"))
-  if (file.exists(plot_path_pdf) &&
-      (file.info(plot_path_pdf)$size > 0L) &&
-      file.exists(plot_path_png) &&
-      (file.info(plot_path_png)$size > 0L)) {
+  plot_paths <-
+    file.path(output_directory, paste(
+      paste(prefix, "genes", "mds", sep = "_"),
+      graphics_formats,
+      sep = "."
+    ))
+  if (file.exists(plot_paths) &&
+      (file.info(plot_paths)$size > 0L)) {
     message("Skipping a Multidimensional Scaling Plot on Genes")
   } else {
     # if (have_replicates) {
@@ -1333,19 +1237,16 @@ if (replicate_number > 2L) {
       ggplot_object <-
         cummeRbund::MDSplot(object = cummeRbund::genes(object = cuff_set),
                             replicates = TRUE)
-      ggplot2::ggsave(
-        filename = plot_path_pdf,
-        plot = ggplot_object,
-        width = argument_list$plot_width,
-        height = argument_list$plot_height
-      )
-      ggplot2::ggsave(
-        filename = plot_path_png,
-        plot = ggplot_object,
-        width = argument_list$plot_width,
-        height = argument_list$plot_height
-      )
-      rm(ggplot_object)
+      for (plot_path in plot_paths) {
+        ggplot2::ggsave(
+          filename = plot_path,
+          plot = ggplot_object,
+          width = argument_list$plot_width,
+          height = argument_list$plot_height,
+          limitsize = FALSE
+        )
+      }
+      rm(plot_path, ggplot_object)
     } else {
       # The standard MDSplot has too many replicates.
       gene_rep_fit <-
@@ -1393,22 +1294,23 @@ if (replicate_number > 2L) {
       # additional guide legend column.
       plot_width <-
         argument_list$plot_width + (ceiling(x = replicate_number / 24L) - 1L) * argument_list$plot_width * 0.25
-      ggplot2::ggsave(
-        filename = plot_path_pdf,
-        plot = ggplot_object,
-        width = plot_width,
-        height = argument_list$plot_height
-      )
-      ggplot2::ggsave(
-        filename = plot_path_png,
-        plot = ggplot_object,
-        width = plot_width,
-        height = argument_list$plot_height
-      )
-      rm(ggplot_object, plot_width, gene_rep_res, gene_rep_fit)
+      for (plot_path in plot_paths) {
+        ggplot2::ggsave(
+          filename = plot_path,
+          plot = ggplot_object,
+          width = plot_width,
+          height = argument_list$plot_height,
+          limitsize = FALSE
+        )
+      }
+      rm(plot_path,
+         plot_width,
+         ggplot_object,
+         gene_rep_res,
+         gene_rep_fit)
     }
   }
-  rm(plot_path_pdf, plot_path_png)
+  rm(plot_paths)
 } else {
   message("Skipping Multidimensional Scaling Plot on genes in lack of sufficient replicates")
 }
@@ -1418,14 +1320,10 @@ if (replicate_number > 2L) {
 
 # TODO: Add also other principal components or even better,
 # use plots of the PCA package?
-plot_path_pdf <-
-  file.path(output_directory, paste0(prefix, "_genes_pca.pdf"))
-plot_path_png <-
-  file.path(output_directory, paste0(prefix, "_genes_pca.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0L) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0L)) {
+plot_paths <-
+  file.path(output_directory, paste(paste(prefix, "genes", "pca", sep = "_"), graphics_formats, sep = "."))
+if (file.exists(plot_paths) &&
+    (file.info(plot_paths)$size > 0L)) {
   message("Skipping a Principal Component Analysis Plot (PCA) on Genes")
 } else {
   message("Creating a Principal Component Analysis Plot (PCA) on Genes")
@@ -1436,21 +1334,18 @@ if (file.exists(plot_path_pdf) &&
       y = "PC2",
       replicates = TRUE
     )
-  ggplot2::ggsave(
-    filename = plot_path_pdf,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  ggplot2::ggsave(
-    filename = plot_path_png,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  rm(ggplot_object)
+  for (plot_path in plot_paths) {
+    ggplot2::ggsave(
+      filename = plot_path,
+      plot = ggplot_object,
+      width = argument_list$plot_width,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(plot_path, ggplot_object)
 }
-rm(plot_path_pdf, plot_path_png)
+rm(plot_paths)
 
 # Finishing QC plotting ---------------------------------------------------
 
@@ -1701,7 +1596,7 @@ if ("ensembl_gene_ids" %in% names(x = annotation(object = cummeRbund::genes(obje
 
 
 # Create an annotated differential genes data frame for each sample pair.
-for (i in seq_along(along.with = sample_pairs[1L, ])) {
+for (i in seq_along(along.with = sample_pairs[1L,])) {
   frame_path <-
     file.path(
       output_directory,
@@ -1733,7 +1628,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       )
     # Remove the second column, which is duplicated as a consequence of a
     # SQL table join between the "genes" and "geneExpDiffData" tables.
-    diff_data_genes <- diff_data_genes[,-c(2L)]
+    diff_data_genes <- diff_data_genes[, -c(2L)]
     # Calculate ranks for the effect size (log2_fold_change), absolute level
     # and statistical significance (q_value).
     diff_data_genes$rank_log2_fold_change <-
@@ -1783,7 +1678,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
 
 
 # Create an annotated differential isoforms data frame for each sample pair.
-for (i in seq_along(along.with = sample_pairs[1L, ])) {
+for (i in seq_along(along.with = sample_pairs[1L,])) {
   frame_path <-
     file.path(
       output_directory,
@@ -1821,7 +1716,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       )
     # Remove the second column, which is duplicated as a consequence of a
     # SQL table join between the "isoforms" and "isoformsExpDiffData" tables.
-    diff_data_isoform <- diff_data_isoform[,-c(2L)]
+    diff_data_isoform <- diff_data_isoform[, -c(2L)]
     # Calculate ranks for the effect size (log2_fold_change), absolute level
     # and statistical significance (q_value).
     diff_data_isoform$rank_log2_fold_change <-
@@ -1893,12 +1788,12 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
           paste(x, collapse = "__")
         }
       ),
-      "OK" = integer(length = length(x = sample_pairs[1L, ])),
-      "NOTEST" = integer(length = length(x = sample_pairs[1L, ])),
-      "HIDATA" = integer(length = length(x = sample_pairs[1L, ])),
-      "LOWDATA" = integer(length = length(x = sample_pairs[1L, ])),
-      "FAIL" = integer(length = length(x = sample_pairs[1L, ])),
-      "SUM" = integer(length = length(x = sample_pairs[1L, ])),
+      "OK" = integer(length = length(x = sample_pairs[1L,])),
+      "NOTEST" = integer(length = length(x = sample_pairs[1L,])),
+      "HIDATA" = integer(length = length(x = sample_pairs[1L,])),
+      "LOWDATA" = integer(length = length(x = sample_pairs[1L,])),
+      "FAIL" = integer(length = length(x = sample_pairs[1L,])),
+      "SUM" = integer(length = length(x = sample_pairs[1L,])),
       row.names = apply(
         X = sample_pairs,
         MARGIN = 2L,
@@ -1908,7 +1803,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
       )
     )
 
-  for (i in seq_along(along.with = sample_pairs[1L, ])) {
+  for (i in seq_along(along.with = sample_pairs[1L,])) {
     diff_data_genes <-
       cummeRbund::diffData(
         object = cummeRbund::genes(object = cuff_set),
@@ -1924,7 +1819,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
       }
     }
     rm(status, status_integer, diff_data_genes)
-    status_frame[i, "SUM"] <- sum(status_frame[i, 2L:6L])
+    status_frame$SUM[i] <- sum(status_frame[i, 2L:6L])
   }
   write.table(
     x = status_frame,
@@ -1955,12 +1850,12 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
           paste(x, collapse = "__")
         }
       ),
-      "OK" = integer(length = length(x = sample_pairs[1L, ])),
-      "NOTEST" = integer(length = length(x = sample_pairs[1L, ])),
-      "HIDATA" = integer(length = length(x = sample_pairs[1L, ])),
-      "LOWDATA" = integer(length = length(x = sample_pairs[1L, ])),
-      "FAIL" = integer(length = length(x = sample_pairs[1L, ])),
-      "SUM" = integer(length = length(x = sample_pairs[1L, ])),
+      "OK" = integer(length = length(x = sample_pairs[1L,])),
+      "NOTEST" = integer(length = length(x = sample_pairs[1L,])),
+      "HIDATA" = integer(length = length(x = sample_pairs[1L,])),
+      "LOWDATA" = integer(length = length(x = sample_pairs[1L,])),
+      "FAIL" = integer(length = length(x = sample_pairs[1L,])),
+      "SUM" = integer(length = length(x = sample_pairs[1L,])),
       row.names = apply(
         X = sample_pairs,
         MARGIN = 2L,
@@ -1970,7 +1865,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
       )
     )
 
-  for (i in seq_along(along.with = sample_pairs[1L, ])) {
+  for (i in seq_along(along.with = sample_pairs[1L,])) {
     diff_data_isoforms <-
       cummeRbund::diffData(
         object = cummeRbund::isoforms(object = cuff_set),
@@ -1986,7 +1881,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
       }
     }
     rm(status, status_integer, diff_data_isoforms)
-    status_frame[i, "SUM"] <- sum(status_frame[i, 2L:6L])
+    status_frame$SUM[i] <- sum(status_frame[i, 2L:6L])
   }
   write.table(
     x = status_frame,
@@ -2132,68 +2027,58 @@ rm(frame_path)
 # Significance Matrix on Genes --------------------------------------------
 
 
-plot_path_pdf <-
-  file.path(output_directory,
-            paste0(prefix, "_genes_significance_matrix.pdf"))
-plot_path_png <-
-  file.path(output_directory,
-            paste0(prefix, "_genes_significance_matrix.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0L) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0L)) {
+plot_paths <-
+  file.path(output_directory, paste(
+    paste(prefix, "genes", "significance", "matrix", sep = "_"),
+    graphics_formats,
+    sep = "."
+  ))
+if (file.exists(plot_paths) &&
+    (file.info(plot_paths)$size > 0L)) {
   message("Skipping a significance matrix plot on Genes")
 } else {
   message("Creating a significance matrix plot on Genes")
   ggplot_object <- sigMatrix(object = cuff_set, level = "genes")
-  ggplot2::ggsave(
-    filename = plot_path_pdf,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  ggplot2::ggsave(
-    filename = plot_path_png,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  rm(ggplot_object)
+  for (plot_path in plot_paths) {
+    ggplot2::ggsave(
+      filename = plot_path,
+      plot = ggplot_object,
+      width = argument_list$plot_width,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(plot_path, ggplot_object)
 }
-rm(plot_path_pdf, plot_path_png)
+rm(plot_paths)
 
 # Significance Matrix on Isoforms -----------------------------------------
 
 
-plot_path_pdf <-
-  file.path(output_directory,
-            paste0(prefix, "_isoforms_significance_matrix.pdf"))
-plot_path_png <-
-  file.path(output_directory,
-            paste0(prefix, "_isoforms_significance_matrix.png"))
-if (file.exists(plot_path_pdf) &&
-    (file.info(plot_path_pdf)$size > 0L) &&
-    file.exists(plot_path_png) &&
-    (file.info(plot_path_png)$size > 0L)) {
+plot_paths <-
+  file.path(output_directory, paste(
+    paste(prefix, "isoforms", "significance", "matrix", sep = "_"),
+    graphics_formats,
+    sep = "."
+  ))
+if (file.exists(plot_paths) &&
+    (file.info(plot_paths)$size > 0L)) {
   message("Skipping a significance matrix plot on Isoforms")
 } else {
   message("Creating a significance matrix plot on Isoforms")
   ggplot_object <- sigMatrix(object = cuff_set, level = "isoforms")
-  ggplot2::ggsave(
-    filename = plot_path_pdf,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  ggplot2::ggsave(
-    filename = plot_path_png,
-    plot = ggplot_object,
-    width = argument_list$plot_width,
-    height = argument_list$plot_height
-  )
-  rm(ggplot_object)
+  for (plot_path in plot_paths) {
+    ggplot2::ggsave(
+      filename = plot_path,
+      plot = ggplot_object,
+      width = argument_list$plot_width,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(plot_path, ggplot_object)
 }
-rm(plot_path_pdf, plot_path_png)
+rm(plot_paths)
 
 rm(gene_annotation_frame, isoform_annotation_frame)
 
@@ -2296,6 +2181,7 @@ rm(
   have_replicates,
   prefix,
   i,
+  graphics_formats,
   argument_list,
   character_to_csv
 )
