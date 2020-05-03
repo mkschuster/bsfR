@@ -55,13 +55,13 @@ process_sample <- function(summary_frame = NULL) {
   }
 
   for (i in seq_len(length.out = nrow(x = summary_frame))) {
-    message("Processing sample ", summary_frame[i, "sample", drop = TRUE])
+    message("Processing sample ", summary_frame$sample[i])
 
     # Construct sample-specific prefixes for Cufflinks and Tophat directories.
     prefix_cufflinks <-
-      paste("rnaseq", "cufflinks", summary_frame[i, "sample", drop = TRUE], sep = "_")
+      paste("rnaseq", "cufflinks", summary_frame$sample[i], sep = "_")
     prefix_tophat <-
-      paste("rnaseq", "tophat", summary_frame[i, "sample", drop = TRUE], sep = "_")
+      paste("rnaseq", "tophat", summary_frame$sample[i], sep = "_")
 
     # Read, summarise, merge, write and delete gene (genes.fpkm_tracking) tables.
 
@@ -303,7 +303,7 @@ process_align_summary <- function(summary_frame) {
 
   for (i in seq_len(length.out = nrow(x = summary_frame))) {
     prefix_tophat <-
-      paste("rnaseq", "tophat", summary_frame[i, "sample", drop = TRUE], sep = "_")
+      paste("rnaseq", "tophat", summary_frame$sample[i], sep = "_")
     file_path <- file.path(prefix_tophat, "align_summary.txt")
 
     if (!file.exists(file_path)) {
@@ -323,7 +323,7 @@ process_align_summary <- function(summary_frame) {
     #   [5] "98.7% overall read mapping rate."
 
     # Parse the second line of "input" reads.
-    summary_frame[i, "input"] <- as.integer(
+    summary_frame$input[i] <- as.integer(
       x = sub(
         pattern = "[[:space:]]+Input[[:space:]]+:[[:space:]]+([[:digit:]]+)",
         replacement = "\\1",
@@ -332,7 +332,7 @@ process_align_summary <- function(summary_frame) {
     )
 
     # Parse the third line of "mapped" reads.
-    summary_frame[i, "mapped"] <- as.integer(
+    summary_frame$mapped[i] <- as.integer(
       x = sub(
         pattern = "[[:space:]]+Mapped[[:space:]]+:[[:space:]]+([[:digit:]]+) .*",
         replacement = "\\1",
@@ -341,7 +341,7 @@ process_align_summary <- function(summary_frame) {
     )
 
     # Get the number of "multiply" aligned reads from the fourth line.
-    summary_frame[i, "multiple"] <- as.integer(
+    summary_frame$multiple[i] <- as.integer(
       x = sub(
         pattern = ".+:[[:space:]]+([[:digit:]]+) .*",
         replacement = "\\1",
@@ -350,7 +350,7 @@ process_align_summary <- function(summary_frame) {
     )
 
     # Get the number of multiply aligned reads "above" the multiple alignment threshold.
-    summary_frame[i, "above"] <- as.integer(
+    summary_frame$above[i] <- as.integer(
       x = sub(
         pattern = ".+alignments \\(([[:digit:]]+) have.+",
         replacement = "\\1",
@@ -359,7 +359,7 @@ process_align_summary <- function(summary_frame) {
     )
 
     # Get the multiple alignment "threshold".
-    summary_frame[i, "threshold"] <- as.integer(x = sub(
+    summary_frame$threshold[i] <- as.integer(x = sub(
       pattern = ".+ >([[:digit:]]+)\\)",
       replacement = "\\1",
       x = align_summary[4L]
@@ -468,6 +468,10 @@ if (is.null(x = argument_list$biomart_data_set)) {
     stop("Missing --gtf-reference or --biomart-data-set option")
   }
 }
+
+# Save plots in the following formats.
+
+graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
 gene_annotation_frame <- NULL
 isoform_annotation_frame <- NULL
@@ -684,6 +688,11 @@ write.table(
 )
 rm(file_path)
 
+plot_paths <-
+  paste(paste("rnaseq", "tophat", "alignment", "summary", sep = "_"),
+        graphics_formats,
+        sep = ".")
+
 # Alignment summary plot.
 ggplot_object <- ggplot2::ggplot(data = summary_frame)
 ggplot_object <-
@@ -710,23 +719,25 @@ ggplot_object <-
 # the original width for each 24 samples.
 plot_width <-
   argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
-ggplot2::ggsave(
-  filename = "rnaseq_tophat_alignment_summary.png",
-  plot = ggplot_object,
-  width = plot_width,
-  height = argument_list$plot_height
-)
-ggplot2::ggsave(
-  filename = "rnaseq_tophat_alignment_summary.pdf",
-  plot = ggplot_object,
-  width = plot_width,
-  height = argument_list$plot_height
-)
-rm(ggplot_object, plot_width, summary_frame)
+for (plot_path in plot_paths) {
+  ggplot2::ggsave(
+    filename = plot_path,
+    plot = ggplot_object,
+    width = plot_width,
+    height = argument_list$plot_height,
+    limitsize = FALSE
+  )
+}
+rm(plot_path,
+   plot_width,
+   ggplot_object,
+   plot_paths,
+   summary_frame)
 
 rm(
   isoform_annotation_frame,
   gene_annotation_frame,
+  graphics_formats,
   argument_list,
   process_sample,
   process_align_summary
