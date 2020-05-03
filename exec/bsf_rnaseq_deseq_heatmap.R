@@ -275,7 +275,7 @@ draw_complex_heatmap <-
       # z-scores per row to center the scale. Since base::scale() works on
       # columns, two transpositions are required.
       transformed_matrix <-
-        SummarizedExperiment::assay(x = deseq_transform, i = 1L)[top_gene_identifiers, ]
+        SummarizedExperiment::assay(x = deseq_transform, i = 1L)[top_gene_identifiers,]
       # Replace negative transformed count values with 0.
       # https://support.bioconductor.org/p/59369/
       transformed_matrix[transformed_matrix < 0] <- 1e-06
@@ -309,7 +309,7 @@ draw_complex_heatmap <-
           df = deseq_results_frame[top_gene_identifiers, c("gene_biotype", "significant"), drop = FALSE],
           which = "row",
           text = ComplexHeatmap::anno_text(
-            x = deseq_results_frame[top_gene_identifiers, "gene_name", drop = TRUE],
+            x = deseq_results_frame$gene_name[top_gene_identifiers],
             which = "row",
             gp = gpar(fontsize = 6),
             just = "left"
@@ -368,7 +368,7 @@ draw_complex_heatmap <-
           Nozzle.R1::newFigure(
             file = file_path[2L],
             "Heatmap for contrast ",
-            Nozzle.R1::asStrong(contrast_tibble[contrast_index, "Label", drop = TRUE]),
+            Nozzle.R1::asStrong(contrast_tibble$Label[contrast_index]),
             fileHighRes = file_path[1L]
           )
         )
@@ -410,12 +410,12 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     # No gene_set_tibble to select genes from.
     selected_gene_identifiers <-
       if (argument_list$maximum_number >= 0L) {
-        deseq_results_frame[head(
+        deseq_results_frame$gene_id[head(
           x = order(deseq_results_frame$max_rank, decreasing = FALSE),
           n = argument_list$maximum_number
-        ), "gene_id", drop = TRUE]
+        )]
       } else {
-        deseq_results_frame[deseq_results_frame$significant == "yes", "gene_id", drop = TRUE]
+        deseq_results_frame$gene_id[deseq_results_frame$significant == "yes"]
       }
     nozzle_section_heatmaps <-
       draw_complex_heatmap(

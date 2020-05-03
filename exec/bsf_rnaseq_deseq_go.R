@@ -195,7 +195,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
         ontology = sub_go,
         allGenes = all_genes_numeric,
         geneSelectionFun = gene_selection_function,
-        description = contrast_tibble[contrast_index, "Label", drop = TRUE],
+        description = contrast_tibble$Label[contrast_index],
         # expressionMatrix = ,
         # phenotype =
         # nodeSize =
@@ -211,9 +211,9 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       # Plot the GO status for each gene in the context of the log2-fold change standard error.
       # Reset the "go_status" factor for each sub-ontology.
       deseq_go_frame$go_status <- "Used"
-      deseq_go_frame[deseq_go_frame$gene_id %in% topGO::genes(object = topgo_data), "go_status"] <-
+      deseq_go_frame$go_status[deseq_go_frame$gene_id %in% topGO::genes(object = topgo_data)] <-
         "Not annotated"
-      deseq_go_frame[!gene_selection_function(x = deseq_go_frame$padj), "go_status"] <-
+      deseq_go_frame$go_status[!gene_selection_function(x = deseq_go_frame$padj)] <-
         "Filtered"
 
       # gene_group_table <- table(deseq_go_frame$go_status)
@@ -234,7 +234,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
           x = "Adjusted p-value",
           y = "Log2 fold-change standard error",
           colour = "GO Status",
-          title = contrast_tibble[contrast_index, "Label", drop = TRUE],
+          title = contrast_tibble$Label[contrast_index],
           subtitle = paste("Ontology:", go_names[sub_go])
         )
       ggplot2::ggsave(

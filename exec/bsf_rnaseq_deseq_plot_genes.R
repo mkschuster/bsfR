@@ -215,28 +215,42 @@ for (i in seq_len(length.out = nrow(x = genes_frame))) {
     file_path <-
       file.path(output_directory,
                 paste(
-                  paste(prefix_deseq,
-                        "gene",
-                        genes_frame[i, "gene_id", drop = TRUE],
-                        genes_frame[i, "gene_name", drop = TRUE],
-                        sep = "_"),
+                  paste(
+                    prefix_deseq,
+                    "gene",
+                    genes_frame$gene_id[i],
+                    genes_frame$gene_name[i],
+                    sep = "_"
+                  ),
                   graphics_format,
                   sep = "."
                 ))
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
-      message("Skipping plot", genes_frame[i, "gene_id", drop = TRUE], genes_frame[i, "gene_name", drop = TRUE], sep = " ")
+      message("Skipping plot",
+              genes_frame$gene_id[i],
+              genes_frame$gene_name[i],
+              sep = " ")
     } else {
-      message("Creating plot", genes_frame[i, "gene_id", drop = TRUE], genes_frame[i, "gene_name", drop = TRUE], sep = " ")
+      message("Creating plot",
+              genes_frame$gene_id[i],
+              genes_frame$gene_name[i],
+              sep = " ")
       count_frame <- DESeq2::plotCounts(
         dds = deseq_data_set,
-        gene = genes_frame[i, "gene_id", drop = TRUE],
+        gene = genes_frame$gene_id[i],
         intgroup = stringr::str_split(
           string = argument_list$groups,
           pattern = stringr::fixed(pattern = ",")
         )[[1L]],
         normalized = argument_list$normalised,
-        xlab = paste(genes_frame[i, "gene_name", drop = TRUE], "(", genes_frame[i, "gene_id", drop = TRUE], ")", sep = " "),
+        xlab = paste(
+          genes_frame$gene_name[i],
+          "(",
+          genes_frame$gene_id[i],
+          ")",
+          sep = " "
+        ),
         returnData = TRUE
       )
       # Create a new covariates variable pasting all values selected by the --groups option.
@@ -265,7 +279,13 @@ for (i in seq_len(length.out = nrow(x = genes_frame))) {
           } else {
             "Counts"
           },
-          title = paste("Gene", "Counts", genes_frame[i, "gene_id", drop = TRUE], genes_frame[i, "gene_name", drop = TRUE], sep = " ")
+          title = paste(
+            "Gene",
+            "Counts",
+            genes_frame$gene_id[i],
+            genes_frame$gene_name[i],
+            sep = " "
+          )
         )
       ggplot_object <-
         ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(

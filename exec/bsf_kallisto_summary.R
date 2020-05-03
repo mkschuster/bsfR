@@ -112,10 +112,10 @@ message("Processing Kallisto reports for number of samples: ",
 kallisto_tibble <- tibble::tibble()
 
 for (i in seq_len(length.out = nrow(x = sample_tibble))) {
-  message("  ", sample_tibble[i, "sample_name", drop = TRUE])
+  message("  ", sample_tibble$sample_name[i])
 
   json_list <-
-    rjson::fromJSON(file = sample_tibble[i, "file_name", drop = TRUE])
+    rjson::fromJSON(file = sample_tibble$file_name[i])
 
   kallisto_tibble <-
     dplyr::bind_rows(.data = kallisto_tibble, json_list)

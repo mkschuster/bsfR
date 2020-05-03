@@ -243,7 +243,7 @@ initialise_annotation_frame <- function() {
     # Extracting a list of gene names from the GrangesList object
     # inside the DESeqDataSet object seemingly takes forever.
     # Therefore, import the GTF file once more, but this time only the "gene" features.
-    # gene_name_list <- lapply(X = rowRanges(x = deseq_data_set), FUN = function(x) { S4Vectors::mcols(x = x)[1L, "gene_name"] })
+    # gene_name_list <- lapply(X = rowRanges(x = deseq_data_set), FUN = function(x) { S4Vectors::mcols(x = x)$gene_name[1L] })
     message("Reading reference GTF gene features")
     gene_ranges <-
       rtracklayer::import(
@@ -317,7 +317,7 @@ initialise_sample_frame <- function(factor_levels) {
         return(any(argument_list$design_name %in% character_1))
       }
     ))
-  data_frame <- data_frame[index_logical, ]
+  data_frame <- data_frame[index_logical,]
   rm(index_logical)
 
   if (nrow(x = data_frame) == 0L) {
@@ -433,7 +433,7 @@ initialise_design_list <- function() {
       Class = "DataFrame"
     )
   data_frame <-
-    data_frame[data_frame$design == argument_list$design_name, ]
+    data_frame[data_frame$design == argument_list$design_name,]
 
   if (nrow(data_frame) == 0L) {
     stop("No design remaining after selection for design name.")
@@ -499,7 +499,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
         )
         sub_sample_frame <-
           sample_frame[(sample_frame$library_type == library_type) &
-                         (sample_frame$sequencing_type == sequencing_type),]
+                         (sample_frame$sequencing_type == sequencing_type), ]
 
         if (nrow(x = sub_sample_frame) == 0L) {
           rm(sub_sample_frame)
@@ -639,7 +639,7 @@ fix_model_matrix <- function(model_matrix_local) {
         "Attempting to fix the model matrix by removing empty columns."
       )
       model_matrix_local <-
-        model_matrix_local[, -which(x = model_all_zero)]
+        model_matrix_local[,-which(x = model_all_zero)]
     } else {
       linear_combinations_list <-
         caret::findLinearCombos(x = model_matrix_local)
@@ -663,7 +663,7 @@ fix_model_matrix <- function(model_matrix_local) {
         paste(colnames(x = model_matrix_local)[linear_combinations_list$remove], collapse = "\n  ")
       )
       model_matrix_local <-
-        model_matrix_local[,-linear_combinations_list$remove]
+        model_matrix_local[, -linear_combinations_list$remove]
     }
     rm(model_all_zero)
   }
@@ -1473,7 +1473,7 @@ plot_pca <- function(object,
 
   # Perform a PCA on the (count) matrix returned by SummarizedExperiment::assay() for the selected genes.
   pca_object <-
-    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows, ]))
+    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows,]))
   rm(selected_rows)
 
   # Plot the variance for a maximum of 100 components.
@@ -1572,7 +1572,7 @@ plot_pca <- function(object,
             x = numeric(),
             y = numeric(),
             # Also initalise all variables of the column data, but do not include data (i.e. 0L rows).
-            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L,])
+            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L, ])
           )
 
         for (column_number in seq_len(length.out = ncol(x = pca_pair_matrix))) {
@@ -1965,8 +1965,8 @@ reduced_formula_frame <- plyr::ldply(
                                 "padj")],
           significant = factor(x = "no", levels = c("no", "yes"))
         )
-      deseq_results_lrt_frame[!is.na(x = deseq_results_lrt_frame$padj) &
-                                deseq_results_lrt_frame$padj <= argument_list$padj_threshold, "significant"] <-
+      deseq_results_lrt_frame$significant[!is.na(x = deseq_results_lrt_frame$padj) &
+                                            deseq_results_lrt_frame$padj <= argument_list$padj_threshold] <-
         "yes"
 
       # Write all genes.

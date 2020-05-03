@@ -185,10 +185,10 @@ variable_names <- c(
 
 star_tibble <- tibble::tibble()
 for (i in seq_len(length.out = nrow(x = read_group_tibble))) {
-  message("  ", read_group_tibble[i, "read_group_name", drop = TRUE])
+  message("  ", read_group_tibble$read_group_name[i])
 
   star_character <- stringr::str_split_fixed(
-    string = base::readLines(con = read_group_tibble[i, "file_name", drop = TRUE]),
+    string = base::readLines(con = read_group_tibble$file_name[i]),
     pattern = "\t",
     n = 2L
   )[c(1L:4L, 6L:7L, 9L:22L, 24L:27L, 29L:31L, 33L:34L), 2L]

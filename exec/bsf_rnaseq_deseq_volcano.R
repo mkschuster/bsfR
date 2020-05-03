@@ -347,7 +347,7 @@ draw_enhanced_volcano <-
           Nozzle.R1::newFigure(
             file = plot_paths[2L],
             "Volcano plot for contrast ",
-            Nozzle.R1::asStrong(contrast_tibble[contrast_index, "Label", drop = TRUE]),
+            Nozzle.R1::asStrong(contrast_tibble$Label[contrast_index]),
             fileHighRes = plot_paths[1L]
           )
         )
@@ -381,7 +381,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
   # are a consequence of Cook's distance filtering in the DESeq2::results()
   # function.
   deseq_results_tibble <-
-    dplyr::filter(.data = deseq_results_tibble, !(
+    dplyr::filter(.data = deseq_results_tibble,!(
       is.na(x = .data$log2FoldChange) |
         is.na(x = .data$pvalue) |
         is.na(x = .data$padj)

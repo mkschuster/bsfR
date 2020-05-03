@@ -1441,11 +1441,11 @@ for (i in seq_len(length.out = nrow(x = combined_metrics_sample))) {
   sample_name <-
     gsub(pattern = "^variant_calling_diagnose_sample_(.*?)_non_callable_summary.tsv$",
          replacement = "\\1",
-         x = combined_metrics_sample[i, "file_name"])
+         x = combined_metrics_sample$file_name[i])
   message("  ", sample_name)
   non_callable_metrics_sample <-
     read.table(
-      file = combined_metrics_sample[i, "file_name"],
+      file = combined_metrics_sample$file_name[i],
       header = TRUE,
       colClasses = c(
         "exon_path" = "character",
@@ -1554,7 +1554,7 @@ if (nrow(x = combined_metrics_sample) > 0L) {
     values_to = "number"
   )
   # Calculate the fractions on the basis of the constrained target number.
-  plotting_frame[, "fraction"] <-
+  plotting_frame$fraction <-
     plotting_frame$number / plotting_frame$target_number_constrained
   # For the moment, remove lines with "TOTAL".
   plotting_frame <-
@@ -1631,7 +1631,7 @@ if (nrow(x = combined_metrics_sample) > 0L) {
     values_to = "width"
   )
   # Calculate the fractions on the basis of the constrained target width.
-  plotting_frame[, "fraction"] <-
+  plotting_frame$fraction <-
     plotting_frame$width / plotting_frame$target_width_constrained
   # For the moment, remove lines with "TOTAL".
   plotting_frame <-

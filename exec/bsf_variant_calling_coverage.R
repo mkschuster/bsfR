@@ -120,20 +120,21 @@ i <- 1L
 
 # Import Ensembl gene, transcript and exon annotation as GRanges vector object,
 # where only exon components are relevant for this analysis.
-summary_frame[i, "exon_path"] <- argument_list$exon_path
+summary_frame$exon_path[i] <- argument_list$exon_path
 
-message("Importing exon ranges: ", summary_frame[i, "exon_path", drop = TRUE])
+message("Importing exon ranges: ", summary_frame$exon_path[i])
 exon_ranges <-
-  rtracklayer::import(con = summary_frame[i, "exon_path", drop = TRUE],
+  rtracklayer::import(con = summary_frame$exon_path[i],
                       genome = "hs37d5",
                       feature.type = "exon")
 
-summary_frame[i, "exon_number_raw"] <- length(x = exon_ranges)
-message("Number of raw exon ranges: ", summary_frame[i, "exon_number_raw", drop = TRUE])
+summary_frame$exon_number_raw[i] <- length(x = exon_ranges)
+message("Number of raw exon ranges: ", summary_frame$exon_number_raw[i])
 
-summary_frame[i, "exon_width_raw"] <-
+summary_frame$exon_width_raw[i] <-
   sum(GenomicRanges::width(x = exon_ranges))
-message("Cumulative width of raw exon ranges: ", summary_frame[i, "exon_width_raw", drop = TRUE])
+message("Cumulative width of raw exon ranges: ",
+        summary_frame$exon_width_raw[i])
 
 # Ensembl now annotates a "tag" in GFF files with value "basic" indicating
 # standard (basic) transcript models. Can the exon ranges be subset by such a
@@ -144,15 +145,15 @@ if ("tag" %in% names(x = S4Vectors::mcols(x = exon_ranges)) &&
   # Use the %in% operator for character matching as it sets NA values to FALSE,
   # automatically.
   exon_ranges <-
-    exon_ranges[S4Vectors::mcols(x = exon_ranges)$tag %in% "basic",]
+    exon_ranges[S4Vectors::mcols(x = exon_ranges)$tag %in% "basic", ]
 }
 
-summary_frame[i, "exon_number"] <- length(x = exon_ranges)
-message("Number of exon ranges: ", summary_frame[i, "exon_number", drop = TRUE])
+summary_frame$exon_number[i] <- length(x = exon_ranges)
+message("Number of exon ranges: ", summary_frame$exon_number[i])
 
-summary_frame[i, "exon_width"] <-
+summary_frame$exon_width[i] <-
   sum(GenomicRanges::width(x = exon_ranges))
-message("Cumulative width of exon ranges: ", summary_frame[i, "exon_width", drop = TRUE])
+message("Cumulative width of exon ranges: ", summary_frame$exon_width[i])
 
 # Apply flanking regions --------------------------------------------------
 
@@ -171,9 +172,10 @@ exon_ranges <-
     fix = "start"
   )
 
-summary_frame[i, "exon_flank_width"] <-
+summary_frame$exon_flank_width[i] <-
   sum(GenomicRanges::width(x = exon_ranges))
-message("Cumulative width of exon ranges with flanks: ", summary_frame[i, "exon_flank_width", drop = TRUE])
+message("Cumulative width of exon ranges with flanks: ",
+        summary_frame$exon_flank_width[i])
 
 # Reduce non-redundant Ensembl exons --------------------------------------
 
@@ -190,13 +192,15 @@ transcribed_ranges <-
     ignore.strand = TRUE
   )
 
-summary_frame[i, "transcribed_number"] <-
+summary_frame$transcribed_number[i] <-
   length(x = transcribed_ranges)
-message("Number of transcribed ranges: ", summary_frame[i, "transcribed_number", drop = TRUE])
+message("Number of transcribed ranges: ",
+        summary_frame$transcribed_number[i])
 
-summary_frame[i, "transcribed_width"] <-
+summary_frame$transcribed_width[i] <-
   sum(GenomicRanges::width(x = transcribed_ranges))
-message("Cumulative width of transcribed ranges: ", summary_frame[i, "transcribed_width", drop = TRUE])
+message("Cumulative width of transcribed ranges: ",
+        summary_frame$transcribed_width[i])
 
 # Read target regions -----------------------------------------------------
 
@@ -207,26 +211,28 @@ message("Cumulative width of transcribed ranges: ", summary_frame[i, "transcribe
 target_ranges <- NULL
 constrained_ranges <- NULL
 if (!is.null(x = argument_list$target_path)) {
-  summary_frame[i, "target_path"] <- argument_list$target_path
+  summary_frame$target_path[i] <- argument_list$target_path
 
-  message("Importing target range annotation: ", summary_frame[i, "target_path", drop = TRUE])
+  message("Importing target range annotation: ",
+          summary_frame$target_path[i])
   # The rtrackayer::import() function reads the genome version from the "db"
   # attribute of the BED "track" line.
   target_ranges <-
-    rtracklayer::import(con = summary_frame[i, "target_path", drop = TRUE])
+    rtracklayer::import(con = summary_frame$target_path[i])
 
-  summary_frame[i, "target_number_raw"] <-
+  summary_frame$target_number_raw[i] <-
     length(x = target_ranges)
-  message("Number of target ranges: ", summary_frame[i, "target_number_raw", drop = TRUE])
+  message("Number of target ranges: ", summary_frame$target_number_raw[i])
 
-  summary_frame[i, "target_width_raw"] <-
+  summary_frame$target_width_raw[i] <-
     sum(GenomicRanges::width(x = target_ranges))
-  message("Cumulative width of target ranges: ", summary_frame[i, "target_width_raw", drop = TRUE])
+  message("Cumulative width of target ranges: ",
+          summary_frame$target_width_raw[i])
 
   message("Overlapping target and transcribed ranges.")
   overlap_frame <-
     mergeByOverlaps(query = target_ranges, subject = transcribed_ranges)
-  overlap_ranges <- overlap_frame[, "target_ranges"]
+  overlap_ranges <- overlap_frame$target_ranges
   # Adjust start and end to the minimally overlapping regions.
   constrained_ranges <-
     GenomicRanges::GRanges(
@@ -245,47 +251,57 @@ if (!is.null(x = argument_list$target_path)) {
   rm(overlap_frame)
 } else {
   # If target regions are not avaiable, all transcribed GRanges count.
-  summary_frame[i, "target_path"] <- NA
+  summary_frame$target_path[i] <- NA
   message("Not importing target range annotation.")
   target_ranges <- transcribed_ranges
-  summary_frame[i, "target_width_raw"] <-
-    summary_frame[i, "transcribed_width", drop = TRUE]
-  summary_frame[i, "target_number_raw"] <- 0L
+  summary_frame$target_width_raw[i] <-
+    summary_frame$transcribed_width[i]
+  summary_frame$target_number_raw[i] <- 0L
   constrained_ranges <- transcribed_ranges
 }
 
-summary_frame[i, "target_number_constrained"] <-
+summary_frame$target_number_constrained[i] <-
   length(x = constrained_ranges)
-message("Number of transcribed target ranges: ", summary_frame[i, "target_number_constrained", drop = TRUE])
+message("Number of transcribed target ranges: ",
+        summary_frame$target_number_constrained[i])
 
-summary_frame[i, "target_width_constrained"] <-
+summary_frame$target_width_constrained[i] <-
   sum(GenomicRanges::width(x = constrained_ranges))
-message("Cumulative width of transcribed target ranges: ", summary_frame[i, "target_width_constrained", drop = TRUE])
+message(
+  "Cumulative width of transcribed target ranges: ",
+  summary_frame$target_width_constrained[i]
+)
 
 # Read callable loci ------------------------------------------------------
 
 
 # Import the callable loci BED file produced by the GATK CallableLoci analysis.
-summary_frame[i, "callable_loci_path"] <-
+summary_frame$callable_loci_path[i] <-
   argument_list$callable_loci_path
 # Store the sample name in the summary frame.
-summary_frame[i, "sample_name"] <-
-  gsub(pattern = "variant_calling_diagnose_sample_(.*?)_callable_loci.bed",
-       replacement = "\\1",
-       x = summary_frame[i, "callable_loci_path", drop = TRUE])
-message("Processing sample name: ", summary_frame[i, "sample_name", drop = TRUE])
+summary_frame$sample_name[i] <-
+  gsub(
+    pattern = "variant_calling_diagnose_sample_(.*?)_callable_loci.bed",
+    replacement = "\\1",
+    x = summary_frame$callable_loci_path[i]
+  )
+message("Processing sample name: ", summary_frame$sample_name[i])
 callable_ranges <-
-  rtracklayer::import(con = summary_frame[i, "callable_loci_path", drop = TRUE])
+  rtracklayer::import(con = summary_frame$callable_loci_path[i])
 non_callable_ranges <-
-  callable_ranges[callable_ranges$name != "CALLABLE",]
+  callable_ranges[callable_ranges$name != "CALLABLE", ]
 non_callable_ranges$name <-
   as.factor(x = non_callable_ranges$name)
-summary_frame[i, "non_callable_number_raw"] <-
+summary_frame$non_callable_number_raw[i] <-
   length(x = non_callable_ranges)
-message("Number of non-callable raw ranges: ", summary_frame[i, "non_callable_number_raw", drop = TRUE])
-summary_frame[i, "non_callable_width_raw"] <-
+message("Number of non-callable raw ranges: ",
+        summary_frame$non_callable_number_raw[i])
+summary_frame$non_callable_width_raw[i] <-
   sum(GenomicRanges::width(x = non_callable_ranges))
-message("Cumulative width of non-callable raw ranges: ", summary_frame[i, "non_callable_width_raw", drop = TRUE])
+message(
+  "Cumulative width of non-callable raw ranges: ",
+  summary_frame$non_callable_width_raw[i]
+)
 
 # Overlap constrained GRanges ---------------------------------------------
 
@@ -317,7 +333,7 @@ summary_frame[i, "non_callable_width_constrained.TOTAL"] <-
 message("Cumulative width of non-callable constrained ranges: ",
         summary_frame[i, "non_callable_width_constrained.TOTAL", drop = TRUE])
 # summary_frame[i, "non_callable_constrained_fraction.TOTAL"] <-
-#   summary_frame[i, "non_callable_width_constrained.TOTAL", drop = TRUE] / summary_frame[i, "target_width_constrained", drop = TRUE]
+#   summary_frame[i, "non_callable_width_constrained.TOTAL", drop = TRUE] / summary_frame$target_width_constrained[i]
 
 # Summarise by mapping status ---------------------------------------------
 
@@ -371,7 +387,7 @@ rm(overlap_ranges, overlap_frame)
 
 # Annotate the table of non-callable GRanges with target region names if available.
 diagnose_ranges <- NULL
-if (!is.null(x = summary_frame[i, "target_path", drop = TRUE])) {
+if (!is.null(x = summary_frame$target_path[i])) {
   # If the target GRanges are available, merge by overlap with the non-callable
   # GRanges into a new DataFrame.
   overlap_frame <-
@@ -380,7 +396,7 @@ if (!is.null(x = summary_frame[i, "target_path", drop = TRUE])) {
   diagnose_ranges <- overlap_frame[, c("non_callable_ranges")]
   # Annotate with the target_name from the target GRanges object.
   S4Vectors::mcols(x = diagnose_ranges)$target_name <-
-    overlap_frame[, "name"]
+    overlap_frame$name
   # Rename the "name" column of the S4Vectors::mcols() DataFrame into "mapping_status".
   colnames(x = S4Vectors::mcols(x = diagnose_ranges))[colnames(x = S4Vectors::mcols(x = diagnose_ranges)) == "name"] <-
     "mapping_status"
@@ -401,7 +417,7 @@ write.table(
   x = overlap_frame[, c("diagnose_ranges", "exon_ranges"), drop = FALSE],
   file = paste(
     "variant_calling_diagnose_sample",
-    summary_frame[i, "sample_name", drop = TRUE],
+    summary_frame$sample_name[i],
     "non_callable_loci.tsv",
     sep = "_"
   ),
@@ -450,7 +466,7 @@ grouped_ranges <- unlist(x = GRangesList(lapply(
     selected_range <- sub_ranges[1L]
 
     S4Vectors::mcols(x = selected_range) <- DataFrame(
-      "mapping_status" = sub_mcols[1L, "mapping_status"],
+      "mapping_status" = sub_mcols$mapping_status[1L],
 
       "gene_ids" = paste(unique(x = sort(x = sub_mcols$gene_id)), collapse = ","),
 
@@ -471,7 +487,7 @@ write.table(
   x = grouped_ranges,
   file = paste(
     "variant_calling_diagnose_sample",
-    summary_frame[i, "sample_name", drop = TRUE],
+    summary_frame$sample_name[i],
     "non_callable_regions.tsv",
     sep = "_"
   ),
@@ -496,7 +512,7 @@ write.table(
   x = summary_frame,
   file = paste(
     "variant_calling_diagnose_sample",
-    summary_frame[i, "sample_name", drop = TRUE],
+    summary_frame$sample_name[i],
     "non_callable_summary.tsv",
     sep = "_"
   ),

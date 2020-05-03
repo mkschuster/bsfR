@@ -530,8 +530,8 @@ while (nrow(
   info_frame[["Recurrence"]] <-
     integer(length = nrow(x = info_frame))
   for (i in seq_len(length.out = dim(genotype_list[["GT"]])[1L])) {
-    info_frame[i, "Recurrence"] <-
-      sum(grepl(pattern = "[1-9]", x = genotype_list[["GT"]][i, ]))
+    info_frame$Recurrence[i] <-
+      sum(grepl(pattern = "[1-9]", x = genotype_list[["GT"]][i,]))
   }
   rm(i, genotype_list, column_data_frame)
 
@@ -543,7 +543,7 @@ while (nrow(
   rm(row_ranges_frame, info_frame, sample_frame)
   # Select only rows which Recurrence variable is equal to or more than the recurrence threshold option.
   combined_frame <-
-    combined_frame[combined_frame$Recurrence >= argument_list$recurrence,]
+    combined_frame[combined_frame$Recurrence >= argument_list$recurrence, ]
 
   sum_records_written <-
     sum_records_written + nrow(x = combined_frame)

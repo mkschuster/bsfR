@@ -174,7 +174,7 @@ load_contrast_frame <- function(contrast_character) {
           nrow(x = deseq_results_tibble))
 
   deseq_results_tibble <-
-    dplyr::filter(.data = deseq_results_tibble, !is.na(x = .data$padj))
+    dplyr::filter(.data = deseq_results_tibble,!is.na(x = .data$padj))
 
   message("Number of genes after NA removal: ",
           nrow(x = deseq_results_tibble))
@@ -201,7 +201,9 @@ load_contrast_frame <- function(contrast_character) {
 #' @param contrast_character A \code{character} scalar with the contrast.
 #' @param enrichr_database A \code{character} scalar with the Enrichr database.
 #'
-#' @return A \code{tibble} of Enrichr results.
+#' @return A named \code{list} of Enrichr result \code{tibble} objects.
+#'   \code{up}: \code{tibble} with results of of up-regulated genes.
+#'   \code{down}: \code{tibble} with results of down-regulated genes.
 #' @noRd
 #'
 #' @examples
@@ -287,7 +289,7 @@ load_enrichr_results <-
                                             sep = "."
                                           )))
         enrichr_result_list <-
-          enrichR::enrichr(genes = enrichr_tibble[, c("gene_name"), drop = TRUE],
+          enrichR::enrichr(genes = enrichr_tibble$gene_name,
                            databases = enrichr_databases)
         # Save the Enrichr results for each database, so that it is automatically
         # available for the next query.
@@ -348,7 +350,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     bsfR::bsfrd_get_contrast_character(contrast_tibble = contrast_tibble, index = contrast_index)
 
   nozzle_section_contrast <-
-    Nozzle.R1::newSubSection("Contrast ", contrast_tibble[contrast_index, "Label", drop = TRUE])
+    Nozzle.R1::newSubSection("Contrast ", contrast_tibble$Label[contrast_index])
 
   nozzle_section_contrast <-
     Nozzle.R1::addTo(
@@ -383,7 +385,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       load_enrichr_results(contrast_character = contrast_character,
                            enrichr_database = enrichr_databases[enrichr_index])
 
-    result_tibble_up <- result_list[["up"]]
+    result_tibble_up <- result_list$up
     if (nrow(x = result_tibble_up) > 0L) {
       result_tibble_up <-
         result_tibble_up[order(result_tibble_up$Combined.Score, decreasing = TRUE), , drop = FALSE]
@@ -394,7 +396,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       result_tibble_up$Direction <- character(length = 0L)
     }
 
-    result_tibble_down <- result_list[["down"]]
+    result_tibble_down <- result_list$down
     if (nrow(x = result_tibble_down) > 0L) {
       result_tibble_down <-
         result_tibble_down[order(result_tibble_down$Combined.Score, decreasing = TRUE), , drop = FALSE]
@@ -492,7 +494,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
           "Enrichr combined score ",
           Nozzle.R1::asStrong(enrichr_databases[enrichr_index]),
           " for contrast ",
-          Nozzle.R1::asStrong(contrast_tibble[contrast_index, "Label", drop = TRUE]),
+          Nozzle.R1::asStrong(contrast_tibble$Label[contrast_index]),
           fileHighRes = file_path_character[1L]
         )
       )

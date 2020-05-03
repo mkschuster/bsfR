@@ -227,14 +227,14 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       )
 
     # Record the number of significant genes.
-    contrast_tibble[contrast_index, "Significant"] <-
+    contrast_tibble$Significant[contrast_index] <-
       nrow(x = deseq_significant_tibble)
 
-    contrast_tibble[contrast_index, "SignificantUp"] <-
+    contrast_tibble$SignificantUp[contrast_index] <-
       nrow(x = dplyr::filter(.data = deseq_significant_tibble,
                              .data$log2FoldChange > 0.0))
 
-    contrast_tibble[contrast_index, "SignificantDown"] <-
+    contrast_tibble$SignificantDown[contrast_index] <-
       nrow(x = dplyr::filter(.data = deseq_significant_tibble,
                              .data$log2FoldChange < 0.0))
 
@@ -430,14 +430,14 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
                                                                     )))
 
     # Record the number of significant genes.
-    contrast_tibble[contrast_index, "Significant"] <-
+    contrast_tibble$Significant[contrast_index] <-
       nrow(x = deseq_significant_tibble)
 
-    contrast_tibble[contrast_index, "SignificantUp"] <-
+    contrast_tibble$SignificantUp[contrast_index] <-
       nrow(x = dplyr::filter(.data = deseq_significant_tibble,
                              .data$log2FoldChange > 0.0))
 
-    contrast_tibble[contrast_index, "SignificantDown"] <-
+    contrast_tibble$SignificantDown[contrast_index] <-
       nrow(x = dplyr::filter(.data = deseq_significant_tibble,
                              .data$log2FoldChange < 0.0))
 

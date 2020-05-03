@@ -215,10 +215,10 @@ bsfrd_read_contrast_tibble <-
 #' }
 bsfrd_get_contrast_list <- function(contrast_tibble, index) {
   numerator_character <-
-    stringr::str_split(string = contrast_tibble[index, "Numerator", drop = TRUE],
+    stringr::str_split(string = contrast_tibble$Numerator[index],
                        pattern = stringr::fixed(pattern = ","))[[1L]]
   denomintor_character <-
-    stringr::str_split(string = contrast_tibble[index, "Denominator", drop = TRUE],
+    stringr::str_split(string = contrast_tibble$Denominator[index],
                        pattern = stringr::fixed(pattern = ","))[[1L]]
 
   character_list <-
@@ -716,10 +716,10 @@ bsfrd_read_gene_set_tibble <-
         bsfrd_read_annotation_tibble(genome_directory = genome_directory, design_name = design_name)
       # Associate empty "gene_id" values with corresponding "gene_name" values.
       missing_names <-
-        gene_set_tibble[missing_indices, c("gene_name"), drop = TRUE]
+        gene_set_tibble$gene_name[missing_indices]
       # Reset the missing "gene_id" values, by matching missing names in the annotation_tibble.
-      gene_set_tibble[missing_indices, c("gene_id")] <-
-        annotation_tibble[match(x = missing_names, table = annotation_tibble$gene_name), c("gene_id"), drop = TRUE]
+      gene_set_tibble$gene_id[missing_indices] <-
+        annotation_tibble$gene_id[match(x = missing_names, table = annotation_tibble$gene_name)]
       rm(missing_names, annotation_tibble)
     }
 
@@ -728,8 +728,8 @@ bsfrd_read_gene_set_tibble <-
     missing_ids <-
       is.na(x = gene_set_tibble$gene_label) |
       gene_set_tibble$gene_label == ""
-    gene_set_tibble[missing_ids, c("gene_label")] <-
-      gene_set_tibble[missing_ids, c("gene_name"), drop = TRUE]
+    gene_set_tibble$gene_label[missing_ids] <-
+      gene_set_tibble$gene_name[missing_ids]
 
     rm(missing_indices, missing_ids)
 
