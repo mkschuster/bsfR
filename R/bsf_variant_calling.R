@@ -95,7 +95,11 @@ bsfvc_import_ensembl <-
     exon_ranges <-
       rtracklayer::import(con = exon_path,
                           # format = "gtf",
-                          genome = genome_version,
+                          genome = if (is.null(x = genome_version)) {
+                            NA_character_
+                          } else {
+                            genome_version
+                          },
                           feature.type = "exon")
 
     summary_list$exon_number_raw <- length(x = exon_ranges)
@@ -121,7 +125,7 @@ bsfvc_import_ensembl <-
       # Use the %in% operator for character matching as it sets NA values to FALSE,
       # automatically.
       exon_ranges <-
-        exon_ranges[S4Vectors::mcols(x = exon_ranges)$tag %in% "basic",]
+        exon_ranges[S4Vectors::mcols(x = exon_ranges)$tag %in% "basic", ]
     }
 
     summary_list$exon_number <- length(x = exon_ranges)
@@ -229,7 +233,11 @@ bsfvc_import_targets <-
     summary_list$target_ranges <-
       rtracklayer::import(con = summary_list$target_path,
                           # format = "gtf",
-                          genome = genome_version)
+                          genome = if (is.null(x = genome_version)) {
+                            NA_character_
+                          } else {
+                            genome_version
+                          })
 
     summary_list$target_number_raw <-
       length(x = summary_list$target_ranges)
