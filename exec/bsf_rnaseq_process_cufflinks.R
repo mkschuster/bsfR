@@ -1,14 +1,8 @@
 #!/usr/bin/env Rscript
 #
 # BSF R script to post-processes Cufflinks output by enriching gene and
-# transcript tables with Ensembl annotation downloaded from BioMart utilising
-# the cummeRbund package. This script also sets sample-specific symbolic
-# links to Tophat output files. Tophat alignment summary files are parsed for
-# each sample and the resulting data frame
-# (rnaseq_tophat_alignment_summary.tsv), as well as plots of alignment rates per
-# sample in PDF (rnaseq_tophat_alignment_summary.pdf) and PNG format
-# (rnaseq_tophat_alignment_summary.png) are written into the current working
-# directory.
+# transcript tables with Ensembl annotation, either downloaded from BioMart or
+# imported from a reference GTF file.
 #
 #
 # Copyright 2013 - 2020 Michael K. Schuster
@@ -33,348 +27,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
-suppressPackageStartupMessages(expr = library(package = "tidyverse"))
-suppressPackageStartupMessages(expr = library(package = "biomaRt"))
 suppressPackageStartupMessages(expr = library(package = "optparse"))
-suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
-suppressPackageStartupMessages(expr = library(package = "Biostrings"))
-
-
-#' Process Tophat and Cufflinks directories for each sample.
-#' Enrich Cufflinks genes.fpkm_tracking and isoforms.fpkm_tracking tables with
-#' Ensembl annotation downloaded via BioMart. Create sample-specific symbolic
-#' links to Tophat files accepted_hits.bam, accepted_hits.bam.bai, unmapped.bam,
-#' align_summary.txt, transcripts.gtf and skipped.gtf.
-#'
-#' @param summary_frame: Data frame with alignment summary statistics
-#' @return: Data frame with alignment summary statistics
-
-process_sample <- function(summary_frame = NULL) {
-  if (is.null(x = summary_frame)) {
-    stop("Missing summary_frame argument")
-  }
-
-  for (i in seq_len(length.out = nrow(x = summary_frame))) {
-    message("Processing sample ", summary_frame$sample[i])
-
-    # Construct sample-specific prefixes for Cufflinks and Tophat directories.
-    prefix_cufflinks <-
-      paste("rnaseq", "cufflinks", summary_frame$sample[i], sep = "_")
-    prefix_tophat <-
-      paste("rnaseq", "tophat", summary_frame$sample[i], sep = "_")
-
-    # Read, summarise, merge, write and delete gene (genes.fpkm_tracking) tables.
-
-    cufflinks_genes <-
-      read.table(
-        file = file.path(prefix_cufflinks, "genes.fpkm_tracking"),
-        header = TRUE,
-        colClasses = c(
-          # Use data type "factor" for columns "class_code", "nearest_ref_id", "gene_short_name",
-          # "tss_id", "length" and "coverage", which are not populated by Cufflinks for genes.
-          "tracking_id" = "character",
-          "class_code" = "factor",
-          "nearest_ref_id" = "factor",
-          "gene_id" = "character",
-          "gene_short_name" = "factor",
-          "tss_id" = "factor",
-          "locus" = "character",
-          "length" = "factor",
-          "coverage" = "factor",
-          "FPKM" = "numeric",
-          "FPKM_conf_lo" = "numeric",
-          "FPKM_conf_hi" = "numeric",
-          "FPKM_status" = "factor"
-        )
-      )
-
-    # Collect aggregate statistics for the "FPKM_status" variable.
-    aggregate_frame <-
-      as.data.frame(x = table(cufflinks_genes$FPKM_status))
-
-    # Assign the aggregate "FPKM_status" levels (rows) as summary frame columns.
-    for (j in seq_len(length.out = nrow(x = aggregate_frame))) {
-      summary_frame[i, paste("FPKM_status_gene", aggregate_frame[j, 1L], sep = ".")] <-
-        aggregate_frame[j, 2L, drop = TRUE]
-    }
-    rm(aggregate_frame, j)
-
-    file_path <-
-      file.path(prefix_cufflinks,
-                paste(prefix_cufflinks, "genes_fpkm_tracking.tsv", sep = "_"))
-    if (!(file.exists(file_path) &&
-          (file.info(file_path)$size > 0L))) {
-      cufflinks_ensembl <-
-        merge(
-          x = gene_annotation_frame,
-          y = cufflinks_genes,
-          by.x = "ensembl_gene_id",
-          by.y = "tracking_id",
-          all.x = FALSE,
-          all.y = TRUE,
-          sort = TRUE
-        )
-      write.table(
-        x = cufflinks_ensembl,
-        file = file_path,
-        col.names = TRUE,
-        row.names = FALSE,
-        sep = "\t"
-      )
-      rm(cufflinks_ensembl)
-    }
-    rm(cufflinks_genes, file_path)
-
-    # Read, summarize, merge, write and delete transcript (isoforms.fpkm_tracking) tables.
-
-    cufflinks_transcripts <-
-      read.table(
-        file = file.path(prefix_cufflinks, "isoforms.fpkm_tracking"),
-        header = TRUE,
-        colClasses = c(
-          # Use data type "factor" for columns "class_code", "nearest_ref_id", "gene_short_name",
-          # and "tss_id", which are not populated by Cufflinks for isoforms.
-          "tracking_id" = "character",
-          "class_code" = "factor",
-          "nearest_ref_id" = "factor",
-          "gene_id" = "character",
-          "gene_short_name" = "factor",
-          "tss_id" = "factor",
-          "locus" = "character",
-          "length" = "integer",
-          "coverage" = "numeric",
-          "FPKM" = "numeric",
-          "FPKM_conf_lo" = "numeric",
-          "FPKM_conf_hi" = "numeric",
-          "FPKM_status" = "factor"
-        )
-      )
-
-    # Collect aggregate statistics for the "FPKM_status" variable.
-    aggregate_frame <-
-      as.data.frame(x = table(cufflinks_transcripts$FPKM_status))
-
-    # Assign the aggregate "FPKM_status" levels (rows) as summary frame columns.
-    for (j in seq_len(length.out = nrow(x = aggregate_frame))) {
-      summary_frame[i, paste("FPKM_status_isoforms", aggregate_frame[j, 1L], sep = ".")] <-
-        aggregate_frame[j, 2L, drop = TRUE]
-    }
-    rm(aggregate_frame, j)
-
-    file_path <-
-      file.path(
-        prefix_cufflinks,
-        paste(prefix_cufflinks, "isoforms_fpkm_tracking.tsv", sep = "_")
-      )
-    if (!(file.exists(file_path) &&
-          (file.info(file_path)$size > 0L))) {
-      cufflinks_ensembl <-
-        merge(
-          x = isoform_annotation_frame,
-          y = cufflinks_transcripts,
-          by.x = "ensembl_transcript_id",
-          by.y = "tracking_id",
-          all.x = FALSE,
-          all.y = TRUE,
-          sort = TRUE
-        )
-      write.table(
-        x = cufflinks_ensembl,
-        file = file_path,
-        col.names = TRUE,
-        row.names = FALSE,
-        sep = "\t"
-      )
-      rm(cufflinks_ensembl)
-    }
-    rm(cufflinks_transcripts, file_path)
-
-    # Finally, create sample-specific symbolic links to Tophat files.
-
-    file_path <- file.path("..", prefix_tophat, "accepted_hits.bam")
-    link_path <-
-      file.path(prefix_cufflinks,
-                paste(prefix_tophat, "accepted_hits.bam", sep = "_"))
-    if (!file.exists(link_path)) {
-      if (!file.symlink(from = file_path, to = link_path)) {
-        warning("Encountered an error linking the accepted_hits.bam file.")
-      }
-    }
-    rm(file_path, link_path)
-
-    file_path <-
-      file.path("..", prefix_tophat, "accepted_hits.bam.bai")
-    link_path <-
-      file.path(prefix_cufflinks,
-                paste(prefix_tophat, "accepted_hits.bam.bai", sep = "_"))
-    if (!file.exists(link_path)) {
-      if (!file.symlink(from = file_path, to = link_path)) {
-        warning("Encountered an error linking the accepted_hits.bam.bai file.")
-      }
-    }
-    rm(file_path, link_path)
-
-    file_path <- file.path("..", prefix_tophat, "unmapped.bam")
-    link_path <-
-      file.path(prefix_cufflinks,
-                paste(prefix_tophat, "unmapped.bam", sep = "_"))
-    if (!file.exists(link_path)) {
-      if (!file.symlink(from = file_path, to = link_path)) {
-        warning("Encountered an error linking the unmapped.bam file.")
-      }
-    }
-    rm(file_path, link_path)
-
-    file_path <- file.path("..", prefix_tophat, "align_summary.txt")
-    link_path <-
-      file.path(prefix_cufflinks,
-                paste(prefix_tophat, "align_summary.txt", sep = "_"))
-    if (!file.exists(link_path)) {
-      if (!file.symlink(from = file_path, to = link_path)) {
-        warning("Encountered an error linking the align_summary.txt file.")
-      }
-    }
-    rm(file_path, link_path)
-
-    file_path <- "transcripts.bb"
-    link_path <-
-      file.path(prefix_cufflinks,
-                paste(prefix_cufflinks, "transcripts.bb", sep = "_"))
-    if (!file.exists(link_path)) {
-      if (!file.symlink(from = file_path, to = link_path)) {
-        warning("Encountered an error linking the transcripts.bb file.")
-      }
-    }
-    rm(file_path, link_path)
-
-    file_path <- "transcripts.gtf"
-    link_path <-
-      file.path(prefix_cufflinks,
-                paste(prefix_cufflinks, "transcripts.gtf", sep = "_"))
-    if (!file.exists(link_path)) {
-      if (!file.symlink(from = file_path, to = link_path)) {
-        warning("Encountered an error linking the transcripts.gtf file.")
-      }
-    }
-    rm(file_path, link_path)
-
-    file_path <- "skipped.gtf"
-    link_path <-
-      file.path(prefix_cufflinks,
-                paste(prefix_cufflinks, "skipped.gtf", sep = "_"))
-    if (!file.exists(link_path)) {
-      if (!file.symlink(from = file_path, to = link_path)) {
-        warning("Encountered an error linking the skipped.gtf file.")
-      }
-    }
-    rm(file_path, link_path)
-
-    rm(prefix_cufflinks, prefix_tophat)
-  }
-
-  return(summary_frame)
-}
-
-
-#' Parse Tophat alignment summary (align_summary.txt) files and return a data
-#' frame.
-#'
-#' @param summary_frame: Data frame with alignment summary statistics
-#' @return: Data frame with alignment summary statistics
-
-process_align_summary <- function(summary_frame) {
-  if (is.null(x = summary_frame)) {
-    stop("Missing summary_frame argument")
-  }
-
-  # Initialise further columns in the data frame.
-  frame_length <- nrow(x = summary_frame)
-  # R integer vector of the number of input reads.
-  summary_frame$input = integer(length = frame_length)
-  # R integer vector of the number of mapped reads.
-  summary_frame$mapped = integer(length = frame_length)
-  # R integer vector of the number of multiply mapped reads.
-  summary_frame$multiple = integer(length = frame_length)
-  # R integer vector of the number of multiply mapped reads above the threshold.
-  summary_frame$above = integer(length = frame_length)
-  # R integer vector of the mapping threshold.
-  summary_frame$threshold = integer(length = frame_length)
-  rm(frame_length)
-
-  for (i in seq_len(length.out = nrow(x = summary_frame))) {
-    prefix_tophat <-
-      paste("rnaseq", "tophat", summary_frame$sample[i], sep = "_")
-    file_path <- file.path(prefix_tophat, "align_summary.txt")
-
-    if (!file.exists(file_path)) {
-      warning("Missing Tophat alignment summary file ", file_path)
-      rm(prefix_tophat, file_path)
-      next
-    }
-
-    align_summary <- readLines(con = file_path)
-
-    # This is the layout of a Tophat align_summary.txt file.
-    #
-    #   [1] "Reads:"
-    #   [2] "          Input     :  21791622"
-    #   [3] "           Mapped   :  21518402 (98.7% of input)"
-    #   [4] "            of these:   2010462 ( 9.3%) have multiple alignments (8356 have >20)"
-    #   [5] "98.7% overall read mapping rate."
-
-    # Parse the second line of "input" reads.
-    summary_frame$input[i] <- as.integer(
-      x = sub(
-        pattern = "[[:space:]]+Input[[:space:]]+:[[:space:]]+([[:digit:]]+)",
-        replacement = "\\1",
-        x = align_summary[2L]
-      )
-    )
-
-    # Parse the third line of "mapped" reads.
-    summary_frame$mapped[i] <- as.integer(
-      x = sub(
-        pattern = "[[:space:]]+Mapped[[:space:]]+:[[:space:]]+([[:digit:]]+) .*",
-        replacement = "\\1",
-        x = align_summary[3L]
-      )
-    )
-
-    # Get the number of "multiply" aligned reads from the fourth line.
-    summary_frame$multiple[i] <- as.integer(
-      x = sub(
-        pattern = ".+:[[:space:]]+([[:digit:]]+) .*",
-        replacement = "\\1",
-        x = align_summary[4L]
-      )
-    )
-
-    # Get the number of multiply aligned reads "above" the multiple alignment threshold.
-    summary_frame$above[i] <- as.integer(
-      x = sub(
-        pattern = ".+alignments \\(([[:digit:]]+) have.+",
-        replacement = "\\1",
-        x = align_summary[4L]
-      )
-    )
-
-    # Get the multiple alignment "threshold".
-    summary_frame$threshold[i] <- as.integer(x = sub(
-      pattern = ".+ >([[:digit:]]+)\\)",
-      replacement = "\\1",
-      x = align_summary[4L]
-    ))
-
-    rm(align_summary, prefix_tophat)
-  }
-  rm(i)
-
-  return(summary_frame)
-}
-
-
-# Get command line options, if help option encountered print help and exit,
-# otherwise if options not found on command line then set defaults.
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
@@ -443,6 +96,34 @@ argument_list <-
         type = "character"
       ),
       optparse::make_option(
+        opt_str = c("--pattern-path"),
+        default = "/rnaseq_cufflinks_.*$",
+        dest = "pattern_path",
+        help = "Cufflinks directory path pattern [/rnaseq_cufflinks_.*$]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--pattern-sample"),
+        default = ".*/rnaseq_cufflinks_(.*)$",
+        dest = "pattern_sample",
+        help = "Cufflinks sample name pattern [.*/rnaseq_cufflinks_(.*)$]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--genome-directory"),
+        default = ".",
+        dest = "genome_directory",
+        help = "Genome directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--output-directory"),
+        default = ".",
+        dest = "output_directory",
+        help = "Output directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
         opt_str = c("--plot-width"),
         default = 7.0,
         dest = "plot_width",
@@ -469,22 +150,29 @@ if (is.null(x = argument_list$biomart_data_set)) {
   }
 }
 
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+
 # Save plots in the following formats.
 
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
-gene_annotation_frame <- NULL
-isoform_annotation_frame <- NULL
+gene_annotation_tibble <- NULL
+isoform_annotation_tibble <- NULL
 
 if (is.null(x = argument_list$biomart_data_set)) {
-  # GTF file-based annotation.
+  # Import GTF file-based annotation --------------------------------------
+
   if (is.null(x = argument_list$gtf_reference)) {
     stop("Missing --gtf-reference option")
   }
   # If a --genome-version option was not provided, set it to NA.
   if (is.null(x = argument_list$genome_version)) {
-    argument_list$genome_version <- NA
+    argument_list$genome_version <- NA_character_
   }
+
+  suppressPackageStartupMessages(expr = library(package = "Biostrings"))
+  suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
+
   message("Import GTF annotation file")
   reference_granges <- rtracklayer::import(
     con = argument_list$gtf_reference,
@@ -495,29 +183,38 @@ if (is.null(x = argument_list$biomart_data_set)) {
   reference_mcols <- S4Vectors::mcols(x = reference_granges)
 
   # Standard GTF attributes
-  gene_annotation_frame <- data.frame(
+  gene_annotation_tibble <- tibble::tibble(
     "ensembl_gene_id" = reference_mcols$gene_id,
     "ensembl_gene_version" = reference_mcols$gene_version,
     "ensembl_gene_name" = reference_mcols$gene_name,
     "ensembl_gene_source" = reference_mcols$gene_source,
     "ensembl_gene_biotype" = reference_mcols$gene_biotype
+    # "havana_gene" = if ("havana_gene" %in% names(x = reference_mcols))
+    #   reference_mcols$havana_gene
+    # else
+    #   NA_character_,
+    # "havana_gene_version" = if ("havana_gene_version" %in% names(x = reference_mcols))
+    #   reference_mcols$havana_gene_version
+    # else
+    #   NA_character_
   )
   # Optional GTF attributes
+  # Havana annotation is only avaliable for earlier Ensembl releases.
   if ("havana_gene" %in% names(x = reference_mcols)) {
-    gene_annotation_frame$havana_gene <-
+    gene_annotation_tibble$havana_gene <-
       reference_mcols$havana_gene
   }
   if ("havana_gene_version" %in% names(x = reference_mcols)) {
-    gene_annotation_frame$havana_gene_version <-
+    gene_annotation_tibble$havana_gene_version <-
       reference_mcols$havana_gene_version
   }
 
   # Gene information is available for each transcript.
-  gene_annotation_frame <-
-    unique.data.frame(x = gene_annotation_frame)
+  gene_annotation_tibble <-
+    dplyr::distinct(.data = gene_annotation_tibble)
 
   # Standard GTF attributes
-  isoform_annotation_frame <- data.frame(
+  isoform_annotation_tibble <- tibble::tibble(
     "ensembl_transcript_id" = reference_mcols$transcript_id,
     "ensembl_transcript_version" = reference_mcols$transcript_version,
     "ensembl_transcript_name" = reference_mcols$transcript_name,
@@ -527,45 +224,77 @@ if (is.null(x = argument_list$biomart_data_set)) {
     "ensembl_gene_version" = reference_mcols$gene_version,
     "ensembl_gene_name" = reference_mcols$gene_name,
     "ensembl_gene_source" = reference_mcols$gene_source,
-    "ensembl_gene_biotype" = reference_mcols$gene_biotype
+    "ensembl_gene_biotype" = reference_mcols$gene_biotype,
+    "ccds_id" = if ("ccds_id" %in% names(x = reference_mcols))
+      reference_mcols$ccds_id
+    else
+      NA_character_,
+    "tag" = if ("tag" %in% names(x = reference_mcols))
+      reference_mcols$tag
+    else
+      NA_character_
+    # "havana_transcript" = if ("havana_transcript" %in% names(x = reference_mcols))
+    #   reference_mcols$havana_transcript
+    # else
+    #   NA_character_,
+    # "havana_transcript_version" = if ("havana_transcript_version" %in% names(x = reference_mcols))
+    #   reference_mcols$havana_transcript_version
+    # else
+    #   NA_character_,
+    # "havana_transcript_support_level" = if ("havana_transcript_support_level" %in% names(x = reference_mcols))
+    #   reference_mcols$havana_transcript_support_level
+    # else
+    #   NA_character_,
+    # "havana_gene" = if ("havana_gene" %in% names(x = reference_mcols))
+    #   reference_mcols$havana_gene
+    # else
+    #   NA_character_,
+    # "havana_gene_version" = if ("havana_gene_version" %in% names(x = reference_mcols))
+    #   reference_mcols$havana_gene_version
+    # else
+    #   NA_character_
   )
   # Optional GTF attributes
+  # if ("ccds_id" %in% names(x = reference_mcols)) {
+  #   isoform_annotation_tibble$ccds_id <-
+  #     reference_mcols$ccds_id
+  # }
+  # if ("tag" %in% names(x = reference_mcols)) {
+  #   isoform_annotation_tibble$tag <-
+  #     reference_mcols$tag
+  # }
+  # Havana annotation is only avaliable for earlier Ensembl releases.
   if ("havana_transcript" %in% names(x = reference_mcols)) {
-    isoform_annotation_frame$havana_transcript <-
+    isoform_annotation_tibble$havana_transcript <-
       reference_mcols$havana_transcript
   }
   if ("havana_transcript_version" %in% names(x = reference_mcols)) {
-    isoform_annotation_frame$havana_transcript_version <-
+    isoform_annotation_tibble$havana_transcript_version <-
       reference_mcols$havana_transcript_version
   }
   if ("havana_transcript_support_level" %in% names(x = reference_mcols)) {
-    isoform_annotation_frame$havana_transcript_support_level <-
+    isoform_annotation_tibble$havana_transcript_support_level <-
       reference_mcols$havana_transcript_support_level
   }
   if ("havana_gene" %in% names(x = reference_mcols)) {
-    isoform_annotation_frame$havana_gene <-
+    isoform_annotation_tibble$havana_gene <-
       reference_mcols$havana_gene
   }
   if ("havana_gene_version" %in% names(x = reference_mcols)) {
-    isoform_annotation_frame$havana_gene_version <-
+    isoform_annotation_tibble$havana_gene_version <-
       reference_mcols$havana_gene_version
-  }
-  if ("ccds_id" %in% names(x = reference_mcols)) {
-    isoform_annotation_frame$ccds_id <-
-      reference_mcols$ccds_id
-  }
-  if ("tag" %in% names(x = reference_mcols)) {
-    isoform_annotation_frame$tag <-
-      reference_mcols$tag
   }
 
   rm(reference_mcols, reference_granges)
 } else {
-  # BioMart-based annotation.
+  # Import BioMart-based annotation ---------------------------------------
+
+  suppressPackageStartupMessages(expr = library(package = "biomaRt"))
+
   # Connect to the Ensembl BioMart.
   message("Connect to BioMart")
 
-  ensembl_mart <- useMart(
+  ensembl_mart <- biomaRt::useMart(
     biomart = argument_list$biomart_instance,
     dataset = argument_list$biomart_data_set,
     host = argument_list$biomart_host,
@@ -575,7 +304,7 @@ if (is.null(x = argument_list$biomart_data_set)) {
 
   message("Loading attribute data from BioMart")
 
-  ensembl_attributes <- listAttributes(
+  ensembl_attributes <- biomaRt::listAttributes(
     mart = ensembl_mart,
     page = "feature_page",
     what = c("name", "description", "page")
@@ -605,8 +334,8 @@ if (is.null(x = argument_list$biomart_data_set)) {
 
   message("Loading gene data from BioMart")
 
-  gene_annotation_frame <-
-    getBM(attributes = ensembl_gene_attributes, mart = ensembl_mart)
+  gene_annotation_tibble <-
+    tibble::as_tibble(x = biomaRt::getBM(attributes = ensembl_gene_attributes, mart = ensembl_mart))
   rm(ensembl_gene_attributes)
 
   # Get Ensembl Transcript information.
@@ -642,8 +371,8 @@ if (is.null(x = argument_list$biomart_data_set)) {
   }
 
   message("Loading transcript data from BioMart")
-  isoform_annotation_frame <-
-    getBM(attributes = ensembl_transcript_attributes, mart = ensembl_mart)
+  isoform_annotation_tibble <-
+    tibble::as_tibble(biomaRt::getBM(attributes = ensembl_transcript_attributes, mart = ensembl_mart))
   rm(ensembl_transcript_attributes)
 
   # Destroy and thus discconnect the Ensembl BioMart connection already here.
@@ -652,95 +381,192 @@ if (is.null(x = argument_list$biomart_data_set)) {
 }
 
 # Process all "rnaseq_cufflinks_*" directories in the current working directory.
-# Initialise a data frame with row names of all "rnaseq_cufflinks_*" directories
-# via their common prefix and parse the sample name simply by removing the prefix.
 
-summary_frame <- data.frame(
-  row.names = sub(
-    pattern = "^rnaseq_cufflinks_",
-    replacement = "",
-    x = grep(
-      pattern = '^rnaseq_cufflinks_',
-      x = list.dirs(full.names = FALSE, recursive = FALSE),
-      value = TRUE
-    )
+message("Processing Cufflinks reports for sample:")
+sample_tibble <- tibble::tibble(
+  # R character vector of directory paths.
+  "directory_path" = grep(
+    pattern = argument_list$pattern_path,
+    x = list.dirs(
+      path = argument_list$genome_directory,
+      full.names = TRUE,
+      recursive = FALSE
+    ),
+    value = TRUE
   ),
-  stringsAsFactors = FALSE
-)
-
-# Set the sample also explictly as a data.frame column, required for plotting.
-
-summary_frame$sample <- row.names(x = summary_frame)
-summary_frame <-
-  process_align_summary(summary_frame = summary_frame)
-summary_frame <-
-  process_sample(summary_frame = summary_frame)
-
-# Write the alignment summary frame to disk and create plots.
-
-file_path <- "rnaseq_tophat_alignment_summary.tsv"
-write.table(
-  x = summary_frame,
-  file = file_path,
-  col.names = TRUE,
-  row.names = FALSE,
-  sep = "\t"
-)
-rm(file_path)
-
-plot_paths <-
-  paste(paste("rnaseq", "tophat", "alignment", "summary", sep = "_"),
-        graphics_formats,
-        sep = ".")
-
-# Alignment summary plot.
-ggplot_object <- ggplot2::ggplot(data = summary_frame)
-ggplot_object <-
-  ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
-    x = .data$mapped,
-    y = .data$mapped / .data$input,
-    colour = .data$sample
-  ))
-ggplot_object <-
-  ggplot_object + ggplot2::labs(x = "Reads Number",
-                                y = "Reads Fraction",
-                                title = "TopHat Alignment Summary")
-# Reduce the label font size and the legend key size and allow a maximum of 24
-# guide legend rows.
-ggplot_object <-
-  ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(
-    keywidth = ggplot2::rel(x = 0.8),
-    keyheight = ggplot2::rel(x = 0.8),
-    nrow = 24L
-  ))
-ggplot_object <-
-  ggplot_object + ggplot2::theme(legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7)))
-# Scale the plot width with the number of samples, by adding a quarter of
-# the original width for each 24 samples.
-plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * 0.25
-for (plot_path in plot_paths) {
-  ggplot2::ggsave(
-    filename = plot_path,
-    plot = ggplot_object,
-    width = plot_width,
-    height = argument_list$plot_height,
-    limitsize = FALSE
+  # R character vector of sample names.
+  "sample_name" = gsub(
+    pattern = argument_list$pattern_sample,
+    replacement = "\\1",
+    x = .data$directory_path
   )
+)
+
+# Add further variables for all FPKM_status bio types and states.
+for (biotype in c("genes", "isoforms")) {
+  for (fpkm_status in c("OK", "LOWDATA", "HIDATA", "FAIL")) {
+    sample_tibble[, paste("FPKM_status", biotype, fpkm_status, sep = "_")] <-
+      0L
+  }
+  rm(fpkm_status)
 }
-rm(plot_path,
-   plot_width,
-   ggplot_object,
-   plot_paths,
-   summary_frame)
+rm(biotype)
+
+for (i in seq_len(length.out = nrow(x = sample_tibble))) {
+  message("  ", sample_tibble$sample_name[i])
+
+  # Construct sample-specific prefixes for Cufflinks and Tophat directories.
+  prefix_cufflinks <-
+    paste("rnaseq", "cufflinks", sample_tibble$sample_name[i], sep = "_")
+
+  output_directory <-
+    file.path(argument_list$output_directory, prefix_cufflinks)
+  if (!file.exists(output_directory)) {
+    dir.create(path = output_directory,
+               showWarnings = TRUE,
+               recursive = FALSE)
+  }
+
+  # Read, summarise, merge and write gene (genes.fpkm_tracking) tables.
+
+  tracking_tibble <-
+    dplyr::group_by(
+      .data = readr::read_tsv(
+        file = file.path(
+          argument_list$genome_directory,
+          prefix_cufflinks,
+          "genes.fpkm_tracking"
+        ),
+        col_names = TRUE,
+        col_types = readr::cols(
+          "tracking_id" = readr::col_character(),
+          # Not populated for genes and isoforms.
+          "class_code" = readr::col_factor(),
+          # Not populated for genes and isoforms.
+          "nearest_ref_id" = readr::col_character(),
+          "gene_id" = readr::col_character(),
+          # Not populated for genes and isoforms.
+          "gene_short_name" = readr::col_character(),
+          # Not populated for genes and isoforms.
+          "tss_id" = readr::col_character(),
+          "locus" = readr::col_character(),
+          # Not populated (i.e. "-") for genes, read as factor..
+          "length" = readr::col_factor(),
+          # Not populated (i.e. "-") for genes, read as factor.
+          "coverage" = readr::col_factor(),
+          "FPKM" = readr::col_double(),
+          "FPKM_conf_lo" = readr::col_double(),
+          "FPKM_conf_hi" = readr::col_double(),
+          "FPKM_status" = readr::col_factor()
+        )
+      ),
+      .data$FPKM_status
+    )
+
+  # Summarise the FPKM_status variable.
+  fpkm_status_tibble <-
+    dplyr::summarise(.data = tracking_tibble, "FPKM_status_count" = dplyr::n())
+  fpkm_status_tibble <-
+    dplyr::mutate(
+      .data = fpkm_status_tibble,
+      "FPKM_status" = paste("FPKM_status_genes", .data$FPKM_status, sep = "_")
+    )
+  sample_tibble[i, fpkm_status_tibble$FPKM_status] <-
+    fpkm_status_tibble$FPKM_status_count
+  rm(fpkm_status_tibble)
+
+  readr::write_tsv(
+    x = dplyr::left_join(
+      x = gene_annotation_tibble,
+      y = tracking_tibble,
+      by = c("ensembl_gene_id" = "tracking_id")
+    ),
+    path = file.path(
+      output_directory,
+      paste(prefix_cufflinks, "genes_fpkm_tracking.tsv", sep = "_")
+    )
+  )
+  rm(tracking_tibble)
+
+  # Read, summarize, merge and write transcript (isoforms.fpkm_tracking) tables.
+
+  tracking_tibble <-
+    dplyr::group_by(
+      .data = readr::read_tsv(
+        file = file.path(
+          argument_list$genome_directory,
+          prefix_cufflinks,
+          "isoforms.fpkm_tracking"
+        ),
+        col_names = TRUE,
+        col_types = readr::cols(
+          "tracking_id" = readr::col_character(),
+          # Not populated for genes and isoforms.
+          "class_code" = readr::col_factor(),
+          # Not populated for genes and isoforms.
+          "nearest_ref_id" = readr::col_character(),
+          "gene_id" = readr::col_character(),
+          # Not populated for genes and isoforms.
+          "gene_short_name" = readr::col_character(),
+          # Not populated for genes and isoforms.
+          "tss_id" = readr::col_character(),
+          "locus" = readr::col_character(),
+          # Not populated for genes.
+          "length" = readr::col_integer(),
+          # Not populated for genes.
+          "coverage" = readr::col_number(),
+          "FPKM" = readr::col_double(),
+          "FPKM_conf_lo" = readr::col_double(),
+          "FPKM_conf_hi" = readr::col_double(),
+          "FPKM_status" = readr::col_factor()
+        )
+      ),
+      .data$FPKM_status
+    )
+
+  # Summarise the FPKM_status variable.
+  fpkm_status_tibble <-
+    dplyr::summarise(.data = tracking_tibble, "FPKM_status_count" = dplyr::n())
+  fpkm_status_tibble <-
+    dplyr::mutate(
+      .data = fpkm_status_tibble,
+      "FPKM_status" = paste("FPKM_status_isoforms", .data$FPKM_status, sep = "_")
+    )
+  sample_tibble[i, fpkm_status_tibble$FPKM_status] <-
+    fpkm_status_tibble$FPKM_status_count
+  rm(fpkm_status_tibble)
+
+  readr::write_tsv(
+    x = dplyr::left_join(
+      x = isoform_annotation_tibble,
+      y = tracking_tibble,
+      by = c("ensembl_transcript_id" = "tracking_id")
+    ),
+    path = file.path(
+      output_directory,
+      paste(prefix_cufflinks, "isoforms_fpkm_tracking.tsv", sep = "_")
+    )
+  )
+  rm(tracking_tibble,
+     output_directory,
+     prefix_cufflinks)
+}
+rm(i)
+
+readr::write_tsv(
+  x = sample_tibble,
+  path = file.path(
+    argument_list$output_directory,
+    "rnaseq_cufflinks_summary.tsv"
+  )
+)
 
 rm(
-  isoform_annotation_frame,
-  gene_annotation_frame,
+  sample_tibble,
+  isoform_annotation_tibble,
+  gene_annotation_tibble,
   graphics_formats,
-  argument_list,
-  process_sample,
-  process_align_summary
+  argument_list
 )
 
 message("All done")
