@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to parse and summarise Tophat alignment summary files.
+# BSF R script to parse and summarise Tophat2 alignment summary files.
 # The resulting data frame (rnaseq_tophat_alignment_summary.tsv),
 # as well as plots of alignment rates per sample in PDF (rnaseq_tophat_alignment_summary.pdf)
 # and PNG format (rnaseq_tophat_alignment_summary.png) are written into the current working
@@ -50,10 +50,31 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--genome-version"),
-        default = NULL,
-        dest = "genome_version",
-        help = "Genome version",
+        opt_str = c("--pattern-path"),
+        default = "/rnaseq_tophat_.*$",
+        dest = "pattern_path",
+        help = "Tophat2 directory path pattern [/rnaseq_tophat_.*$]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--pattern-sample"),
+        default = ".*/rnaseq_tophat_(.*)$",
+        dest = "pattern_sample",
+        help = "Tophat2 sample name pattern [.*/rnaseq_tophat_(.*)$]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--genome-directory"),
+        default = ".",
+        dest = "genome_directory",
+        help = "Genome directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--output-directory"),
+        default = ".",
+        dest = "output_directory",
+        help = "Output directory path [.]",
         type = "character"
       ),
       optparse::make_option(
@@ -86,147 +107,135 @@ suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
-#' Parse Tophat alignment summary (align_summary.txt) files and
-#' return a data frame.
-#'
-#' @param summary_frame: Data frame with alignment summary statistics
-#' @return: Data frame with alignment summary statistics
+# Process all "rnaseq_tophat_*" directories in the current working directory.
 
-process_align_summary <- function(summary_frame) {
-  if (is.null(x = summary_frame)) {
-    stop("Missing summary_frame argument")
-  }
-
-  # Initialise further columns in the data frame.
-  frame_length <- nrow(x = summary_frame)
+message("Processing Tophat2 alignment reports for sample:")
+sample_tibble <- tibble::tibble(
+  # R character vector of directory paths.
+  "directory_path" = grep(
+    pattern = argument_list$pattern_path,
+    x = list.dirs(
+      path = argument_list$genome_directory,
+      full.names = TRUE,
+      recursive = FALSE
+    ),
+    value = TRUE
+  ),
+  # R character vector of sample names.
+  "sample_name" = gsub(
+    pattern = argument_list$pattern_sample,
+    replacement = "\\1",
+    x = .data$directory_path
+  ),
   # R integer vector of the number of input reads.
-  summary_frame$input = integer(length = frame_length)
+  "input" = NA_integer_,
   # R integer vector of the number of mapped reads.
-  summary_frame$mapped = integer(length = frame_length)
+  "mapped" = NA_integer_,
   # R integer vector of the number of multiply mapped reads.
-  summary_frame$multiple = integer(length = frame_length)
+  "multiple" = NA_integer_,
   # R integer vector of the number of multiply mapped reads above the threshold.
-  summary_frame$above = integer(length = frame_length)
+  "above" = NA_integer_,
   # R integer vector of the mapping threshold.
-  summary_frame$threshold = integer(length = frame_length)
-  rm(frame_length)
+  "threshold" = NA_integer_
+)
 
-  for (i in seq_len(length.out = nrow(x = summary_frame))) {
-    prefix_tophat <-
-      paste("rnaseq", "tophat", summary_frame[i, "sample"], sep = "_")
-    file_path <- file.path(prefix_tophat, "align_summary.txt")
+for (i in seq_len(length.out = nrow(x = sample_tibble))) {
+  message("  ", sample_tibble$sample_name[i])
 
-    if (!file.exists(file_path)) {
-      warning("Missing Tophat alignment summary file ", file_path)
-      rm(prefix_tophat, file_path)
-      next
-    }
+  # This is the layout of a Tophat align_summary.txt file.
+  #
+  #   [1] "Reads:"
+  #   [2] "          Input     :  21791622"
+  #   [3] "           Mapped   :  21518402 (98.7% of input)"
+  #   [4] "            of these:   2010462 ( 9.3%) have multiple alignments (8356 have >20)"
+  #   [5] "98.7% overall read mapping rate."
 
-    align_summary <- readLines(con = file_path)
-
-    # This is the layout of a Tophat align_summary.txt file.
-    #
-    #   [1] "Reads:"
-    #   [2] "          Input     :  21791622"
-    #   [3] "           Mapped   :  21518402 (98.7% of input)"
-    #   [4] "            of these:   2010462 ( 9.3%) have multiple alignments (8356 have >20)"
-    #   [5] "98.7% overall read mapping rate."
-
-    # Parse the second line of "input" reads.
-    summary_frame[i, "input"] <- as.integer(
-      x = sub(
-        pattern = "[[:space:]]+Input[[:space:]]+:[[:space:]]+([[:digit:]]+)",
-        replacement = "\\1",
-        x = align_summary[2L]
-      )
+  align_summary <-
+    readLines(
+      con = file.path(
+        argument_list$genome_directory,
+        sample_tibble$directory_path[i],
+        "align_summary.txt"
+      ),
+      n = 100L
     )
-
-    # Parse the third line of "mapped" reads.
-    summary_frame[i, "mapped"] <- as.integer(
-      x = sub(
-        pattern = "[[:space:]]+Mapped[[:space:]]+:[[:space:]]+([[:digit:]]+) .*",
-        replacement = "\\1",
-        x = align_summary[3L]
-      )
+  # Parse the second line of "input" reads.
+  sample_tibble$input[i] <- as.integer(
+    x = sub(
+      pattern = "[[:space:]]+Input[[:space:]]+:[[:space:]]+([[:digit:]]+)",
+      replacement = "\\1",
+      x = align_summary[2L]
     )
+  )
 
-    # Get the number of "multiply" aligned reads from the fourth line.
-    summary_frame[i, "multiple"] <- as.integer(
-      x = sub(
-        pattern = ".+:[[:space:]]+([[:digit:]]+) .*",
-        replacement = "\\1",
-        x = align_summary[4L]
-      )
+  # Parse the third line of "mapped" reads.
+  sample_tibble$mapped[i] <- as.integer(
+    x = sub(
+      pattern = "[[:space:]]+Mapped[[:space:]]+:[[:space:]]+([[:digit:]]+) .*",
+      replacement = "\\1",
+      x = align_summary[3L]
     )
+  )
 
-    # Get the number of multiply aligned reads "above" the multiple alignment threshold.
-    summary_frame[i, "above"] <- as.integer(
-      x = sub(
-        pattern = ".+alignments \\(([[:digit:]]+) have.+",
-        replacement = "\\1",
-        x = align_summary[4L]
-      )
-    )
-
-    # Get the multiple alignment "threshold".
-    summary_frame[i, "threshold"] <- as.integer(x = sub(
-      pattern = ".+ >([[:digit:]]+)\\)",
+  # Get the number of "multiply" aligned reads from the fourth line.
+  sample_tibble$multiple[i] <- as.integer(
+    x = sub(
+      pattern = ".+:[[:space:]]+([[:digit:]]+) .*",
       replacement = "\\1",
       x = align_summary[4L]
-    ))
-
-    rm(align_summary, prefix_tophat)
-  }
-  rm(i)
-
-  return(summary_frame)
-}
-
-# Process all "rnaseq_tophat_*" directories in the current working directory.
-# Initialise a data frame with row names of all "rnaseq_tophat_*" directories
-# via their common prefix and parse the sample name simply by removing the prefix.
-
-summary_frame <- data.frame(
-  row.names = sub(
-    pattern = "^rnaseq_tophat_",
-    replacement = "",
-    x = grep(
-      pattern = '^rnaseq_tophat_',
-      x = list.dirs(full.names = FALSE, recursive = FALSE),
-      value = TRUE
     )
-  ),
-  stringsAsFactors = FALSE
+  )
+
+  # Get the number of multiply aligned reads "above" the multiple alignment threshold.
+  sample_tibble$above[i] <- as.integer(
+    x = sub(
+      pattern = ".+alignments \\(([[:digit:]]+) have.+",
+      replacement = "\\1",
+      x = align_summary[4L]
+    )
+  )
+
+  # Get the multiple alignment "threshold".
+  sample_tibble$threshold[i] <- as.integer(x = sub(
+    pattern = ".+ >([[:digit:]]+)\\)",
+    replacement = "\\1",
+    x = align_summary[4L]
+  ))
+
+  rm(align_summary)
+}
+rm(i)
+
+# Write the alignment summary tibble to disk and create plots.
+
+readr::write_tsv(
+  x = sample_tibble,
+  path = file.path(
+    argument_list$output_directory,
+    "rnaseq_tophat_alignment_summary.tsv"
+  )
 )
-
-# Set the sample also explictly as a data.frame column, required for plotting.
-
-summary_frame$sample <- row.names(x = summary_frame)
-summary_frame <-
-  process_align_summary(summary_frame = summary_frame)
-
-# Write the alignment summary frame to disk and create plots.
-
-file_path <- "rnaseq_tophat_alignment_summary.tsv"
-write.table(
-  x = summary_frame,
-  file = file_path,
-  col.names = TRUE,
-  row.names = FALSE,
-  sep = "\t"
-)
-rm(file_path)
 
 # Alignment Summary Plot --------------------------------------------------
 
 
-ggplot_object <- ggplot2::ggplot(data = summary_frame)
+plot_paths <-
+  file.path(argument_list$output_directory,
+            paste(
+              paste("rnaseq", "tophat", "alignment", "summary", sep = "_"),
+              graphics_formats,
+              sep = "."
+            ))
+
+ggplot_object <- ggplot2::ggplot(data = sample_tibble)
 ggplot_object <-
-  ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
-    x = .data$mapped,
-    y = .data$mapped / .data$input,
-    colour = .data$sample
-  ))
+  ggplot_object + ggplot2::geom_point(
+    mapping = ggplot2::aes(
+      x = .data$mapped,
+      y = .data$mapped / .data$input,
+      colour = .data$sample_name
+    )
+  )
 ggplot_object <-
   ggplot_object + ggplot2::labs(
     x = "Reads Number",
@@ -247,26 +256,25 @@ ggplot_object <-
 # Scale the plot width with the number of samples, by adding a quarter of
 # the original width for each 24 samples.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = summary_frame) / 24L) - 1L) * argument_list$plot_width * argument_list$plot_factor
+  argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * argument_list$plot_factor
 
-for (graphics_format in graphics_formats) {
+for (plot_path in plot_paths) {
   ggplot2::ggsave(
-    filename = paste("rnaseq_tophat_alignment_summary", graphics_format, sep = "."),
+    filename = plot_path,
     plot = ggplot_object,
     width = plot_width,
     height = argument_list$plot_height,
     limitsize = FALSE
   )
 }
-
 rm(
-  graphics_format,
-  ggplot_object,
+  plot_path,
   plot_width,
-  summary_frame,
+  ggplot_object,
+  plot_paths,
+  sample_tibble,
   graphics_formats,
-  argument_list,
-  process_align_summary
+  argument_list
 )
 
 message("All done")
