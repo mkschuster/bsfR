@@ -125,6 +125,7 @@ if (is.null(x = argument_list$genome_version)) {
   stop("Missing --genome_version option")
 }
 
+suppressPackageStartupMessages(expr = library(package = "Biostrings"))
 suppressPackageStartupMessages(expr = library(package = "cummeRbund"))
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
 
@@ -286,8 +287,8 @@ plot_paths <-
     graphics_formats,
     sep = "."
   ))
-if (file.exists(plot_paths) &&
-    (file.info(plot_paths)$size > 0L)) {
+if (all(file.exists(plot_paths) &&
+        (file.info(plot_paths)$size > 0L))) {
   message("Skipping a library scale plot on replicates")
 } else {
   message("Creating a library scale plot on replicates")
@@ -321,12 +322,12 @@ message("Starting QC plotting")
 
 plot_paths <-
   file.path(output_directory, paste(
-    paste(prefix, "genes", "dispersions", sep = "_"),
+    paste(prefix, "genes", "dispersion", sep = "_"),
     graphics_formats,
     sep = "."
   ))
-if (file.exists(plot_paths) &&
-    (file.info(plot_paths)$size > 0L)) {
+if (all(file.exists(plot_paths) &&
+        (file.info(plot_paths)$size > 0L))) {
   message("Skipping a Dispersion Plot on Genes")
 } else {
   message("Creating a Dispersion Plot on Genes")
@@ -354,8 +355,8 @@ plot_paths <-
     graphics_formats,
     sep = "."
   ))
-if (file.exists(plot_paths) &&
-    (file.info(plot_paths)$size > 0L)) {
+if (all(file.exists(plot_paths) &&
+        (file.info(plot_paths)$size > 0L))) {
   message("Skipping a Dispersion Plot on Isoforms")
 } else {
   message("Creating a Dispersion Plot on Isoforms")
@@ -388,8 +389,8 @@ rm(plot_paths)
 
 plot_paths <-
   file.path(output_directory, paste(paste(prefix, "genes", "scv", sep = "_"), graphics_formats, sep = "."))
-if (file.exists(plot_paths) &&
-    (file.info(plot_paths)$size > 0L)) {
+if (all(file.exists(plot_paths) &&
+        (file.info(plot_paths)$size > 0L))) {
   message("Skipping a SCV Plot on Genes")
 } else {
   # The plot requires replicates.
@@ -422,8 +423,8 @@ plot_paths <-
     graphics_formats,
     sep = "."
   ))
-if (file.exists(plot_paths) &&
-    (file.info(plot_paths)$size > 0L)) {
+if (all(file.exists(plot_paths) &&
+        (file.info(plot_paths)$size > 0L))) {
   message("Skipping a SCV Plot on Isoforms")
 } else {
   # The plot requires replicates.
@@ -456,8 +457,8 @@ plot_paths <-
     graphics_formats,
     sep = "."
   ))
-if (file.exists(plot_paths) &&
-    (file.info(plot_paths)$size > 0L)) {
+if (all(file.exists(plot_paths) &&
+        (file.info(plot_paths)$size > 0L))) {
   message("Skipping a Density Plot on Genes without replicates")
 } else {
   message("Creating a Density Plot on Genes without replicates")
@@ -486,8 +487,8 @@ plot_paths <-
     graphics_formats,
     sep = "."
   ))
-if (file.exists(plot_paths) &&
-    (file.info(plot_paths)$size > 0L)) {
+if (all(file.exists(plot_paths) &&
+        (file.info(plot_paths)$size > 0L))) {
   message("Skipping a Density Plot on Genes with replicates")
 } else {
   message("Creating a Density Plot on Genes with replicates")
@@ -516,8 +517,8 @@ plot_paths <-
     graphics_formats,
     sep = "."
   ))
-if (file.exists(plot_paths) &&
-    (file.info(plot_paths)$size > 0L)) {
+if (all(file.exists(plot_paths) &&
+        (file.info(plot_paths)$size > 0L))) {
   message("Skipping a Density Plot on Isoforms without replicates")
 } else {
   message("Creating a Density Plot on Isoforms without replicates")
@@ -546,8 +547,8 @@ plot_paths <-
     graphics_formats,
     sep = "."
   ))
-if (file.exists(plot_paths) &&
-    (file.info(plot_paths)$size > 0L)) {
+if (all(file.exists(plot_paths) &&
+        (file.info(plot_paths)$size > 0L))) {
   message("Skipping a Density Plot on Isoforms with replicates")
 } else {
   message("Creating a Density Plot on Isoforms with replicates")
@@ -576,8 +577,8 @@ plot_paths <-
     graphics_formats,
     sep = "."
   ))
-if (file.exists(plot_paths) &&
-    (file.info(plot_paths)$size > 0L)) {
+if (all(file.exists(plot_paths) &&
+        (file.info(plot_paths)$size > 0L))) {
   message("Skipping a Box Plot on Genes with replicates")
 } else {
   message("Creating a Box Plot on Genes with replicates")
@@ -640,8 +641,8 @@ plot_paths <-
     graphics_formats,
     sep = "."
   ))
-if (file.exists(plot_paths) &&
-    (file.info(plot_paths)$size > 0L)) {
+if (all(file.exists(plot_paths) &&
+        (file.info(plot_paths)$size > 0L))) {
   message("Skipping a Box Plot on Genes without replicates")
 } else {
   message("Creating a Box Plot on Genes without replicates")
@@ -700,8 +701,8 @@ plot_paths <-
     graphics_formats,
     sep = "."
   ))
-if (file.exists(plot_paths) &&
-    (file.info(plot_paths)$size > 0L)) {
+if (all(file.exists(plot_paths) &&
+        (file.info(plot_paths)$size > 0L))) {
   message("Skipping a Box Plot on Isoforms with replicates")
 } else {
   message("Creating a Box Plot on Isoforms with replicates")
@@ -764,8 +765,8 @@ plot_paths <-
     graphics_formats,
     sep = "."
   ))
-if (file.exists(plot_paths) &&
-    (file.info(plot_paths)$size > 0L)) {
+if (all(file.exists(plot_paths) &&
+        (file.info(plot_paths)$size > 0L))) {
   message("Skipping a Box Plot on Isoforms without replicates")
 } else {
   message("Creating a Box Plot on Isoforms without replicates")
@@ -826,8 +827,8 @@ if (sample_number <= 20L) {
       graphics_formats,
       sep = "."
     ))
-  if (file.exists(plot_paths) &&
-      (file.info(plot_paths)$size > 0L)) {
+  if (all(file.exists(plot_paths) &&
+          (file.info(plot_paths)$size > 0L))) {
     message("Skipping a Scatter Matrix Plot on Genes")
   } else {
     message("Creating a Scatter Matrix Plot on Genes")
@@ -857,8 +858,8 @@ if (sample_number <= 20L) {
       graphics_formats,
       sep = "."
     ))
-  if (file.exists(plot_paths) &&
-      (file.info(plot_paths)$size > 0L)) {
+  if (all(file.exists(plot_paths) &&
+          (file.info(plot_paths)$size > 0L))) {
     message("Skipping a Scatter Matrix Plot on Isoforms")
   } else {
     message("Creating a Scatter Matrix Plot on Isoforms")
@@ -895,8 +896,8 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
       graphics_formats,
       sep = "."
     ))
-  if (file.exists(plot_paths) &&
-      (file.info(plot_paths)$size > 0L)) {
+  if (all(file.exists(plot_paths) &&
+          (file.info(plot_paths)$size > 0L))) {
     message("Skipping a Scatter Plot on Genes for ",
             sample_pairs[1L, i],
             " versus ",
@@ -918,13 +919,18 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
     #   )
 
     # Re-implement scatter plots here.
+    #
+    # Retrieve a data frame with differntial expression data for genes, but
+    # remove the first "gene_id" column, which is duplicated in the second
+    # column as a consequence of a SQL table join between the "genes" and
+    # "geneExpDiffData" tables.
     diff_data_genes <-
       cummeRbund::diffData(
         object = cummeRbund::genes(object = cuff_set),
         x = sample_pairs[1L, i],
         y = sample_pairs[2L, i],
         features = FALSE
-      )
+      )[,-1L]
     ggplot_object <-
       ggplot2::ggplot(data = diff_data_genes,
                       mapping = ggplot2::aes(x = .data$value_1, y = .data$value_2))
@@ -1053,8 +1059,8 @@ plot_paths <-
     graphics_formats,
     sep = "."
   ))
-if (file.exists(plot_paths) &&
-    file.info(plot_paths)$size > 0L) {
+if (all(file.exists(plot_paths) &&
+        file.info(plot_paths)$size > 0L)) {
   message("Skipping a Dendrogram Plot on Genes")
 } else {
   message("Creating a Dendrogram Plot on Genes")
@@ -1085,12 +1091,12 @@ rm(plot_paths)
 for (i in seq_along(along.with = sample_pairs[1L,])) {
   plot_paths <-
     file.path(output_directory, paste(
-      paste(prefix, sample_pairs[1L, i], sample_pairs[2L, i], "genes", "ma"),
+      paste(prefix, sample_pairs[1L, i], sample_pairs[2L, i], "genes", "ma", sep = "_"),
       graphics_formats,
       sep = "."
     ))
-  if (file.exists(plot_paths) &&
-      (file.info(plot_paths)$size > 0L)) {
+  if (all(file.exists(plot_paths) &&
+          (file.info(plot_paths)$size > 0L))) {
     message("Skipping a MAplot on Genes for ",
             sample_pairs[1L, i],
             " versus ",
@@ -1131,8 +1137,8 @@ plot_paths <-
     graphics_formats,
     sep = "."
   ))
-if (file.exists(plot_paths) &&
-    (file.info(plot_paths)$size > 0L)) {
+if (all(file.exists(plot_paths) &&
+        (file.info(plot_paths)$size > 0L))) {
   message("Skipping a Volcano Matrix Plot on Genes")
 } else {
   message("Creating a Volcano Matrix Plot on Genes")
@@ -1169,8 +1175,8 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
                 graphics_formats,
                 sep = "."
               ))
-  if (file.exists(plot_paths) &&
-      (file.info(plot_paths)$size > 0L)) {
+  if (all(file.exists(plot_paths) &&
+          (file.info(plot_paths)$size > 0L))) {
     message("Skipping a Volcano Plot on Genes for ",
             sample_pairs[1L, i],
             " versus ",
@@ -1225,8 +1231,8 @@ if (replicate_number > 2L) {
       graphics_formats,
       sep = "."
     ))
-  if (file.exists(plot_paths) &&
-      (file.info(plot_paths)$size > 0L)) {
+  if (all(file.exists(plot_paths) &&
+          (file.info(plot_paths)$size > 0L))) {
     message("Skipping a Multidimensional Scaling Plot on Genes")
   } else {
     # if (have_replicates) {
@@ -1322,8 +1328,8 @@ if (replicate_number > 2L) {
 # use plots of the PCA package?
 plot_paths <-
   file.path(output_directory, paste(paste(prefix, "genes", "pca", sep = "_"), graphics_formats, sep = "."))
-if (file.exists(plot_paths) &&
-    (file.info(plot_paths)$size > 0L)) {
+if (all(file.exists(plot_paths) &&
+        (file.info(plot_paths)$size > 0L))) {
   message("Skipping a Principal Component Analysis Plot (PCA) on Genes")
 } else {
   message("Creating a Principal Component Analysis Plot (PCA) on Genes")
@@ -1619,16 +1625,18 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
     # The diffData function allows automatic merging with feature annotation,
     # but that includes some empty columns. For cleaner result tables, merge
     # with the smaller gene_annotation_frame established above.
+    #
+    # Retrieve a data frame with differntial expression data for genes, but
+    # remove the first "gene_id" column, which is duplicated in the second
+    # column as a consequence of a SQL table join between the "genes" and
+    # "geneExpDiffData" tables.
     diff_data_genes <-
       cummeRbund::diffData(
         object = cummeRbund::genes(object = cuff_set),
         x = sample_pairs[1L, i],
         y = sample_pairs[2L, i],
         features = FALSE
-      )
-    # Remove the second column, which is duplicated as a consequence of a
-    # SQL table join between the "genes" and "geneExpDiffData" tables.
-    diff_data_genes <- diff_data_genes[, -c(2L)]
+      )[,-1L]
     # Calculate ranks for the effect size (log2_fold_change), absolute level
     # and statistical significance (q_value).
     diff_data_genes$rank_log2_fold_change <-
@@ -1707,16 +1715,18 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
     # The diffData function allows automatic merging with feature annotation,
     # but that includes some empty columns. For cleaner result tables, merge
     # with the smaller isoform_annotation_frame established above.
+    #
+    # Retrieve a data frame with differntial expression data for genes, but
+    # remove the first "isoform_id" column, which is duplicated in the second
+    # column as a consequence of a SQL table join between the "isoforms" and
+    # "isoformExpDiffData" tables.
     diff_data_isoform <-
       cummeRbund::diffData(
         object = cummeRbund::isoforms(object = cuff_set),
         x = sample_pairs[1L, i],
         y = sample_pairs[2L, i],
         features = FALSE
-      )
-    # Remove the second column, which is duplicated as a consequence of a
-    # SQL table join between the "isoforms" and "isoformsExpDiffData" tables.
-    diff_data_isoform <- diff_data_isoform[, -c(2L)]
+      )[,-1L]
     # Calculate ranks for the effect size (log2_fold_change), absolute level
     # and statistical significance (q_value).
     diff_data_isoform$rank_log2_fold_change <-
@@ -1810,7 +1820,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
         x = sample_pairs[1L, i],
         y = sample_pairs[2L, i],
         features = FALSE
-      )
+      )[,-1L]
     # Aggregate the test Status column.
     status_integer <- table(diff_data_genes$status)
     for (status in names(x = status_frame)) {
@@ -1872,7 +1882,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
         x = sample_pairs[1L, i],
         y = sample_pairs[2L, i],
         features = FALSE
-      )
+      )[,-1L]
     # Aggregate the test Status column.
     status_integer <- table(diff_data_isoforms$status)
     for (status in names(x = status_frame)) {
@@ -2033,8 +2043,8 @@ plot_paths <-
     graphics_formats,
     sep = "."
   ))
-if (file.exists(plot_paths) &&
-    (file.info(plot_paths)$size > 0L)) {
+if (all(file.exists(plot_paths) &&
+        (file.info(plot_paths)$size > 0L))) {
   message("Skipping a significance matrix plot on Genes")
 } else {
   message("Creating a significance matrix plot on Genes")
@@ -2061,8 +2071,8 @@ plot_paths <-
     graphics_formats,
     sep = "."
   ))
-if (file.exists(plot_paths) &&
-    (file.info(plot_paths)$size > 0L)) {
+if (all(file.exists(plot_paths) &&
+        (file.info(plot_paths)$size > 0L))) {
   message("Skipping a significance matrix plot on Isoforms")
 } else {
   message("Creating a significance matrix plot on Isoforms")
