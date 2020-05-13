@@ -200,9 +200,10 @@ ggplot_object <-
 
 ggplot_object <-
   ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-    angle = 90,
-    hjust = 0,
-    size = ggplot2::rel(x = 0.8)
+    size = ggplot2::rel(x = 0.8),
+    hjust = 0.0,
+    vjust = 0.5,
+    angle = 90.0
   ))
 
 for (graphics_format in graphics_formats) {
@@ -264,9 +265,10 @@ ggplot_object <-
 
 ggplot_object <-
   ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-    angle = 90,
-    hjust = 0,
-    size = ggplot2::rel(x = 0.8)
+    size = ggplot2::rel(x = 0.8),
+    hjust = 0.0,
+    vjust = 0.5,
+    angle = 90.0
   ))
 
 for (graphics_format in graphics_formats) {
@@ -288,13 +290,11 @@ for (graphics_format in graphics_formats) {
 }
 rm(graphics_format, ggplot_object)
 
-rm(
-  sample_tibble,
-  output_directory,
-  prefix,
-  graphics_formats,
-  argument_list
-)
+rm(sample_tibble,
+   output_directory,
+   prefix,
+   graphics_formats,
+   argument_list)
 
 message("All done")
 

@@ -49,14 +49,14 @@ argument_list <-
         opt_str = c("--pattern-file"),
         default = "^star_aligner_align_.*_Log\\.final\\.out$",
         dest = "pattern_file",
-        help = "STAR alignment report file name pattern",
+        help = "STAR alignment report file name pattern [^star_aligner_align_.*_Log\\.final\\.out$]",
         type = "character"
       ),
       optparse::make_option(
         opt_str = c("--pattern-sample"),
         default = "^star_aligner_align_(.*)_Log\\.final\\.out$",
         dest = "pattern_sample",
-        help = "STAR alignment report sample name pattern",
+        help = "STAR alignment report sample name pattern [^star_aligner_align_(.*)_Log\\.final\\.out$]",
         type = "character"
       ),
       optparse::make_option(
@@ -345,9 +345,10 @@ ggplot_object <-
 ggplot_object <-
   ggplot_object + ggplot2::theme(
     axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.7)
+      size = ggplot2::rel(x = 0.7),
+      hjust = 0.0,
+      vjust = 0.5,
+      angle = 90.0
     ),
     legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
   )
@@ -420,9 +421,10 @@ ggplot_object <-
 ggplot_object <-
   ggplot_object + ggplot2::theme(
     axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.7)
+      size = ggplot2::rel(x = 0.7),
+      hjust = 0.0,
+      vjust = 0.5,
+      angle = 90.0
     ),
     legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
   )
@@ -496,9 +498,10 @@ ggplot_object <-
 ggplot_object <-
   ggplot_object + ggplot2::theme(
     axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.7)
+      size = ggplot2::rel(x = 0.7),
+      hjust = 0.0,
+      vjust = 0.5,
+      angle = 90.0
     ),
     legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
   )
@@ -572,9 +575,10 @@ ggplot_object <-
 ggplot_object <-
   ggplot_object + ggplot2::theme(
     axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.7)
+      size = ggplot2::rel(x = 0.7),
+      hjust = 0.0,
+      vjust = 0.5,
+      angle = 90.0
     ),
     legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
   )
@@ -793,9 +797,10 @@ if (file.exists(file_path)) {
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
-        angle = 90,
-        hjust = 0,
-        size = ggplot2::rel(x = 0.7)
+        size = ggplot2::rel(x = 0.7),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
       ),
       legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
     )
@@ -870,9 +875,10 @@ if (file.exists(file_path)) {
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
-        angle = 90,
-        hjust = 0,
-        size = ggplot2::rel(x = 0.7)
+        size = ggplot2::rel(x = 0.7),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
       ),
       legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
     )
@@ -948,9 +954,10 @@ if (file.exists(file_path)) {
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
-        angle = 90,
-        hjust = 0,
-        size = ggplot2::rel(x = 0.7)
+        size = ggplot2::rel(x = 0.7),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
       ),
       legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
     )
@@ -1026,9 +1033,10 @@ if (file.exists(file_path)) {
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
-        angle = 90,
-        hjust = 0,
-        size = ggplot2::rel(x = 0.7)
+        size = ggplot2::rel(x = 0.7),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
       ),
       legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
     )

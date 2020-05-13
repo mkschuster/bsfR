@@ -252,9 +252,10 @@ ggplot_object <-
 ggplot_object <-
   ggplot_object + ggplot2::theme(
     axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.7)
+      size = ggplot2::rel(x = 0.7),
+      hjust = 0.0,
+      vjust = 0.5,
+      angle = 90.0
     ),
     legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
   )
@@ -325,9 +326,10 @@ ggplot_object <-
 ggplot_object <-
   ggplot_object + ggplot2::theme(
     axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.7)
+      size = ggplot2::rel(x = 0.7),
+      hjust = 0.0,
+      vjust = 0.5,
+      angle = 90.0
     ),
     legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
   )

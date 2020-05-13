@@ -288,12 +288,14 @@ for (i in seq_len(length.out = nrow(x = genes_frame))) {
           )
         )
       ggplot_object <-
-        ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-          size = 8.0,
-          hjust = 1.0,
-          vjust = 0.5,
-          angle = 90.0
-        ))
+        ggplot_object + ggplot2::theme(
+          axis.text.x = ggplot2::element_text(
+            size = ggplot2::rel(x = 0.8),
+            hjust = 0.0,
+            vjust = 0.5,
+            angle = 90.0
+          )
+        )
       ggplot2::ggsave(
         filename = file_path,
         plot = ggplot_object,

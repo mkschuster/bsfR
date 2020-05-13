@@ -234,8 +234,8 @@ ggplot_object <-
 
 ggplot_object <-
   ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-    size = 8.0,
-    hjust = 1.0,
+    size = ggplot2::rel(x = 0.8),
+    hjust = 0.0,
     vjust = 0.5,
     angle = 90.0
   ))
@@ -334,7 +334,7 @@ rm(annotated_frame)
 
 # Order by the numeric "peak" variable.
 merged_frame <-
-  merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)), ]
+  merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)),]
 
 write.table(
   x = merged_frame,
@@ -458,7 +458,7 @@ process_per_contrast <-
 
     # Order by the numeric "peak" variable.
     merged_frame <-
-      merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)), ]
+      merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)),]
 
     utils::write.table(
       x = merged_frame,
@@ -478,7 +478,7 @@ process_per_contrast <-
 
     # Filter by the FDR threshold value.
     merged_frame <-
-      merged_frame[merged_frame$FDR <= argument_list$fdr_threshold, ]
+      merged_frame[merged_frame$FDR <= argument_list$fdr_threshold,]
 
     utils::write.table(
       x = merged_frame,
@@ -499,7 +499,7 @@ process_per_contrast <-
     rm(merged_frame)
 
     significant_granges <-
-      report_granges[report_granges$FDR <= argument_list$fdr_threshold, ]
+      report_granges[report_granges$FDR <= argument_list$fdr_threshold,]
     message(sprintf(fmt = "  Assigning chromosome regions for significant peak set: %d",
                     length(x = significant_granges)))
 
@@ -541,12 +541,14 @@ process_per_contrast <-
         )
 
       ggplot_object <-
-        ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-          size = 8.0,
-          hjust = 1.0,
-          vjust = 0.5,
-          angle = 90.0
-        ))
+        ggplot_object + ggplot2::theme(
+          axis.text.x = ggplot2::element_text(
+            size = ggplot2::rel(x = 0.8),
+            hjust = 0.0,
+            vjust = 0.5,
+            angle = 90.0
+          )
+        )
 
       for (plot_path in plot_paths) {
         ggplot2::ggsave(

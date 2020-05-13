@@ -170,7 +170,7 @@ rm(file_name, file_names)
 if (!is.null(x = combined_metrics_sample)) {
   # Order the sample frame by SAMPLE.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
   # Convert the SAMPLE column into factors, which come more handy for plotting.
   combined_metrics_sample$SAMPLE <-
     as.factor(x = combined_metrics_sample$SAMPLE)
@@ -204,11 +204,14 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot_object + ggplot2::labs(x = "Sample", y = "Duplication Fraction", title = "Duplication Fraction per Sample")
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.8)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.8),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -259,11 +262,14 @@ if (!is.null(x = combined_metrics_sample)) {
       title = "Duplication Levels per Sample"
     )
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.8)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.8),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -344,7 +350,7 @@ for (file_name in file_names) {
     picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
                            (picard_metrics_total$SAMPLE != "") &
                            (picard_metrics_total$LIBRARY == "") &
-                           (picard_metrics_total$READ_GROUP == ""),]
+                           (picard_metrics_total$READ_GROUP == ""), ]
   if (is.null(x = combined_metrics_sample)) {
     combined_metrics_sample <- picard_metrics_sample
   } else {
@@ -356,7 +362,7 @@ for (file_name in file_names) {
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP
   # information.
   picard_metrics_read_group <-
-    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
+    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""), ]
   if (is.null(x = combined_metrics_read_group)) {
     combined_metrics_read_group <- picard_metrics_read_group
   } else {
@@ -372,7 +378,7 @@ rm(file_name, file_names)
 if (!is.null(x = combined_metrics_sample)) {
   # Order the data frame by SAMPLE.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
   # Manually convert CATEGORY and SAMPLE columns into factors, which are handy
   # for plotting.
   combined_metrics_sample$CATEGORY <-
@@ -398,7 +404,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   # Order the data frame by READ_GROUP
   combined_metrics_read_group <-
-    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP), ]
+    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP),]
   # Manually convert CATEGORY and READ_GROUP columns into factors, which are
   # handy for plotting.
   combined_metrics_read_group$CATEGORY <-
@@ -450,11 +456,14 @@ if (!is.null(x = combined_metrics_sample)) {
       title = "Aligned Pass-Filter Reads Number per Sample"
     )
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.8)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.8),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -492,11 +501,14 @@ if (!is.null(x = combined_metrics_sample)) {
       title = "Aligned Pass-Filter Reads Number per Read Group"
     )
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.8)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.8),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -534,11 +546,14 @@ if (!is.null(x = combined_metrics_sample)) {
       title = "Aligned Pass-Filter Reads Fraction per Sample"
     )
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.8)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.8),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -576,11 +591,14 @@ if (!is.null(x = combined_metrics_sample)) {
       title = "Aligned Pass-Filter Reads Fraction per Read Group"
     )
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.8)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.8),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -616,11 +634,14 @@ if (!is.null(x = combined_metrics_sample)) {
       title = "Strand Balance of Aligned Pass-Filter Reads per Sample"
     )
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.8)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.8),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -658,11 +679,14 @@ if (!is.null(x = combined_metrics_sample)) {
       title = "Strand Balance of Aligned Pass-Filter Reads per Read Group"
     )
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.8)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.8),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -769,7 +793,7 @@ for (file_name in file_names) {
     picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
                            (picard_metrics_total$SAMPLE != "") &
                            (picard_metrics_total$LIBRARY == "") &
-                           (picard_metrics_total$READ_GROUP == ""),]
+                           (picard_metrics_total$READ_GROUP == ""), ]
   if (is.null(x = combined_metrics_sample)) {
     combined_metrics_sample <- picard_metrics_sample
   } else {
@@ -781,7 +805,7 @@ for (file_name in file_names) {
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP
   # information.
   picard_metrics_read_group <-
-    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
+    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""), ]
   if (is.null(x = combined_metrics_read_group)) {
     combined_metrics_read_group <- picard_metrics_read_group
   } else {
@@ -799,7 +823,7 @@ rm(file_name, file_names)
 if (!is.null(x = combined_metrics_sample)) {
   # Sort the data frame by SAMPLE.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
   # Manually convert BAIT_SET and SAMPLE columns into factors, which are handy
   # for plotting.
   combined_metrics_sample$BAIT_SET <-
@@ -816,7 +840,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   # Sort the data frame by READ_GROUP.
   combined_metrics_read_group <-
-    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP),]
+    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP), ]
   # Manually convert BAIT_SET and READ_GROUP columns into factors, which are
   # handy for plotting.
   combined_metrics_read_group$BAIT_SET <-
@@ -850,11 +874,14 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot_object + ggplot2::labs(x = "Sample" , y = "Fraction PF Unique", title = "Unique Pass-Filter Reads per Sample")
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.8)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.8),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -897,11 +924,14 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.5)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.5),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -932,11 +962,14 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot_object + ggplot2::labs(x = "Sample", y = "Mean Target Coverage", title = "Mean Target Coverage per Sample")
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.8)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.8),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -979,11 +1012,14 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.5)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.5),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -1039,11 +1075,14 @@ if (!is.null(x = combined_metrics_sample)) {
       title = "Excluded Bases per Sample"
     )
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.8)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.8),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -1104,11 +1143,14 @@ if (!is.null(x = combined_metrics_sample)) {
       colour = ggplot2::guide_legend(order = 2L)
     )
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.5)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.5),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -1167,11 +1209,14 @@ if (!is.null(x = combined_metrics_sample)) {
       title = "Coverage Levels per Sample"
     )
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.8)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.8),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -1244,11 +1289,14 @@ if (!is.null(x = combined_metrics_sample)) {
       shape = ggplot2::guide_legend(order = 2L)
     )
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.5)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.5),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -1291,11 +1339,14 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot_object + ggplot2::labs(x = "Sample", y = "Nominal Coverage", title = "Nominal Coverage per Sample")
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.8)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.8),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -1351,11 +1402,14 @@ if (!is.null(x = combined_metrics_sample)) {
   ggplot_object <-
     ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.5)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.5),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -1503,7 +1557,7 @@ rm(i)
 if (nrow(x = combined_metrics_sample) > 0L) {
   # Sort the data frame by sample_name.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$sample_name),]
+    combined_metrics_sample[order(combined_metrics_sample$sample_name), ]
   # Convert the sample_name column into factors, which come more handy for
   # plotting.
   combined_metrics_sample$sample_name <-
@@ -1558,7 +1612,7 @@ if (nrow(x = combined_metrics_sample) > 0L) {
     plotting_frame$number / plotting_frame$target_number_constrained
   # For the moment, remove lines with "TOTAL".
   plotting_frame <-
-    plotting_frame[plotting_frame$mapping_status != "TOTAL",]
+    plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
@@ -1577,11 +1631,14 @@ if (nrow(x = combined_metrics_sample) > 0L) {
       title = "Number of Non-Callable Loci per Sample"
     )
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.8)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.8),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(
@@ -1635,7 +1692,7 @@ if (nrow(x = combined_metrics_sample) > 0L) {
     plotting_frame$width / plotting_frame$target_width_constrained
   # For the moment, remove lines with "TOTAL".
   plotting_frame <-
-    plotting_frame[plotting_frame$mapping_status != "TOTAL",]
+    plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
@@ -1654,11 +1711,14 @@ if (nrow(x = combined_metrics_sample) > 0L) {
       title = "Fraction of Non-Callable Loci per Sample"
     )
   ggplot_object <-
-    ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-      angle = 90,
-      hjust = 0,
-      size = ggplot2::rel(x = 0.8)
-    ))
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.8),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      )
+    )
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(

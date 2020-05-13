@@ -317,7 +317,7 @@ initialise_sample_frame <- function(factor_levels) {
         return(any(argument_list$design_name %in% character_1))
       }
     ))
-  data_frame <- data_frame[index_logical,]
+  data_frame <- data_frame[index_logical, ]
   rm(index_logical)
 
   if (nrow(x = data_frame) == 0L) {
@@ -433,7 +433,7 @@ initialise_design_list <- function() {
       Class = "DataFrame"
     )
   data_frame <-
-    data_frame[data_frame$design == argument_list$design_name,]
+    data_frame[data_frame$design == argument_list$design_name, ]
 
   if (nrow(data_frame) == 0L) {
     stop("No design remaining after selection for design name.")
@@ -499,7 +499,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
         )
         sub_sample_frame <-
           sample_frame[(sample_frame$library_type == library_type) &
-                         (sample_frame$sequencing_type == sequencing_type), ]
+                         (sample_frame$sequencing_type == sequencing_type),]
 
         if (nrow(x = sub_sample_frame) == 0L) {
           rm(sub_sample_frame)
@@ -639,7 +639,7 @@ fix_model_matrix <- function(model_matrix_local) {
         "Attempting to fix the model matrix by removing empty columns."
       )
       model_matrix_local <-
-        model_matrix_local[,-which(x = model_all_zero)]
+        model_matrix_local[, -which(x = model_all_zero)]
     } else {
       linear_combinations_list <-
         caret::findLinearCombos(x = model_matrix_local)
@@ -663,7 +663,7 @@ fix_model_matrix <- function(model_matrix_local) {
         paste(colnames(x = model_matrix_local)[linear_combinations_list$remove], collapse = "\n  ")
       )
       model_matrix_local <-
-        model_matrix_local[, -linear_combinations_list$remove]
+        model_matrix_local[,-linear_combinations_list$remove]
     }
     rm(model_all_zero)
   }
@@ -993,11 +993,14 @@ plot_cooks_distances <- function(object) {
         subtitle = paste("Design", argument_list$design_name)
       )
     ggplot_object <-
-      ggplot_object + ggplot2::theme(axis.text.x = ggplot2::element_text(
-        angle = 90,
-        hjust = 0,
-        size = ggplot2::rel(x = 0.8)
-      ))
+      ggplot_object + ggplot2::theme(
+        axis.text.x = ggplot2::element_text(
+          size = ggplot2::rel(x = 0.8),
+          hjust = 0.0,
+          vjust = 0.5,
+          angle = 90.0
+        )
+      )
 
     # Increase the plot width per 24 samples.
     # The number of samples is the number of rows of the colData() DataFrame.
@@ -1473,7 +1476,7 @@ plot_pca <- function(object,
 
   # Perform a PCA on the (count) matrix returned by SummarizedExperiment::assay() for the selected genes.
   pca_object <-
-    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows,]))
+    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows, ]))
   rm(selected_rows)
 
   # Plot the variance for a maximum of 100 components.
@@ -1572,7 +1575,7 @@ plot_pca <- function(object,
             x = numeric(),
             y = numeric(),
             # Also initalise all variables of the column data, but do not include data (i.e. 0L rows).
-            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L, ])
+            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L,])
           )
 
         for (column_number in seq_len(length.out = ncol(x = pca_pair_matrix))) {
