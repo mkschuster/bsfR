@@ -333,12 +333,12 @@ bsfrd_read_design_tibble <-
 #'
 #' @examples
 #' \dontrun{
-#' design_list <- bsfrd_get_design_list(
+#' design_list <- bsfrd_read_design_list(
 #'   genome_directory = genome_directory,
 #'   design_name = design_name, summary = FALSE,
 #'   verbose = FALSE)
 #' }
-bsfrd_get_design_list <-
+bsfrd_read_design_list <-
   function(genome_directory, design_name, verbose = FALSE) {
     return(as.list(
       x = bsfR::bsfrd_read_design_tibble(

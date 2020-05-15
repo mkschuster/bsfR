@@ -219,7 +219,7 @@ if (is.null(argument_list$variables)) {
   # variables, load the initial design tibble and call the all.vars()
   # function on the formula object.
   design_list <-
-    bsfR::bsfrd_get_design_list(
+    bsfR::bsfrd_read_design_list(
       genome_directory = argument_list$genome_directory,
       design_name = argument_list$design_name,
       verbose = argument_list$verbose
