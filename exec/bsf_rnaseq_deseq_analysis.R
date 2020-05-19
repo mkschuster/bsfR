@@ -150,6 +150,20 @@ argument_list <-
         help = "Number of parallel processing threads [1]",
         type = "integer"
       ),
+      optparse::make_option(
+        opt_str = c("--genome-directory"),
+        default = ".",
+        dest = "genome_directory",
+        help = "Genome directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--output-directory"),
+        default = ".",
+        dest = "output_directory",
+        help = "Output directory path [.]",
+        type = "character"
+      ),
       # optparse::make_option(
       #   opt_str = c("--plot-factor"),
       #   default = 0.5,
@@ -190,90 +204,24 @@ suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "grid"))
 suppressPackageStartupMessages(expr = library(package = "pheatmap"))
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
+suppressPackageStartupMessages(expr = library(package = "bsfR"))
 
 # Save plots in the following formats.
 
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
-prefix <-
-  paste("rnaseq",
-        "deseq",
-        argument_list$design_name,
-        sep = "_")
+# FIXME: For the moment, the "prefix" variable is global, because it is used in
+# the functions below. This should be changed.
+prefix <- bsfR::bsfrd_get_prefix_deseq(design_name = argument_list$design_name)
 
-output_directory <- prefix
-
-# Global variable for the Design list, assigned by the initialise_design_list() function.
+# Global variable for the Design list, assigned by the
+# bsfR::bsfrd_read_design_list() function below.
+#
 # FIXME: Remove the global variable and pass the list into R functions().
 global_design_list <- NULL
 
-# Initialise Gene Annotation DataFrame object -----------------------------
-
-
-#' Initialise or load a gene annotation DataFrame.
-#'
-#' @references argument_list
-#' @references output_directory
-#' @references prefix
-#' @return A \code{DataFrame} object.
-#'
-#' @examples
-initialise_annotation_frame <- function() {
-  # Load pre-existing gene annotation data frame or create it from the reference GTF file.
-  data_frame <- NULL
-
-  file_path <-
-    file.path(output_directory,
-              paste(prefix, "annotation.tsv", sep = "_"))
-  if (file.exists(file_path) &&
-      file.info(file_path)$size > 0L) {
-    message("Loading an annotation frame")
-    data_frame <-
-      as(
-        object = read.table(
-          file = file_path,
-          header = TRUE,
-          sep = "\t",
-          comment.char = "",
-          stringsAsFactors = FALSE
-        ),
-        Class = "DataFrame"
-      )
-  } else {
-    # Extracting a list of gene names from the GrangesList object
-    # inside the DESeqDataSet object seemingly takes forever.
-    # Therefore, import the GTF file once more, but this time only the "gene" features.
-    # gene_name_list <- lapply(X = rowRanges(x = deseq_data_set), FUN = function(x) { S4Vectors::mcols(x = x)$gene_name[1L] })
-    message("Reading reference GTF gene features")
-    gene_ranges <-
-      rtracklayer::import(
-        con = argument_list$gtf_reference,
-        format = "gtf",
-        genome = argument_list$genome_version,
-        feature.type = "gene"
-      )
-    message("Creating annotation frame")
-    data_frame <-
-      S4Vectors::mcols(x = gene_ranges)[, c("gene_id",
-                                            "gene_version",
-                                            "gene_name",
-                                            "gene_biotype",
-                                            "gene_source")]
-    # Add the location as an Ensembl-like location, lacking the coordinate system name and version.
-    data_frame$location <-
-      as(object = gene_ranges, Class = "character")
-    rm(gene_ranges)
-    write.table(
-      x = data_frame,
-      file = file_path,
-      sep = "\t",
-      col.names = TRUE,
-      row.names = FALSE
-    )
-  }
-  rm(file_path)
-  return(data_frame)
-}
+# FIXME: The output directory is defined properly below.
+output_directory <- prefix
 
 # Initialise Sample Annotation Data Frame object --------------------------
 
@@ -397,49 +345,6 @@ initialise_sample_frame <- function(factor_levels) {
 
   # Drop any unused levels from the sample data frame before retrning it.
   return(droplevels(x = data_frame))
-}
-
-
-# Initialise a Design list object -----------------------------------------
-
-#' Initialise a named \code{list} for the selected design.
-#'
-#' @references \code{argument_list$design_name}
-#' @references \code{output_directory}
-#' @references \code{prefix}
-#' @return A named \code{list} for the selected design.
-#'
-#' @examples
-initialise_design_list <- function() {
-  # Read the BSF Python design TSV file as a data.frame and convert into a DataFrame.
-  message("Loading a design DataFrame")
-  data_frame <-
-    as(
-      object = read.table(
-        file = file.path(output_directory, paste(prefix, 'designs.tsv', sep = '_')),
-        header = TRUE,
-        sep = "\t",
-        colClasses = c(
-          "design" = "character",
-          "full_formula" = "character",
-          "reduced_formulas" = "character",
-          "factor_levels" = "character",
-          "plot_aes" = "character"
-        ),
-        fill = TRUE,
-        comment.char = "",
-        stringsAsFactors = FALSE
-      ),
-      Class = "DataFrame"
-    )
-  data_frame <-
-    data_frame[data_frame$design == argument_list$design_name, ]
-
-  if (nrow(data_frame) == 0L) {
-    stop("No design remaining after selection for design name.")
-  }
-
-  return(as.list(x = data_frame))
 }
 
 
@@ -581,7 +486,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     rm(sample_frame)
 
     # Calculate colSums() of SummarizedExperiment::assays()$counts and add as
-    # total_count into the colData data frame.
+    # total_count into the SummarizedExperiment::colData data frame.
     sample_frame <-
       SummarizedExperiment::colData(x = ranged_summarized_experiment)
     sample_frame$total_counts <-
@@ -1003,8 +908,9 @@ plot_cooks_distances <- function(object) {
       )
 
     # Increase the plot width per 24 samples.
-    # The number of samples is the number of rows of the colData() DataFrame.
-    # Rather than argument_list$plot_factor, a fixed number of 0.33 is used here.
+    # The number of samples is the number of rows of the
+    # SummarizedExperiment::colData() S4Vectors::DataFrame. Rather than
+    # argument_list$plot_factor, a fixed number of 0.33 is used here.
     plot_width <-
       argument_list$plot_width + (ceiling(x = S4Vectors::nrow(x = SummarizedExperiment::colData(x = object)) / 24L) - 1L) * argument_list$plot_width * 0.33
 
@@ -1758,18 +1664,29 @@ plot_pca <- function(object,
 message("Processing design '", argument_list$design_name, "'")
 
 # Set the number of parallel threads in the MulticoreParam instance.
-BiocParallel::register(BPPARAM = MulticoreParam(workers = argument_list$threads))
+BiocParallel::register(BPPARAM = BiocParallel::MulticoreParam(workers = argument_list$threads))
 
-# The working directory is the analyis genome directory.
-# Create a new sub-directory for results if it does not exist.
+output_directory <-
+  file.path(argument_list$output_directory, prefix)
 if (!file.exists(output_directory)) {
   dir.create(path = output_directory,
              showWarnings = TRUE,
              recursive = FALSE)
 }
 
-global_design_list <- initialise_design_list()
-annotation_frame <- initialise_annotation_frame()
+global_design_list <- bsfR::bsfrd_read_design_list(
+  genome_directory = argument_list$genome_directory,
+  design_name = argument_list$design_name,
+  verbose = argument_list$verbose)
+
+annotation_tibble <- bsfR::bsfrd_read_annotation_tibble(
+  genome_directory = argument_list$genome_directory,
+  design_name = argument_list$design_name,
+  feature_types = "gene",
+  gtf_file_path = argument_list$gtf_reference,
+  genome = argument_list$genome_version,
+  verbose = argument_list$verbose)
+
 deseq_data_set <-
   initialise_deseq_data_set(design_list = global_design_list)
 
@@ -1952,62 +1869,58 @@ reduced_formula_frame <- plyr::ldply(
         DESeq2::results(
           object = deseq_data_set_lrt,
           format = "DataFrame",
-          tidy = FALSE,
           # If tidy is TRUE, a classical data.frame is returned.
+          tidy = FALSE,
           parallel = TRUE
         )
-      # Re-adjust the DESeqResults DataFrame for merging with the annotation DataFrame.
-      deseq_results_lrt_frame <-
-        DataFrame(
-          gene_id = rownames(x = deseq_results_lrt),
-          deseq_results_lrt[, c("baseMean",
-                                "log2FoldChange",
-                                "lfcSE",
-                                "stat",
-                                "pvalue",
-                                "padj")],
-          significant = factor(x = "no", levels = c("no", "yes"))
+
+      # Convert the DESeqResults object that extends the DataFrame with
+      # additional meta data annotation into a tibble.
+      deseq_results_lrt_tibble <-
+        tibble::as_tibble(x = deseq_results_lrt, rownames = "gene_id")
+      # Set a "significant" variable to "yes" or "no".
+      deseq_results_lrt_tibble <- dplyr::mutate(
+        .data = deseq_results_lrt_tibble,
+        "significant" = dplyr::if_else(
+          condition = .data$padj <= argument_list$padj_threshold,
+          true = "yes",
+          false = "no",
+          missing = "no"
         )
-      deseq_results_lrt_frame$significant[!is.na(x = deseq_results_lrt_frame$padj) &
-                                            deseq_results_lrt_frame$padj <= argument_list$padj_threshold] <-
-        "yes"
-
+      )
+      deseq_results_lrt_tibble <-
+        dplyr::left_join(
+          x = annotation_tibble,
+          y = deseq_results_lrt_tibble,
+          by = c("gene_id" = "gene_id")
+        )
       # Write all genes.
-
-      deseq_merge_complete <-
-        merge(x = annotation_frame, y = deseq_results_lrt_frame, by = "gene_id")
-
-      write.table(
-        x = deseq_merge_complete,
-        file = file_path_all,
-        sep = "\t",
-        col.names = TRUE,
-        row.names = FALSE
+      readr::write_tsv(
+        x = deseq_results_lrt_tibble,
+        path = file_path_all
       )
 
       # Write only significant genes.
-      deseq_merge_significant <-
-        subset(x = deseq_merge_complete, padj <= argument_list$padj_threshold)
-
-      write.table(
-        x = deseq_merge_significant,
-        file = file_path_significant,
-        sep = "\t",
-        col.names = TRUE,
-        row.names = FALSE
+      deseq_results_lrt_tibble <-
+        dplyr::filter(
+          .data = deseq_results_lrt_tibble,
+          .data$padj <= argument_list$padj_threshold)
+      # Write signiciant genes.
+      readr::write_tsv(
+        x = deseq_results_lrt_tibble,
+        path = file_path_significant
       )
+
       summary_frame <- data.frame(
         "design" = global_design_list$design,
         "full_formula" = global_design_list$full_formula,
         "reduced_name" = attr(x = reduced_formula_character, which = "reduced_name"),
         "reduced_formula" = reduced_formula_character,
-        "significant" = nrow(deseq_merge_significant),
+        "significant" = nrow(deseq_results_lrt_tibble),
         stringsAsFactors = FALSE
       )
       rm(
-        deseq_merge_significant,
-        deseq_merge_complete,
-        deseq_results_lrt_frame,
+        deseq_results_lrt_tibble,
         deseq_results_lrt,
         deseq_data_set_lrt
       )
@@ -2127,24 +2040,25 @@ print(x = DESeq2::resultsNames(object = deseq_data_set))
 
 
 # Export the raw counts from the DESeqDataSet object.
-counts_frame <-
-  as(object = SummarizedExperiment::assays(x = deseq_data_set)$counts,
-     Class = "DataFrame")
-counts_frame$gene_id <- row.names(x = counts_frame)
-
-write.table(
-  x = merge(x = annotation_frame, y = counts_frame, by = "gene_id"),
-  file = file.path(output_directory,
-                   paste(prefix,
-                         "counts",
-                         "raw.tsv",
-                         sep = "_")),
-  sep = "\t",
-  col.names = TRUE,
-  row.names = FALSE
+readr::write_tsv(
+  x = dplyr::left_join(
+    x = annotation_tibble,
+    y = tibble::as_tibble(
+      x = SummarizedExperiment::assays(x = deseq_data_set)$counts,
+      rownames = "gene_id"
+    ),
+    by = c("gene_id" = "gene_id")
+  ),
+  path = file.path(output_directory,
+                   paste(
+                     paste(prefix,
+                           "counts",
+                           "raw",
+                           sep = "_"),
+                     "tsv",
+                     sep = "."
+                   ))
 )
-rm(counts_frame)
-
 # Export FPKM values ------------------------------------------------------
 
 
@@ -2153,22 +2067,22 @@ fpkm_matrix <- DESeq2::fpkm(object = deseq_data_set)
 plot_fpkm_values(object = fpkm_matrix)
 
 # Export FPKM values from the DESeqDataSet object
-fpkm_frame <-
-  as(object = fpkm_matrix,
-     Class = "DataFrame")
-fpkm_frame$gene_id <- row.names(x = fpkm_frame)
-
-write.table(
-  x = merge(x = annotation_frame, y = fpkm_frame, by = "gene_id"),
-  file = file.path(output_directory,
-                   paste(prefix,
-                         "fpkms.tsv",
-                         sep = "_")),
-  sep = "\t",
-  col.names = TRUE,
-  row.names = FALSE
+readr::write_tsv(
+  x = dplyr::left_join(
+    x = annotation_tibble,
+    y = tibble::as_tibble(x = fpkm_matrix, rownames = "gene_id"),
+    by = c("gene_id", "gene_id")
+  ),
+  path = file.path(output_directory,
+                   paste(
+                     paste(prefix,
+                           "fpkms",
+                           sep = "_"),
+                     "tsv",
+                     sep = "."
+                   ))
 )
-rm(fpkm_frame, fpkm_matrix)
+rm(fpkm_matrix)
 
 # DESeqTransform ----------------------------------------------------------
 # MDS Plot ----------------------------------------------------------------
@@ -2199,27 +2113,28 @@ for (blind in c(FALSE, TRUE)) {
                blind = blind)
 
   # Export the vst counts from the DESeqTransform object
-  counts_frame <-
-    as(object = SummarizedExperiment::assay(x = deseq_transform, i = 1L),
-       Class = "DataFrame")
-  counts_frame$gene_id <- row.names(x = counts_frame)
-
-  write.table(
-    x = merge(x = annotation_frame, y = counts_frame, by = "gene_id"),
-    file = file.path(output_directory,
+  readr::write_tsv(
+    x = dplyr::left_join(
+      x = annotation_tibble,
+      y = tibble::as_tibble(
+        x = SummarizedExperiment::assay(x = deseq_transform, i = 1L),
+        rownames = "gene_id"
+      ),
+      by = c("gene_id" = "gene_id")
+    ),
+    path = file.path(output_directory,
                      paste(
                        paste(prefix,
                              "counts",
                              "vst",
                              suffix,
-                             sep = "_"), "tsv", sep = "."
-                     )),
-    sep = "\t",
-    col.names = TRUE,
-    row.names = FALSE
+                             sep = "_"),
+                       "tsv",
+                       sep = "."
+                     ))
   )
 
-  rm(counts_frame, deseq_transform, suffix)
+  rm(deseq_transform, suffix)
 }
 rm(blind, plot_list)
 
@@ -2227,7 +2142,7 @@ rm(blind, plot_list)
 # save.image()
 
 rm(
-  annotation_frame,
+  annotation_tibble,
   deseq_data_set,
   global_design_list,
   output_directory,
@@ -2246,9 +2161,7 @@ rm(
   check_model_matrix,
   fix_model_matrix,
   initialise_ranged_summarized_experiment,
-  initialise_design_list,
-  initialise_sample_frame,
-  initialise_annotation_frame
+  initialise_sample_frame
 )
 
 message("All done")

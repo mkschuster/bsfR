@@ -598,56 +598,172 @@ bsfrd_read_result_tibble <-
     return(deseq_results_tibble)
   }
 
-#' Read a previously saved annotation tibble.
+#' Read a feature annotation tibble or import it from a GTF file.
 #'
+#' Features are extracted from a transcriptome reference GTF file. For the
+#' moment, Ensembl-specific files with "gene", "transcript" and "exon" features
+#' are supported.
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
 #' @param design_name A \code{character} scalar with the design name.
+#' @param feature_types A \code{character} vector of GTF feature types to be
+#'   imported. Defaults to "genes".
+#' @param gtf_file_path A \code{character} scalar with the reference GTF file
+#'   path.
+#' @param genome A \code{character} scalar with the genome version or a
+#'   \code{GenomeInfoDb::Seqinfo} object.
 #' @param verbose A \code{logical} scalar to emit messages.
-#'
-#' @return A \code{tibble} or \code{NULL}.
+#' @return A \code{tibble} with feature annotation.
 #' @export
-#' @importFrom readr cols col_character col_double col_integer col_logical read_tsv
+#' @importFrom methods as
+#' @importFrom readr cols col_character read_tsv write_tsv
+#' @importFrom tibble as_tibble
+#' @importFrom S4Vectors mcols
+#' @importFrom rtracklayer import
 #'
 #' @examples
 #' \dontrun{
-#' annotation_tibble <- bsfrd_read_annotation_tibble(
+#' annotation_tibble <- bsfR::bsfrd_read_annotation_tibble(
 #'   genome_directory = genome_directory,
 #'   design_name = design_name,
-#'   verbose = FALSE)
+#'   feature_types = "gene",
+#'   gtf_file_path = gtf_file_path,
+#'   genome = "hg38",
+#'   verbose = TRUE
+#' )
 #' }
 bsfrd_read_annotation_tibble <-
-  function(genome_directory, design_name, verbose = FALSE) {
-    annotation_tibble <- NULL
+  function(genome_directory,
+           design_name,
+           feature_types = "gene",
+           gtf_file_path = NULL,
+           genome = NA,
+           verbose = FALSE) {
+    stopifnot(all(feature_types %in% c("gene", "transcript", "exon")))
+
     prefix_deseq <-
       bsfrd_get_prefix_deseq(design_name = design_name)
-    file_path <- file.path(genome_directory,
-                           prefix_deseq,
-                           paste(paste(prefix_deseq, "annotation", sep = "_"), "tsv", sep = "."))
 
+    # Load pre-existing gene annotation tibble or create it from the reference
+    # GTF file.
+    annotation_tibble <- NULL
+
+    file_path <-
+      file.path(genome_directory,
+                prefix_deseq,
+                paste(
+                  paste(prefix_deseq, paste(sort(feature_types), collapse = "_"), "annotation", sep = "_"),
+                  "tsv",
+                  sep = "."
+                ))
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
       if (verbose) {
-        message("Loading a gene annotation tibble ...")
+        message("Loading an annotation tibble ...")
+      }
+
+      col_types <- readr::cols(
+        "gene_id" = readr::col_character(),
+        "gene_version" = readr::col_character(),
+        "gene_name" = readr::col_character(),
+        "gene_biotype" = readr::col_character(),
+        "gene_source" = readr::col_character()
+      )
+
+      if (any(c("transcript", "exon") %in% feature_types)) {
+        col_types$cols <-
+          c(
+            col_types$cols,
+            readr::cols(
+              "transcript_id" = readr::col_character(),
+              "transcript_version" = readr::col_character(),
+              "transcript_name" = readr::col_character(),
+              "transcript_biotype" = readr::col_character(),
+              "transcript_source" = readr::col_character()
+            )$cols
+          )
+      }
+
+      if ("exon" %in% feature_types) {
+        col_types$cols <-
+          c(
+            col_types$cols,
+            readr::cols(
+              "exon_id" = readr::col_character(),
+              "exon_version" = readr::col_character(),
+              "exon_number" = readr::col_character()
+            )$cols
+          )
       }
 
       annotation_tibble <-
-        readr::read_tsv(
-          file = file_path,
-          col_types = readr::cols(
-            gene_id = readr::col_character(),
-            gene_version = readr::col_integer(),
-            gene_name = readr::col_character(),
-            gene_biotype = readr::col_character(),
-            gene_source = readr::col_character(),
-            location = readr::col_character()
-          )
-        )
+        readr::read_tsv(file = file_path,
+                        col_names = TRUE,
+                        col_types = col_types)
+
+      rm(col_types)
     } else {
-      warning("Require a pre-calculated annotation tibble in file: ",
-              file_path)
+      if (verbose) {
+        message("Reading reference GTF features ...")
+      }
+
+      if (is.null(x = gtf_file_path)) {
+        stop("Missing gtf_file_path option")
+      }
+
+      granges_object <-
+        rtracklayer::import(
+          con = gtf_file_path,
+          format = "gtf",
+          genome = genome,
+          feature.type = feature_types
+        )
+
+      if (verbose) {
+        message("Creating an annotation tibble ...")
+      }
+      variable_names <- c("gene_id",
+                          "gene_version",
+                          "gene_name",
+                          "gene_biotype",
+                          "gene_source")
+
+      if (any(c("transcript", "exon") %in% feature_types)) {
+        variable_names <- c(
+          variable_names,
+          "transcript_id",
+          "transcript_version",
+          "transcript_name",
+          "transcript_biotype",
+          "transcript_source"
+        )
+      }
+
+      if ("exon" %in% feature_types) {
+        variable_names <-
+          c(variable_names,
+            "exon_id",
+            "exon_version",
+            "exon_number")
+      }
+
+      mcols_frame <-
+        S4Vectors::mcols(x = granges_object)[, variable_names]
+      rm(variable_names)
+
+      # Add the location as an Ensembl-like location, lacking the coordinate
+      # system name and version.
+      mcols_frame$location <-
+        methods::as(object = granges_object, Class = "character")
+      rm(granges_object)
+
+      annotation_tibble <-
+        tibble::as_tibble(x = as.data.frame(x = mcols_frame))
+      rm(mcols_frame)
+
+      readr::write_tsv(x = annotation_tibble, path = file_path)
     }
-    rm(file_path, prefix_deseq)
+    rm(file_path)
 
     return(annotation_tibble)
   }
@@ -736,137 +852,9 @@ bsfrd_read_gene_set_tibble <-
     return(gene_set_tibble)
   }
 
-#' Initialise or load a Feature Annotation DataFrame.
-#'
-#' Features are extracted from a transcriptome reference GTF file. For the
-#' moment, Ensembl-specific files with "gene", "transcript" and "exon" features
-#' are supported.
-#' @param genome_directory A \code{character} scalar with the genome directory
-#'   path.
-#' @param design_name A \code{character} scalar with the design name.
-#' @param gtf_file_path A \code{character} scalar with the reference GTF file
-#'   path.
-#' @param genome A \code{character} scalar with the genome version or a
-#'   \code{GenomeInfoDb::Seqinfo} object.
-#' @param feature_types A \code{character} vector of GTF feature types to be
-#'   imported.
-#' @param verbose A \code{logical} scalar to emit messages.
-#' @return A \code{DataFrame} with feature annotation.
-#' @export
-#' @importFrom methods as
-#' @importFrom utils read.table write.table
-#'
-#' @examples
-#' \dontrun{
-#' annotation_frame <- bsfR::initialise_annotation_frame(
-#'   genome_directory = genome_directory,
-#'   design_name = design_name,
-#'   gtf_file_path = gtf_file_path,
-#'   genome = "hg38",
-#'   feature_types = "gene",
-#'   verbose = TRUE
-#' )
-#' }
-initialise_annotation_frame <-
-  function(genome_directory,
-           design_name,
-           gtf_file_path,
-           genome = NA,
-           feature_types = "gene",
-           verbose = FALSE) {
-    stopifnot(all(feature_types %in% c("gene", "transcript", "exon")))
-
-    prefix_deseq <-
-      bsfrd_get_prefix_deseq(design_name = design_name)
-
-    # Load pre-existing gene annotation data frame or create it from the reference
-    # GTF file.
-    data_frame <- NULL
-
-    file_path <-
-      file.path(genome_directory,
-                prefix_deseq,
-                paste(
-                  paste(prefix_deseq, paste(sort(feature_types), collapse = "_"), "annotation", sep = "_"),
-                  "tsv",
-                  sep = "."
-                ))
-    if (file.exists(file_path) &&
-        file.info(file_path)$size > 0L) {
-      if (verbose) {
-        message("Loading an annotation DataFrame ...")
-      }
-
-      data_frame <-
-        methods::as(
-          object = utils::read.table(
-            file = file_path,
-            header = TRUE,
-            sep = "\t",
-            comment.char = "",
-            stringsAsFactors = FALSE
-          ),
-          Class = "DataFrame"
-        )
-    } else {
-      if (verbose) {
-        message("Reading reference GTF features ...")
-      }
-      granges_object <-
-        rtracklayer::import(
-          con = gtf_file_path,
-          format = "gtf",
-          genome = genome,
-          feature.type = feature_types
-        )
-
-      if (verbose) {
-        message("Creating an annotation DataFrame ...")
-      }
-      variable_names <- c("gene_id",
-                          "gene_version",
-                          "gene_name",
-                          "gene_biotype",
-                          "gene_source")
-      if (any(c("transcript", "exon") %in% feature_types)) {
-        variable_names <- c(
-          variable_names,
-          "transcript_id",
-          "transcript_version",
-          "transcript_name",
-          "transcript_biotype",
-          "transcript_source"
-        )
-      }
-      if ("exon" %in% feature_types) {
-        variable_names <-
-          c(variable_names,
-            "exon_id",
-            "exon_version",
-            "exon_number")
-      }
-      data_frame <-
-        S4Vectors::mcols(x = granges_object)[, variable_names]
-      rm(variable_names)
-
-      # Add the location as an Ensembl-like location, lacking the coordinate
-      # system name and version.
-      data_frame$location <-
-        methods::as(object = granges_object, Class = "character")
-      rm(granges_object)
-
-      utils::write.table(
-        x = data_frame,
-        file = file_path,
-        sep = "\t",
-        col.names = TRUE,
-        row.names = FALSE
-      )
-    }
-    rm(file_path)
-
-    return(data_frame)
-  }
+.match_design_name <- function(design_names, design_name) {
+  return(any(design_name %in% design_names))
+}
 
 #' Initialise or load a Sample Annotation DataFrame.
 #'
@@ -902,7 +890,7 @@ bsfrd_initialise_sample_frame <- function(genome_directory,
     message("Loading sample DataFrame")
   }
 
-  data_frame <-
+  mcols_frame <-
     methods::as(
       object = utils::read.table(
         file = file.path(
@@ -917,52 +905,57 @@ bsfrd_initialise_sample_frame <- function(genome_directory,
       ),
       "DataFrame"
     )
-  rownames(x = data_frame) <- data_frame$sample
+  rownames(x = mcols_frame) <- mcols_frame$sample
 
   # Select only those samples, which have the design name annotated in the designs variable.
   index_logical <-
     unlist(x = lapply(
       X = stringr::str_split(
-        string = as.character(data_frame$designs),
+        string = as.character(mcols_frame$designs),
         pattern = stringr::fixed(pattern = ",")
       ),
-      FUN = function(character_1) {
-        # character_1 is a character vector resulting from the split on ",".
-        return(any(design_name %in% character_1))
+      FUN = function(design_names) {
+        # design_names is a character vector resulting from the split on ",".
+        return(any(design_name %in% design_names))
       }
     ))
-  data_frame <- data_frame[index_logical, , drop = FALSE]
+  mcols_frame <- mcols_frame[index_logical, , drop = FALSE]
   rm(index_logical)
 
-  if (nrow(x = data_frame) == 0L) {
+  if (nrow(x = mcols_frame) == 0L) {
     stop("No sample remaining after selection for design name.")
   }
 
   # The sequencing_type and library_type variables are required to set options
   # for the GenomicAlignments::summarizeOverlaps() read counting function.
 
-  if (!"sequencing_type" %in% names(x = data_frame)) {
+  if (!"sequencing_type" %in% names(x = mcols_frame)) {
     stop("A sequencing_type variable is missing from the sample annotation frame.")
   }
 
-  if (!"library_type" %in% names(x = data_frame)) {
+  if (!"library_type" %in% names(x = mcols_frame)) {
     stop("A library_type variable is missing from the sample annotation frame.")
   }
 
   # Re-level the library_type and sequencing_type variables.
-  data_frame$library_type <-
-    factor(x = data_frame$library_type,
+  mcols_frame$library_type <-
+    factor(x = mcols_frame$library_type,
            levels = c("unstranded", "first", "second"))
-  data_frame$sequencing_type <-
-    factor(x = data_frame$sequencing_type,
+
+  mcols_frame$sequencing_type <-
+    factor(x = mcols_frame$sequencing_type,
            levels = c("SE", "PE"))
 
-  # The "factor_levels" variable of the design data frame specifies the order of factor levels.
-  # Turn the factor_levels variable into a list of character vectors, where the factor names are set
-  # as attributes of the list components.
+  # The "factor_levels" variable of the design data frame specifies the order of
+  # factor levels. Turn the factor_levels variable into a list of character
+  # vectors, where the factor names are set as attributes of the list
+  # components.
+  #
   # factor_levels="factor_1:level_1,level_2;factor_2:level_A,level_B"
   factor_list <- lapply(
-    # The "factor_levels" variable is a character vector, always with just a single component.
+    # The "factor_levels" variable is a character vector, always with just a
+    # single component.
+    #
     # Split by ";" then by ":" character.
     X = stringr::str_split(
       string = stringr::str_split(
@@ -986,16 +979,16 @@ bsfrd_initialise_sample_frame <- function(genome_directory,
   )
 
   # Apply the factor levels to each factor.
-  design_variables <- names(x = data_frame)
+  design_variables <- names(x = mcols_frame)
   for (i in seq_along(along.with = factor_list)) {
     factor_name <- attr(x = factor_list[[i]], which = "factor")
     if (factor_name != "") {
       if (factor_name %in% design_variables) {
-        data_frame[, factor_name] <-
-          factor(x = as.character(x = data_frame[, factor_name]),
+        mcols_frame[, factor_name] <-
+          factor(x = as.character(x = mcols_frame[, factor_name]),
                  levels = factor_list[[i]])
         # Check for NA values in case a factor level was missing.
-        if (any(is.na(x = data_frame[, factor_name]))) {
+        if (any(is.na(x = mcols_frame[, factor_name]))) {
           stop("Missing values after assigning factor levels for factor name ",
                factor_name)
         }
@@ -1010,5 +1003,5 @@ bsfrd_initialise_sample_frame <- function(genome_directory,
   rm(i, design_variables, factor_list)
 
   # Drop any unused levels from the sample data frame before retrning it.
-  return(droplevels(x = data_frame))
+  return(droplevels(x = mcols_frame))
 }
