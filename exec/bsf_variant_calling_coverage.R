@@ -465,7 +465,7 @@ grouped_ranges <- unlist(x = GRangesList(lapply(
     sub_mcols <- S4Vectors::mcols(x = sub_ranges)
     selected_range <- sub_ranges[1L]
 
-    S4Vectors::mcols(x = selected_range) <- DataFrame(
+    S4Vectors::mcols(x = selected_range) <- S4Vectors::DataFrame(
       "mapping_status" = sub_mcols$mapping_status[1L],
 
       "gene_ids" = paste(unique(x = sort(x = sub_mcols$gene_id)), collapse = ","),

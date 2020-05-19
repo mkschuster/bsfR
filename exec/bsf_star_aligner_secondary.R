@@ -99,30 +99,30 @@ if (is.null(x = argument_list$directory)) {
   stop("Missing --directory option")
 }
 
-suppressPackageStartupMessages(expr = library(package = "BiocParallel"))  # for BiocParallel::register()
-suppressPackageStartupMessages(expr = library(package = "GenomicAlignments"))  # for GenomicAlignments::summarizeOverlaps()
-suppressPackageStartupMessages(expr = library(package = "GenomicRanges"))  # for GenomicRanges::tileGenome()
-suppressPackageStartupMessages(expr = library(package = "Rsamtools"))  # for Rsamtools::BamFileList()
-suppressPackageStartupMessages(expr = library(package = argument_list$bsgenome, character.only = TRUE))  # BSgenome package
+suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
+suppressPackageStartupMessages(expr = library(package = "GenomicAlignments"))
+suppressPackageStartupMessages(expr = library(package = "GenomicRanges"))
+suppressPackageStartupMessages(expr = library(package = "Rsamtools"))
+suppressPackageStartupMessages(expr = library(package = argument_list$bsgenome, character.only = TRUE))
 
 # Set the number of parallel threads in the MulticoreParam instance.
 
-BiocParallel::register(BPPARAM = MulticoreParam(workers = argument_list$threads))
+BiocParallel::register(BPPARAM = BiocParallel::MulticoreParam(workers = argument_list$threads))
 
 # Create genome tiles -----------------------------------------------------
 
 
 message("Creating genome tiles")
 granges_list <-
-  tileGenome(seqlengths = seqinfo(x = get(x = argument_list$bsgenome)),
-             tilewidth = argument_list$tile_width)
+  GenomicRanges::tileGenome(seqlengths = GenomeInfoDb::seqinfo(x = get(x = argument_list$bsgenome)),
+                            tilewidth = argument_list$tile_width)
 
 # Create a BamFileList ----------------------------------------------------
 
 
 message("Creating BamFileList object")
 sample_frame <-
-  DataFrame(
+  S4Vectors::DataFrame(
     bam_path = base::list.files(
       path = argument_list$directory,
       pattern = "^star_aligner_merge_.*\\.bam$",
@@ -140,7 +140,7 @@ sample_frame$sample <-
   gsub(pattern = "^star_aligner_merge_(.*)\\.bam$",
        replacement = "\\1",
        x = sample_frame$bam_path)
-bam_file_list <- BamFileList(
+bam_file_list <- Rsamtools::BamFileList(
   file = as.character(x = sample_frame$bam_path),
   index = as.character(x = sample_frame$bai_path),
   yieldSize = 2000000L
@@ -153,7 +153,7 @@ names(x = bam_file_list) <-
 
 message("Creating a RangedSummarizedExperiment object")
 ranged_summarized_experiment <-
-  summarizeOverlaps(
+  GenomicAlignments::summarizeOverlaps(
     features = granges_list,
     reads = bam_file_list,
     mode = "Union",
@@ -162,14 +162,14 @@ ranged_summarized_experiment <-
     # Count reads overlapping features.
     inter.feature = FALSE,
     # include only reads that represent secondary alignments and pass the vendor quality filter.
-    param = ScanBamParam(
-      flag = scanBamFlag(
+    param = Rsamtools::ScanBamParam(
+      flag = Rsamtools::scanBamFlag(
         isSecondaryAlignment = TRUE,
         isNotPassingQualityControls = FALSE
       )
     )
   )
-colData(x = ranged_summarized_experiment) <-
+SummarizedExperiment::colData(x = ranged_summarized_experiment) <-
   sample_frame
 
 # Save the RangedSummarizedExperiment -------------------------------------

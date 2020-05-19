@@ -114,18 +114,20 @@ bam_file <- BamFile(file = argument_list$file_path,
                     yieldSize = argument_list$chunk_size)
 open(con = bam_file)
 while (TRUE) {
-  region_list <- scanBam(file = bam_file,
-                         param = ScanBamParam(
-                           flag = scanBamFlag(
-                             isPaired = TRUE,
-                             isProperPair = TRUE,
-                             isSecondaryAlignment = FALSE,
-                             isNotPassingQualityControls = FALSE,
-                             isDuplicate = FALSE
-                           ),
-                           what = c("isize")
-                         ))
-  # The scanBam() function returns a list of lists.
+  region_list <- Rsamtools::scanBam(
+    file = bam_file,
+    param = Rsamtools::ScanBamParam(
+      flag = Rsamtools::scanBamFlag(
+        isPaired = TRUE,
+        isProperPair = TRUE,
+        isSecondaryAlignment = FALSE,
+        isNotPassingQualityControls = FALSE,
+        isDuplicate = FALSE
+      ),
+      what = c("isize")
+    )
+  )
+  # The Rsamtools::scanBam() function returns a list of lists.
   records_read_chunk <- 0L
   for (i in seq_along(along.with = region_list)) {
     # Add 1L to adjust to R vector indices starting at 1.

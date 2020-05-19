@@ -99,7 +99,7 @@ argument_list <-
 suppressPackageStartupMessages(expr = library(package = "DiffBind"))
 
 # Set the number of parallel threads in the MulticoreParam instance.
-# BiocParallel::register(BPPARAM = MulticoreParam(workers = argument_list$threads))
+# BiocParallel::register(BPPARAM = BiocParallel::MulticoreParam(workers = argument_list$threads))
 
 prefix <-
   paste("chipseq",

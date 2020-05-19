@@ -124,7 +124,7 @@ message("Processing design '", argument_list$design_name, "'")
 
 # Set the number of parallel threads in the MulticoreParam instance.
 
-BiocParallel::register(BPPARAM = MulticoreParam(workers = argument_list$threads))
+BiocParallel::register(BPPARAM = BiocParallel::MulticoreParam(workers = argument_list$threads))
 
 # The working directory is the analyis genome directory.
 # Create a new sub-directory for results if it does not exist.
