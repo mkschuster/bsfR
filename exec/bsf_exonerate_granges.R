@@ -159,14 +159,14 @@ exonerate_granges <-
     ranges = IRanges::IRanges(
       start = dplyr::if_else(
         condition = vulgar_tibble$target_strand == "+",
-        true = vulgar_tibble$target_start + 1L,
+        true = vulgar_tibble$target_start,
         false = vulgar_tibble$target_end,
-        missing = vulgar_tibble$target_start + 1L
-      ),
+        missing = vulgar_tibble$target_start
+      ) + 1L,
       end = dplyr::if_else(
         condition = vulgar_tibble$target_strand == "+",
         true = vulgar_tibble$target_end,
-        false = vulgar_tibble$target_start + 1L,
+        false = vulgar_tibble$target_start,
         missing = vulgar_tibble$target_end
       ),
       names = vulgar_tibble$query_name
