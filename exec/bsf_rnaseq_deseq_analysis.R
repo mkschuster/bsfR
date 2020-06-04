@@ -212,7 +212,8 @@ graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
 # FIXME: For the moment, the "prefix" variable is global, because it is used in
 # the functions below. This should be changed.
-prefix <- bsfR::bsfrd_get_prefix_deseq(design_name = argument_list$design_name)
+prefix <-
+  bsfR::bsfrd_get_prefix_deseq(design_name = argument_list$design_name)
 
 # Global variable for the Design list, assigned by the
 # bsfR::bsfrd_read_design_list() function below.
@@ -313,7 +314,7 @@ initialise_sample_frame <- function(factor_levels) {
           pattern = stringr::fixed(pattern = ",")
         ))
       # Set the first component of character_1, the factor name, as attribute.
-      attr(x = character_2, which = "factor") <-
+      attr(x = character_2, which = "factor_name") <-
         character_1[1L]
       return(character_2)
     }
@@ -322,7 +323,7 @@ initialise_sample_frame <- function(factor_levels) {
   # Apply the factor levels to each factor.
   design_variables <- names(x = data_frame)
   for (i in seq_along(along.with = factor_list)) {
-    factor_name <- attr(x = factor_list[[i]], which = "factor")
+    factor_name <- attr(x = factor_list[[i]], which = "factor_name")
     if (factor_name != "") {
       if (factor_name %in% design_variables) {
         data_frame[, factor_name] <-
@@ -1677,7 +1678,8 @@ if (!file.exists(output_directory)) {
 global_design_list <- bsfR::bsfrd_read_design_list(
   genome_directory = argument_list$genome_directory,
   design_name = argument_list$design_name,
-  verbose = argument_list$verbose)
+  verbose = argument_list$verbose
+)
 
 annotation_tibble <- bsfR::bsfrd_read_annotation_tibble(
   genome_directory = argument_list$genome_directory,
@@ -1685,7 +1687,8 @@ annotation_tibble <- bsfR::bsfrd_read_annotation_tibble(
   feature_types = "gene",
   gtf_file_path = argument_list$gtf_reference,
   genome = argument_list$genome_version,
-  verbose = argument_list$verbose)
+  verbose = argument_list$verbose
+)
 
 deseq_data_set <-
   initialise_deseq_data_set(design_list = global_design_list)
@@ -1889,27 +1892,20 @@ reduced_formula_frame <- plyr::ldply(
         )
       )
       deseq_results_lrt_tibble <-
-        dplyr::left_join(
-          x = annotation_tibble,
-          y = deseq_results_lrt_tibble,
-          by = c("gene_id" = "gene_id")
-        )
+        dplyr::left_join(x = annotation_tibble,
+                         y = deseq_results_lrt_tibble,
+                         by = c("gene_id" = "gene_id"))
       # Write all genes.
-      readr::write_tsv(
-        x = deseq_results_lrt_tibble,
-        path = file_path_all
-      )
+      readr::write_tsv(x = deseq_results_lrt_tibble,
+                       path = file_path_all)
 
       # Write only significant genes.
       deseq_results_lrt_tibble <-
-        dplyr::filter(
-          .data = deseq_results_lrt_tibble,
-          .data$padj <= argument_list$padj_threshold)
+        dplyr::filter(.data = deseq_results_lrt_tibble,
+                      .data$padj <= argument_list$padj_threshold)
       # Write signiciant genes.
-      readr::write_tsv(
-        x = deseq_results_lrt_tibble,
-        path = file_path_significant
-      )
+      readr::write_tsv(x = deseq_results_lrt_tibble,
+                       path = file_path_significant)
 
       summary_frame <- data.frame(
         "design" = global_design_list$design,
@@ -1919,11 +1915,9 @@ reduced_formula_frame <- plyr::ldply(
         "significant" = nrow(deseq_results_lrt_tibble),
         stringsAsFactors = FALSE
       )
-      rm(
-        deseq_results_lrt_tibble,
-        deseq_results_lrt,
-        deseq_data_set_lrt
-      )
+      rm(deseq_results_lrt_tibble,
+         deseq_results_lrt,
+         deseq_data_set_lrt)
     }
     rm(file_path_all, file_path_significant)
     return(summary_frame)
@@ -2044,7 +2038,7 @@ readr::write_tsv(
   x = dplyr::left_join(
     x = annotation_tibble,
     y = tibble::as_tibble(
-      x = SummarizedExperiment::assays(x = deseq_data_set)$counts,
+      x = BiocGenerics::counts(object = deseq_data_set, normalized = FALSE),
       rownames = "gene_id"
     ),
     by = c("gene_id" = "gene_id")
@@ -2059,6 +2053,31 @@ readr::write_tsv(
                      sep = "."
                    ))
 )
+
+# Export normalised counts ------------------------------------------------
+
+
+# Export the normalised counts from the DESeqDataSet object.
+readr::write_tsv(
+  x = dplyr::left_join(
+    x = annotation_tibble,
+    y = tibble::as_tibble(
+      x = BiocGenerics::counts(object = deseq_data_set, normalized = TRUE),
+      rownames = "gene_id"
+    ),
+    by = c("gene_id" = "gene_id")
+  ),
+  path = file.path(output_directory,
+                   paste(
+                     paste(prefix,
+                           "counts",
+                           "normalised",
+                           sep = "_"),
+                     "tsv",
+                     sep = "."
+                   ))
+)
+
 # Export FPKM values ------------------------------------------------------
 
 
