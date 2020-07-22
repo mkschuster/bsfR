@@ -237,16 +237,16 @@ load_enrichr_results <-
         result_list[[directions[direction_index]]] <-
           readr::read_tsv(
             file = file_paths[direction_index],
-            col_types = cols(
-              Term = col_character(),
-              Overlap = col_character(),
-              P.value = col_double(),
-              Adjusted.P.value = col_double(),
-              Old.P.value = col_double(),
-              Old.Adjusted.P.value = col_double(),
-              Odds.Ratio = col_double(),
-              Combined.Score = col_double(),
-              Genes = col_character()
+            col_types = readr::cols(
+              Term = readr::col_character(),
+              Overlap = readr::col_character(),
+              P.value = readr::col_double(),
+              Adjusted.P.value = readr::col_double(),
+              Old.P.value = readr::col_double(),
+              Old.Adjusted.P.value = readr::col_double(),
+              Odds.Ratio = readr::col_double(),
+              Combined.Score = readr::col_double(),
+              Genes = readr::col_character()
             )
           )
       }
@@ -270,10 +270,10 @@ load_enrichr_results <-
         enrichr_tibble <- NULL
         if (directions[direction_index] == "up") {
           enrichr_tibble <-
-            dplyr::filter(.data = deseq_results_tibble, .data$log2FoldChange > 0)
+            dplyr::filter(.data = deseq_results_tibble, .data$log2FoldChange > 0.0)
         } else {
           enrichr_tibble <-
-            dplyr::filter(.data = deseq_results_tibble, .data$log2FoldChange < 0)
+            dplyr::filter(.data = deseq_results_tibble, .data$log2FoldChange < 0.0)
         }
         readr::write_tsv(x = enrichr_tibble,
                          path = file.path(output_directory,
@@ -288,14 +288,49 @@ load_enrichr_results <-
                                             "tsv",
                                             sep = "."
                                           )))
-        enrichr_result_list <-
+        enrichr_result_list <- if (nrow(x = enrichr_tibble) > 0L) {
+          # Upload to Enrichr only, if genes were filtered.
           enrichR::enrichr(genes = enrichr_tibble$gene_name,
                            databases = enrichr_databases)
-        # Save the Enrichr results for each database, so that it is automatically
-        # available for the next query.
+        } else {
+          NULL
+        }
+        # Save the Enrichr results for each database, so that it is
+        # automatically available for the next query.
         for (edb in enrichr_databases) {
           enrichr_result_tibble <-
-            tibble::as_tibble(x = enrichr_result_list[[edb]])
+            if (is.null(x = enrichr_result_list) ||
+                nrow(x = enrichr_result_list[[edb]]) == 0L) {
+              # Initialise an empty Enrichr results tibble if no genes were filtered.
+              tibble::tibble(
+                Term = character(),
+                Overlap = character(),
+                P.value = double(),
+                Adjusted.P.value = double(),
+                Old.P.value = double(),
+                Old.Adjusted.P.value = double(),
+                Odds.Ratio = double(),
+                Combined.Score = double(),
+                Genes = character()
+              )
+            } else {
+              # Use readr::type_convert() since the Type variable is sometimes
+              # read as logical rather than character.
+              tibble::as_tibble(x = readr::type_convert(
+                df = enrichr_result_list[[edb]],
+                col_types = readr::cols(
+                  Term = readr::col_character(),
+                  Overlap = readr::col_character(),
+                  P.value = readr::col_double(),
+                  Adjusted.P.value = readr::col_double(),
+                  Old.P.value = readr::col_double(),
+                  Old.Adjusted.P.value = readr::col_double(),
+                  Odds.Ratio = readr::col_double(),
+                  Combined.Score = readr::col_double(),
+                  Genes = readr::col_character()
+                )
+              ))
+            }
           readr::write_tsv(x = enrichr_result_tibble,
                            path = file.path(output_directory,
                                             paste(
