@@ -2,9 +2,9 @@
 #
 # BSF R script to count STAR aligner secondary alignments per genome tile.
 #
-# The size of the tiles is configurable, resuts are returned as
+# The size of the tiles is configurable, results are returned as
 # RangedSummarizedExperiment objects saved to a
-# star_aligner_secondary_ranged_summarized_experiment.R file.
+# star_secondary_ranged_summarized_experiment.R file.
 #
 #
 # Copyright 2013 - 2020 Michael K. Schuster
@@ -60,7 +60,7 @@ argument_list <-
         opt_str = c("--directory"),
         default = ".",
         dest = "directory",
-        help = "Directory of star_aligner_merged_*.bam files [.]",
+        help = "Directory of star_sample_*.bam files [.]",
         type = "character"
       ),
       optparse::make_option(
@@ -125,7 +125,7 @@ sample_frame <-
   S4Vectors::DataFrame(
     bam_path = base::list.files(
       path = argument_list$directory,
-      pattern = "^star_aligner_merge_.*\\.bam$",
+      pattern = "^star_sample_.*\\.bam$",
       full.names = TRUE
     )
   )
@@ -137,7 +137,7 @@ sample_frame$bai_path <-
        replacement = ".bai",
        x = sample_frame$bam_path)
 sample_frame$sample <-
-  gsub(pattern = "^star_aligner_merge_(.*)\\.bam$",
+  gsub(pattern = "^star_sample_(.*)\\.bam$",
        replacement = "\\1",
        x = sample_frame$bam_path)
 bam_file_list <- Rsamtools::BamFileList(
@@ -176,7 +176,7 @@ SummarizedExperiment::colData(x = ranged_summarized_experiment) <-
 
 
 message("Saving the RangedSummarizedExperiment object")
-file_path <- "star_aligner_secondary_ranged_summarized_experiment.R"
+file_path <- "star_secondary_ranged_summarized_experiment.R"
 save(ranged_summarized_experiment, file = file_path)
 
 rm(

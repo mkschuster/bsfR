@@ -128,7 +128,7 @@ star_summary_tibble <-
   readr::read_tsv(
     file = file.path(
       argument_list$genome_directory,
-      "star_aligner_summary_table_sample.tsv"
+      "star_summary_table_sample.tsv"
     ),
     col_types = readr::cols(
       sample = readr::col_character(),

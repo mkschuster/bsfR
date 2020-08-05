@@ -47,21 +47,21 @@ argument_list <-
       ),
       optparse::make_option(
         opt_str = c("--pattern-file"),
-        default = "^star_aligner_align_.*_Log\\.final\\.out$",
+        default = "^star_align_.*_Log\\.final\\.out$",
         dest = "pattern_file",
-        help = "STAR alignment report file name pattern [^star_aligner_align_.*_Log\\.final\\.out$]",
+        help = "STAR alignment report file name pattern [^star_align_.*_Log\\.final\\.out$]",
         type = "character"
       ),
       optparse::make_option(
         opt_str = c("--pattern-sample"),
-        default = "^star_aligner_align_(.*)_Log\\.final\\.out$",
+        default = "^star_align_(.*)_Log\\.final\\.out$",
         dest = "pattern_sample",
-        help = "STAR alignment report sample name pattern [^star_aligner_align_(.*)_Log\\.final\\.out$]",
+        help = "STAR alignment report sample name pattern [^star_align_(.*)_Log\\.final\\.out$]",
         type = "character"
       ),
       optparse::make_option(
         opt_str = c("--prefix"),
-        default = "star_aligner_summary",
+        default = "star_summary",
         dest = "prefix",
         help = "File name prefix",
         type = "character"
