@@ -78,7 +78,7 @@ argument_list <-
       optparse::make_option(
         opt_str = c("--gene-path"),
         dest = "gene_path",
-        help = "Gene list file path for annotation [NULL]",
+        help = "Gene set file path for custom annotation [NULL]",
         type = "character"
       ),
       optparse::make_option(
@@ -161,14 +161,18 @@ if (!is.null(x = argument_list$gene_path)) {
     col_names = TRUE
   )
 
-  # If the tibble exists, test for NA values.
+  # If the tibble exists, test for NA values in the gene_id variable.
   missing_tibble <-
     dplyr::filter(.data = plot_annotation_tibble, is.na(x = .data$gene_id))
   if (nrow(x = missing_tibble) > 0L) {
-    print(x = "The following genes_name values could not be resolved into gene_id values:")
+    print(x = "The following gene_name values could not be resolved into gene_id values:")
     print(x = missing_tibble)
   }
   rm(missing_tibble)
+
+  # Finally, filter out all observations with NA values in the gene_id variable.
+  plot_annotation_tibble <-
+    dplyr::filter(.data = plot_annotation_tibble,!is.na(x = .data$gene_id))
 }
 
 # DESeqDataSet ------------------------------------------------------------
@@ -213,7 +217,7 @@ contrast_tibble <-
 
 # Select column data variables to annotate in the heat map.
 if (is.null(argument_list$variables)) {
-  # Unfortunately, the DESeqDataSet desgin() accessor provides no meaningful
+  # Unfortunately, the DESeqDataSet design() accessor provides no meaningful
   # formula, if the design was not full rank. In those cases the formula is set
   # to ~1 and the Wald testing is based on a model matrix. To get the design
   # variables, load the initial design tibble and call the all.vars()
@@ -253,8 +257,10 @@ nozzle_section_heatmaps <-
 #'
 #' @param nozzle_section A Nozzle Report Section.
 #' @param deseq_results_frame A results \code{data.frame} object.
-#' @param top_gene_identifiers A \code{character} vector with the top-scoring gene identifier (gene_id) values.
-#' @param contrast_character A \code{character} scalar defining a particular contrast.
+#' @param top_gene_identifiers A \code{character} vector with the top-scoring
+#'   gene identifier (gene_id) values.
+#' @param contrast_character A \code{character} scalar defining a particular
+#'   contrast.
 #' @param plot_title A \code{character} scalar with the plot title.
 #' @param plot_index A \code{integer} index for systematic file name generation.
 #'
@@ -262,6 +268,8 @@ nozzle_section_heatmaps <-
 #' @noRd
 #'
 #' @examples
+#' \dontrun{
+#' }
 draw_complex_heatmap <-
   function(nozzle_section,
            deseq_results_frame,
@@ -271,22 +279,28 @@ draw_complex_heatmap <-
            plot_index = NULL) {
     if (length(x = top_gene_identifiers) > 0L) {
       # Draw a ComplexHeatmap.
-      # Select the top (gene) rows from the scaled counts matrix and calculate
-      # z-scores per row to center the scale. Since base::scale() works on
-      # columns, two transpositions are required.
+      # Select the top (gene) rows from the transformed counts matrix already on
+      # a log2 scale and calculate z-scores per row to centre the scale. Since
+      # base::scale() works on columns, two transpositions are required.
       transformed_matrix <-
         SummarizedExperiment::assay(x = deseq_transform, i = 1L)[top_gene_identifiers,]
-      # Replace negative transformed count values with 0.
+
+      # Replace negative transformed count values with 0.0.
       # https://support.bioconductor.org/p/59369/
-      transformed_matrix[transformed_matrix < 0] <- 1e-06
-      # Add 1e-06 to the scaled counts for the log() function.
+      transformed_matrix[transformed_matrix < 0.0] <- 0.0
+      scaled_matrix <- t(x = base::scale(
+        x = t(x = transformed_matrix),
+        center = TRUE,
+        scale = TRUE
+      ))
+
+      # After centring, rows with identical values are set to 0.0 and for scaling
+      # divided by a standard deviation of 0.0 leading to NaN values.
+      # Replace those with a z-score of 0.0 for plotting.
+      scaled_matrix[is.nan(x = scaled_matrix)] <- 0.0
 
       complex_heatmap <- ComplexHeatmap::Heatmap(
-        matrix = t(x = base::scale(
-          x = t(x = log(x = transformed_matrix)),
-          center = TRUE,
-          scale = TRUE
-        )),
+        matrix = scaled_matrix,
         name = "z-score",
         row_title = "genes",
         # row_title_gp = gpar(fontsize = 7),
@@ -301,7 +315,7 @@ draw_complex_heatmap <-
         column_names_gp = gpar(fontsize = 7),
         top_annotation = ComplexHeatmap::columnAnnotation(df = column_annotation_frame)
       )
-      rm(transformed_matrix)
+      rm(scaled_matrix, transformed_matrix)
 
       # Add column annotation.
       complex_heatmap <-
@@ -309,7 +323,9 @@ draw_complex_heatmap <-
           df = deseq_results_frame[top_gene_identifiers, c("gene_biotype", "significant"), drop = FALSE],
           which = "row",
           text = ComplexHeatmap::anno_text(
-            x = deseq_results_frame$gene_name[top_gene_identifiers],
+            # The filtering here is based on row names of the data frame and only works
+            # on the data frame and not on a sub-set character vector.
+            x = deseq_results_frame[top_gene_identifiers, "gene_name", drop = TRUE],
             which = "row",
             gp = gpar(fontsize = 6),
             just = "left"
