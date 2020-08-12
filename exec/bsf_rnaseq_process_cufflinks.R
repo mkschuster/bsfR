@@ -463,17 +463,23 @@ for (i in seq_len(length.out = nrow(x = sample_tibble))) {
       .data$FPKM_status
     )
 
-  # Summarise the FPKM_status variable.
+  # Summarise the FPKM_status variable and drop the grouping in the summary tibble.
   fpkm_status_tibble <-
-    dplyr::summarise(.data = tracking_tibble, "FPKM_status_count" = dplyr::n())
+    dplyr::summarise(
+      .data = tracking_tibble,
+      "FPKM_status_count" = dplyr::n(),
+      .groups = "drop"
+    )
   fpkm_status_tibble <-
     dplyr::mutate(
       .data = fpkm_status_tibble,
-      "FPKM_status" = paste("FPKM_status_genes", .data$FPKM_status, sep = "_")
+      "FPKM_status_variable" = paste("FPKM_status_genes", .data$FPKM_status, sep = "_")
     )
-  sample_tibble[i, fpkm_status_tibble$FPKM_status] <-
-    fpkm_status_tibble$FPKM_status_count
-  rm(fpkm_status_tibble)
+  for (j in seq_along(along.with = fpkm_status_tibble$FPKM_status_count)) {
+    sample_tibble[i, fpkm_status_tibble$FPKM_status_variable[j]] <-
+      fpkm_status_tibble$FPKM_status_count[j]
+  }
+  rm(j, fpkm_status_tibble)
 
   readr::write_tsv(
     x = dplyr::left_join(
@@ -524,17 +530,23 @@ for (i in seq_len(length.out = nrow(x = sample_tibble))) {
       .data$FPKM_status
     )
 
-  # Summarise the FPKM_status variable.
+  # Summarise the FPKM_status variable and drop the grouping in the summary tibble.
   fpkm_status_tibble <-
-    dplyr::summarise(.data = tracking_tibble, "FPKM_status_count" = dplyr::n())
+    dplyr::summarise(
+      .data = tracking_tibble,
+      "FPKM_status_count" = dplyr::n(),
+      .groups = "drop"
+    )
   fpkm_status_tibble <-
     dplyr::mutate(
       .data = fpkm_status_tibble,
-      "FPKM_status" = paste("FPKM_status_isoforms", .data$FPKM_status, sep = "_")
+      "FPKM_status_variable" = paste("FPKM_status_isoforms", .data$FPKM_status, sep = "_")
     )
-  sample_tibble[i, fpkm_status_tibble$FPKM_status] <-
-    fpkm_status_tibble$FPKM_status_count
-  rm(fpkm_status_tibble)
+  for (j in seq_along(along.with = fpkm_status_tibble$FPKM_status_count)) {
+    sample_tibble[i, fpkm_status_tibble$FPKM_status_variable[j]] <-
+      fpkm_status_tibble$FPKM_status_count[j]
+  }
+  rm(j, fpkm_status_tibble)
 
   readr::write_tsv(
     x = dplyr::left_join(
