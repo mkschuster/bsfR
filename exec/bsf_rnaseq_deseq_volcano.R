@@ -76,7 +76,7 @@ argument_list <-
       optparse::make_option(
         opt_str = c("--gene-path"),
         dest = "gene_path",
-        help = "Gene list file path for annotation [NULL]",
+        help = "Gene set file path for custom annotation [NULL]",
         type = "character"
       ),
       optparse::make_option(

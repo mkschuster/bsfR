@@ -1,16 +1,5 @@
 #!/usr/bin/env Rscript
 #
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
-#SBATCH --distribution=block
-#SBATCH --mem=65536
-#SBATCH --time=12:00:00
-#SBATCH --partition=shortq
-#SBATCH --export=NONE
-#SBATCH --get-user-env=L
-#SBATCH --error=.bsf_rnaseq_deseq_plot_genes_%j.err
-#SBATCH --output=.bsf_rnaseq_deseq_plot_genes_%j.out
-#
 # BSF R script to plot (transformed) counts of individual genes of a DESeq2 analysis.
 #
 #
@@ -64,9 +53,9 @@ argument_list <-
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--genes-path"),
-        dest = "genes_path",
-        help = "File path of a table of 'gene_id' and 'gene_name' columns to plot",
+        opt_str = c("--gene-path"),
+        dest = "gene_path",
+        help = "Gene set file path for counts plotting [NULL]",
         type = "character"
       ),
       optparse::make_option(
@@ -90,13 +79,6 @@ argument_list <-
         dest = "normalised",
         help = "Non-normalised gene counts [FALSE]",
         type = "logical"
-      ),
-      optparse::make_option(
-        opt_str = c("--maximum-number"),
-        default = 25L,
-        dest = "maximum_number",
-        help = "Maximum number of genes to plot [25]",
-        type = "integer"
       ),
       optparse::make_option(
         opt_str = c("--genome-directory"),
@@ -134,8 +116,8 @@ argument_list <-
 if (is.null(x = argument_list$groups)) {
   stop("Missing --groups option")
 }
-if (is.null(x = argument_list$genes_path)) {
-  stop("Missing --genes_path option")
+if (is.null(x = argument_list$gene_path)) {
+  stop("Missing --gene-path option")
 }
 if (is.null(x = argument_list$design_name)) {
   stop("Missing --design-name option")
@@ -178,38 +160,24 @@ genes_tibble <-
   bsfR::bsfrd_read_gene_set_tibble(
     genome_directory = argument_list$genome_directory,
     design_name = argument_list$design_name,
-    gene_set_path = argument_list$genes_path,
+    gene_set_path = argument_list$gene_path,
     verbose = argument_list$verbose
   )
 
-# Read a data frame of genes to plot.
-genes_frame <-
-  read.table(
-    file = argument_list$genes_path,
-    header = TRUE,
-    sep = "\t",
-    colClasses = c("gene_id" = "character",
-                   "gene_name" = "character"),
-    stringsAsFactors = FALSE
-  )
-
-if ("padj" %in% names(x = genes_frame) &&
-    nrow(x = genes_frame) > argument_list$maximum_number) {
-  message(
-    "Plotting only ",
-    argument_list$maximum_number,
-    " out of ",
-    nrow(x = genes_frame),
-    " genes."
-  )
-  # Order by adjusted p-value.
-  genes_frame <-
-    genes_frame[order(genes_frame$padj), , drop = FALSE]
-  genes_frame <-
-    genes_frame[seq_len(length.out = argument_list$maximum_number), , drop = FALSE]
+# If the tibble exists, test for NA values in the gene_id variable.
+missing_tibble <-
+  dplyr::filter(.data = genes_tibble, is.na(x = .data$gene_id))
+if (nrow(x = missing_tibble) > 0L) {
+  print(x = "The following gene_name values could not be resolved into gene_id values:")
+  print(x = missing_tibble)
 }
+rm(missing_tibble)
 
-for (i in seq_len(length.out = nrow(x = genes_frame))) {
+# Finally, filter out all observations with NA values in the gene_id variable.
+genes_tibble <-
+  dplyr::filter(.data = genes_tibble,!is.na(x = .data$gene_id))
+
+for (i in seq_len(length.out = nrow(x = genes_tibble))) {
   for (graphics_format in graphics_formats) {
     # Create a (transformed) counts plot.
     file_path <-
@@ -218,8 +186,8 @@ for (i in seq_len(length.out = nrow(x = genes_frame))) {
                   paste(
                     prefix_deseq,
                     "gene",
-                    genes_frame$gene_id[i],
-                    genes_frame$gene_name[i],
+                    genes_tibble$gene_id[i],
+                    genes_tibble$gene_name[i],
                     sep = "_"
                   ),
                   graphics_format,
@@ -228,26 +196,26 @@ for (i in seq_len(length.out = nrow(x = genes_frame))) {
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
       message("Skipping plot",
-              genes_frame$gene_id[i],
-              genes_frame$gene_name[i],
+              genes_tibble$gene_id[i],
+              genes_tibble$gene_name[i],
               sep = " ")
     } else {
       message("Creating plot",
-              genes_frame$gene_id[i],
-              genes_frame$gene_name[i],
+              genes_tibble$gene_id[i],
+              genes_tibble$gene_name[i],
               sep = " ")
       count_frame <- DESeq2::plotCounts(
         dds = deseq_data_set,
-        gene = genes_frame$gene_id[i],
+        gene = genes_tibble$gene_id[i],
         intgroup = stringr::str_split(
           string = argument_list$groups,
           pattern = stringr::fixed(pattern = ",")
         )[[1L]],
         normalized = argument_list$normalised,
         xlab = paste(
-          genes_frame$gene_name[i],
+          genes_tibble$gene_name[i],
           "(",
-          genes_frame$gene_id[i],
+          genes_tibble$gene_id[i],
           ")",
           sep = " "
         ),
@@ -282,8 +250,8 @@ for (i in seq_len(length.out = nrow(x = genes_frame))) {
           title = paste(
             "Gene",
             "Counts",
-            genes_frame$gene_id[i],
-            genes_frame$gene_name[i],
+            genes_tibble$gene_id[i],
+            genes_tibble$gene_name[i],
             sep = " "
           )
         )
@@ -302,6 +270,7 @@ for (i in seq_len(length.out = nrow(x = genes_frame))) {
         width = argument_list$plot_width,
         height = argument_list$plot_height
       )
+      rm(ggplot_object, count_frame)
     }
     rm(file_path)
   }
@@ -310,7 +279,7 @@ for (i in seq_len(length.out = nrow(x = genes_frame))) {
 
 rm(
   i,
-  genes_frame,
+  genes_tibble,
   deseq_data_set,
   argument_list,
   output_directory,
