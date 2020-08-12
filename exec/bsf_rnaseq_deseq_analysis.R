@@ -58,14 +58,14 @@
 #
 #   "library_type":
 #      A "factor" vector with levels "unstranded", "first" and "second" to
-#      indicate the strandedness of the RNA-seq protocol and whether the first
-#      or second strand gets sequenced. Illumina TruSeq standed mRNA sequences
+#      indicate the strand-orientation of the RNA-seq protocol and whether the first
+#      or second strand gets sequenced. Illumina TruSeq stranded mRNA sequences
 #      the second strand so that reads need inverting before counting
 #      strand-specifically.
 #
 #   "sequencing_type":
 #      A "factor" vector with levels "SE" and "PE" indicating single-end or
-#      paired-end sequencing, repsectivley and thus counting as read pairs or
+#      paired-end sequencing, respectively and thus counting as read pairs or
 #      not.
 #
 #   "total_counts":
@@ -236,7 +236,12 @@ output_directory <- prefix
 #' @references \code{prefix}
 #' @return A \code{DataFrame} with sample annotation.
 #'
-#' @examples initialise_sample_frame(factor_levels="factor_1:level_1,level_2;factor_2:level_A,level_B")
+#' @examples
+#' \dontrun{
+#' initialise_sample_frame(
+#'   factor_levels="factor_1:level_1,level_2;factor_2:level_A,level_B")
+#' }
+#' @noRd
 initialise_sample_frame <- function(factor_levels) {
   # Read the BSF Python sample TSV file as a data.frame and convert into a DataFrame.
   # Import strings as factors and cast to character vectors where required.
@@ -324,7 +329,7 @@ initialise_sample_frame <- function(factor_levels) {
   design_variables <- names(x = data_frame)
   for (i in seq_along(along.with = factor_list)) {
     factor_name <- attr(x = factor_list[[i]], which = "factor_name")
-    if (factor_name != "") {
+    if (!is.na(x = factor_name) && factor_name != "") {
       if (factor_name %in% design_variables) {
         data_frame[, factor_name] <-
           factor(x = as.character(x = data_frame[, factor_name]),
@@ -344,7 +349,7 @@ initialise_sample_frame <- function(factor_levels) {
   }
   rm(i, design_variables, factor_list)
 
-  # Drop any unused levels from the sample data frame before retrning it.
+  # Drop any unused levels from the sample data frame before returning it.
   return(droplevels(x = data_frame))
 }
 
@@ -361,6 +366,9 @@ initialise_sample_frame <- function(factor_levels) {
 #' @return A \code{RangedSummarizedExperiment} object.
 #'
 #' @examples
+#' \dontrun{
+#' }
+#' @noRd
 initialise_ranged_summarized_experiment <- function(design_list) {
   # Load a pre-existing RangedSummarizedExperiment object or create it by counting BAM files.
   ranged_summarized_experiment <- NULL
@@ -521,6 +529,9 @@ initialise_ranged_summarized_experiment <- function(design_list) {
 #' @return A model \code{matrix}.
 #'
 #' @examples
+#' \dontrun{
+#' }
+#' @noRd
 fix_model_matrix <- function(model_matrix_local) {
   # Check, whether the model matrix is full rank.
   # This is based on the DESeq2::checkFullRank() function.
@@ -585,6 +596,9 @@ fix_model_matrix <- function(model_matrix_local) {
 #'   rank.
 #'
 #' @examples
+#' \dontrun{
+#' }
+#' @noRd
 check_model_matrix <- function(model_matrix) {
   formula_full_rank <- NULL
   matrix_full_rank <- FALSE
@@ -616,6 +630,9 @@ check_model_matrix <- function(model_matrix) {
 #' @return A \code{DESeqDataSet} object.
 #'
 #' @examples
+#' \dontrun{
+#' }
+#' @noRd
 initialise_deseq_data_set <- function(design_list) {
   deseq_data_set <- NULL
 
@@ -724,6 +741,9 @@ initialise_deseq_data_set <- function(design_list) {
 #' @return A \code{DESeqTransform} object.
 #'
 #' @examples
+#' \dontrun{
+#' }
+#' @noRd
 initialise_deseq_transform <-
   function(deseq_data_set, blind = FALSE) {
     deseq_transform <- NULL
@@ -760,11 +780,14 @@ initialise_deseq_transform <-
 
 #' Convert the aes_list into a simple character string for file and plot naming.
 #'
-#' @param aes_list A \code{list} of aestethics.
+#' @param aes_list A \code{list} of aesthetics.
 #'
 #' @return A \code{character} scalar.
 #'
 #' @examples
+#' \dontrun{
+#' }
+#' @noRd
 aes_list_to_character <- function(aes_list) {
   aes_character <-
     unlist(x = lapply(
@@ -798,6 +821,8 @@ aes_list_to_character <- function(aes_list) {
 #' @return \code{NULL}
 #'
 #' @examples
+#' \dontrun{
+#' }
 #' @noRd
 plot_fpkm_values <- function(object) {
   plot_paths <- file.path(output_directory,
@@ -868,6 +893,8 @@ plot_fpkm_values <- function(object) {
 #' @return \code{NULL}
 #'
 #' @examples
+#' \dontrun{
+#' }
 #' @noRd
 plot_cooks_distances <- function(object) {
   plot_paths <-
@@ -939,6 +966,8 @@ plot_cooks_distances <- function(object) {
 #' @return \code{NULL}
 #'
 #' @examples
+#' \dontrun{
+#' }
 #' @noRd
 plot_rin_scores <- function(object) {
   plot_paths <- file.path(output_directory,
@@ -1020,6 +1049,9 @@ plot_rin_scores <- function(object) {
 #' @return \code{NULL}
 #'
 #' @examples
+#' \dontrun{
+#' }
+#' @noRd
 plot_mds <- function(object,
                      plot_list = list(),
                      blind = FALSE) {
@@ -1221,6 +1253,9 @@ plot_mds <- function(object,
 #' @return
 #'
 #' @examples
+#' \dontrun{
+#' }
+#' @noRd
 plot_heatmap <- function(object,
                          plot_list = list(),
                          blind = FALSE) {
@@ -1364,6 +1399,9 @@ plot_heatmap <- function(object,
 #' @return
 #'
 #' @examples
+#' \dontrun{
+#' }
+#' @noRd
 plot_pca <- function(object,
                      plot_list = list(),
                      blind = FALSE) {
@@ -1727,7 +1765,7 @@ reduced_formula_list <-
     }
   )
 
-# The plyr::ldply() function interates over a list and returns a data frame.
+# The plyr::ldply() function iterates over a list and returns a data frame.
 # Each list element should yield a data frame.
 reduced_formula_frame <- plyr::ldply(
   .data = reduced_formula_list,
@@ -2090,7 +2128,7 @@ readr::write_tsv(
   x = dplyr::left_join(
     x = annotation_tibble,
     y = tibble::as_tibble(x = fpkm_matrix, rownames = "gene_id"),
-    by = c("gene_id", "gene_id")
+    by = c("gene_id" = "gene_id")
   ),
   path = file.path(output_directory,
                    paste(
