@@ -221,8 +221,7 @@ message("Writing read group-level summary table")
 readr::write_tsv(
   x = read_group_tibble,
   path = paste(
-    paste(argument_list$prefix, "table", "read_group", "test", sep = "_"),
-    # FIXME: Remove test!
+    paste(argument_list$prefix, "table", "read_group", sep = "_"),
     "tsv",
     sep = "."
   ),
@@ -666,11 +665,15 @@ if (file.exists(file_path)) {
   message("Writing sample-level summary table")
   readr::write_tsv(
     x = sample_tibble,
-    path = paste0(argument_list$prefix, "_table_sample.tsv"),
+    path = paste(
+      paste(argument_list$prefix, "table", "sample", sep = "_"),
+      "tsv",
+      sep = "."
+    ),
     col_names = TRUE
   )
 
-  # For plotting, add calculations of mapped und unmapped reads.
+  # For plotting, add calculations of mapped and unmapped reads.
   sample_tibble <- dplyr::mutate(
     .data = sample_tibble,
     "reads_mapped" = .data$reads_unique + .data$reads_multi,
