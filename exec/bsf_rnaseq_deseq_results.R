@@ -115,6 +115,7 @@ suppressPackageStartupMessages(expr = library(package = "bsfR"))
 suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
 suppressPackageStartupMessages(expr = library(package = "DESeq2"))
 suppressPackageStartupMessages(expr = library(package = "EnhancedVolcano"))
+suppressPackageStartupMessages(expr = library(package = "IHW"))
 
 # Save plots in the following formats.
 
@@ -194,69 +195,49 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
   contrast_character <-
     bsfR::bsfrd_get_contrast_character(contrast_tibble = contrast_tibble, index = contrast_index)
 
-  # Results ---------------------------------------------------------------
+  # DESeqResults ----------------------------------------------------------
 
 
-  # Check for the significant genes table and if it exists already, read it to
-  # get the number of significant genes for the contrasts summary tibble.
+  deseq_results <- NULL
   file_path <-
     file.path(output_directory,
               paste(
                 paste(prefix,
                       "contrast",
                       contrast_character,
-                      "significant",
+                      "results",
                       sep = "_"),
-                "tsv",
+                "rds",
                 sep = "."
               ))
 
   if (file.exists(file_path) &&
       file.info(file_path)$size > 0L) {
-    # Read a DESeqResults Tibble ------------------------------------------
-
-    message("Skipping DESeqResults for ", contrast_character)
-
-    deseq_significant_tibble <-
-      bsfR::bsfrd_read_result_tibble(
-        genome_directory = argument_list$genome_directory,
-        design_name = argument_list$design_name,
-        contrast_tibble = contrast_tibble,
-        index = contrast_index,
-        verbose = argument_list$verbose
-      )
-
-    # Record the number of significant genes.
-    contrast_tibble$Significant[contrast_index] <-
-      nrow(x = deseq_significant_tibble)
-
-    contrast_tibble$SignificantUp[contrast_index] <-
-      nrow(x = dplyr::filter(.data = deseq_significant_tibble,
-                             .data$log2FoldChange > 0.0))
-
-    contrast_tibble$SignificantDown[contrast_index] <-
-      nrow(x = dplyr::filter(.data = deseq_significant_tibble,
-                             .data$log2FoldChange < 0.0))
-
-    rm(deseq_significant_tibble)
+    message("Reading DESeqResults for ", contrast_character)
+    deseq_results <- base::readRDS(file = file_path)
   } else {
-    # Create a DESeqResults Tibble ----------------------------------------
-    message("Creating DESeqResults for ", contrast_character)
+    # Create DESeqResults -------------------------------------------------
 
-    deseq_results_default <-
+
+    # Use independent hypothesis weighting from Bioconductor package IHW. The
+    # IHW::hw.DESeqResults function sets the padj variable in the DESeqResults
+    # object, while the IHW::ihwResult object is still available as meta data.
+    # If option "tidy" is TRUE, a classical data.frame is returned.
+
+    message("Creating DESeqResults for ", contrast_character)
+    deseq_results_raw <-
       DESeq2::results(
         object = deseq_data_set,
         contrast = contrast_list,
         lfcThreshold = argument_list$lfc_threshold,
         alpha = argument_list$padj_threshold,
-        format = "DataFrame",
-        # If option "tidy" is TRUE, a classical data.frame is returned.
-        tidy = FALSE,
+        filterFun = ihw,
         parallel = TRUE
       )
 
-    # Shrink log2-fold change values.
-    #
+    # Shrink log2-fold change values --------------------------------------
+
+
     # NOTE: The "ashr" method shrinks log2-fold changes on the basis of the
     # DESeqResults object and can thus deal with model matrices not being full
     # rank. If a "res" option is provided for type "ashr", then both options,
@@ -269,94 +250,196 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     # deal with contrasts.
 
     message("Shrinking log2-fold changes for ", contrast_character)
-    deseq_results_shrunk <- DESeq2::lfcShrink(
+    deseq_results <- DESeq2::lfcShrink(
       dds = deseq_data_set,
-      res = deseq_results_default,
+      res = deseq_results_raw,
       type = "ashr",
-      format = "DataFrame",
       parallel = TRUE
     )
 
-    # DESeqResults Tibble -------------------------------------------------
+    # Serialise the shrunken DESeqResults object to disk.
+    # It still contains the IHW::ihwResult object as meta data.
 
+    base::saveRDS(object = deseq_results, file = file_path)
 
-    # Coerce the DataFrame into a tibble and add lots of useful variables.
-    deseq_results_tibble <-
-      tibble::as_tibble(x = as.data.frame(x = deseq_results_shrunk))
-    deseq_results_tibble <- dplyr::mutate(
-      .data = deseq_results_tibble,
-      "gene_id" = row.names(x = deseq_results_shrunk),
-      # Calculate a factor indicating significance.
-      "significant" = factor(
-        x = if_else(
-          condition = .data$padj <= argument_list$padj_threshold,
-          true = "yes",
-          false = "no",
-          missing = "no"
-        ),
-        levels = c("no", "yes")
-      ),
-      # Calculate ranks for ...
-      # (1) the effect size (log2FoldChange), ...
-      "rank_log2_fold_change" = base::rank(
-        x = -abs(x = .data$log2FoldChange),
-        ties.method = c("min")
-      ),
-      # (2) the absolute level (baseMean) and ...
-      "rank_base_mean" = base::rank(
-        x = -.data$baseMean,
-        ties.method = c("min")
-      ),
-      # (3) the statistical significance (padj).
-      "rank_padj" = base::rank(x = .data$padj, ties.method = c("min")),
-      # Calculate the maximum of the three ranks.
-      "max_rank" = base::pmax(
-        .data$rank_log2_fold_change,
-        .data$rank_base_mean,
-        .data$rank_padj
-      )
+    rm(deseq_results_raw)
+  }
+  rm(file_path)
+
+  # Record the number of significant genes in the summary tibble regardless.
+
+  contrast_tibble$Significant[contrast_index] <-
+    sum(deseq_results$padj <= argument_list$padj_threshold, na.rm = TRUE)
+
+  contrast_tibble$SignificantUp[contrast_index] <-
+    sum(
+      deseq_results$padj <= argument_list$padj_threshold &
+        deseq_results$log2FoldChange > 0.0,
+      na.rm = TRUE
     )
-    # Left join with the reference transcriptome annotation tibble.
-    deseq_results_tibble <- dplyr::left_join(x = annotation_tibble,
-                                             y = deseq_results_tibble,
-                                             by = "gene_id")
 
-    readr::write_tsv(x = deseq_results_tibble,
-                     path = file.path(output_directory,
-                                      paste(
-                                        paste(prefix,
-                                              "contrast",
-                                              contrast_character,
-                                              "genes",
-                                              sep = "_"),
-                                        "tsv",
-                                        sep = "."
-                                      )))
+  contrast_tibble$SignificantDown[contrast_index] <-
+    sum(
+      deseq_results$padj <= argument_list$padj_threshold &
+        deseq_results$log2FoldChange < 0.0,
+      na.rm = TRUE
+    )
 
-    # MA Plot -------------------------------------------------------------
+  # IHW weights plots -----------------------------------------------------
 
 
-    # Create a MA plot.
-    message("Creating a MA plot for ", contrast_character)
-    plot_paths <-
-      file.path(output_directory,
+  plot_paths <-
+    file.path(output_directory,
+              paste(
                 paste(
-                  paste(prefix,
-                        "contrast",
-                        contrast_character,
-                        "ma",
-                        sep = "_"),
-                  graphics_formats,
-                  sep = "."
-                ))
-    names(x = plot_paths) <- names(x = graphics_formats)
+                  prefix,
+                  "contrast",
+                  contrast_character,
+                  "ihw",
+                  "weights",
+                  sep = "_"
+                ),
+                graphics_formats,
+                sep = "."
+              ))
+  names(x = plot_paths) <- names(x = graphics_formats)
 
+  if (all(file.exists(plot_paths) &&
+          file.info(plot_paths)$size > 0L)) {
+    message("Skipping IHW weights plots for ", contrast_character)
+  } else {
+    message("Creating IHW weights plots for ", contrast_character)
+    ggplot_object <-
+      IHW::plot(x = S4Vectors::metadata(x = deseq_results)$ihwResult,
+                what = "weights")
+    ggplot_object <-
+      ggplot_object + ggplot2::ggtitle(label = "Weights", subtitle = "Independent Hypothesis Weighting")
+    for (plot_path in plot_paths) {
+      ggplot2::ggsave(filename = plot_path, plot = ggplot_object)
+    }
+    rm(plot_path, ggplot_object)
+  }
+  rm(plot_paths)
+
+  # IHW decision boundaries plots -----------------------------------------
+
+
+  plot_paths <-
+    file.path(output_directory,
+              paste(
+                paste(
+                  prefix,
+                  "contrast",
+                  contrast_character,
+                  "ihw",
+                  "decision",
+                  "boundaries",
+                  sep = "_"
+                ),
+                graphics_formats,
+                sep = "."
+              ))
+  names(x = plot_paths) <- names(x = graphics_formats)
+
+  if (all(file.exists(plot_paths) &&
+          file.info(plot_paths)$size > 0L)) {
+    message("Skipping IHW decision boundaries plots for ",
+            contrast_character)
+  } else {
+    message("Creating IHW decision boundaries plots for ",
+            contrast_character)
+    ggplot_object <-
+      IHW::plot(x = S4Vectors::metadata(x = deseq_results)$ihwResult,
+                what = "decisionboundary")
+    ggplot_object <-
+      ggplot_object + ggplot2::ggtitle(label = "Decision Boundaries", subtitle = "Independent Hypothesis Weighting")
+    for (plot_path in plot_paths) {
+      ggplot2::ggsave(filename = plot_path, plot = ggplot_object)
+    }
+    rm(plot_path, ggplot_object)
+  }
+  rm(plot_paths)
+
+  # IHW raw versus adjusted p-values plots --------------------------------
+
+
+  plot_paths <-
+    file.path(output_directory,
+              paste(
+                paste(
+                  prefix,
+                  "contrast",
+                  contrast_character,
+                  "ihw",
+                  "pvalues",
+                  sep = "_"
+                ),
+                graphics_formats,
+                sep = "."
+              ))
+  names(x = plot_paths) <- names(x = graphics_formats)
+
+  if (all(file.exists(plot_paths) &&
+          file.info(plot_paths)$size > 0L)) {
+    message("Skipping IHW p-values plots for ",
+            contrast_character)
+  } else {
+    message("Creating IHW p-values plots for ", contrast_character)
+    ggplot_object <-
+      ggplot2::ggplot(data = as.data.frame(x = S4Vectors::metadata(x = deseq_results)$ihwResult))
+    ggplot_object <- ggplot_object +
+      ggplot2::geom_point(
+        mapping = ggplot2::aes(
+          x = .data$pvalue,
+          y = .data$adj_pvalue,
+          colour = .data$group
+        ),
+        size = 0.25
+      )
+    ggplot_object <-
+      ggplot_object + ggplot2::scale_colour_hue(c = 150, l = 70, drop = FALSE)
+    ggplot_object <-
+      ggplot_object + ggplot2::labs(
+        x = "p-value",
+        y = "adjusted p-value",
+        title = "Raw versus Adjusted p-Values",
+        subtitle = "Independent Hypothesis Weighting"
+      )
+    for (plot_path in plot_paths) {
+      ggplot2::ggsave(filename = plot_path, plot = ggplot_object)
+    }
+    rm(plot_path, ggplot_object)
+  }
+  rm(plot_paths)
+
+  # MA Plots --------------------------------------------------------------
+
+
+  plot_paths <-
+    file.path(output_directory,
+              paste(
+                paste(prefix,
+                      "contrast",
+                      contrast_character,
+                      "ma",
+                      sep = "_"),
+                graphics_formats,
+                sep = "."
+              ))
+  names(x = plot_paths) <- names(x = graphics_formats)
+
+  if (all(file.exists(plot_paths) &&
+          file.info(plot_paths)$size > 0L)) {
+    message("Skipping MA plots for ",
+            contrast_character)
+  } else {
+    message("Creating MA plots for ", contrast_character)
     grDevices::pdf(
       file = plot_paths["pdf"],
       width = argument_list$plot_width,
       height = argument_list$plot_height
     )
-    DESeq2::plotMA(object = deseq_results_shrunk)
+    DESeq2::plotMA(object = deseq_results)
     base::invisible(x = grDevices::dev.off())
 
     grDevices::png(
@@ -366,35 +449,124 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       units = "in",
       res = 300L
     )
-    DESeq2::plotMA(object = deseq_results_shrunk)
+    DESeq2::plotMA(object = deseq_results)
     base::invisible(x = grDevices::dev.off())
-    rm(plot_paths)
+  }
+  rm(plot_paths)
 
-    # Enhanced Volcano Plot -----------------------------------------------
+  # Annotated DESeqResults Tibble -----------------------------------------
 
 
-    plot_paths <- file.path(output_directory,
-                            paste(
-                              paste(prefix,
-                                    "contrast",
-                                    contrast_character,
-                                    "volcano",
-                                    sep = "_"),
-                              graphics_formats,
-                              sep = "."
-                            ))
-    message("Creating an EnhancedVolcano plot for ", contrast_character)
+  # Coerce the DESeqResults into a tibble and add lots of useful variables.
 
-    # EnhancedVolcano needs coercing the tibble into a data.frame.
+  deseq_results_tibble <-
+    tibble::as_tibble(x = as.data.frame(x = deseq_results))
+
+  deseq_results_tibble <- dplyr::mutate(
+    .data = deseq_results_tibble,
+    "gene_id" = row.names(x = deseq_results),
+    # Calculate a factor indicating significance.
+    "significant" = factor(
+      x = if_else(
+        condition = .data$padj <= argument_list$padj_threshold,
+        true = "yes",
+        false = "no",
+        missing = "no"
+      ),
+      levels = c("no", "yes")
+    ),
+    # Calculate ranks for ...
+    # (1) the effect size (log2FoldChange), ...
+    "rank_log2_fold_change" = base::rank(
+      x = -abs(x = .data$log2FoldChange),
+      ties.method = c("min")
+    ),
+    # (2) the absolute level (baseMean) and ...
+    "rank_base_mean" = base::rank(x = -.data$baseMean,
+                                  ties.method = c("min")),
+    # (3) the statistical significance (padj).
+    "rank_padj" = base::rank(x = .data$padj, ties.method = c("min")),
+    # Calculate the maximum of the three ranks.
+    "max_rank" = base::pmax(
+      .data$rank_log2_fold_change,
+      .data$rank_base_mean,
+      .data$rank_padj
+    )
+  )
+
+  # Left join with the reference transcriptome annotation tibble.
+  deseq_results_tibble <- dplyr::left_join(x = annotation_tibble,
+                                           y = deseq_results_tibble,
+                                           by = "gene_id")
+
+  readr::write_tsv(x = deseq_results_tibble,
+                   path = file.path(output_directory,
+                                    paste(
+                                      paste(prefix,
+                                            "contrast",
+                                            contrast_character,
+                                            "genes",
+                                            sep = "_"),
+                                      "tsv",
+                                      sep = "."
+                                    )))
+
+  # Significant DESeqResults Tibble -------------------------------------
+
+
+  # Filter for significant genes.
+  readr::write_tsv(
+    x = dplyr::filter(.data = deseq_results_tibble, .data$padj <= argument_list$padj_threshold),
+    path = file.path(output_directory,
+                     paste(
+                       paste(prefix,
+                             "contrast",
+                             contrast_character,
+                             "significant",
+                             sep = "_"),
+                       "tsv",
+                       sep = "."
+                     ))
+  )
+
+
+  # Enhanced Volcano Plot -----------------------------------------------
+
+
+  plot_paths <- file.path(output_directory,
+                          paste(
+                            paste(prefix,
+                                  "contrast",
+                                  contrast_character,
+                                  "volcano",
+                                  sep = "_"),
+                            graphics_formats,
+                            sep = "."
+                          ))
+  names(x = plot_paths) <- names(x = graphics_formats)
+
+  if (all(file.exists(plot_paths) &&
+          file.info(plot_paths)$size > 0L)) {
+    message("Skipping EnhancedVolcano plots for ", contrast_character)
+  } else {
+    message("Creating EnhancedVolcano plots for ", contrast_character)
+
+    # EnhancedVolcano needs the annotation from above, but also coercing the
+    # tibble into a data.frame.
     deseq_results_frame <- as.data.frame(x = deseq_results_tibble)
 
     ggplot_object <- EnhancedVolcano::EnhancedVolcano(
       toptable = deseq_results_frame,
       lab = deseq_results_frame$gene_name,
       x = "log2FoldChange",
-      y = "pvalue"
+      y = "padj",
+      xlab = bquote(expr = ~ Log[2] ~ "fold change"),
+      ylab = bquote(expr = ~ -Log[10] ~ adjusted ~ italic(P)),
+      subtitle = ggplot2::waiver(),
+      caption = ggplot2::waiver(),
+      pCutoff = argument_list$padj_threshold,
+      .legend = c("NS", "Log2 FC", "Adj. P", "Adj. P & Log2 FC")
     )
-    rm(deseq_results_frame)
 
     for (plot_path in plot_paths) {
       ggplot2::ggsave(
@@ -405,50 +577,12 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
         limitsize = FALSE
       )
     }
-    rm(plot_path,
-       ggplot_object,
-       plot_paths)
-
-    # Significant DESeqResults Tibble -------------------------------------
-
-    # Filter for significan genes last, as they are the criterion for running
-    # DESeq2::results() above.
-    deseq_significant_tibble <-
-      dplyr::filter(.data = deseq_results_tibble, .data$padj <= argument_list$padj_threshold)
-
-    readr::write_tsv(x = deseq_significant_tibble, path = file.path(output_directory,
-                                                                    paste(
-                                                                      paste(
-                                                                        prefix,
-                                                                        "contrast",
-                                                                        contrast_character,
-                                                                        "significant",
-                                                                        sep = "_"
-                                                                      ),
-                                                                      "tsv",
-                                                                      sep = "."
-                                                                    )))
-
-    # Record the number of significant genes.
-    contrast_tibble$Significant[contrast_index] <-
-      nrow(x = deseq_significant_tibble)
-
-    contrast_tibble$SignificantUp[contrast_index] <-
-      nrow(x = dplyr::filter(.data = deseq_significant_tibble,
-                             .data$log2FoldChange > 0.0))
-
-    contrast_tibble$SignificantDown[contrast_index] <-
-      nrow(x = dplyr::filter(.data = deseq_significant_tibble,
-                             .data$log2FoldChange < 0.0))
-
-    rm(
-      deseq_significant_tibble,
-      deseq_results_tibble,
-      deseq_results_shrunk,
-      deseq_results_default
-    )
+    rm(plot_path, ggplot_object, deseq_results_frame)
   }
-  rm(file_path,
+  rm(plot_paths)
+
+  rm(deseq_results_tibble,
+     deseq_results,
      contrast_character,
      contrast_list)
 }

@@ -31,9 +31,11 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' design_name <- "global"
 #' prefix_deseq <- bsfrd_get_prefix_deseq(
 #'   design_name = design_name)
+#' }
 bsfrd_get_prefix_deseq <- function(design_name) {
   return(paste("rnaseq",
                "deseq",
@@ -49,9 +51,11 @@ bsfrd_get_prefix_deseq <- function(design_name) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' design_name <- "global"
 #' prefix_enrichr <- bsfrd_get_prefix_enrichr(
 #'   design_name = design_name)
+#' }
 bsfrd_get_prefix_enrichr <- function(design_name) {
   return(paste("rnaseq",
                "deseq",
@@ -68,9 +72,11 @@ bsfrd_get_prefix_enrichr <- function(design_name) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' design_name <- "global"
 #' prefix_go <- bsfrd_get_prefix_go(
 #'   design_name = design_name)
+#' }
 bsfrd_get_prefix_go <- function(design_name) {
   return(paste("rnaseq",
                "deseq",
@@ -87,9 +93,11 @@ bsfrd_get_prefix_go <- function(design_name) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' design_name <- "global"
 #' prefix_deseq_heatmap <- bsfrd_get_prefix_heatmap(
 #'   design_name = design_name)
+#' }
 bsfrd_get_prefix_heatmap <- function(design_name) {
   return(paste("rnaseq",
                "deseq",
@@ -106,9 +114,11 @@ bsfrd_get_prefix_heatmap <- function(design_name) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' design_name <- "global"
 #' prefix_deseq_volcano <- bsfrd_get_prefix_volcano(
 #'   design_name = design_name)
+#' }
 bsfrd_get_prefix_volcano <- function(design_name) {
   return(paste("rnaseq",
                "deseq",
@@ -377,14 +387,15 @@ bsfrd_read_summarized_experiment <-
       file.path(
         genome_directory,
         prefix_deseq,
-        paste0(prefix_deseq, "_ranged_summarized_experiment.Rdata")
+        paste0(prefix_deseq, "_ranged_summarized_experiment.rds")
       )
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
       if (verbose) {
         message("Loading a RangedSummarizedExperiment object ...")
       }
-      load(file = file_path)
+      ranged_summarized_experiment <-
+        base::readRDS(file = file_path)
     } else {
       warning("Require a pre-calculated RangedSummarizedExperiment object in file: ",
               file_path)
@@ -420,13 +431,13 @@ bsfrd_read_deseq_data_set <-
     file_path <-
       file.path(genome_directory,
                 prefix_deseq,
-                paste0(prefix_deseq, "_deseq_data_set.Rdata"))
+                paste0(prefix_deseq, "_deseq_data_set.rds"))
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
       if (verbose) {
         message("Loading a DESeqDataSet object ...")
       }
-      load(file = file_path)
+      deseq_data_set <- base::readRDS(file = file_path)
     } else {
       warning("Require a pre-calculated DESeqDataSet object in file: ",
               file_path)
@@ -474,7 +485,7 @@ bsfrd_read_deseq_transform <-
                 prefix_deseq,
                 paste(
                   paste(prefix_deseq, "deseq", "transform", suffix, sep = "_"),
-                  "Rdata",
+                  "rds",
                   sep = "."
                 ))
     if (file.exists(file_path) &&
@@ -482,7 +493,7 @@ bsfrd_read_deseq_transform <-
       if (verbose) {
         message("Loading a ", suffix, " DESeqTransform object ...")
       }
-      load(file = file_path)
+      deseq_transform <- base::readRDS(file = file_path)
     } else {
       warning("Require a pre-calculated DESeqTransform object in file: ",
               file_path)
@@ -492,7 +503,7 @@ bsfrd_read_deseq_transform <-
     return(deseq_transform)
   }
 
-#' Read a previously saved DESeq results tibble.
+#' Read a previously saved DESeqResults object.
 #'
 #' Either contrast_tibble and index or just a (valid) contrast_character option
 #' are required. The contrast_character takes precedence.
@@ -507,7 +518,93 @@ bsfrd_read_deseq_transform <-
 #' @param contrast_character A \code{character} scalar specifying the contrast.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
-#' @return A \code{tibble} of DESeq results for a particular contrast.
+#' @return A \code{DESeqResults} object for a particular contrast or
+#'   \code{NULL}.
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' deseq_results <- bsfrd_read_deseq_results(
+#'   genome_directory = genome_directory,
+#'   design_name = design_name,
+#'   contrast_tibble = contrast_tibble,
+#'   index = index,
+#'   verbose = FALSE)
+#'
+#' deseq_results <- bsfrd_read_deseq_results(
+#'   genome_directory = genome_directory,
+#'   design_name = design_name,
+#'   contrast_character = contrast_character,
+#'   verbose = FALSE)
+#' }
+bsfrd_read_deseq_results <-
+  function(genome_directory,
+           design_name,
+           contrast_tibble = NULL,
+           index = NULL,
+           contrast_character = NULL,
+           verbose = FALSE) {
+    deseq_results <- NULL
+    prefix_deseq <-
+      bsfrd_get_prefix_deseq(design_name = design_name)
+    if (is.null(x = contrast_character)) {
+      if (is.null(x = contrast_tibble) || is.null(x = index)) {
+        warning(
+          "Either a contrast_tibble and index or a (valid) contrast_character option are required."
+        )
+        return(NULL)
+      }
+      contrast_character <-
+        bsfrd_get_contrast_character(contrast_tibble = contrast_tibble, index = index)
+    }
+    file_path <-
+      file.path(genome_directory,
+                prefix_deseq,
+                paste(
+                  paste(
+                    prefix_deseq,
+                    "contrast",
+                    contrast_character,
+                    "results",
+                    sep = "_"
+                  ),
+                  "rds",
+                  sep = "."
+                ))
+
+    if (file.exists(file_path) &&
+        file.info(file_path)$size > 0L) {
+      if (verbose) {
+        message("Loading a DESeqResults object for contrast: ",
+                contrast_character)
+      }
+
+      deseq_results <- base::readRDS(file = file_path)
+    } else {
+      warning("Missing DESeqResults object for contrast: ",
+              contrast_character)
+    }
+    rm(file_path, prefix_deseq)
+
+    return(deseq_results)
+  }
+
+#' Read a previously saved DESeqResults tibble.
+#'
+#' Either contrast_tibble and index or just a (valid) contrast_character option
+#' are required. The contrast_character takes precedence.
+#'
+#' @param genome_directory A \code{character} scalar with the genome directory
+#'   path.
+#' @param design_name A \code{character} scalar with the design name.
+#' @param contrast_tibble A \code{tibble} with Numerator and Denominator
+#'   variables.
+#' @param index An \code{integer} scalar pointing at a particular \code{tibble}
+#'   row.
+#' @param contrast_character A \code{character} scalar specifying the contrast.
+#' @param verbose A \code{logical} scalar to emit messages.
+#'
+#' @return A \code{tibble} of DESeqResults for a particular contrast.
 #' @export
 #' @importFrom readr cols col_character col_double col_integer col_logical read_tsv
 #'
@@ -652,7 +749,7 @@ bsfrd_read_annotation_tibble <-
       file.path(genome_directory,
                 prefix_deseq,
                 paste(
-                  paste(prefix_deseq, paste(sort(feature_types), collapse = "_"), "annotation", sep = "_"),
+                  paste(prefix_deseq, "annotation", paste(sort(feature_types), collapse = "_"), sep = "_"),
                   "tsv",
                   sep = "."
                 ))
@@ -852,8 +949,50 @@ bsfrd_read_gene_set_tibble <-
     return(gene_set_tibble)
   }
 
+#' Private function to match a design name in the vector of sample-specific
+#' design names.
+#'
+#' @param design_names A \code{character} vector of sample-specific design names.
+#' @param design_name A \code{character} scalar with a design name
+#'
+#' @return A \code{logical} scalar if the design name scalar is in the design
+#'   names vector.
+#' @noRd
+#'
+#' @examples
+#' \dontrun{
+#' design_logical <- .match_design_name(
+#'   design_names=c("global", "test"),
+#'   design_name="global")
+#' }
 .match_design_name <- function(design_names, design_name) {
-  return(any(design_name %in% design_names))
+  return(design_name %in% design_names)
+}
+
+#' Private function to process a factor specification by splitting factor levels
+#' and setting a "factor_name" attribute.
+#'
+#' @param factor_specification A \code{character} vector of exactly two
+#'   components, the factor name [1L] and comma-separated factor levels [2L].
+#'
+#' @return A \code{character} vector with factor levels and an attribute
+#'   "factor" specifying the factor name.
+#' @noRd
+#'
+#' @examples
+#' \dontrun{
+#' factor_levels <- .process_factor_specification(
+#'   factor_specification = "factor_name:level_1,level_2")
+#' }
+.process_factor_specification <- function(factor_specification) {
+  # Split the second component of factor_specification, the factor levels, on ",".
+  factor_levels <-
+    stringr::str_split(string = factor_specification[2L],
+                       pattern = stringr::fixed(pattern = ","))[[1L]]
+  # Set the first component of factor_specification, the factor name, as attribute.
+  attr(x = factor_levels, which = "factor_name") <-
+    factor_specification[1L]
+  return(factor_levels)
 }
 
 #' Initialise or load a Sample Annotation DataFrame.
@@ -879,10 +1018,22 @@ bsfrd_read_gene_set_tibble <-
 #' }
 bsfrd_initialise_sample_frame <- function(genome_directory,
                                           design_name,
-                                          factor_levels,
+                                          factor_levels = NULL,
                                           verbose = FALSE) {
   prefix_deseq <-
     bsfrd_get_prefix_deseq(design_name = design_name)
+
+  # If factor_levels is not defined, it can be read from the design_list.
+  if (is.null(x = factor_levels)) {
+    design_list <-
+      bsfR::bsfrd_read_design_list(
+        genome_directory = genome_directory,
+        design_name = design_name,
+        verbose = verbose
+      )
+    factor_levels <- design_list$factor_levels
+    rm(design_list)
+  }
 
   # Read the BSF Python sample TSV file as a data.frame and convert into a DataFrame.
   # Import strings as factors and cast to character vectors where required.
@@ -914,10 +1065,8 @@ bsfrd_initialise_sample_frame <- function(genome_directory,
         string = as.character(mcols_frame$designs),
         pattern = stringr::fixed(pattern = ",")
       ),
-      FUN = function(design_names) {
-        # design_names is a character vector resulting from the split on ",".
-        return(any(design_name %in% design_names))
-      }
+      FUN = .match_design_name,
+      design_name = design_name
     ))
   mcols_frame <- mcols_frame[index_logical, , drop = FALSE]
   rm(index_logical)
@@ -948,15 +1097,15 @@ bsfrd_initialise_sample_frame <- function(genome_directory,
 
   # The "factor_levels" variable of the design data frame specifies the order of
   # factor levels. Turn the factor_levels variable into a list of character
-  # vectors, where the factor names are set as attributes of the list
-  # components.
+  # vectors, where the factor names are set as attributes of the character
+  # vectors of factor levels list components.
   #
   # factor_levels="factor_1:level_1,level_2;factor_2:level_A,level_B"
   factor_list <- lapply(
     # The "factor_levels" variable is a character vector, always with just a
     # single component.
     #
-    # Split by ";" then by ":" character.
+    # Split by the ";" then by the ":" character.
     X = stringr::str_split(
       string = stringr::str_split(
         string = factor_levels[1L],
@@ -964,25 +1113,14 @@ bsfrd_initialise_sample_frame <- function(genome_directory,
       )[[1L]],
       pattern = stringr::fixed(pattern = ":")
     ),
-    FUN = function(character_1) {
-      # Split the second component of character_1, the factor levels, on ",".
-      character_2 <-
-        unlist(x = stringr::str_split(
-          string = character_1[2L],
-          pattern = stringr::fixed(pattern = ",")
-        ))
-      # Set the first component of character_1, the factor name, as attribute.
-      attr(x = character_2, which = "factor") <-
-        character_1[1L]
-      return(character_2)
-    }
+    FUN = .process_factor_specification
   )
 
   # Apply the factor levels to each factor.
   design_variables <- names(x = mcols_frame)
   for (i in seq_along(along.with = factor_list)) {
-    factor_name <- attr(x = factor_list[[i]], which = "factor")
-    if (factor_name != "") {
+    factor_name <- attr(x = factor_list[[i]], which = "factor_name")
+    if (!is.na(x = factor_name) && factor_name != "") {
       if (factor_name %in% design_variables) {
         mcols_frame[, factor_name] <-
           factor(x = as.character(x = mcols_frame[, factor_name]),

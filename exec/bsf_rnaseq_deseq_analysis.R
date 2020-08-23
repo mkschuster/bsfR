@@ -247,7 +247,7 @@ initialise_sample_frame <- function(factor_levels) {
   # Import strings as factors and cast to character vectors where required.
   message("Loading sample DataFrame")
   data_frame <-
-    as(
+    methods::as(
       object = read.table(
         file = file.path(output_directory, paste(prefix, 'samples.tsv', sep = '_')),
         header = TRUE,
@@ -375,17 +375,17 @@ initialise_ranged_summarized_experiment <- function(design_list) {
 
   file_path <-
     file.path(output_directory,
-              paste0(prefix, "_ranged_summarized_experiment.Rdata"))
+              paste0(prefix, "_ranged_summarized_experiment.rds"))
   if (file.exists(file_path) &&
       file.info(file_path)$size > 0L) {
     message("Loading a RangedSummarizedExperiment object")
-    load(file = file_path)
+    ranged_summarized_experiment <- base::readRDS(file = file_path)
   } else {
     sample_frame <-
       initialise_sample_frame(factor_levels = design_list$factor_levels)
 
     message("Reading reference GTF exon features")
-    # The DESeq2 and RNA-seq vignettes suggest using TcDB objects, but for the moment,
+    # The DESeq2 and RNA-seq vignettes suggest using TxDB objects, but for the moment,
     # we need extra annotation provided by Ensembl GTF files.
     exon_ranges <-
       rtracklayer::import(
@@ -401,7 +401,6 @@ initialise_ranged_summarized_experiment <- function(design_list) {
                            f = S4Vectors::mcols(x = exon_ranges)$gene_id)
 
     # Process per library_type and sequencing_type and merge the RangedSummarizedExperiment objects.
-    ranged_summarized_experiment <- NULL
 
     for (library_type in levels(x = sample_frame$library_type)) {
       for (sequencing_type in levels(x = sample_frame$sequencing_type)) {
@@ -509,7 +508,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     rm(gene_ranges_list,
        exon_ranges,
        sample_frame)
-    save(ranged_summarized_experiment, file = file_path)
+    base::saveRDS(object = ranged_summarized_experiment, file = file_path)
   }
   rm(file_path)
 
@@ -638,11 +637,11 @@ initialise_deseq_data_set <- function(design_list) {
 
   file_path <-
     file.path(output_directory,
-              paste0(prefix, "_deseq_data_set.Rdata"))
+              paste0(prefix, "_deseq_data_set.rds"))
   if (file.exists(file_path) &&
       file.info(file_path)$size > 0L) {
     message("Loading a DESeqDataSet object")
-    load(file = file_path)
+    deseq_data_set <- base::readRDS(file = file_path)
   } else {
     ranged_summarized_experiment <-
       initialise_ranged_summarized_experiment(design_list = design_list)
@@ -723,7 +722,7 @@ initialise_deseq_data_set <- function(design_list) {
         )
     }
 
-    save(deseq_data_set, file = file_path)
+    base::saveRDS(object = deseq_data_set, file = file_path)
     rm(result_list, ranged_summarized_experiment)
   }
   rm(file_path)
@@ -756,19 +755,19 @@ initialise_deseq_transform <-
       file.path(output_directory,
                 paste(
                   paste(prefix, "deseq", "transform", suffix, sep = "_"),
-                  "Rdata",
+                  "rds",
                   sep = "."
                 ))
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
       message("Loading a ", suffix, " DESeqTransform object")
-      load(file = file_path)
+      deseq_transform <- base::readRDS(file = file_path)
     } else {
       message("Creating a ", suffix, " DESeqTransform object")
       # Run variance stabilizing transformation (VST) to get homoskedastic data for PCA plots.
       deseq_transform <-
         DESeq2::varianceStabilizingTransformation(object = deseq_data_set, blind = blind)
-      save(deseq_transform, file = file_path)
+      base::saveRDS(object = deseq_transform, file = file_path)
     }
     rm(file_path, suffix)
 
@@ -1932,7 +1931,7 @@ reduced_formula_frame <- plyr::ldply(
       deseq_results_lrt_tibble <-
         dplyr::left_join(x = annotation_tibble,
                          y = deseq_results_lrt_tibble,
-                         by = c("gene_id" = "gene_id"))
+                         by = "gene_id")
       # Write all genes.
       readr::write_tsv(x = deseq_results_lrt_tibble,
                        path = file_path_all)
@@ -2079,7 +2078,7 @@ readr::write_tsv(
       x = BiocGenerics::counts(object = deseq_data_set, normalized = FALSE),
       rownames = "gene_id"
     ),
-    by = c("gene_id" = "gene_id")
+    by = "gene_id"
   ),
   path = file.path(output_directory,
                    paste(
@@ -2103,7 +2102,7 @@ readr::write_tsv(
       x = BiocGenerics::counts(object = deseq_data_set, normalized = TRUE),
       rownames = "gene_id"
     ),
-    by = c("gene_id" = "gene_id")
+    by = "gene_id"
   ),
   path = file.path(output_directory,
                    paste(
@@ -2128,7 +2127,7 @@ readr::write_tsv(
   x = dplyr::left_join(
     x = annotation_tibble,
     y = tibble::as_tibble(x = fpkm_matrix, rownames = "gene_id"),
-    by = c("gene_id" = "gene_id")
+    by = "gene_id"
   ),
   path = file.path(output_directory,
                    paste(
@@ -2177,7 +2176,7 @@ for (blind in c(FALSE, TRUE)) {
         x = SummarizedExperiment::assay(x = deseq_transform, i = 1L),
         rownames = "gene_id"
       ),
-      by = c("gene_id" = "gene_id")
+      by = "gene_id"
     ),
     path = file.path(output_directory,
                      paste(
