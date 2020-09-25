@@ -315,7 +315,13 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     ggplot_object <-
       ggplot_object + ggplot2::ggtitle(label = "Weights", subtitle = "Independent Hypothesis Weighting")
     for (plot_path in plot_paths) {
-      ggplot2::ggsave(filename = plot_path, plot = ggplot_object)
+      ggplot2::ggsave(
+        filename = plot_path,
+        plot = ggplot_object,
+        width = argument_list$plot_width,
+        height = argument_list$plot_height,
+        limitsize = FALSE
+      )
     }
     rm(plot_path, ggplot_object)
   }
@@ -354,7 +360,13 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     ggplot_object <-
       ggplot_object + ggplot2::ggtitle(label = "Decision Boundaries", subtitle = "Independent Hypothesis Weighting")
     for (plot_path in plot_paths) {
-      ggplot2::ggsave(filename = plot_path, plot = ggplot_object)
+      ggplot2::ggsave(
+        filename = plot_path,
+        plot = ggplot_object,
+        width = argument_list$plot_width,
+        height = argument_list$plot_height,
+        limitsize = FALSE
+      )
     }
     rm(plot_path, ggplot_object)
   }
@@ -406,7 +418,13 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
         subtitle = "Independent Hypothesis Weighting"
       )
     for (plot_path in plot_paths) {
-      ggplot2::ggsave(filename = plot_path, plot = ggplot_object)
+      ggplot2::ggsave(
+        filename = plot_path,
+        plot = ggplot_object,
+        width = argument_list$plot_width,
+        height = argument_list$plot_height,
+        limitsize = FALSE
+      )
     }
     rm(plot_path, ggplot_object)
   }
