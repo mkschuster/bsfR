@@ -206,7 +206,7 @@ nozzle_section_contrasts <-
 nozzle_section_contrasts <-
   addTo(parent = nozzle_section_contrasts, Nozzle.R1::newTable(table = as.data.frame(x = contrast_tibble)))
 
-# Create a "Colcano Plots" report section.
+# Create a "Volcano Plots" report section.
 nozzle_section_list <- list(
   "padj" = Nozzle.R1::newSection("Volcano Plots (adjusted p-value)", class = SECTION.CLASS.RESULTS),
   "pvalue" = Nozzle.R1::newSection("Volcano Plots (unadjusted p-value)", class = SECTION.CLASS.RESULTS)
@@ -311,10 +311,18 @@ draw_enhanced_volcano <-
         },
         subtitle = ggplot2::waiver(),
         caption = ggplot2::waiver(),
-        legend = if (plot_padj) {
-          c("NS", "Log2 FC", "Adj. P", "Adj. P & Log2 FC")
+        legendLabels = if (plot_padj) {
+          c(
+            "NS",
+            expression(Log[2] ~ FC),
+            expression("adj." ~ italic(P)),
+            expression("adj." ~ italic(P) ~ "and" ~ log[2] ~ FC)
+          )
         } else {
-          c("NS", "Log2 FC", "P", "P & Log2 FC")
+          c("NS",
+            expression(Log[2] ~ FC),
+            "p-value",
+            expression("p-value" ~ "and" ~ log[2] ~ FC))
         },
         selectLab = gene_labels,
         drawConnectors = TRUE,
@@ -338,19 +346,28 @@ draw_enhanced_volcano <-
       } else {
         "pvalue"
       }]] <-
-        Nozzle.R1::addTo(
-          parent = nozzle_section_list[[if (plot_padj) {
-            "padj"
-          } else {
-            "pvalue"
-          }]],
+        Nozzle.R1::addTo(parent = nozzle_section_list[[if (plot_padj) {
+          "padj"
+        } else {
+          "pvalue"
+        }]],
+        if (is.null(x = plot_title)) {
           Nozzle.R1::newFigure(
             file = plot_paths[2L],
             "Volcano plot for contrast ",
             Nozzle.R1::asStrong(contrast_tibble$Label[contrast_index]),
             fileHighRes = plot_paths[1L]
           )
-        )
+        } else {
+          Nozzle.R1::newFigure(
+            file = plot_paths[2L],
+            "Volcano plot for contrast ",
+            Nozzle.R1::asStrong(contrast_tibble$Label[contrast_index]),
+            " and gene set ",
+            Nozzle.R1::asStrong(plot_title),
+            fileHighRes = plot_paths[1L]
+          )
+        })
 
       rm(plot_path,
          ggplot_object,
@@ -381,7 +398,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
   # are a consequence of Cook's distance filtering in the DESeq2::results()
   # function.
   deseq_results_tibble <-
-    dplyr::filter(.data = deseq_results_tibble,!(
+    dplyr::filter(.data = deseq_results_tibble, !(
       is.na(x = .data$log2FoldChange) |
         is.na(x = .data$pvalue) |
         is.na(x = .data$padj)

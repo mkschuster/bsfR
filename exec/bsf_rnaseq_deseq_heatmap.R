@@ -172,7 +172,7 @@ if (!is.null(x = argument_list$gene_path)) {
 
   # Finally, filter out all observations with NA values in the gene_id variable.
   plot_annotation_tibble <-
-    dplyr::filter(.data = plot_annotation_tibble,!is.na(x = .data$gene_id))
+    dplyr::filter(.data = plot_annotation_tibble, !is.na(x = .data$gene_id))
 }
 
 # DESeqDataSet ------------------------------------------------------------
@@ -283,7 +283,7 @@ draw_complex_heatmap <-
       # a log2 scale and calculate z-scores per row to centre the scale. Since
       # base::scale() works on columns, two transpositions are required.
       transformed_matrix <-
-        SummarizedExperiment::assay(x = deseq_transform, i = 1L)[top_gene_identifiers,]
+        SummarizedExperiment::assay(x = deseq_transform, i = 1L)[top_gene_identifiers, ]
 
       # Replace negative transformed count values with 0.0.
       # https://support.bioconductor.org/p/59369/
@@ -378,16 +378,31 @@ draw_complex_heatmap <-
       }
       base::invisible(x = grDevices::dev.off())
 
-      nozzle_section <-
-        Nozzle.R1::addTo(
-          parent = nozzle_section,
-          Nozzle.R1::newFigure(
-            file = file_path[2L],
-            "Heatmap for contrast ",
-            Nozzle.R1::asStrong(contrast_tibble$Label[contrast_index]),
-            fileHighRes = file_path[1L]
+      if (is.null(x = plot_title)) {
+        nozzle_section <-
+          Nozzle.R1::addTo(
+            parent = nozzle_section,
+            Nozzle.R1::newFigure(
+              file = file_path[2L],
+              "Heatmap for contrast ",
+              Nozzle.R1::asStrong(contrast_tibble$Label[contrast_index]),
+              fileHighRes = file_path[1L]
+            )
           )
-        )
+      } else {
+        nozzle_section <-
+          Nozzle.R1::addTo(
+            parent = nozzle_section,
+            Nozzle.R1::newFigure(
+              file = file_path[2L],
+              "Heatmap for contrast ",
+              Nozzle.R1::asStrong(contrast_tibble$Label[contrast_index]),
+              " and gene set ",
+              Nozzle.R1::asStrong(plot_title),
+              fileHighRes = file_path[1L]
+            )
+          )
+      }
       rm(complex_heatmap,
          file_path)
     }
@@ -410,6 +425,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       verbose = argument_list$verbose
     )
   if (is.null(x = deseq_results_tibble)) {
+    warning("Could not read result tibble: ", contrast_character)
     rm(deseq_results_tibble, contrast_character)
     next()
   }
@@ -442,24 +458,37 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       )
     rm(selected_gene_identifiers)
   } else {
-    # A gene_set_tibble exists to select genes from.
+    # A gene_set_tibble exists to select genes from ...
     plot_names <- unique(plot_annotation_tibble$plot_name)
-    for (plot_index in seq_along(along.with = plot_names)) {
-      # Filter for plot_name values.
-      selected_gene_identifiers <-
-        dplyr::filter(.data = plot_annotation_tibble, .data$plot_name == plot_names[plot_index])$gene_id
+    if (length(plot_names) == 1L && is.na(x = plot_names[1L])) {
+      # .. but plot_names were not set.
       nozzle_section_heatmaps <-
         draw_complex_heatmap(
           nozzle_section = nozzle_section_heatmaps,
           deseq_results_frame = deseq_results_frame,
-          top_gene_identifiers = selected_gene_identifiers,
-          contrast_character = contrast_character,
-          plot_title = plot_names[plot_index],
-          plot_index = plot_index
+          top_gene_identifiers = plot_annotation_tibble$gene_id,
+          contrast_character = contrast_character
         )
-      rm(selected_gene_identifiers)
+    } else {
+      # ... and plot_names were set.
+      for (plot_index in seq_along(along.with = plot_names)) {
+        # Filter for plot_name values.
+        selected_gene_identifiers <-
+          dplyr::filter(.data = plot_annotation_tibble, .data$plot_name == plot_names[plot_index])$gene_id
+        nozzle_section_heatmaps <-
+          draw_complex_heatmap(
+            nozzle_section = nozzle_section_heatmaps,
+            deseq_results_frame = deseq_results_frame,
+            top_gene_identifiers = selected_gene_identifiers,
+            contrast_character = contrast_character,
+            plot_title = plot_names[plot_index],
+            plot_index = plot_index
+          )
+        rm(selected_gene_identifiers)
+      }
+      rm(plot_index)
     }
-    rm(plot_index, plot_names)
+    rm(plot_names)
   }
   rm(contrast_character,
      deseq_results_frame)
