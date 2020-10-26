@@ -583,7 +583,12 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       subtitle = ggplot2::waiver(),
       caption = ggplot2::waiver(),
       pCutoff = argument_list$padj_threshold,
-      legendLabels = c("NS", expression(log[2]~FC), "adj. p-value", expression(adj.~"p-value"~and~log[2]~FC))
+      legendLabels = c(
+        "NS",
+        expression(log[2] ~ FC),
+        expression("adj." ~ italic(P)),
+        expression("adj." ~ italic(P) ~ "and" ~ log[2] ~ FC)
+      )
     )
 
     for (plot_path in plot_paths) {

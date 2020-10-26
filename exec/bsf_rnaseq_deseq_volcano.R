@@ -319,14 +319,16 @@ draw_enhanced_volcano <-
             expression("adj." ~ italic(P) ~ "and" ~ log[2] ~ FC)
           )
         } else {
-          c("NS",
+          c(
+            "NS",
             expression(Log[2] ~ FC),
-            "p-value",
-            expression("p-value" ~ "and" ~ log[2] ~ FC))
+            expression(italic(P)),
+            expression(italic(P) ~ "and" ~ log[2] ~ FC)
+          )
         },
         selectLab = gene_labels,
         drawConnectors = TRUE,
-        endsConnectors = 'last'
+        endsConnectors = "last"
       )
 
       for (plot_path in plot_paths) {
@@ -398,7 +400,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
   # are a consequence of Cook's distance filtering in the DESeq2::results()
   # function.
   deseq_results_tibble <-
-    dplyr::filter(.data = deseq_results_tibble, !(
+    dplyr::filter(.data = deseq_results_tibble,!(
       is.na(x = .data$log2FoldChange) |
         is.na(x = .data$pvalue) |
         is.na(x = .data$padj)
