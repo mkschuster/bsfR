@@ -69,7 +69,6 @@ bsfrc_get_prefix_process_cuffdiff <- function(comparison_name) {
 #'
 #' @return A \code{tibble} with gene annotation information.
 #' @export
-#' @importFrom readr cols col_character read_tsv
 #'
 #' @examples
 #' comparison_name <- "global"
@@ -131,7 +130,6 @@ bsfrc_read_gene_annotation_tibble <-
 #'
 #' @return A \code{tibble} with isoform annotation information.
 #' @export
-#' @importFrom readr cols col_character read_tsv
 #'
 #' @examples
 #' comparison_name <- "global"

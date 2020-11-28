@@ -23,12 +23,14 @@ Imports:
     forcats,
     S4Vectors,
     GenomeInfoDb,
+    IRanges,
     GenomicRanges,
     rtracklayer
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 Depends: R (>= 3.6)
 Collate:
     'bsf_genomes.R'
     'bsf_rnaseq_cufflinks.R'
     'bsf_rnaseq_deseq.R'
+    'bsf_rnaseq_tuxedo.R'
     'bsf_variant_calling.R'

@@ -215,144 +215,8 @@ graphics_formats <- c("pdf" = "pdf", "png" = "png")
 prefix <-
   bsfR::bsfrd_get_prefix_deseq(design_name = argument_list$design_name)
 
-# Global variable for the Design list, assigned by the
-# bsfR::bsfrd_read_design_list() function below.
-#
-# FIXME: Remove the global variable and pass the list into R functions().
-global_design_list <- NULL
-
 # FIXME: The output directory is defined properly below.
 output_directory <- prefix
-
-# Initialise Sample Annotation Data Frame object --------------------------
-
-
-#' Initialise Sample Annotation
-#'
-#' @param factor_levels A \code{character} vector with a packed string to assign
-#'   factor levels.
-#' @references \code{argument_list$design_name}
-#' @references \code{output_directory}
-#' @references \code{prefix}
-#' @return A \code{DataFrame} with sample annotation.
-#'
-#' @examples
-#' \dontrun{
-#' initialise_sample_frame(
-#'   factor_levels="factor_1:level_1,level_2;factor_2:level_A,level_B")
-#' }
-#' @noRd
-initialise_sample_frame <- function(factor_levels) {
-  # Read the BSF Python sample TSV file as a data.frame and convert into a DataFrame.
-  # Import strings as factors and cast to character vectors where required.
-  message("Loading sample DataFrame")
-  data_frame <-
-    methods::as(
-      object = read.table(
-        file = file.path(output_directory, paste(prefix, 'samples.tsv', sep = '_')),
-        header = TRUE,
-        sep = "\t",
-        comment.char = "",
-        stringsAsFactors = TRUE
-      ),
-      "DataFrame"
-    )
-  rownames(x = data_frame) <- data_frame$sample
-
-  # Select only those samples, which have the design name annotated in the designs variable.
-  index_logical <-
-    unlist(x = lapply(
-      X = stringr::str_split(
-        string = as.character(data_frame$designs),
-        pattern = stringr::fixed(pattern = ",")
-      ),
-      FUN = function(character_1) {
-        # character_1 is a character vector resulting from the split on ",".
-        return(any(argument_list$design_name %in% character_1))
-      }
-    ))
-  data_frame <- data_frame[index_logical, ]
-  rm(index_logical)
-
-  if (nrow(x = data_frame) == 0L) {
-    stop("No sample remaining after selection for design name.")
-  }
-
-  # The sequencing_type and library_type variables are required to set options
-  # for the GenomicAlignments::summarizeOverlaps() read counting function.
-
-  if (!any("sequencing_type" %in% names(x = data_frame))) {
-    stop("A sequencing_type variable is missing from the sample annotation frame.")
-  }
-
-  if (!any("library_type" %in% names(x = data_frame))) {
-    stop("A library_type variable is missing from the sample annotation frame.")
-  }
-
-  # Re-level the library_type and sequencing_type variables.
-  data_frame$library_type <-
-    factor(x = data_frame$library_type,
-           levels = c("unstranded", "first", "second"))
-  data_frame$sequencing_type <-
-    factor(x = data_frame$sequencing_type,
-           levels = c("SE", "PE"))
-
-  # The 'factor_levels' variable of the design data frame specifies the order of factor levels.
-  # Turn the factor_levels variable into a list of character vectors, where the factor names are set
-  # as attributes of the list components.
-  # factor_levels='factor_1:level_1,level_2;factor_2:level_A,level_B'
-  factor_list <- lapply(
-    # The "factor_levels" variable is a character vector, always with just a single component.
-    # Split by ';' then by ':' character.
-    X = stringr::str_split(
-      string = stringr::str_split(
-        string = factor_levels[1L],
-        pattern = stringr::fixed(pattern = ";")
-      )[[1L]],
-      pattern = stringr::fixed(pattern = ":")
-    ),
-    FUN = function(character_1) {
-      # Split the second component of character_1, the factor levels, on ",".
-      character_2 <-
-        unlist(x = stringr::str_split(
-          string = character_1[2L],
-          pattern = stringr::fixed(pattern = ",")
-        ))
-      # Set the first component of character_1, the factor name, as attribute.
-      attr(x = character_2, which = "factor_name") <-
-        character_1[1L]
-      return(character_2)
-    }
-  )
-
-  # Apply the factor levels to each factor.
-  design_variables <- names(x = data_frame)
-  for (i in seq_along(along.with = factor_list)) {
-    factor_name <- attr(x = factor_list[[i]], which = "factor_name")
-    if (!is.na(x = factor_name) && factor_name != "") {
-      if (factor_name %in% design_variables) {
-        data_frame[, factor_name] <-
-          factor(x = as.character(x = data_frame[, factor_name]),
-                 levels = factor_list[[i]])
-        # Check for NA values in case a factor level was missing.
-        if (any(is.na(x = data_frame[, factor_name]))) {
-          stop("Missing values after assigning factor levels for factor name ",
-               factor_name)
-        }
-      } else {
-        stop("Factor name ",
-             factor_name,
-             " does not resemble a variable of the design frame.")
-      }
-    }
-    rm(factor_name)
-  }
-  rm(i, design_variables, factor_list)
-
-  # Drop any unused levels from the sample data frame before returning it.
-  return(droplevels(x = data_frame))
-}
-
 
 # Initialise a RangedSummarizedExperiment object --------------------------
 
@@ -382,7 +246,12 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     ranged_summarized_experiment <- base::readRDS(file = file_path)
   } else {
     sample_frame <-
-      initialise_sample_frame(factor_levels = design_list$factor_levels)
+      bsfR::bsfrd_read_sample_frame(
+        genome_directory = argument_list$genome_directory,
+        design_name = argument_list$design_name,
+        factor_levels = design_list$factor_levels,
+        verbose = argument_list$verbose
+      )
 
     message("Reading reference GTF exon features")
     # The DESeq2 and RNA-seq vignettes suggest using TxDB objects, but for the moment,
@@ -412,7 +281,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
         )
         sub_sample_frame <-
           sample_frame[(sample_frame$library_type == library_type) &
-                         (sample_frame$sequencing_type == sequencing_type),]
+                         (sample_frame$sequencing_type == sequencing_type), ]
 
         if (nrow(x = sub_sample_frame) == 0L) {
           rm(sub_sample_frame)
@@ -494,7 +363,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     rm(sample_frame)
 
     # Calculate colSums() of SummarizedExperiment::assays()$counts and add as
-    # total_count into the SummarizedExperiment::colData data frame.
+    # total_count into the SummarizedExperiment::colData() S4Vectors::DataFrame.
     sample_frame <-
       SummarizedExperiment::colData(x = ranged_summarized_experiment)
     sample_frame$total_counts <-
@@ -555,7 +424,7 @@ fix_model_matrix <- function(model_matrix_local) {
         "Attempting to fix the model matrix by removing empty columns."
       )
       model_matrix_local <-
-        model_matrix_local[, -which(x = model_all_zero)]
+        model_matrix_local[,-which(x = model_all_zero)]
     } else {
       linear_combinations_list <-
         caret::findLinearCombos(x = model_matrix_local)
@@ -579,7 +448,7 @@ fix_model_matrix <- function(model_matrix_local) {
         paste(colnames(x = model_matrix_local)[linear_combinations_list$remove], collapse = "\n  ")
       )
       model_matrix_local <-
-        model_matrix_local[,-linear_combinations_list$remove]
+        model_matrix_local[, -linear_combinations_list$remove]
     }
     rm(model_all_zero)
   }
@@ -701,11 +570,11 @@ initialise_deseq_data_set <- function(design_list) {
         )
       attr(x = deseq_data_set, which = "full_rank") <- TRUE
     } else {
-      # The orignal design formula was not full rank.
+      # The original design formula was not full rank.
       # Unfortunately, to initialise the DESeqDataSet,
       # a model matrix can apparently not be used directly.
       # Thus, use the simplest possible design (i.e. ~ 1) for initialisation and
-      # peform Wald testing with the full model matrix.
+      # perform Wald testing with the full model matrix.
       message("Creating a DESeqDataSet object with design formula ~ 1")
       deseq_data_set <-
         DESeq2::DESeqDataSet(se = ranged_summarized_experiment,
@@ -838,7 +707,7 @@ plot_fpkm_values <- function(object) {
           file.info(plot_paths)$size > 0L)) {
     message("Skipping a FPKM density plot")
   } else {
-    # Pivot the data frame to get just a "name" and a "value" variable.
+    # Pivot the tibble to get just a "name" and a "value" variable.
     ggplot_object <-
       ggplot2::ggplot(data = tidyr::pivot_longer(
         data = tibble::as_tibble(x = object),
@@ -1420,7 +1289,7 @@ plot_pca <- function(object,
 
   # Perform a PCA on the (count) matrix returned by SummarizedExperiment::assay() for the selected genes.
   pca_object <-
-    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows, ]))
+    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows,]))
   rm(selected_rows)
 
   # Plot the variance for a maximum of 100 components.
@@ -1518,8 +1387,8 @@ plot_pca <- function(object,
             )),
             x = numeric(),
             y = numeric(),
-            # Also initalise all variables of the column data, but do not include data (i.e. 0L rows).
-            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L,])
+            # Also initialise all variables of the column data, but do not include data (i.e. 0L rows).
+            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L, ])
           )
 
         for (column_number in seq_len(length.out = ncol(x = pca_pair_matrix))) {
@@ -2216,8 +2085,7 @@ rm(
   initialise_deseq_data_set,
   check_model_matrix,
   fix_model_matrix,
-  initialise_ranged_summarized_experiment,
-  initialise_sample_frame
+  initialise_ranged_summarized_experiment
 )
 
 message("All done")

@@ -48,9 +48,7 @@
 #'
 #' @return A \code{tibble} with genome information.
 #' @export
-#' @importFrom dplyr mutate
-#' @importFrom rlang enquo sym :=
-#' @importFrom stringr fixed str_split
+#' @importFrom rlang .data .env :=
 #'
 #' @examples
 #' \dontrun{
@@ -82,14 +80,15 @@ bsfg_get_genome_tibble <-
 
       genome_tibble <-
         dplyr::mutate(
-          .data = genome_tibble,!!genome_path := file.path(resource_directory, !!rlang::sym(assembly_version)),!!transcriptome_path := file.path(
-            resource_directory,
-            paste(
-              !!rlang::sym(assembly_version),
-              paste0("e",!!rlang::enquo(ensembl_version)),
-              sep = "_"
-            )
-          )
+          .data = genome_tibble,
+          !!genome_path := file.path(.env$resource_directory,
+                                     .data[[assembly_version]]),
+          !!transcriptome_path := file.path(.env$resource_directory,
+                                            paste(
+                                              .data[[assembly_version]],
+                                              paste0("e", .env$ensembl_version),
+                                              sep = "_"
+                                            ))
         )
 
       rm(transcriptome_path, genome_path, assembly_version)
@@ -99,7 +98,8 @@ bsfg_get_genome_tibble <-
     # Set assembly report paths for NCBI and UCSC directories.
     genome_tibble <- dplyr::mutate(
       .data = genome_tibble,
-      # Set the assembly report name, which is the last element of the URL split by "/" characters.
+      # Set the assembly report name, which is the last element of the URL split
+      # by "/" characters.
       "assembly_report_name" = unlist(x = lapply(
         X = stringr::str_split(
           string = .data$assembly_report_url,
@@ -109,13 +109,13 @@ bsfg_get_genome_tibble <-
       )),
       # Set assembly report paths for NCBI directories.
       "assembly_report_path_ncbi" = file.path(
-        resource_directory,
+        .env$resource_directory,
         .data$assembly_version_ncbi,
         .data$assembly_report_name
       ),
       # Set assembly report paths for UCSC directories.
       "assembly_report_path_ucsc" = file.path(
-        resource_directory,
+        .env$resource_directory,
         .data$assembly_version_ucsc,
         .data$assembly_report_name
       ),
@@ -140,7 +140,7 @@ bsfg_get_genome_tibble <-
 #'
 #' @return A \code{list} with genome information.
 #' @export
-#' @importFrom dplyr filter
+#' @importFrom rlang .data .env
 #'
 #' @examples
 #' \dontrun{
@@ -159,9 +159,8 @@ bsfg_get_genome_list <-
     # The dplyr::filter() function automatically discards cases that evaluate to NA.
     genome_tibble <- dplyr::filter(
       .data = bsfR::bsfg_get_genome_tibble(resource_directory = resource_directory, ensembl_version = ensembl_version),
-      # FIXME: This may not work and may have to use quoted variablei.e. !!rlang::sym().
-      .data$assembly_version_ncbi %in% ncbi_version &
-        .data$assembly_version_ucsc %in% ucsc_version
+      .data$assembly_version_ncbi %in% .env$ncbi_version &
+        .data$assembly_version_ucsc %in% .env$ucsc_version
     )
     if (nrow(x = genome_tibble) != 1L) {
       # This should only retrieve one row of the tibble.
@@ -231,8 +230,6 @@ bsfg_create_resource_directory <-
 #'
 #' @return A \code{tibble} with NCBI assembly information.
 #' @export
-#' @importFrom readr read_tsv cols col_character col_integer
-#' @importFrom utils download.file
 #'
 #' @examples
 #' \dontrun{
@@ -330,12 +327,14 @@ bsfg_get_assembly_report <- function(genome_list, verbose = FALSE) {
 #' @return A \code{character} scalar with the Ensembl transcriptome annotation
 #'   file path.
 #' @export
-#' @importFrom utils download.file
 #'
 #' @examples
 #' \dontrun{
-#' assembly_report_tibble <- bsfR::bsfg_get_assembly_report(
-#'   genome_list,
+#' ensembl_transcriptome_gtf <- bsfR::bsfg_get_ensembl_transcriptome(
+#'   genome_list = genome_list,
+#'   ensembl_version = "100",
+#'   ensembl_ftp = "ftp://ftp.ensembl.org",
+#'   file_type = "gtf",
 #'   verbose = FALSE)
 #' }
 bsfg_get_ensembl_transcriptome <-
@@ -400,7 +399,7 @@ bsfg_get_ensembl_transcriptome <-
 #' Convert sequence levels between NCBI and UCSC.
 #'
 #' Either a NCBI or UCSC GRanges object needs specifying. Based on the
-#' preslected genome list the corresponding NCBI assembly report will be loaded.
+#' preselected genome list the corresponding NCBI assembly report will be loaded.
 #' The mapping procedure is complicated by the fact that UCSC-style names map to
 #' either NCBI sequence names (e.g. 1, 2, HSCHR1_CTG1_UNLOCALIZED, ...) or NCBI
 #' GenBank accession numbers (e.g. CM000663.2, CM000664.2, KI270706.1, ...).
@@ -414,9 +413,6 @@ bsfg_get_ensembl_transcriptome <-
 #'
 #' @return A \code{GRanges} object with converted sequence levels.
 #' @export
-#' @importFrom GenomeInfoDb seqlevels
-#' @importFrom GenomicRanges seqinfo
-#' @importFrom rtracklayer SeqinfoForBSGenome
 #'
 #' @examples
 #' \dontrun{
@@ -474,9 +470,8 @@ bsfg_convert_seqlevels <-
       seqinfo_ucsc <-
         GenomicRanges::seqinfo(x = ucsc_granges)
     }
-
     if (is.null(x = seqinfo_ucsc)) {
-      stop("Could not retieve a UCSC Seqinfo object")
+      stop("Could not retrieve a UCSC Seqinfo object")
     }
     if (verbose) {
       print(x = paste(
@@ -512,6 +507,7 @@ bsfg_convert_seqlevels <-
         assembly_report_tibble$sequence_name
       ucsc_map <-
         ucsc_names[names(x = ucsc_levels)]
+
       # Merge only those sequence names into the UCSC seqlevels that could be
       # resolved.
       ucsc_levels[!is.na(x = ucsc_map)] <-
@@ -523,6 +519,7 @@ bsfg_convert_seqlevels <-
         assembly_report_tibble$genbank_accn
       ucsc_map <-
         ucsc_names[names(x = ucsc_levels)]
+
       # Merge only those GenBank accessions into the UCSC seqlevels that could
       # be resolved.
       ucsc_levels[!is.na(x = ucsc_map)] <-
@@ -594,6 +591,7 @@ bsfg_convert_seqlevels <-
       #   print(x = paste("NCBI map sequence names:", length(ncbi_map)))
       #   print(x = ncbi_map)
       # }
+
       # Merge only those NCBI sequence names that match to NCBI GRanges.
       ncbi_levels[ncbi_map %in% GenomeInfoDb::seqlevels(x = ncbi_granges)] <-
         ncbi_map[ncbi_map %in% GenomeInfoDb::seqlevels(x = ncbi_granges)]
@@ -614,6 +612,7 @@ bsfg_convert_seqlevels <-
       #   print(x = paste("NCBI map GenBank accessions:", length(x = ncbi_map)))
       #   print(x = ncbi_map)
       # }
+
       # Merge only those NCBI GenBank accession that match to NCBI GRanges.
       ncbi_levels[ncbi_map %in% GenomeInfoDb::seqlevels(x = ncbi_granges)] <-
         ncbi_map[ncbi_map %in% GenomeInfoDb::seqlevels(x = ncbi_granges)]

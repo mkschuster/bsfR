@@ -5,7 +5,7 @@
 # All Ensembl "exon" features are imported from a GTF file and reduced into a
 # (non-overlapping) set of transcribed regions of the genome. Optionally, target
 # regions can be imported and overlapped with the transcribed regions above to
-# export the minmal set of transcribed target regions in BED format.
+# export the minimal set of transcribed target regions in BED format.
 #
 # Without target regions, the set of transcribed regions is exported as a BED
 # file.
@@ -76,6 +76,21 @@ argument_list <-
         dest = "genome_version",
         help = "Genome (assembly) version",
         type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--flanks"),
+        default = 0L,
+        dest = "flanks",
+        help = "Exon and Target flanking regions [0L]",
+        type = "integer"
+      ),
+      optparse::make_option(
+        opt_str = c("--full-annotation"),
+        action = "store_false",
+        default = TRUE,
+        dest = "basic",
+        help = "Import full rather than basic Ensembl annotation",
+        type = "logical"
       )
     )
   ))
@@ -83,86 +98,22 @@ argument_list <-
 suppressPackageStartupMessages(expr = library(package = "bsfR"))
 suppressPackageStartupMessages(expr = library(package = "Biostrings"))
 
-# Keep overall statistics of constrained GRanges in a list.
-constrained_list <- list()
-
-# Import Ensembl "exon" annotation as GTF.
-ensembl_list <- bsfR::bsfvc_import_ensembl(
-  exon_path = argument_list$exon_path,
-  genome_version = argument_list$genome_version,
-  basic = TRUE,
-  exon_flanks = 0L,
-  verbose = argument_list$verbose
-)
-
-# Read the file of target regions, if available. Although the GATK Callable
-# Loci analysis is generally only run on these target regions, this file
-# provides the target (probe) names of the enrichment design.
-
-if (!is.null(x = argument_list$target_path)) {
-  target_list <-
-    bsfR::bsfvc_import_targets(
-      target_path = argument_list$target_path,
-      genome_version = argument_list$genome_version,
-      verbose = argument_list$verbose
-    )
-
-  if (argument_list$verbose) {
-    message("Overlapping target and transcribed GRanges.")
-  }
-  overlap_frame <-
-    IRanges::mergeByOverlaps(query = target_list$target_ranges,
-                             subject = ensembl_list$transcribed_ranges)
-  # Adjust start and end to the minimally overlapping regions.
-  constrained_list$constrained_ranges <-
-    GRanges(
-      seqnames = seqnames(x = overlap_frame$target_ranges),
-      ranges = IRanges(
-        start = pmax(
-          start(x = overlap_frame$target_ranges),
-          start(x = overlap_frame$transcribed_ranges)
-        ),
-        end = pmin(
-          end(x = overlap_frame$target_ranges),
-          end(x = overlap_frame$transcribed_ranges)
-        )
-      )
-    )
-
-  constrained_list$constrained_number <-
-    length(x = constrained_list$constrained_ranges)
-
-  constrained_list$constrained_width <-
-    sum(GenomicRanges::width(x = constrained_list$constrained_ranges))
-
-  rm(overlap_frame, target_list)
-} else {
-  # If target regions are not avaiable, all transcribed GRanges count.
-  if (argument_list$verbose) {
-    message("Not importing any target range annotation.")
-  }
-  constrained_list$constrained_ranges <-
-    ensembl_list$transcribed_ranges
-  constrained_list$constrained_number <-
-    ensembl_list$transcribed_number
-  constrained_list$constrained_width <-
-    ensembl_list$transcribed_width
-}
-if (argument_list$verbose) {
-  message("Number of transcribed target ranges: ",
-          constrained_list$constrained_number)
-  message(
-    "Cumulative width of transcribed target ranges: ",
-    constrained_list$constrained_width
+summary_list <-
+  bsfR::bsfvc_import_constrained_ranges(
+    exon_path = argument_list$exon_path,
+    exon_flanks = argument_list$flanks,
+    exon_basic = argument_list$basic,
+    target_path = argument_list$target_path,
+    target_flanks = argument_list$flanks,
+    genome_version = argument_list$genome_version,
+    verbose = argument_list$verbose
   )
-}
 
 # Export to BED format.
-export.bed(object = constrained_list$constrained_ranges,
-           con = argument_list$output_path)
+rtracklayer::export.bed(object = summary_list$constrained_ranges,
+                        con = argument_list$output_path)
 
-rm(constrained_list,
-   ensembl_list,
+rm(summary_list,
    argument_list)
 
 message("All done")
