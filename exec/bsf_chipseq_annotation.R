@@ -287,10 +287,10 @@ gene_frame <-
                                          "gene_source")]
 # Add the gene location as an Ensembl-like location, lacking the coordinate system name and version.
 gene_frame$gene_location <-
-  as(object = gene_granges, Class = "character")
+  methods::as(object = gene_granges, Class = "character")
 rm(gene_granges)
 
-write.table(
+utils::write.table(
   x = gene_frame,
   file = file.path(output_directory,
                    paste(
@@ -336,7 +336,7 @@ rm(annotated_frame)
 merged_frame <-
   merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)),]
 
-write.table(
+utils::write.table(
   x = merged_frame,
   file = file.path(output_directory,
                    paste(

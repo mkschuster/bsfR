@@ -120,7 +120,7 @@ for (file_name in file_names) {
   metrics_line <-
     which(x = grepl(pattern = "## METRICS CLASS", x = metrics_lines))
   picard_metrics_total <-
-    read.table(
+    utils::read.table(
       file = file_name,
       header = TRUE,
       sep = "\t",
@@ -130,7 +130,7 @@ for (file_name in file_names) {
       stringsAsFactors = FALSE
     )
   rm(metrics_line, metrics_lines)
-  # To support numeric sample names the read.table(stringsAsFactors = FALSE) is turned off.
+  # To support numeric sample names the utils::read.table(stringsAsFactors = FALSE) is turned off.
   # Convert SAMPLE, LIBRARY and READ_GROUP into character vectors.
   picard_metrics_total$SAMPLE <-
     as.character(x = picard_metrics_total$SAMPLE)
@@ -194,7 +194,7 @@ if (!is.null(x = combined_metrics_sample)) {
       sep =
         "_"
     ))
-  write.table(
+  utils::write.table(
     x = combined_metrics_sample,
     file = paste(prefix_summary, prefix_pasm, "metrics_sample.tsv", sep = "_"),
     sep = "\t",
@@ -220,7 +220,7 @@ if (!is.null(x = combined_metrics_sample)) {
           "_"
       )
     )
-  write.table(
+  utils::write.table(
     x = combined_metrics_read_group,
     file = paste(prefix_summary, prefix_pasm, "metrics_read_group.tsv", sep = "_"),
     sep = "\t",
@@ -707,7 +707,7 @@ for (file_name in file_names) {
     number_skip <- metrics_line[1L]
   }
   picard_metrics_sample <-
-    read.table(
+    utils::read.table(
       file = file_name,
       header = TRUE,
       sep = "\t",
@@ -756,7 +756,7 @@ if (!is.null(x = combined_metrics_sample)) {
     combined_metrics_sample$READ_PAIR_DUPLICATES / combined_metrics_sample$READ_PAIRS_EXAMINED
   combined_metrics_sample$PERCENT_READ_PAIR_OPTICAL_DUPLICATION <-
     combined_metrics_sample$READ_PAIR_OPTICAL_DUPLICATES / combined_metrics_sample$READ_PAIRS_EXAMINED
-  write.table(
+  utils::write.table(
     x = combined_metrics_sample,
     file = paste(prefix_summary, prefix_pdsm, "metrics_sample.tsv", sep = "_"),
     sep = "\t",

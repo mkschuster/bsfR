@@ -338,7 +338,7 @@ while (nrow(
     info_frame[["Variable"]] <- row.names(x = info_frame)
     info_frame <-
       info_frame[, c("Variable", "Number", "Type", "Description")]
-    write.table(
+    utils::write.table(
       x = info_frame,
       file = filtered_vcf_annotation_path,
       sep = "\t",
@@ -367,7 +367,7 @@ while (nrow(
     geno_frame[["Variable"]] <- row.names(x = geno_frame)
     geno_frame <-
       geno_frame[, c("Variable", "Number", "Type", "Description")]
-    write.table(
+    utils::write.table(
       x = geno_frame,
       file = filtered_vcf_annotation_path,
       sep = "\t",
@@ -550,7 +550,7 @@ while (nrow(
   message(
     sprintf(fmt = "Number of VCF records written: %i (%i total)", nrow(x = combined_frame), sum_records_written)
   )
-  write.table(
+  utils::write.table(
     x = combined_frame,
     file = selected_tsv_path,
     append = !selected_tsv_first_chunk,

@@ -81,7 +81,7 @@ argument_list <-
 
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
-#' Process trimmomatic STDOUT files and return a named character vector.
+#' Process Trimmomatic STDOUT files and return a named character vector.
 #' Names are: "line", "input", "both", "first", "second", "dropped"
 #'
 #' @noRd
@@ -181,7 +181,7 @@ process_trimlog <- function(file_path, number = -1L) {
       return(summary_tibble)
     }
 
-  # The data frames need to be intialised with the correct length, which is only
+  # The data frames need to be initialised with the correct length, which is only
   # available from reading the trim log file.
   counter_1 <- 0L
   counter_2 <- 0L
@@ -301,7 +301,7 @@ process_trimlog <- function(file_path, number = -1L) {
     # FIXME: For debugging only!
     print(x = paste("Counter 1:", counter_1))
 
-    # Break after reaching the maximum nuber of reads to process.
+    # Break after reaching the maximum number of reads to process.
     if (number > 0L) {
       if (counter_2 > 0L) {
         if (counter_2 >= number) {

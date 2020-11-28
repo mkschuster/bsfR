@@ -274,7 +274,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
         numChar = 80L
       )
 
-    write.table(
+    utils::write.table(
       x = result_frame,
       file = file.path(output_directory,
                        paste(

@@ -132,7 +132,7 @@ for (file_name in file_names) {
     number_skip <- metrics_line[1L]
   }
   picard_metrics_sample <-
-    read.table(
+    utils::read.table(
       file = file_name,
       header = TRUE,
       sep = "\t",
@@ -181,7 +181,7 @@ if (!is.null(x = combined_metrics_sample)) {
     combined_metrics_sample$READ_PAIR_DUPLICATES / combined_metrics_sample$READ_PAIRS_EXAMINED
   combined_metrics_sample$PERCENT_READ_PAIR_OPTICAL_DUPLICATION <-
     combined_metrics_sample$READ_PAIR_OPTICAL_DUPLICATES / combined_metrics_sample$READ_PAIRS_EXAMINED
-  write.table(
+  utils::write.table(
     x = combined_metrics_sample,
     file = paste(prefix_summary, "duplication_metrics_sample.tsv", sep = "_"),
     sep = "\t",
@@ -315,7 +315,7 @@ for (file_name in file_names) {
   metrics_line <-
     which(x = grepl(pattern = "## METRICS CLASS", x = metrics_lines))
   picard_metrics_total <-
-    read.table(
+    utils::read.table(
       file = file_name,
       header = TRUE,
       sep = "\t",
@@ -394,7 +394,7 @@ if (!is.null(x = combined_metrics_sample)) {
       sep =
         "_"
     ))
-  write.table(
+  utils::write.table(
     x = combined_metrics_sample,
     file = paste(prefix_summary, "alignment_metrics_sample.tsv", sep = "_"),
     sep = "\t",
@@ -422,7 +422,7 @@ if (!is.null(x = combined_metrics_sample)) {
           "_"
       )
     )
-  write.table(
+  utils::write.table(
     x = combined_metrics_read_group,
     file = paste(prefix_summary, "alignment_metrics_read_group.tsv", sep = "_"),
     sep = "\t",
@@ -743,7 +743,7 @@ for (file_name in file_names) {
     number_skip <- metrics_line[1L]
   }
   picard_metrics_total <-
-    read.table(
+    utils::read.table(
       file = file_name,
       header = TRUE,
       sep = "\t",
@@ -830,7 +830,7 @@ if (!is.null(x = combined_metrics_sample)) {
     as.factor(x = combined_metrics_sample$BAIT_SET)
   combined_metrics_sample$SAMPLE <-
     as.factor(x = combined_metrics_sample$SAMPLE)
-  write.table(
+  utils::write.table(
     x = combined_metrics_sample,
     file = paste(prefix_summary, "hybrid_metrics_sample.tsv", sep = "_"),
     sep = "\t",
@@ -847,7 +847,7 @@ if (!is.null(x = combined_metrics_sample)) {
     as.factor(x = combined_metrics_read_group$BAIT_SET)
   combined_metrics_read_group$READ_GROUP <-
     as.factor(x = combined_metrics_read_group$READ_GROUP)
-  write.table(
+  utils::write.table(
     x = combined_metrics_read_group,
     file = paste(prefix_summary, "hybrid_metrics_read_group.tsv", sep = "_"),
     sep = "\t",
@@ -1498,7 +1498,7 @@ for (i in seq_len(length.out = nrow(x = combined_metrics_sample))) {
          x = combined_metrics_sample$file_name[i])
   message("  ", sample_name)
   non_callable_metrics_sample <-
-    read.table(
+    utils::read.table(
       file = combined_metrics_sample$file_name[i],
       header = TRUE,
       colClasses = c(
@@ -1568,7 +1568,7 @@ if (nrow(x = combined_metrics_sample) > 0L) {
     nlevels(x = combined_metrics_sample$sample_name) / 24L
   )) - 1L) * argument_list$plot_width * 0.25
 
-  write.table(
+  utils::write.table(
     x = combined_metrics_sample,
     file = paste(prefix_summary, "non_callable_metrics_sample.tsv", sep = "_"),
     sep = "\t",

@@ -197,7 +197,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
   message("Skipping a run information table")
 } else {
   message("Creating a run information table")
-  write.table(
+  utils::write.table(
     x = cummeRbund::runInfo(object = cuff_set),
     file = frame_path,
     quote = FALSE,
@@ -221,7 +221,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
   message("Skipping a sample table")
 } else {
   message("Creating a sample table")
-  write.table(
+  utils::write.table(
     x = sample_frame,
     file = frame_path,
     quote = FALSE,
@@ -241,7 +241,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
   message("Skipping a sample pairs table")
 } else {
   message("Creating a sample pairs table")
-  write.table(
+  utils::write.table(
     x = aperm(a = sample_pairs),
     file = frame_path,
     quote = FALSE,
@@ -269,7 +269,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
   message("Skipping a replicate table")
 } else {
   message("Creating a replicate table")
-  write.table(
+  utils::write.table(
     x = replicate_frame,
     file = frame_path,
     quote = FALSE,
@@ -1420,11 +1420,11 @@ if (file.exists(frame_path_genes) &&
     file.info(frame_path_genes)$size > 0L) {
   message("Reading gene annotation from file")
   gene_annotation_frame <-
-    read.table(file = frame_path_genes,
+    utils::read.table(file = frame_path_genes,
                header = TRUE,
                sep = "\t")
   isoform_annotation_frame <-
-    read.table(file = frame_path_isoforms,
+    utils::read.table(file = frame_path_isoforms,
                header = TRUE,
                sep = "\t")
 } else {
@@ -1602,11 +1602,12 @@ if (file.exists(frame_path_genes) &&
     ), drop = FALSE])
   rm(cufflinks_annotation)
 
-  write.table(x = gene_annotation_frame,
-              frame_path_genes,
-              sep = "\t",
-              row.names = FALSE)
-  write.table(
+  utils::write.table(x = gene_annotation_frame,
+                     frame_path_genes,
+                     sep = "\t",
+                     row.names = FALSE)
+
+  utils::write.table(
     x = isoform_annotation_frame,
     frame_path_isoforms,
     sep = "\t",
@@ -1706,7 +1707,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
         all = TRUE,
         sort = TRUE
       )
-    write.table(
+    utils::write.table(
       x = gene_merge,
       file = frame_path,
       quote = FALSE,
@@ -1795,7 +1796,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
         all = TRUE,
         sort = TRUE
       )
-    write.table(
+    utils::write.table(
       x = isoform_merge,
       file = frame_path,
       quote = FALSE,
@@ -1868,7 +1869,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
     rm(status, status_integer, diff_data_genes)
     status_frame$SUM[i] <- sum(status_frame[i, 2L:6L])
   }
-  write.table(
+  utils::write.table(
     x = status_frame,
     file = frame_path,
     row.names = FALSE,
@@ -1930,7 +1931,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
     rm(status, status_integer, diff_data_isoforms)
     status_frame$SUM[i] <- sum(status_frame[i, 2L:6L])
   }
-  write.table(
+  utils::write.table(
     x = status_frame,
     file = frame_path,
     row.names = FALSE,
@@ -1961,7 +1962,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
       all = TRUE,
       sort = TRUE
     )
-  write.table(
+  utils::write.table(
     x = gene_merge,
     file = frame_path,
     quote = FALSE,
@@ -1993,7 +1994,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
       all = TRUE,
       sort = TRUE
     )
-  write.table(
+  utils::write.table(
     x = gene_merge,
     file = frame_path,
     quote = FALSE,
@@ -2026,7 +2027,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
       all = TRUE,
       sort = TRUE
     )
-  write.table(
+  utils::write.table(
     x = isoform_merge,
     file = frame_path,
     quote = FALSE,
@@ -2059,7 +2060,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
       all = TRUE,
       sort = TRUE
     )
-  write.table(
+  utils::write.table(
     x = isoform_merge,
     file = frame_path,
     quote = FALSE,

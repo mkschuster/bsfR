@@ -268,7 +268,7 @@ close(con = vcf_file)
 
 rm(snpedia_frame, snpedia_granges)
 
-write.table(
+utils::write.table(
   x = output_frame,
   file = argument_list$tsv_path,
   sep = "\t",

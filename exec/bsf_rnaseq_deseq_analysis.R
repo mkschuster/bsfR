@@ -281,7 +281,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
         )
         sub_sample_frame <-
           sample_frame[(sample_frame$library_type == library_type) &
-                         (sample_frame$sequencing_type == sequencing_type), ]
+                         (sample_frame$sequencing_type == sequencing_type),]
 
         if (nrow(x = sub_sample_frame) == 0L) {
           rm(sub_sample_frame)
@@ -424,7 +424,7 @@ fix_model_matrix <- function(model_matrix_local) {
         "Attempting to fix the model matrix by removing empty columns."
       )
       model_matrix_local <-
-        model_matrix_local[,-which(x = model_all_zero)]
+        model_matrix_local[, -which(x = model_all_zero)]
     } else {
       linear_combinations_list <-
         caret::findLinearCombos(x = model_matrix_local)
@@ -448,7 +448,7 @@ fix_model_matrix <- function(model_matrix_local) {
         paste(colnames(x = model_matrix_local)[linear_combinations_list$remove], collapse = "\n  ")
       )
       model_matrix_local <-
-        model_matrix_local[, -linear_combinations_list$remove]
+        model_matrix_local[,-linear_combinations_list$remove]
     }
     rm(model_all_zero)
   }
@@ -525,7 +525,7 @@ initialise_deseq_data_set <- function(design_list) {
       check_model_matrix(model_matrix = model_matrix)
     if (argument_list$verbose) {
       message("Writing initial model matrix")
-      write.table(
+      utils::write.table(
         x = base::as.data.frame(x = model_matrix),
         file = file.path(
           output_directory,
@@ -536,7 +536,7 @@ initialise_deseq_data_set <- function(design_list) {
         col.names = TRUE
       )
       message("Writing modified model matrix")
-      write.table(
+      utils::write.table(
         x = base::as.data.frame(x = result_list$model_matrix),
         file = file.path(
           output_directory,
@@ -1289,7 +1289,7 @@ plot_pca <- function(object,
 
   # Perform a PCA on the (count) matrix returned by SummarizedExperiment::assay() for the selected genes.
   pca_object <-
-    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows,]))
+    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows, ]))
   rm(selected_rows)
 
   # Plot the variance for a maximum of 100 components.
@@ -1388,7 +1388,7 @@ plot_pca <- function(object,
             x = numeric(),
             y = numeric(),
             # Also initialise all variables of the column data, but do not include data (i.e. 0L rows).
-            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L, ])
+            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L,])
           )
 
         for (column_number in seq_len(length.out = ncol(x = pca_pair_matrix))) {
@@ -1528,7 +1528,7 @@ plot_pca <- function(object,
 
         if (argument_list$verbose) {
           # Write the PCA plot data frame.
-          write.table(
+          utils::write.table(
             x = plotting_frame,
             file = file.path(output_directory,
                              paste(
@@ -1679,9 +1679,9 @@ reduced_formula_frame <- plyr::ldply(
       )
       # Read the existing table to count the number of significant genes after LRT.
       deseq_merge_significant <-
-        read.table(file = file_path_significant,
-                   header = TRUE,
-                   sep = "\t")
+        utils::read.table(file = file_path_significant,
+                          header = TRUE,
+                          sep = "\t")
       summary_frame <- data.frame(
         "design" = global_design_list$design,
         "full_formula" = global_design_list$full_formula,
@@ -1717,7 +1717,7 @@ reduced_formula_frame <- plyr::ldply(
         check_model_matrix(model_matrix = model_matrix_reduced)
       if (argument_list$verbose) {
         message("Writing initial reduced model matrix")
-        write.table(
+        utils::write.table(
           x = base::as.data.frame(x = model_matrix_reduced),
           file = file.path(
             output_directory,
@@ -1733,7 +1733,7 @@ reduced_formula_frame <- plyr::ldply(
           col.names = TRUE
         )
         message("Writing modified reduced model matrix")
-        write.table(
+        utils::write.table(
           x = base::as.data.frame(x = result_list_reduced$model_matrix),
           file = file.path(
             output_directory,
@@ -1831,7 +1831,7 @@ reduced_formula_frame <- plyr::ldply(
 )
 
 # Write the reduced formula (LRT) summary frame to disk.
-write.table(
+utils::write.table(
   x = reduced_formula_frame,
   file = file.path(output_directory,
                    paste(

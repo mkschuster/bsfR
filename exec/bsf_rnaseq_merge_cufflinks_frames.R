@@ -72,9 +72,9 @@ process_cufflinks_table <-
         paste(prefix_cufflinks, object_type, "fpkm_tracking.tsv", sep = "_")
       )
     cufflinks_frame <-
-      read.table(file = file_path,
-                 header = TRUE,
-                 stringsAsFactors = FALSE)
+      utils::read.table(file = file_path,
+                        header = TRUE,
+                        stringsAsFactors = FALSE)
     rm(file_path)
 
     # Subset the data frame by removing unused columns.
@@ -96,12 +96,12 @@ process_cufflinks_table <-
                             "tss_id")
     }
     subset_frame <-
-      cufflinks_frame[,!(colnames(cufflinks_frame) %in% obsolete_columns)]
+      cufflinks_frame[, !(colnames(cufflinks_frame) %in% obsolete_columns)]
     rm(cufflinks_frame, obsolete_columns)
 
     # Select only Ensembl objects i.e. those that have a gene_biotype set.
     ensembl_frame <-
-      subset_frame[!is.na(x = subset_frame$gene_biotype),]
+      subset_frame[!is.na(x = subset_frame$gene_biotype), ]
     rm(subset_frame)
 
     # Rename columns to include the replicate name.
@@ -181,7 +181,7 @@ for (replicate_name in replicate_names) {
 }
 rm(replicate_name)
 file_path <- "rnaseq_cufflinks_genes_fpkm_tracking.tsv"
-write.table(
+utils::write.table(
   x = merge_frame,
   file = file_path,
   col.names = TRUE,
@@ -201,7 +201,7 @@ for (replicate_name in replicate_names) {
 }
 rm(replicate_name)
 file_path <- "rnaseq_cufflinks_isoforms_fpkm_tracking.tsv"
-write.table(
+utils::write.table(
   x = merge_frame,
   file = file_path,
   col.names = TRUE,

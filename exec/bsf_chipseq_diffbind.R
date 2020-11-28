@@ -233,7 +233,7 @@ if (file.exists(file_path) &&
     if (nrow(x = diffbind_dba$samples) == 2) {
       message("In lack of replicates, setting contrasts on the basis of the first two conditions")
       diffbind_conditions <-
-        unique(x = diffbind_dba$class[DiffBind::DBA_CONDITION,])
+        unique(x = diffbind_dba$class[DiffBind::DBA_CONDITION, ])
       diffbind_dba <- DiffBind::dba.contrast(
         DBA = diffbind_dba,
         group1 = DiffBind::dba.mask(
@@ -356,12 +356,12 @@ diffbind_peakset_granges <-
 
 # Write a table of the entire peak set.
 #
-# Coerce the GRanges object into a Bioconductor DataFrame object.
-# Coercing via as(object = report_granges, Class = "DataFrame") yields
-# a DataFrame with a variable X that holds GRanges objects. Use
-# BiocGenerics::as.data.frame(x = report_granges) for the coercion
-# into a plain data.frame object.
-write.table(
+# Coerce the GRanges object into a Bioconductor DataFrame object. Coercing via
+# methods::as(object = report_granges, Class = "DataFrame") yields a DataFrame
+# with a variable X that holds GRanges objects. Use
+# BiocGenerics::as.data.frame(x = report_granges) for the coercion into a plain
+# data.frame object.
+utils::write.table(
   x = BiocGenerics::as.data.frame(x = diffbind_peakset_granges, stringsAsFactors = FALSE),
   file = file.path(output_directory, sprintf(fmt = "%s_peak_set.tsv", prefix)),
   sep = "\t",
@@ -450,15 +450,15 @@ process_per_contrast <-
     if (!is.null(x = report_granges)) {
       # Annotate the GRanges object.
 
-      # Coerce the GRanges object into a Bioconductor DataFrame object.
-      # Coercing via as(object = report_granges, Class = "DataFrame") yields
-      # a DataFrame with a variable X that holds GRanges objects. Use
-      # BiocGenerics::as.data.frame(x = report_granges) for the coercion
-      # into a plain data.frame object.
+      # Coerce the GRanges object into a Bioconductor DataFrame object. Coercing
+      # via methods::as(object = report_granges, Class = "DataFrame") yields a
+      # DataFrame with a variable X that holds GRanges objects. Use
+      # BiocGenerics::as.data.frame(x = report_granges) for the coercion into a
+      # plain data.frame object.
       report_frame <-
         BiocGenerics::as.data.frame(x = report_granges, stringsAsFactors = FALSE)
       # Write a table of all peaks.
-      write.table(
+      utils::write.table(
         x = report_frame,
         file = sprintf(fmt = "%s_peaks_%s__%s.tsv", prefix, group1, group2),
         sep = "\t",
@@ -468,8 +468,8 @@ process_per_contrast <-
 
       # Extract only significant peaks by filtering for the FDR threshold.
       report_frame <-
-        report_frame[report_frame$FDR <= argument_list$fdr_threshold,]
-      write.table(
+        report_frame[report_frame$FDR <= argument_list$fdr_threshold, ]
+      utils::write.table(
         x = report_frame,
         file = sprintf(fmt = "%s_significant_%s__%s.tsv", prefix, group1, group2),
         sep = "\t",
@@ -490,6 +490,9 @@ process_per_contrast <-
             scale = diff(x = range(report_granges$FDR))
           ) * 1000.0
         ))
+
+      GenomicRanges::score(x = report_granges)[!is.finite(x = GenomicRanges::score(x = report_granges))] <-
+        0L
 
       rtracklayer::export.bed(
         object = report_granges,
