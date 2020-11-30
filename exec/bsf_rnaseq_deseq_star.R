@@ -1,10 +1,11 @@
-#!/usr/bin/env Rscript
+# /usr/bin/env Rscript
 #
 # BSF R script to create summary statistics of aligned versus counted reads.
 #
 # The script reads the STAR summary statistics of uniquely, multi and unmapped
-# reads and joins the total_counts variable added to the column DataFrame of the
-# RangedSummarizedExperiment object by the bsf_rnaseq_deseq_analysis.R script.
+# reads and joins the total_counts variable added to the column
+# S4Vectors::DataFrame of the SummarizedExperiment::RangedSummarizedExperiment
+# object by the bsf_rnaseq_deseq_analysis.R script.
 #
 #
 # Copyright 2013 - 2020 Michael K. Schuster

@@ -307,9 +307,9 @@ utils::write.table(
 message("Preparing annotation")
 # Annotation based on a TxDb object.
 # The MultiDb::OrganimsDb object would be used to provide gene symbols, but a
-# matching version with regards to the assembly and the annotaiton is not always
+# matching version with regards to the assembly and the annotation is not always
 # available. Hence, information is joined from the meta annotation columns of
-# the GTF-based GRanges object.
+# the GTF-based GenomicRanges::GRanges object.
 
 annotation_granges <-
   ChIPpeakAnno::toGRanges(data = txdb_object, feature = "gene")

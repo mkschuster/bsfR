@@ -23,6 +23,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+#' Get a Tuxedo Prefix.
+#'
 #' Get a comparison-specific Tuxedo analysis prefix.
 #'
 #' @param comparison_name A \code{character} scalar with the comparison name.
@@ -38,6 +40,8 @@ bsfrt_get_prefix_tuxedo <- function(comparison_name) {
   return(paste("rnaseq", "tuxedo", comparison_name, sep = "_"))
 }
 
+#' Get a Cuffdiff prefix.
+#'
 #' Get a comparison-specific Cuffdiff analysis prefix.
 #'
 #' @param comparison_name A \code{character} scalar with the comparison name.
@@ -53,6 +57,8 @@ bsfrt_get_prefix_cuffdiff <- function(comparison_name) {
   return(paste("rnaseq", "cuffdiff", comparison_name, sep = "_"))
 }
 
+#' Get a Process Cuffdiff Prefix.
+#'
 #' Get a comparison-specific Process Cuffdiff analysis prefix.
 #'
 #' @param comparison_name A \code{character} scalar with the comparison name.

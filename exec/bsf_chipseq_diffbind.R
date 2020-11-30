@@ -356,11 +356,11 @@ diffbind_peakset_granges <-
 
 # Write a table of the entire peak set.
 #
-# Coerce the GRanges object into a Bioconductor DataFrame object. Coercing via
-# methods::as(object = report_granges, Class = "DataFrame") yields a DataFrame
-# with a variable X that holds GRanges objects. Use
-# BiocGenerics::as.data.frame(x = report_granges) for the coercion into a plain
-# data.frame object.
+# Coerce the GenomicRanges::GRanges object into a S4Vectors::DataFrame object.
+# Coercing via methods::as(object = report_granges, Class = "DataFrame") yields
+# a S4Vectors::DataFrame with a variable X that holds GenomicRanges::GRanges
+# objects. Use BiocGenerics::as.data.frame(x = report_granges) for the coercion
+# into a plain data.frame object.
 utils::write.table(
   x = BiocGenerics::as.data.frame(x = diffbind_peakset_granges, stringsAsFactors = FALSE),
   file = file.path(output_directory, sprintf(fmt = "%s_peak_set.tsv", prefix)),
@@ -376,7 +376,7 @@ rm(diffbind_peakset_granges)
 #' @param contrast contrast frame row name indicating the contrast number
 #' @param group1 A \code{character} scalar of contrast group 1
 #' @param group2 A \code{character} scalar of contrast group 2
-#' @param db_number An \code{integer} scalar with the number of differntually bound sites
+#' @param db_number An \code{integer} scalar with the number of differentially bound sites
 #'
 #' @return
 #' @export
@@ -405,11 +405,11 @@ process_per_contrast <-
       )
     )
     # To annotate peaks as differentially bound or not, export all sites as a
-    # GRanges object and write it as a BED file to disk. All sites can be
-    # obtained by setting the FDR threshold (th) to 1.0. The dba.report() and
-    # plotting functions that depend on it need wrapping in tryCatch(), because
-    # DiffBind::pv.DBAreport() treats cases with a single differentially bound
-    # site specially. Unfortunately, not successfully.
+    # GenomicRanges::GRanges object and write it as a BED file to disk. All
+    # sites can be obtained by setting the FDR threshold (th) to 1.0. The
+    # dba.report() and plotting functions that depend on it need wrapping in
+    # tryCatch(), because DiffBind::pv.DBAreport() treats cases with a single
+    # differentially bound site specially. Unfortunately, not successfully.
     report_granges <- NULL
     tryCatch(
       expr = {
@@ -448,13 +448,13 @@ process_per_contrast <-
     # assignment requires a named character vector with a (complete) mapping.
 
     if (!is.null(x = report_granges)) {
-      # Annotate the GRanges object.
+      # Annotate the GenomicRanges::GRanges object.
 
-      # Coerce the GRanges object into a Bioconductor DataFrame object. Coercing
-      # via methods::as(object = report_granges, Class = "DataFrame") yields a
-      # DataFrame with a variable X that holds GRanges objects. Use
-      # BiocGenerics::as.data.frame(x = report_granges) for the coercion into a
-      # plain data.frame object.
+      # Coerce the GenomicRanges::GRanges object into a S4Vectors::DataFrame
+      # object. Coercing via methods::as(object = report_granges, Class =
+      # "DataFrame") yields a S4Vectors::DataFrame with a variable X that holds
+      # GenomicRanges::GRanges objects. Use BiocGenerics::as.data.frame(x =
+      # report_granges) for the coercion into a plain data.frame object.
       report_frame <-
         BiocGenerics::as.data.frame(x = report_granges, stringsAsFactors = FALSE)
       # Write a table of all peaks.

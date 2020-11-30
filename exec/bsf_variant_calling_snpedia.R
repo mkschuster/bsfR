@@ -214,8 +214,8 @@ rm(temporary_path)
 
 
 message("Iterating over the VCF file")
-vcf_file <- TabixFile(file = argument_list$vcf_path,
-                      yieldSize = argument_list$chunk_size)
+vcf_file <- Rsamtools::TabixFile(file = argument_list$vcf_path,
+                                 yieldSize = argument_list$chunk_size)
 open(con = vcf_file)
 output_frame <- NULL
 sum_records_read <- 0L
@@ -241,7 +241,7 @@ while (nrow(x = vcf_object <- readVcf(file = vcf_file,
   # Find those SNPedia identifiers that match an existing variation in the VCF file
   # and extract the corresponding SNPedia records.
   sub_output_frame <-
-    snpedia_frame[snpedia_frame$ID %in% existing_variation, ]
+    snpedia_frame[snpedia_frame$ID %in% existing_variation,]
   sum_records_written <-
     sum_records_written + nrow(x = sub_output_frame)
   if (is.null(x = output_frame)) {

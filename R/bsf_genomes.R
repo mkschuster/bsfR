@@ -398,7 +398,7 @@ bsfg_get_ensembl_transcriptome <-
 
 #' Convert sequence levels between NCBI and UCSC.
 #'
-#' Either a NCBI or UCSC GRanges object needs specifying. Based on the
+#' Either a NCBI or UCSC \code{GenomicRanges::GRanges} object needs specifying. Based on the
 #' preselected genome list the corresponding NCBI assembly report will be loaded.
 #' The mapping procedure is complicated by the fact that UCSC-style names map to
 #' either NCBI sequence names (e.g. 1, 2, HSCHR1_CTG1_UNLOCALIZED, ...) or NCBI
@@ -407,11 +407,11 @@ bsfg_get_ensembl_transcriptome <-
 #' NCBI names that are used.
 #'
 #' @param genome_list A \code{list} of genome assembly annotation.
-#' @param ncbi_granges A \code{GRanges} object with NCBI annotation.
-#' @param ucsc_granges A \code{GRanges} object with UCSC annotation.
+#' @param ncbi_granges A \code{GenomicRanges::GRanges} object with NCBI annotation.
+#' @param ucsc_granges A \code{GenomicRanges::GRanges} object with UCSC annotation.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
-#' @return A \code{GRanges} object with converted sequence levels.
+#' @return A \code{GenomicRanges::GRanges} object with converted sequence levels.
 #' @export
 #'
 #' @examples
@@ -592,7 +592,8 @@ bsfg_convert_seqlevels <-
       #   print(x = ncbi_map)
       # }
 
-      # Merge only those NCBI sequence names that match to NCBI GRanges.
+      # Merge only those NCBI sequence names that match to NCBI
+      # GenomicRanges::GRanges.
       ncbi_levels[ncbi_map %in% GenomeInfoDb::seqlevels(x = ncbi_granges)] <-
         ncbi_map[ncbi_map %in% GenomeInfoDb::seqlevels(x = ncbi_granges)]
       # if (verbose) {
@@ -613,7 +614,8 @@ bsfg_convert_seqlevels <-
       #   print(x = ncbi_map)
       # }
 
-      # Merge only those NCBI GenBank accession that match to NCBI GRanges.
+      # Merge only those NCBI GenBank accession that match to NCBI
+      # GenomicRanges::GRanges.
       ncbi_levels[ncbi_map %in% GenomeInfoDb::seqlevels(x = ncbi_granges)] <-
         ncbi_map[ncbi_map %in% GenomeInfoDb::seqlevels(x = ncbi_granges)]
       # if (verbose) {

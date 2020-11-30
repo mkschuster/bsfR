@@ -25,7 +25,11 @@ Imports:
     GenomeInfoDb,
     IRanges,
     GenomicRanges,
-    rtracklayer
+    GenomicAlignments,
+    SummarizedExperiment,
+    rtracklayer,
+    DESeq2,
+    Rsamtools
 RoxygenNote: 7.1.1
 Depends: R (>= 3.6)
 Collate:

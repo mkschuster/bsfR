@@ -3,7 +3,7 @@
 # BSF R script to count STAR aligner secondary alignments per genome tile.
 #
 # The size of the tiles is configurable, results are returned as
-# RangedSummarizedExperiment objects saved to a
+# SummarizedExperiment::RangedSummarizedExperiment objects saved to a
 # star_secondary_ranged_summarized_experiment.R file.
 #
 #
@@ -176,8 +176,8 @@ SummarizedExperiment::colData(x = ranged_summarized_experiment) <-
 
 
 message("Saving the RangedSummarizedExperiment object")
-file_path <- "star_secondary_ranged_summarized_experiment.R"
-save(ranged_summarized_experiment, file = file_path)
+file_path <- "star_secondary_ranged_summarized_experiment.rds"
+base::saveRDS(object = ranged_summarized_experiment, file = file_path)
 
 rm(
   ranged_summarized_experiment,

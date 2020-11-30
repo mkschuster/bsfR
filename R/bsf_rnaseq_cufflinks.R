@@ -23,6 +23,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+#' Get a Cuffdiff Prefix.
+#'
 #' Get a comparison-specific Cuffdiff analysis prefix.
 #'
 #' @param comparison_name A \code{character} scalar with the comparison name.
@@ -41,6 +43,8 @@ bsfrc_get_prefix_cuffdiff <- function(comparison_name) {
                sep = "_"))
 }
 
+#' Get Process Cuffdiff Prefix.
+#'
 #' Get a comparison-specific process Cuffdiff analysis prefix.
 #'
 #' @param comparison_name A \code{character} scalar with the comparison name.
@@ -60,7 +64,9 @@ bsfrc_get_prefix_process_cuffdiff <- function(comparison_name) {
                sep = "_"))
 }
 
-#' Read a comparison-specific gene annotation tibble.
+#' Read a Gene Annotation Tibble.
+#'
+#' Read a comparison-specific gene annotation \code{tibble}.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
@@ -121,7 +127,9 @@ bsfrc_read_gene_annotation_tibble <-
     return(gene_annotation_tibble)
   }
 
-#' Read a comparison-specific isoform annotation tibble.
+#' Read an Isoform Annotation Tibble.
+#'
+#' Read a comparison-specific isoform annotation \code{tibble}.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.

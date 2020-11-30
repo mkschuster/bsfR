@@ -3,11 +3,13 @@
 # BSF R script to run a DESeq2 analysis.
 #
 # Reads are counted on the basis of a reference (Ensembl) transcriptome supplied
-# as a GTF file and imported via rtracklayer::import() into exon GRanges
-# objects. The exon GRanges are subsequently converted into a GRangesList object
-# by (Ensembl) gene identifiers. A RangedSummarizedExpriment object is created
-# by the GenomicAlignments::summarizeOverlaps() function. Reads in secondary
-# alignments and reads failing vendor quality filtering are thereby dismissed.
+# as a GTF file and imported via rtracklayer::import() into exon
+# GenomicRanges::GRanges objects. The exon GenomicRanges::GRanges are
+# subsequently converted into a GenomicRanges::GRangesList object by (Ensembl)
+# gene identifiers. A SummarizedExperiment::RangedSummarizedExperiment object is
+# created by the GenomicAlignments::summarizeOverlaps() function. Reads in
+# secondary alignments and reads failing vendor quality filtering are thereby
+# dismissed.
 #
 # Copyright 2013 - 2020 Michael K. Schuster
 #
@@ -44,9 +46,10 @@
 #      A "character" vector of BAI file paths.
 #
 #   "sample":
-#      The sample name.
+#      A "character" vector of sample names.
 #
 #   "run":
+#     A "character" vector of original sample names.
 #     Optional. If present, indicates that technical replicates should be
 #     collapsed according to information in the "sample" variable. The "run"
 #     variable provides the original sample name before collapsing technical
@@ -221,20 +224,21 @@ output_directory <- prefix
 # Initialise a RangedSummarizedExperiment object --------------------------
 
 
-#' Initialise or load a \code{RangedSummarizedExperiment} object.
+#' Initialise or load a \code{SummarizedExperiment::RangedSummarizedExperiment} object.
 #'
 #' @param design_list A named \code{list} of design information.
 #' @references argument_list
 #' @references output_directory
 #' @references prefix
-#' @return A \code{RangedSummarizedExperiment} object.
+#' @return A \code{SummarizedExperiment::RangedSummarizedExperiment} object.
 #'
 #' @examples
 #' \dontrun{
 #' }
 #' @noRd
 initialise_ranged_summarized_experiment <- function(design_list) {
-  # Load a pre-existing RangedSummarizedExperiment object or create it by counting BAM files.
+  # Load a pre-existing SummarizedExperiment::RangedSummarizedExperiment object
+  # or create it by counting BAM files.
   ranged_summarized_experiment <- NULL
 
   file_path <-
@@ -256,20 +260,21 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     message("Reading reference GTF exon features")
     # The DESeq2 and RNA-seq vignettes suggest using TxDB objects, but for the moment,
     # we need extra annotation provided by Ensembl GTF files.
-    exon_ranges <-
+    exon_granges <-
       rtracklayer::import(
         con = argument_list$gtf_reference,
         format = "gtf",
         genome = argument_list$genome_version,
         feature.type = "exon"
       )
-    # Convert (i.e. split) the GRanges object into a GRangesList object
-    # by gene identifiers.
-    gene_ranges_list <-
-      GenomicRanges::split(x = exon_ranges,
-                           f = S4Vectors::mcols(x = exon_ranges)$gene_id)
+    # Convert (i.e. split) the GenomicRanges::GRanges object into a
+    # GenomicRanges::GRangesList object by gene identifiers.
+    gene_granges_list <-
+      GenomicRanges::split(x = exon_granges,
+                           f = S4Vectors::mcols(x = exon_granges)$gene_id)
 
-    # Process per library_type and sequencing_type and merge the RangedSummarizedExperiment objects.
+    # Process per library_type and sequencing_type and merge the
+    # SummarizedExperiment::RangedSummarizedExperiment objects.
 
     for (library_type in levels(x = sample_frame$library_type)) {
       for (sequencing_type in levels(x = sample_frame$sequencing_type)) {
@@ -281,7 +286,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
         )
         sub_sample_frame <-
           sample_frame[(sample_frame$library_type == library_type) &
-                         (sample_frame$sequencing_type == sequencing_type),]
+                         (sample_frame$sequencing_type == sequencing_type), ]
 
         if (nrow(x = sub_sample_frame) == 0L) {
           rm(sub_sample_frame)
@@ -310,7 +315,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
         message("Creating a RangedSummarizedExperiment object")
         sub_ranged_summarized_experiment <-
           GenomicAlignments::summarizeOverlaps(
-            features = gene_ranges_list,
+            features = gene_granges_list,
             reads = bam_file_list,
             mode = "Union",
             ignore.strand = (library_type == "unstranded"),
@@ -327,14 +332,15 @@ initialise_ranged_summarized_experiment <- function(design_list) {
           )
         SummarizedExperiment::colData(x = sub_ranged_summarized_experiment) <-
           sub_sample_frame
-        # Combine RangedSummarizedExperiment objects with the same ranges,
-        # but different samples via cbind().
+        # Combine SummarizedExperiment::RangedSummarizedExperiment objects with
+        # the same GenomicRanges::GRanges, but different samples via
+        # SummarizedExperiment::cbind().
         if (is.null(x = ranged_summarized_experiment)) {
           ranged_summarized_experiment <- sub_ranged_summarized_experiment
         } else {
           ranged_summarized_experiment <-
-            cbind(ranged_summarized_experiment,
-                  sub_ranged_summarized_experiment)
+            SummarizedExperiment::cbind(ranged_summarized_experiment,
+                                        sub_ranged_summarized_experiment)
         }
         rm(sub_ranged_summarized_experiment,
            sub_sample_frame,
@@ -374,8 +380,8 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     SummarizedExperiment::colData(x = ranged_summarized_experiment) <-
       sample_frame
 
-    rm(gene_ranges_list,
-       exon_ranges,
+    rm(gene_granges_list,
+       exon_granges,
        sample_frame)
     base::saveRDS(object = ranged_summarized_experiment, file = file_path)
   }
@@ -424,7 +430,7 @@ fix_model_matrix <- function(model_matrix_local) {
         "Attempting to fix the model matrix by removing empty columns."
       )
       model_matrix_local <-
-        model_matrix_local[, -which(x = model_all_zero)]
+        model_matrix_local[,-which(x = model_all_zero)]
     } else {
       linear_combinations_list <-
         caret::findLinearCombos(x = model_matrix_local)
@@ -448,7 +454,7 @@ fix_model_matrix <- function(model_matrix_local) {
         paste(colnames(x = model_matrix_local)[linear_combinations_list$remove], collapse = "\n  ")
       )
       model_matrix_local <-
-        model_matrix_local[,-linear_combinations_list$remove]
+        model_matrix_local[, -linear_combinations_list$remove]
     }
     rm(model_all_zero)
   }
@@ -1289,7 +1295,7 @@ plot_pca <- function(object,
 
   # Perform a PCA on the (count) matrix returned by SummarizedExperiment::assay() for the selected genes.
   pca_object <-
-    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows, ]))
+    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows,]))
   rm(selected_rows)
 
   # Plot the variance for a maximum of 100 components.
@@ -1388,7 +1394,7 @@ plot_pca <- function(object,
             x = numeric(),
             y = numeric(),
             # Also initialise all variables of the column data, but do not include data (i.e. 0L rows).
-            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L,])
+            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L, ])
           )
 
         for (column_number in seq_len(length.out = ncol(x = pca_pair_matrix))) {

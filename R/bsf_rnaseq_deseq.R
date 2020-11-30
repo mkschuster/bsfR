@@ -23,11 +23,13 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
-#' Get a design-specific DESeq2 analysis prefix.
+#' Get a DESeq2 Prefix.
+#'
+#' Get a design-specific \code{DESeq2} analysis prefix.
 #'
 #' @param design_name A \code{character} scalar with the design name.
 #'
-#' @return A \code{character} scalar with the DESeq2 analysis prefix.
+#' @return A \code{character} scalar with the \code{DESeq2} analysis prefix.
 #' @export
 #'
 #' @examples
@@ -43,11 +45,13 @@ bsfrd_get_prefix_deseq <- function(design_name) {
                sep = "_"))
 }
 
-#' Get a design-specific Enrichr analysis prefix.
+#' Get a DESeq2 Enrichr Prefix.
+#'
+#' Get a design-specific \code{DESeq2} analysis Enrichr prefix.
 #'
 #' @param design_name A \code{character} scalar with the design name.
 #'
-#' @return A \code{character} scalar with the DESeq2 Enrichr prefix.
+#' @return A \code{character} scalar with the \code{DESeq2} Enrichr prefix.
 #' @export
 #'
 #' @examples
@@ -64,11 +68,13 @@ bsfrd_get_prefix_enrichr <- function(design_name) {
                sep = "_"))
 }
 
-#' Get a design-specific GO analysis prefix.
+#' Get a DESeq2 Gene Ontology Prefix.
+#'
+#' Get a design-specific \code{DESeq2} analysis Gene Ontology prefix.
 #'
 #' @param design_name A \code{character} scalar with the design name.
 #'
-#' @return A \code{character} scalar with the DESeq2 GO prefix.
+#' @return A \code{character} scalar with the \code{DESeq2} Gene Ontology prefix.
 #' @export
 #'
 #' @examples
@@ -85,11 +91,13 @@ bsfrd_get_prefix_go <- function(design_name) {
                sep = "_"))
 }
 
-#' Get a design-specific DESeq2 heatmap prefix.
+#' Get a DESeq2 Heat Map Prefix.
+#'
+#' Get a design-specific \code{DESeq2} analysis heat map prefix.
 #'
 #' @param design_name A \code{character} scalar with the design name.
 #'
-#' @return A \code{character} scalar with the DESeq2 heatmap prefix.
+#' @return A \code{character} scalar with the \code{DESeq2} heat map prefix.
 #' @export
 #'
 #' @examples
@@ -106,11 +114,13 @@ bsfrd_get_prefix_heatmap <- function(design_name) {
                sep = "_"))
 }
 
-#' Get a design-specific DESeq2 volcano prefix.
+#' Get a DESeq2 Volcano Prefix.
+#'
+#' Get a design-specific \code{DESeq2} analysis volcano prefix.
 #'
 #' @param design_name A \code{character} scalar with the design name.
 #'
-#' @return A \code{character} scalar with the DESeq2 volcano prefix.
+#' @return A \code{character} scalar with the \code{DESeq2} volcano prefix.
 #' @export
 #'
 #' @examples
@@ -127,16 +137,18 @@ bsfrd_get_prefix_volcano <- function(design_name) {
                sep = "_"))
 }
 
-#' Read a DESeq2 analysis contrasts tibble and automatically sub-set to a
-#' particular design.
+#' Read a DESeq2 Contrast Tibble.
 #'
-#' Contrast tibble:
+#' Read a \code{DESeq2} analysis contrasts \code{tibble} from a tab-separated
+#' value file and automatically sub-set to a particular design.
+#'
+#' Contrast \code{tibble}:
 #' \describe{
-#' \item{Design}{A \code{character} with the design name}
-#' \item{Numerator}{A \code{character} with the numerator as of \code{DESeq2::resultNames()}}
-#' \item{Denominator}{A \code{character} with the denominator as of \code{DESeq2::resultNames()}}
-#' \item{Label}{A \code{character} with a human-readable label}
-#' \item{Exclude}{A \code{logical} to exclude the design from reporting}
+#' \item{Design}{A \code{character} with the design name.}
+#' \item{Numerator}{A \code{character} with the numerator as of \code{DESeq2::resultNames()}.}
+#' \item{Denominator}{A \code{character} with the denominator as of \code{DESeq2::resultNames()}.}
+#' \item{Label}{A \code{character} with a human-readable label.}
+#' \item{Exclude}{A \code{logical} to exclude the design from reporting.}
 #' }
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
@@ -211,10 +223,12 @@ bsfrd_read_contrast_tibble <-
     return(dplyr::filter(.data = contrast_tibble, .data$Design == .env$design_name))
   }
 
-#' Get a named \code{list} describing a particular contrast of a DESeq2
+#' Get a DESeq2 Contrast List.
+#'
+#' Get a named \code{list} describing a particular contrast of a \code{DESeq2}
 #' analysis.
 #'
-#' @param contrast_tibble A \code{tibble} with Numerator and Denominator
+#' @param contrast_tibble A \code{tibble} with "Numerator" and "Denominator"
 #'   variables.
 #' @param index An \code{integer} scalar pointing at a particular \code{tibble}
 #'   row.
@@ -257,7 +271,10 @@ bsfrd_get_contrast_list <- function(contrast_tibble, index) {
   return(character_list)
 }
 
-#' Get a \code{character} scalar describing a particular contrast of a DESeq2 analysis.
+#' Get a DESeq2 Contrast Character Scalar.
+#'
+#' Get a \code{character} scalar describing a particular contrast of a
+#' \code{DESeq2} analysis.
 #'
 #' @param contrast_tibble A \code{tibble} with Numerator and Denominator
 #'   variables.
@@ -289,17 +306,20 @@ bsfrd_get_contrast_character <- function(contrast_tibble, index) {
   ))
 }
 
-#' Read a DESeq2 analysis design tibble and automatically sub-set to a
-#' particular design.
+#' Read a DESeq2 Design Tibble.
+#'
+#' Read a \code{DESeq2} analysis design \code{tibble} from a tab-separated value
+#' file and automatically sub-set to a particular design.
 #'
 #' Design tibble:
 #' \describe{
-#' \item{design}{A \code{character} with the design name}
-#' \item{exclude}{A \code{logical} to exclude the design from reporting}
-#' \item{full_formula}{A \code{character} with the full model formula}
-#' \item{reduced_formulas}{A \code{character} with a comma-separated list of reduced model formulas}
-#' \item{factor_levels}{A \code{character} with semicolon-separated factors and their levels}
-#' \item{plot_aes}{A \code{character} with \code{ggplot2} aesthetics}
+#' \item{design}{A \code{character} with the design name.}
+#' \item{exclude}{A \code{logical} to exclude the design from reporting.}
+#' \item{full_formula}{A \code{character} with the full model formula.}
+#' \item{reduced_formulas}{A \code{character} with a comma-separated list of reduced model formulas.}
+#' \item{factor_levels}{A \code{character} with semicolon-separated factors and their levels.
+#' e.g. factor_levels="factor_1:level_1,level_2;factor_2:level_A,level_B"}
+#' \item{plot_aes}{A \code{character} with \code{ggplot2} aesthetics.}
 #' }
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
@@ -347,23 +367,25 @@ bsfrd_read_design_tibble <-
     return(dplyr::filter(.data = design_tibble, .data$design == .env$design_name))
   }
 
-#' Read a DESeq2 analysis design tibble, automatically sub-set to a
-#' particular design and return as a list.
+#' Read a DESeq2 Design List.
 #'
-#' @param genome_directory A \code{character} scalar with the genome directory
+#' Read a \code{DESeq2} analysis design \code{tibble} from a tab-separated value file,
+#' automatically sub-set to a particular design and return as a named \code{list}.
+#'
+#' @param genome_directory A \code{character} scalar with the genome directory.
 #'   path.
 #' @param design_name A \code{character} scalar with the design name.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A named \code{list} with design information.
 #' \describe{
-#' \item{design}{A \code{character} with the design name}
-#' \item{exclude}{A \code{logical} to exclude the design from reporting}
-#' \item{full_formula}{A \code{character} with the full model formula}
-#' \item{reduced_formulas}{A \code{character} with a comma-separated list of reduced model formulas}
-#' \item{factor_levels}{A \code{character} with semicolon-separated factors and their levels}
-#'   factor_levels="factor_1:level_1,level_2;factor_2:level_A,level_B")
-#' \item{plot_aes}{A \code{character} with \code{ggplot2} aesthetics}
+#' \item{design}{A \code{character} with the design name.}
+#' \item{exclude}{A \code{logical} to exclude the design from reporting.}
+#' \item{full_formula}{A \code{character} with the full model formula.}
+#' \item{reduced_formulas}{A \code{character} with a comma-separated list of reduced model formulas.}
+#' \item{factor_levels}{A \code{character} with semicolon-separated factors and their levels.
+#' e.g. factor_levels="factor_1:level_1,level_2;factor_2:level_A,level_B"}
+#' \item{plot_aes}{A \code{character} with \code{ggplot2} aesthetics.}
 #' }
 #' @export
 #'
@@ -385,14 +407,16 @@ bsfrd_read_design_list <-
     ))
   }
 
-#' Private function to match a design name in the vector of sample-specific
-#' design names.
+#' Match a Design Name.
+#'
+#' Private function to match a design name \code{character} scalar in the
+#' \code{character} vector of sample-specific design names.
 #'
 #' @param design_names A \code{character} vector of sample-specific design names.
 #' @param design_name A \code{character} scalar with a design name
 #'
-#' @return A \code{logical} scalar if the design name scalar is in the design
-#'   names vector.
+#' @return A \code{logical} scalar if the design name \code{character} scalar is
+#'   in the design names \code{character} vector.
 #' @noRd
 #'
 #' @examples
@@ -405,6 +429,8 @@ bsfrd_read_design_list <-
   return(design_name %in% design_names)
 }
 
+#' Process a Factor Specification.
+#'
 #' Private function to process a factor specification by splitting factor levels
 #' and setting a "factor_name" attribute.
 #'
@@ -432,13 +458,44 @@ bsfrd_read_design_list <-
     return(factor_levels)
   }
 
-#' Read a Sample Annotation DataFrame.
+#' Read a DESeq2 Sample Annotation DataFrame.
+#'
+#' Read a \code{DESeq2} analysis sample annotation \code{S4Vectors::DataFrame}
+#' from a tab-separated value file, select only those samples that match the
+#' \code{design_name} and re-level \code{factor} vectors according to the
+#' \code{factor_level} specification or the design \code{list}, automatically
+#' loaded via \code{bsfR::bsfrd_read_design_list()}.
+#'
+#' Sample DataFrame:
+#' \describe{
+#' \item{bam_path}{A \code{character} vector of BAM file paths.}
+#' \item{bai_path}{A \code{character} vector of BAI file paths.}
+#' \item{sample}{A \code{character} vector of sample names.}
+#' \item{run}{A \code{character} vector of original sample names. Optional. If
+#' present, indicates that technical replicates should be collapsed according to
+#' information in the "sample" variable. The "run"variable provides the original
+#' sample name before collapsing technical replicates.}
+#' \item{designs}{A \code{character} vector of comma-separated values of
+#' designs, a particular sample should be part of.}
+#' \item{library_type}{A \code{factor} vector with levels "unstranded", "first"
+#' and "second" to indicate the strand-orientation of the RNA-seq protocol and
+#' whether the first or second strand gets sequenced. Illumina TruSeq stranded
+#' mRNA sequences the second strand so that reads need inverting before counting
+#' strand-specifically.}
+#' \item{sequencing_type}{A \code{factor} vector with levels "SE" and "PE"
+#' indicating single-end or paired-end sequencing, respectively and thus
+#' counting as read pairs or not.}
+#' \item{total_counts}{An \code{integer} vector with total counts per sample.
+#' Calculated automatically based on the colSums() of the counts() function.}
+#' \item{RIN}{A \code{numeric} vector providing the RNA integrity number (RIN)
+#' score per sample. If available, the RIN score distribution will be plotted.}
+#' }
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
 #' @param design_name A \code{character} scalar with the design name.
 #' @param factor_levels A \code{character} vector with a packed string to assign
-#'   factor levels. If \code{NULL} will be read via \code{bsfrd_read_design_list()}.
+#'   factor levels. If \code{NULL} will be read via \code{bsfR::bsfrd_read_design_list()}.
 #' @param verbose A \code{logical} scalar to emit messages.
 #' @return A \code{S4Vectors::DataFrame} with sample annotation.
 #' @export
@@ -476,7 +533,7 @@ bsfrd_read_sample_frame <-
     # S4Vectors::DataFrame. Import strings as factors and cast to character
     # vectors where required.
     if (verbose) {
-      message("Loading sample DataFrame")
+      message("Loading a sample S4Vectors::DataFrame ...")
     }
 
     mcols_frame <-
@@ -585,25 +642,45 @@ bsfrd_read_sample_frame <-
     return(droplevels(x = mcols_frame))
   }
 
-#' Read a pre-calculated RangedSummarizedExperiment object.
+#' Read a RangedSummarizedExperiment Object.
+#'
+#' Read a pre-calculated \code{SummarizedExperiment::RangedSummarizedExperiment}
+#' object or initialise it from a sample annotation sheet loaded via
+#' \code{bsfR::bsfrd_read_sample_frame()}, the \code{gtf_path} and
+#' \code{genome_version}.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
 #' @param design_name A \code{character} scalar with the design name.
+#' @param gtf_path A \code{character} scalar with the reference transcriptome
+#'   GTF file path. Only required, if the
+#'   \code{SummarizedExperiment::RangedSummarizedExperiment} object needs
+#'   initialising.
+#' @param genome_version A \code{character} scalar with the genome version of
+#'   the reference GTF file. Only required, if the
+#'   \code{SummarizedExperiment::RangedSummarizedExperiment} object needs
+#'   initialising.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
-#' @return A \code{RangedSummarizedExperiment} object or \code{NULL}.
+#' @return A \code{SummarizedExperiment::RangedSummarizedExperiment} object or
+#'   \code{NULL}.
 #' @export
 #'
 #' @examples
 #' \dontrun{
 #' bsfrd_read_summarized_experiment <- bsfrd_read_summarized_experiment(
 #'   genome_directory = genome_directory,
-#'   design_name = design_name,
+#'   design_name = "global",
+#'   gtf_path = "Homo_sapiens.e100.gtf.gz",
+#'   genome_version = "hg38",
 #'   verbose = FALSE)
 #' }
 bsfrd_read_summarized_experiment <-
-  function(genome_directory, design_name, verbose = FALSE) {
+  function(genome_directory,
+           design_name,
+           gtf_path = NULL,
+           genome_version = NULL,
+           verbose = FALSE) {
     ranged_summarized_experiment <- NULL
 
     prefix_deseq <-
@@ -615,30 +692,203 @@ bsfrd_read_summarized_experiment <-
         prefix_deseq,
         paste0(prefix_deseq, "_ranged_summarized_experiment.rds")
       )
+
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
       if (verbose) {
         message("Loading a RangedSummarizedExperiment object ...")
       }
+
       ranged_summarized_experiment <-
         base::readRDS(file = file_path)
     } else {
-      warning("Require a pre-calculated RangedSummarizedExperiment object in file: ",
-              file_path)
+      # Get a S4Vectors::DataFrame with sample annotation.
+
+      sample_frame <-
+        bsfR::bsfrd_read_sample_frame(
+          genome_directory = genome_directory,
+          design_name = design_name,
+          factor_levels = NULL,
+          verbose = verbose
+        )
+
+      if (verbose) {
+        message("Reading reference GTF exon features ...")
+      }
+
+      # The DESeq2 and RNA-seq vignettes suggest using TxDB objects, but for the
+      # moment, we need extra annotation provided by Ensembl GTF files.
+
+      exon_granges <-
+        rtracklayer::import(
+          con = gtf_path,
+          format = "gtf",
+          genome = genome_version,
+          feature.type = "exon"
+        )
+
+      # Convert (i.e. split) the GenomicRanges::GRanges object into a
+      # GenomicRanges::GRangesList object by gene identifiers.
+
+      gene_granges_list <-
+        GenomicRanges::split(x = exon_granges,
+                             f = S4Vectors::mcols(x = exon_granges)$gene_id)
+
+      # Process per library_type and sequencing_type and merge the
+      # SummarizedExperiment::RangedSummarizedExperiment objects.
+
+      for (library_type in levels(x = sample_frame$library_type)) {
+        for (sequencing_type in levels(x = sample_frame$sequencing_type)) {
+          if (verbose) {
+            message(
+              "Processing library_type: ",
+              library_type,
+              " sequencing_type: ",
+              sequencing_type
+            )
+          }
+
+          sub_sample_frame <-
+            sample_frame[(sample_frame$library_type == library_type) &
+                           (sample_frame$sequencing_type == sequencing_type), ]
+
+          if (nrow(x = sub_sample_frame) == 0L) {
+            rm(sub_sample_frame)
+            next()
+          }
+
+          # Create a BamFileList object and set the samples as names.
+
+          if (verbose) {
+            message("Creating a BamFileList object ...")
+          }
+
+          bam_file_list <- Rsamtools::BamFileList(
+            file = as.character(x = sub_sample_frame$bam_path),
+            index = as.character(x = sub_sample_frame$bai_path),
+            yieldSize = 2000000L,
+            asMates = (sequencing_type == "PE")
+          )
+
+          # If a "run" variable is defined, technical replicates need collapsing
+          # and the "sample" variable has duplicate values. Hence, use "run"
+          # instead of "sample" for naming.
+
+          if ("run" %in% names(x = sub_sample_frame)) {
+            names(x = bam_file_list) <-
+              as.character(x = sub_sample_frame$run)
+          } else {
+            names(x = bam_file_list) <-
+              as.character(x = sub_sample_frame$sample)
+          }
+
+          if (verbose) {
+            message("Creating a RangedSummarizedExperiment object ...")
+          }
+
+          sub_ranged_summarized_experiment <-
+            GenomicAlignments::summarizeOverlaps(
+              features = gene_granges_list,
+              reads = bam_file_list,
+              mode = "Union",
+              ignore.strand = (library_type == "unstranded"),
+              # Exclude reads that represent secondary alignments or fail the vendor quality filter.
+              param = Rsamtools::ScanBamParam(
+                flag = Rsamtools::scanBamFlag(
+                  isSecondaryAlignment = FALSE,
+                  isNotPassingQualityControls = FALSE
+                )
+              ),
+              # Invert the strand for protocols that sequence the second strand.
+              preprocess.reads = if (library_type == "second")
+                GenomicAlignments::invertStrand
+            )
+
+          SummarizedExperiment::colData(x = sub_ranged_summarized_experiment) <-
+            sub_sample_frame
+
+          # Combine SummarizedExperiment::RangedSummarizedExperiment objects
+          # with the same GenomicRanges::GRanges, but different samples via
+          # SummarizedExperiment::cbind().
+
+          if (is.null(x = ranged_summarized_experiment)) {
+            ranged_summarized_experiment <- sub_ranged_summarized_experiment
+          } else {
+            ranged_summarized_experiment <-
+              SummarizedExperiment::cbind(ranged_summarized_experiment,
+                                          sub_ranged_summarized_experiment)
+          }
+
+          rm(sub_ranged_summarized_experiment,
+             sub_sample_frame,
+             bam_file_list)
+        }
+        rm(sequencing_type)
+      }
+      rm(library_type)
+
+      # Collapse technical replicates if variable "run" is defined.
+
+      sample_frame <-
+        SummarizedExperiment::colData(x = ranged_summarized_experiment)
+
+      if ("run" %in% names(x = sample_frame)) {
+        if (verbose) {
+          message("Collapsing technical replicates ...")
+        }
+
+        # To avoid mismatching column and row names between assay matrices and
+        # the column data annotation, variables "sample" and "run" should be
+        # used. So set the original samples as runs and rename the
+        # collapsed_sample variable into the sample variable.
+
+        ranged_summarized_experiment <- DESeq2::collapseReplicates(
+          object = ranged_summarized_experiment,
+          groupby = sample_frame$sample,
+          run = sample_frame$run,
+          renameCols = TRUE
+        )
+      }
+      rm(sample_frame)
+
+      # Calculate colSums() of SummarizedExperiment::assays()$counts and add as
+      # total_count into the SummarizedExperiment::colData()
+      # S4Vectors::DataFrame.
+
+      sample_frame <-
+        SummarizedExperiment::colData(x = ranged_summarized_experiment)
+
+      sample_frame$total_counts <-
+        base::colSums(
+          x = SummarizedExperiment::assays(x = ranged_summarized_experiment)$counts,
+          na.rm = TRUE
+        )
+
+      SummarizedExperiment::colData(x = ranged_summarized_experiment) <-
+        sample_frame
+
+      rm(sample_frame,
+         gene_granges_list,
+         exon_granges,
+         sample_frame)
+
+      base::saveRDS(object = ranged_summarized_experiment, file = file_path)
     }
     rm(file_path, prefix_deseq)
 
     return(ranged_summarized_experiment)
   }
 
-#' Read a pre-calculated DESeqDataSet object.
+#' Read a DESeqDataSet Object.
+#'
+#' Read a pre-calculated \code{DESeq2::DESeqDataSet} object.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
 #' @param design_name A \code{character} scalar with the design name.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
-#' @return A \code{DESeqDataSet} object or \code{NULL}.
+#' @return A \code{DESeq2::DESeqDataSet} object or \code{NULL}.
 #' @export
 #'
 #' @examples
@@ -673,16 +923,18 @@ bsfrd_read_deseq_data_set <-
     return(deseq_data_set)
   }
 
-#' Read a previously saved "blind" or "model" DESeqTransform object.
+#' Read a DESeqTransform Object.
+#'
+#' Read a previously saved "blind" or "model" \code{DESeq2::DESeqTransform} object.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
 #' @param design_name A \code{character} scalar with the design name.
 #' @param model A \code{logical} scalar to retrieve a model aware (\code{TRUE})
-#'   or a blind (\code{FALSE}) \code{DESeqTransform} object.
+#'   or a blind (\code{FALSE}) \code{DESeq2::DESeqTransform} object.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
-#' @return A \code{DESeqTransform} object or \code{NULL}.
+#' @return A \code{DESeq2::DESeqTransform} object or \code{NULL}.
 #' @export
 #'
 #' @examples
@@ -729,22 +981,25 @@ bsfrd_read_deseq_transform <-
     return(deseq_transform)
   }
 
-#' Read a previously saved DESeqResults object.
+#' Read a DESeqResults Object.
 #'
-#' Either contrast_tibble and index or just a (valid) contrast_character option
-#' are required. The contrast_character takes precedence.
+#' Read a previously saved \code{DESeq2::DESeqResults} object.
+#'
+#' Either \code{contrast_tibble} and \code{index} or just a (valid)
+#' \code{contrast_character} option are required. The \code{contrast_character}
+#' takes precedence.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
 #' @param design_name A \code{character} scalar with the design name.
-#' @param contrast_tibble A \code{tibble} with Numerator and Denominator
+#' @param contrast_tibble A \code{tibble} with "Numerator" and "Denominator"
 #'   variables.
 #' @param index An \code{integer} scalar pointing at a particular \code{tibble}
 #'   row.
 #' @param contrast_character A \code{character} scalar specifying the contrast.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
-#' @return A \code{DESeqResults} object for a particular contrast or
+#' @return A \code{DESeq2::DESeqResults} object for a particular contrast or
 #'   \code{NULL}.
 #' @export
 #'
@@ -801,13 +1056,13 @@ bsfrd_read_deseq_results <-
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
       if (verbose) {
-        message("Loading a DESeqResults object for contrast: ",
+        message("Loading a DESeq2::DESeqResults object for contrast: ",
                 contrast_character)
       }
 
       deseq_results <- base::readRDS(file = file_path)
     } else {
-      warning("Missing DESeqResults object for contrast: ",
+      warning("Missing DESeq2::DESeqResults object for contrast: ",
               contrast_character)
     }
     rm(file_path, prefix_deseq)
@@ -815,22 +1070,25 @@ bsfrd_read_deseq_results <-
     return(deseq_results)
   }
 
-#' Read a previously saved DESeqResults tibble.
+#' Read a DESeqResults Tibble.
 #'
-#' Either contrast_tibble and index or just a (valid) contrast_character option
-#' are required. The contrast_character takes precedence.
+#' Read a previously saved \code{DESeq2::DESeqResults} \code{tibble}.
+#'
+#' Either \code{contrast_tibble} and \code{index} or just a (valid)
+#' \code{contrast_character} option are required. The \code{contrast_character}
+#' takes precedence.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
 #' @param design_name A \code{character} scalar with the design name.
-#' @param contrast_tibble A \code{tibble} with Numerator and Denominator
+#' @param contrast_tibble A \code{tibble} with "Numerator" and "Denominator"
 #'   variables.
 #' @param index An \code{integer} scalar pointing at a particular \code{tibble}
 #'   row.
 #' @param contrast_character A \code{character} scalar specifying the contrast.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
-#' @return A \code{tibble} of DESeqResults for a particular contrast.
+#' @return A \code{tibble} of \code{DESeq2::DESeqResults} for a particular contrast.
 #' @export
 #'
 #' @examples
@@ -920,11 +1178,15 @@ bsfrd_read_result_tibble <-
     return(deseq_results_tibble)
   }
 
-#' Read a feature annotation tibble or import it from a GTF file.
+#' Read a Feature Annotation Tibble.
+#'
+#' Read a previously saved feature annotation \code{tibble} from a tab-separated
+#' value file or import it from a GTF file.
 #'
 #' Features are extracted from a transcriptome reference GTF file. For the
 #' moment, Ensembl-specific files with "gene", "transcript" and "exon" features
 #' are supported.
+#'
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
 #' @param design_name A \code{character} scalar with the design name.
@@ -1085,18 +1347,22 @@ bsfrd_read_annotation_tibble <-
     return(annotation_tibble)
   }
 
-#' Read a gene set tibble for gene annotation or selection.
+#' Read a Gene Set Tibble.
 #'
-#' The tibble should have the following variables:
-#'   gene_id:    The Ensembl gene identifier from the annotation tibble.
-#'   gene_name:  The offical gene symbol.
-#'   gene_label: The gene label to be plotted instead of the official symbol.
-#'   plot_name:  The sub-plot (i.e. heatmap) to apply this label to.
+#' Read a gene set \code{tibble} for gene annotation or selection.
 #'
-#' Missing 'gene_id' values are filled in on the basis of 'gene_name' values and
-#' the annotation tibble, which in turn is based on the reference GTF file.
-#' Missing 'gene_label' values are then filled in on the basis of the
-#' 'gene_name' variable.
+#' The \code{tibble} should have the following variables:
+#' \describe{
+#' \item{gene_id}{The Ensembl gene identifier from the annotation \code{tibble}.}
+#' \item{gene_name}{The offical gene symbol.}
+#' \item{gene_label}{The gene label to be plotted instead of the official symbol.}
+#' \item{plot_name}{The sub-plot (i.e. heat map) to apply this label to.}
+#' }
+#'
+#' Missing "gene_id" values are filled in on the basis of "gene_name" values and
+#' the annotation \code{tibble}, which in turn is based on the reference GTF
+#' file. Missing "gene_label" values are then filled in on the basis of the
+#' "gene_name" variable.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
@@ -1104,7 +1370,7 @@ bsfrd_read_annotation_tibble <-
 #' @param gene_set_path A \code{character} scalar with the gene set file path.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
-#' @return A \code{tibble} object of gene set information.
+#' @return A \code{tibble} with gene set information.
 #' @export
 #'
 #' @examples

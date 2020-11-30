@@ -99,7 +99,7 @@ suppressPackageStartupMessages(expr = library(package = "bsfR"))
 suppressPackageStartupMessages(expr = library(package = "Biostrings"))
 
 summary_list <-
-  bsfR::bsfvc_import_constrained_ranges(
+  bsfR::bsfvc_import_constrained_granges(
     exon_path = argument_list$exon_path,
     exon_flanks = argument_list$flanks,
     exon_basic = argument_list$basic,
@@ -110,7 +110,7 @@ summary_list <-
   )
 
 # Export to BED format.
-rtracklayer::export.bed(object = summary_list$constrained_ranges,
+rtracklayer::export.bed(object = summary_list$constrained_granges,
                         con = argument_list$output_path)
 
 rm(summary_list,

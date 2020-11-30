@@ -136,7 +136,8 @@ close(con = exonerate_connection)
 rm(exonerate_connection)
 
 # Coerce start and end coordinates into integer vectors and recode unknown
-# strand information from Exonerate, denoted by "." to GRanges, denoted by "*".
+# strand information from Exonerate, denoted by "." to GenomicRanges::GRanges,
+# denoted by "*".
 vulgar_tibble <-
   dplyr::mutate(
     .data = vulgar_tibble,
@@ -149,9 +150,10 @@ vulgar_tibble <-
   )
 
 # Start and end coordinates require assigning, depending on the strand. While
-# Exonerate reports start > end coordinates on the reverse strand, GRanges
-# always expects start < end. In addition, Exonerate uses in-between coordinates
-# like BED, so that the start coordinate needs incrementing by one.
+# Exonerate reports start > end coordinates on the reverse strand,
+# GenomicRanges::GRanges always expects start < end. In addition, Exonerate uses
+# in-between coordinates like BED, so that the start coordinate needs
+# incrementing by one.
 
 exonerate_granges <-
   GenomicRanges::GRanges(

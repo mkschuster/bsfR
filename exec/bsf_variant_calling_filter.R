@@ -255,7 +255,7 @@ if (!(file.exists(filtered_tbi_path) &&
       (file.info(filtered_tbi_path)$size > 0L))) {
   message("Filtering the annotated variants file.")
   filterVcf(
-    file = TabixFile(
+    file = Rsamtools::TabixFile(
       file = argument_list$vcf_file_path,
       yieldSize = argument_list$chunk_size
     ),
@@ -298,8 +298,8 @@ selected_tsv_path <-
     )
   )
 selected_tsv_first_chunk <- TRUE
-filtered_vcf_file <- TabixFile(file = filtered_vcf_path,
-                               yieldSize = argument_list$chunk_size)
+filtered_vcf_file <- Rsamtools::TabixFile(file = filtered_vcf_path,
+                                          yieldSize = argument_list$chunk_size)
 open(con = filtered_vcf_file)
 sum_records_read <- 0L
 sum_records_written <- 0L
@@ -378,22 +378,22 @@ while (nrow(
     rm(vcf_header_object)
   }
 
-  # Firstly, retrieve the GRanges object via rowRanges() and convert into a
-  # data frame, whereby several columns need adjusting.
-  row_ranges_frame <-
+  # Firstly, retrieve the GenomicRanges::GRanges object via rowRanges() and
+  # convert into a data frame, whereby several columns need adjusting.
+  row_granges_frame <-
     as.data.frame(x = rowRanges(x = vcf_object, fixed = TRUE))
   # The original VCF ID variable is only available in form of row names.
-  row_ranges_frame$identifier <- row.names(x = row_ranges_frame)
+  row_granges_frame$identifier <- row.names(x = row_granges_frame)
   # The VCF REF variable is a DNAStringSet object
   # that needs converting into a character vector.
-  row_ranges_frame$REF <- as.character(x = row_ranges_frame$REF)
+  row_granges_frame$REF <- as.character(x = row_granges_frame$REF)
   # The ALT column contains a DNAStringSetList object,
   # which individual components need converting into character vectors,
   # in which empty strings need to be replaced with '*' characters (VCF 4.2),
   # before the character vector can be collapsed into a comma-separated string.
-  row_ranges_frame$ALT <-
+  row_granges_frame$ALT <-
     unlist(x = lapply(
-      X = row_ranges_frame$ALT,
+      X = row_granges_frame$ALT,
       FUN = function(x) {
         paste(sub(
           pattern = "^$",
@@ -405,8 +405,8 @@ while (nrow(
       }
     ))
   # Reorder columns, but drop "strand" and "paramRangeID".
-  row_ranges_frame <-
-    row_ranges_frame[c("seqnames",
+  row_granges_frame <-
+    row_granges_frame[c("seqnames",
                        "start",
                        "end",
                        "width",
@@ -535,13 +535,16 @@ while (nrow(
   }
   rm(i, genotype_list, column_data_frame)
 
-  # Simply combine the row ranges, info and column data frames via cbind, as they are all in the same order.
+  # Simply combine the row GenomicRanges::GRanges, info and column data frames
+  # via cbind, as they are all in the same order.
+
   # message("Merging filtered VCF file.")
   combined_frame <-
-    cbind(row_ranges_frame, info_frame, sample_frame)
+    cbind(row_granges_frame, info_frame, sample_frame)
   # Remove the three sub-frames at this stage to save memory.
-  rm(row_ranges_frame, info_frame, sample_frame)
-  # Select only rows which Recurrence variable is equal to or more than the recurrence threshold option.
+  rm(row_granges_frame, info_frame, sample_frame)
+  # Select only rows which Recurrence variable is equal to or more than the
+  # recurrence threshold option.
   combined_frame <-
     combined_frame[combined_frame$Recurrence >= argument_list$recurrence, ]
 
