@@ -209,31 +209,47 @@ suppressPackageStartupMessages(expr = library(package = "pheatmap"))
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
 suppressPackageStartupMessages(expr = library(package = "bsfR"))
 
+# Global Variables --------------------------------------------------------
+
+
 # Save plots in the following formats.
 
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
-# FIXME: For the moment, the "prefix" variable is global, because it is used in
-# the functions below. This should be changed.
+# Define a design-specific prefix.
+
 prefix <-
   bsfR::bsfrd_get_prefix_deseq(design_name = argument_list$design_name)
 
-# FIXME: The output directory is defined properly below.
-output_directory <- prefix
+# Define a design-specific output directory.
+
+output_directory <-
+  file.path(argument_list$output_directory, prefix)
+if (!file.exists(output_directory)) {
+  dir.create(path = output_directory,
+             showWarnings = TRUE,
+             recursive = FALSE)
+}
 
 # Initialise a RangedSummarizedExperiment object --------------------------
 
 
-#' Initialise or load a \code{SummarizedExperiment::RangedSummarizedExperiment} object.
+#' Initialise a RangedSummarizedExperiment Object.
+#'
+#' Initialise or load a \code{SummarizedExperiment::RangedSummarizedExperiment}
+#' object.
 #'
 #' @param design_list A named \code{list} of design information.
 #' @references argument_list
 #' @references output_directory
 #' @references prefix
+#'
 #' @return A \code{SummarizedExperiment::RangedSummarizedExperiment} object.
 #'
 #' @examples
 #' \dontrun{
+#' ranged_summarized_experiment <-
+#'   initialise_ranged_summarized_experiment(design_list = design_list)
 #' }
 #' @noRd
 initialise_ranged_summarized_experiment <- function(design_list) {
@@ -286,7 +302,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
         )
         sub_sample_frame <-
           sample_frame[(sample_frame$library_type == library_type) &
-                         (sample_frame$sequencing_type == sequencing_type), ]
+                         (sample_frame$sequencing_type == sequencing_type),]
 
         if (nrow(x = sub_sample_frame) == 0L) {
           rm(sub_sample_frame)
@@ -355,10 +371,10 @@ initialise_ranged_summarized_experiment <- function(design_list) {
       SummarizedExperiment::colData(x = ranged_summarized_experiment)
     if ("run" %in% names(x = sample_frame)) {
       message("Collapsing technical replicates.")
-      # To avoid mismatching column and row names between
-      # assay matrices and the column data annotation, variables
-      # "sample" and "run" should be used. So set the original samples as runs
-      # and rename the collapsed_sample variable into the sample variable.
+      # To avoid mismatching column and row names between assay matrices and the
+      # column data annotation, variables "sample" and "run" should be used. So
+      # set the original samples as runs and rename the collapsed_sample
+      # variable into the sample variable.
       ranged_summarized_experiment <- DESeq2::collapseReplicates(
         object = ranged_summarized_experiment,
         groupby = sample_frame$sample,
@@ -393,10 +409,10 @@ initialise_ranged_summarized_experiment <- function(design_list) {
 # Initialise a DESeqDataSet object ----------------------------------------
 
 
-#' Fix a model matrix
+#' Fix a Model Matrix.
 #'
-#' Attempt to fix a model matrix by removing empty columns or
-#' by removing linear combinations.
+#' Attempt to fix a model matrix by removing empty columns or by removing linear
+#' combinations.
 #'
 #' @param model_matrix_local A model \code{matrix}.
 #'
@@ -404,6 +420,8 @@ initialise_ranged_summarized_experiment <- function(design_list) {
 #'
 #' @examples
 #' \dontrun{
+#' model_matrix
+#'   <- fix_model_matrix(model_matrix = model_matrix)
 #' }
 #' @noRd
 fix_model_matrix <- function(model_matrix_local) {
@@ -430,7 +448,7 @@ fix_model_matrix <- function(model_matrix_local) {
         "Attempting to fix the model matrix by removing empty columns."
       )
       model_matrix_local <-
-        model_matrix_local[,-which(x = model_all_zero)]
+        model_matrix_local[, -which(x = model_all_zero)]
     } else {
       linear_combinations_list <-
         caret::findLinearCombos(x = model_matrix_local)
@@ -454,23 +472,32 @@ fix_model_matrix <- function(model_matrix_local) {
         paste(colnames(x = model_matrix_local)[linear_combinations_list$remove], collapse = "\n  ")
       )
       model_matrix_local <-
-        model_matrix_local[, -linear_combinations_list$remove]
+        model_matrix_local[,-linear_combinations_list$remove]
     }
     rm(model_all_zero)
   }
   return(list("model_matrix" = model_matrix_local, "full_rank" = full_rank))
 }
 
-#' Check a model matrix for being full rank.
+#' Check a Model Matrix.
+#'
+#' Check a model matrix for being full rank and attempt to fix it by removing
+#' empty columns or by removing linear combinations.
 #'
 #' @param model_matrix A model \code{matrix}.
 #'
-#' @return A named \code{list} of "model_matrix" and "formula_full_rank", a
-#'   \code{locical} to indicate whether the original formula was already full
-#'   rank.
+#' @return A named \code{list}.
+#' \describe{
+#' \item{model_matrix}{A model \code{matrix}.}
+#' \item{formula_full_rank}{A \code{logical} indicating that the original
+#' formula was full rank.}
+#' }
 #'
+#' @seealso fix_model_matrix
 #' @examples
 #' \dontrun{
+#' result_list <-
+#'   check_model_matrix(model_matrix = model_matrix)
 #' }
 #' @noRd
 check_model_matrix <- function(model_matrix) {
@@ -486,8 +513,8 @@ check_model_matrix <- function(model_matrix) {
     }
   }
 
-  # Return the model matrix and indicate whether the original formula was full rank and
-  # the current model matrix is.
+  # Return the model matrix and indicate whether the original formula was full
+  # rank and the current model matrix is.
   return(
     list(
       "model_matrix" = model_matrix,
@@ -497,14 +524,21 @@ check_model_matrix <- function(model_matrix) {
   )
 }
 
-#' Initialise or load a DESeqDataSet object.
+#' Initialise a DESeqDataSet Object.
+#'
+#' Initialise or load a \code{DESeq2::DESeqDataSet} object.
 #'
 #' @param design_list A named \code{list} of design information.
+#' @references argument_list
+#' @references output_directory
+#' @references prefix
 #'
-#' @return A \code{DESeqDataSet} object.
+#' @return A \code{DESeq2::DESeqDataSet} object.
 #'
 #' @examples
 #' \dontrun{
+#' deseq_data_set <-
+#'   initialise_deseq_data_set(design_list = design_list)
 #' }
 #' @noRd
 initialise_deseq_data_set <- function(design_list) {
@@ -562,9 +596,13 @@ initialise_deseq_data_set <- function(design_list) {
         DESeq2::DESeqDataSet(se = ranged_summarized_experiment,
                              design = as.formula(object = design_list$full_formula))
       # Start DESeq2 Wald testing.
-      # Set betaPrior = FALSE for consistent result names for designs, regardless of interaction terms.
-      # DESeq2 seems to set betaPrior = FALSE upon interaction terms, automatically.
+      #
+      # Set betaPrior = FALSE for consistent result names for designs,
+      # regardless of interaction terms. DESeq2 seems to set betaPrior = FALSE
+      # upon interaction terms, automatically.
+      #
       # See: https://support.bioconductor.org/p/84366/
+      #
       # betaPrior also has to be FALSE in case a user-supplied full model matrix is specified.
       message("Started DESeq Wald testing with a model formula")
       deseq_data_set <-
@@ -576,11 +614,10 @@ initialise_deseq_data_set <- function(design_list) {
         )
       attr(x = deseq_data_set, which = "full_rank") <- TRUE
     } else {
-      # The original design formula was not full rank.
-      # Unfortunately, to initialise the DESeqDataSet,
-      # a model matrix can apparently not be used directly.
-      # Thus, use the simplest possible design (i.e. ~ 1) for initialisation and
-      # perform Wald testing with the full model matrix.
+      # The original design formula was not full rank. Unfortunately, to
+      # initialise the DESeqDataSet, a model matrix can apparently not be used
+      # directly. Thus, use the simplest possible design (i.e. ~ 1) for
+      # initialisation and perform Wald testing with the full model matrix.
       message("Creating a DESeqDataSet object with design formula ~ 1")
       deseq_data_set <-
         DESeq2::DESeqDataSet(se = ranged_summarized_experiment,
@@ -608,14 +645,21 @@ initialise_deseq_data_set <- function(design_list) {
 # Initialise a DESeqTransform object --------------------------------------
 
 
-#' Initialise or load a DESeqTransform object.
+#' Initialise a DESeqTransform Object.
 #'
-#' @param blind A \code{logical} scalar to create the DESeqTransform object
-#'   blindly or based on the model.
-#' @return A \code{DESeqTransform} object.
+#' Initialise or load a \code{DESeq2::DESeqTransform} object.
+#'
+#' @param blind A \code{logical} scalar to create the
+#'   \code{DESeq2::DESeqTransform} object blindly or based on the model.
+#' @references output_directory
+#' @references prefix
+#'
+#' @return A \code{DESeq2::DESeqTransform} object.
 #'
 #' @examples
 #' \dontrun{
+#' deseq_transform <-
+#'   initialise_deseq_transform(deseq_data_set = deseq_data_set, blind = FALSE)
 #' }
 #' @noRd
 initialise_deseq_transform <-
@@ -639,7 +683,8 @@ initialise_deseq_transform <-
       deseq_transform <- base::readRDS(file = file_path)
     } else {
       message("Creating a ", suffix, " DESeqTransform object")
-      # Run variance stabilizing transformation (VST) to get homoskedastic data for PCA plots.
+      # Run variance stabilizing transformation (VST) to get homoscedastic data
+      # for PCA plots.
       deseq_transform <-
         DESeq2::varianceStabilizingTransformation(object = deseq_data_set, blind = blind)
       base::saveRDS(object = deseq_transform, file = file_path)
@@ -652,7 +697,10 @@ initialise_deseq_transform <-
 # Convert aes_list into character -----------------------------------------
 
 
-#' Convert the aes_list into a simple character string for file and plot naming.
+#' Convert an aesthetics list to a character scalar.
+#'
+#' Convert a \code{list} of \code{ggplot2} aesthetics into a simple
+#' \code{character} scalar for file and plot naming.
 #'
 #' @param aes_list A \code{list} of aesthetics.
 #'
@@ -660,6 +708,7 @@ initialise_deseq_transform <-
 #'
 #' @examples
 #' \dontrun{
+#' aes_character <- aes_list_to_character(aes_list = aes_list)
 #' }
 #' @noRd
 aes_list_to_character <- function(aes_list) {
@@ -688,14 +737,21 @@ aes_list_to_character <- function(aes_list) {
 # Plot FPKM Values --------------------------------------------------------
 
 
-#' Plot FPKM values.
+#' Create an FPKM Density Plot.
+#'
+#' Create a density plot of log10(FPKM) values and save PDF and PNG documents.
 #'
 #' @param object A \code{matrix} object returned by \code{DESeq2::fpkm}.
+#' @references argument_list
+#' @references graphics_formats
+#' @references output_directory
+#' @references prefix
 #'
 #' @return \code{NULL}
 #'
 #' @examples
 #' \dontrun{
+#' plot_fpkm_values(object = DESeq2::fpkm(object = dds))
 #' }
 #' @noRd
 plot_fpkm_values <- function(object) {
@@ -723,7 +779,7 @@ plot_fpkm_values <- function(object) {
     ggplot_object <-
       ggplot_object + ggplot2::geom_density(
         mapping = ggplot2::aes(
-          x = log10(.data$value),
+          x = log10(x = .data$value),
           y = ..density..,
           colour = .data$name
         ),
@@ -761,9 +817,16 @@ plot_fpkm_values <- function(object) {
 # Plot Cook's Distances ---------------------------------------------------
 
 
-#' Plot Cook's distances as box plot.
+#' Create a Cook's Distances Box Plot.
 #'
-#' @param object A \code{DESeqDataSet} object.
+#' Create a box plot of Cook's distances and save PDF and PNG documents.
+#'
+#' @param object A \code{DESeq2::DESeqDataSet} object.
+#' @references argument_list
+#' @references graphics_formats
+#' @references output_directory
+#' @references prefix
+#'
 #' @return \code{NULL}
 #'
 #' @examples
@@ -833,14 +896,23 @@ plot_cooks_distances <- function(object) {
 # Plot RIN Scores ---------------------------------------------------------
 
 
-#' Plot RIN scores.
+#' Create a RIN Score Density Plot.
 #'
-#' @param object A \code{DESeqDataSet} object.
+#' Create a density plot of the "RIN" variable in the sample annotation frame.
+#' Add vertical lines at 1.0, 4.0 and 7.0 in red, yellow and green,
+#' respectively, to indicate quality tiers. Save PDF and PNG documents.
+#'
+#' @param object A \code{DESeq2::DESeqDataSet} object.
+#' @references argument_list
+#' @references graphics_formats
+#' @references output_directory
+#' @references prefix
 #'
 #' @return \code{NULL}
 #'
 #' @examples
 #' \dontrun{
+#' plot_rin_scores(object = dds)
 #' }
 #' @noRd
 plot_rin_scores <- function(object) {
@@ -911,19 +983,27 @@ plot_rin_scores <- function(object) {
 # Plot Multi-Dimensional Scaling (MDS) ------------------------------------
 
 
-#' Plot a Multi-Dimensional Scaling (MDS) analysis
+#' Create a Multi-Dimensional Scaling (MDS) Plot.
 #'
-#' The MDS plot is based on Classical (Metric) Multi-Dimensional Scaling of
-#'"Euclidean" distances of transformed counts for each gene.
+#' Create an MDS plot based on Classical (Metric) Multi-Dimensional Scaling of
+#' Euclidean distances of transformed counts for each gene. Save PDF and PNG
+#' documents.
 #'
-#' @param object DESeqTransform object
-#' @param plot_list List of lists configuring plots and their ggplot2 aesthetic mappings
-#' @param blind bool to indicate a blind or model-based DESeqTransform object
+#' @param object A \code{DESeq2::DESeqTransform} object.
+#' @param plot_list A \code{list} of \code{list} objects configuring plots and
+#'   their \code{ggplot2} aesthetic mappings.
+#' @param blind A \code{logical} scalar to indicate a blind or model-based
+#'   \code{DESeq2::DESeqTransform} object.
+#' @references argument_list
+#' @references graphics_formats
+#' @references output_directory
+#' @references prefix
 #'
 #' @return \code{NULL}
 #'
 #' @examples
 #' \dontrun{
+#' plot_mds(object = dds, plot_list = plot_list, blind = FALSE)
 #' }
 #' @noRd
 plot_mds <- function(object,
@@ -939,8 +1019,8 @@ plot_mds <- function(object,
   dist_object <-
     stats::dist(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)))
   dist_matrix <- as.matrix(x = dist_object)
-  # Convert the Mulitdimensional Scaling matrix into a DataFrame and
-  # bind its columns to the sample annotation DataFrame.
+  # Convert the Multi-Dimensional Scaling matrix into a S4Vectors::DataFrame and
+  # bind its columns to the sample annotation S4Vectors::DataFrame.
   mds_frame <-
     base::cbind(
       base::data.frame(stats::cmdscale(d = dist_matrix)),
@@ -1113,21 +1193,26 @@ plot_mds <- function(object,
 # Plot Heatmap ------------------------------------------------------------
 
 
-#' Plot a heatmap
+#' Create a Heat Map Plot.
 #'
-#' The heatmap plot is based on hierarchical clustering of "Euclidean" distances
-#' of transformed counts for each gene.
+#' Create a heat map plot based on hierarchical clustering of Euclidean
+#' distances of transformed counts for each gene. Save PDF and PNG documents.
 #'
-#' @param object A \code{DESeqTransform} object.
+#' @param object A \code{DESeq2::DESeqTransform} object.
 #' @param plot_list A \code{list} of \code{list} objects configuring plots and
 #'   their \code{ggplot2} aesthetic mappings.
 #' @param blind A \code{logical} scalar to indicate a blind or model-based
-#'   \code{DESeqTransform} object.
+#'   \code{DESeq2::DESeqTransform} object.
+#' @references argument_list
+#' @references graphics_formats
+#' @references output_directory
+#' @references prefix
 #'
 #' @return
 #'
 #' @examples
 #' \dontrun{
+#' plot_heatmap(object = dds, plot_list = plot_list, blind = FALSE)
 #' }
 #' @noRd
 plot_heatmap <- function(object,
@@ -1262,13 +1347,21 @@ plot_heatmap <- function(object,
 # Plot Principal Component Analysis (PCA) ---------------------------------
 
 
-#' Plot a Principal Component Analysis (PCA)
+#' Create a Principal Component Analysis (PCA) Plot.
 #'
-#' @param object A \code{DESeqTransform} object.
+#' Create a principal component analysis plot based on the top-most variant rows
+#' (i.e. genes) calculated via \code{genefilter::rowVars()}. Save PDF and PNG
+#' documents.
+#'
+#' @param object A \code{DESeq2::DESeqTransform} object.
 #' @param plot_list A \code{list} of \code{list} objects configuring plots and
 #'   their \code{ggplot2} aesthetic mappings.
 #' @param blind A \code{logical} scalar to indicate a blind or model-based
-#'   \code{DESeqTransform} object.
+#'   \code{DESeq2::DESeqTransform} object.
+#' @references argument_list
+#' @references graphics_formats
+#' @references output_directory
+#' @references prefix
 #'
 #' @return
 #'
@@ -1293,9 +1386,10 @@ plot_pca <- function(object,
   selected_rows <-
     order(row_variance, decreasing = TRUE)[seq_len(length.out = min(argument_list$pca_top_number, length(x = row_variance)))]
 
-  # Perform a PCA on the (count) matrix returned by SummarizedExperiment::assay() for the selected genes.
+  # Perform a PCA on the (count) matrix returned by
+  # SummarizedExperiment::assay() for the selected genes.
   pca_object <-
-    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows,]))
+    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows, ]))
   rm(selected_rows)
 
   # Plot the variance for a maximum of 100 components.
@@ -1345,8 +1439,9 @@ plot_pca <- function(object,
   pca_pair_matrix <-
     combn(x = seq_len(length.out = pca_dimensions), m = 2L)
 
-  # Calculate the contribution to the total variance for each principal component.
-  # Establish a label list with principal components and their respective percentage of the total variance.
+  # Calculate the contribution to the total variance for each principal
+  # component. Establish a label list with principal components and their
+  # respective percentage of the total variance.
   label_list <-
     as.list(sprintf(
       fmt = "PC%i (%.3f%%)",
@@ -1393,8 +1488,9 @@ plot_pca <- function(object,
             )),
             x = numeric(),
             y = numeric(),
-            # Also initialise all variables of the column data, but do not include data (i.e. 0L rows).
-            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L, ])
+            # Also initialise all variables of the column data, but do not
+            # include data (i.e. 0L rows).
+            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L,])
           )
 
         for (column_number in seq_len(length.out = ncol(x = pca_pair_matrix))) {
@@ -1579,14 +1675,6 @@ message("Processing design '", argument_list$design_name, "'")
 # Set the number of parallel threads in the MulticoreParam instance.
 BiocParallel::register(BPPARAM = BiocParallel::MulticoreParam(workers = argument_list$threads))
 
-output_directory <-
-  file.path(argument_list$output_directory, prefix)
-if (!file.exists(output_directory)) {
-  dir.create(path = output_directory,
-             showWarnings = TRUE,
-             recursive = FALSE)
-}
-
 global_design_list <- bsfR::bsfrd_read_design_list(
   genome_directory = argument_list$genome_directory,
   design_name = argument_list$design_name,
@@ -1605,7 +1693,8 @@ annotation_tibble <- bsfR::bsfrd_read_annotation_tibble(
 deseq_data_set <-
   initialise_deseq_data_set(design_list = global_design_list)
 
-# TODO: Write the matrix of gene versus model coefficients as a data.frame to disk.
+# TODO: Write the matrix of gene versus model coefficients as a data.frame to
+# disk.
 
 # Cooks Distances Plot ----------------------------------------------------
 
@@ -1702,7 +1791,7 @@ reduced_formula_frame <- plyr::ldply(
         "Processing reduced formula: ",
         attr(x = reduced_formula_character, which = "reduced_name")
       )
-      # DESeq LRT testing requires either two model formulas or two model matrices.
+      # DESeq LRT requires either two model formulas or two model matrices.
       # Create a reduced model matrix and check whether it is full rank.
       formula_full <-
         as.formula(object = global_design_list$full_formula)
@@ -1859,11 +1948,12 @@ rm(reduced_formula_frame, reduced_formula_list)
 
 
 # The plot_aes variable of the design data frame supplies a semi-colon-separated
-# list of geometric objects and their associated aestethics for each plot, which
-# is a comma-separared list of aestethics=variable mappings.
-# plot_aes='colour=group,shape=gender;colour=group,shape=extraction'
+# list of geometric objects and their associated aesthetics for each plot, which
+# is a comma-separated list of aesthetics=variable mappings.
+#
 # geom_point:colour=test_1,shape=test_2;geom_line:colour=test_3,group=test_4|
 # geom_point:colour=test_a,shape=test_b;geom_line:colour=test_c,group=test_d
+#
 # Convert into a list of list objects with variables and aesthetics as names.
 plot_list <-
   lapply(
@@ -1881,7 +1971,8 @@ plot_list <-
           pattern = stringr::fixed(pattern = ":")
         ),
         FUN = function(geom_aes_character) {
-          # Split on "," characters and assign names (geometric names) to the list components (aesthetic list).
+          # Split on "," characters and assign names (geometric names) to the
+          # list components (aesthetic list).
           geom_aes_list <-
             lapply(
               X = stringr::str_split(
@@ -1889,7 +1980,8 @@ plot_list <-
                 pattern = stringr::fixed(pattern = ",")
               ),
               FUN = function(aes_character) {
-                # Split on "=" characters and assign names (aestetic names) to the list components (variable names).
+                # Split on "=" characters and assign names (aesthetic names) to
+                # the list components (variable names).
                 temporary_list <-
                   stringr::str_split(string = aes_character,
                                      pattern = stringr::fixed(pattern = "="))
@@ -1915,7 +2007,8 @@ plot_list <-
           return(geom_aes_list)
         }
       )
-      # Flatten the single geometric list and assign geometric object names to the list components.
+      # Flatten the single geometric list and assign geometric object names to
+      # the list components.
       geom_list <-
         lapply(
           X = single_geom_list,
@@ -1969,7 +2062,7 @@ readr::write_tsv(
 # Export normalised counts ------------------------------------------------
 
 
-# Export the normalised counts from the DESeqDataSet object.
+# Export the normalised counts from the DEseq2::DESeqDataSet object.
 readr::write_tsv(
   x = dplyr::left_join(
     x = annotation_tibble,
@@ -1997,7 +2090,7 @@ readr::write_tsv(
 fpkm_matrix <- DESeq2::fpkm(object = deseq_data_set)
 plot_fpkm_values(object = fpkm_matrix)
 
-# Export FPKM values from the DESeqDataSet object
+# Export FPKM values from the DESeq2::DESeqDataSet object.
 readr::write_tsv(
   x = dplyr::left_join(
     x = annotation_tibble,
@@ -2043,7 +2136,7 @@ for (blind in c(FALSE, TRUE)) {
                plot_list = plot_list,
                blind = blind)
 
-  # Export the vst counts from the DESeqTransform object
+  # Export the vst counts from the DESeq2::DESeqTransform object
   readr::write_tsv(
     x = dplyr::left_join(
       x = annotation_tibble,
@@ -2068,9 +2161,6 @@ for (blind in c(FALSE, TRUE)) {
   rm(deseq_transform, suffix)
 }
 rm(blind, plot_list)
-
-# Save an R image for project-specific post-processing later.
-# save.image()
 
 rm(
   annotation_tibble,
