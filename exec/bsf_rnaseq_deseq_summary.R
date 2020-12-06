@@ -168,7 +168,7 @@ readr::write_tsv(
     key = Design,
     value = Significant
   ),
-  path = file.path(output_directory, "rnaseq_deseq_summary_design.tsv"),
+  file = file.path(output_directory, "rnaseq_deseq_summary_design.tsv"),
   col_names = TRUE
 )
 
@@ -194,7 +194,7 @@ readr::write_tsv(
     key = Design,
     value = Significant
   ),
-  path = file.path(output_directory, "rnaseq_deseq_summary_labels.tsv"),
+  file = file.path(output_directory, "rnaseq_deseq_summary_labels.tsv"),
   col_names = TRUE
 )
 

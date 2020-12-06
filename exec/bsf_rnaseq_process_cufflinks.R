@@ -487,7 +487,7 @@ for (i in seq_len(length.out = nrow(x = sample_tibble))) {
       y = tracking_tibble,
       by = c("ensembl_gene_id" = "tracking_id")
     ),
-    path = file.path(
+    file = file.path(
       output_directory,
       paste(prefix_cufflinks, "genes_fpkm_tracking.tsv", sep = "_")
     )
@@ -554,7 +554,7 @@ for (i in seq_len(length.out = nrow(x = sample_tibble))) {
       y = tracking_tibble,
       by = c("ensembl_transcript_id" = "tracking_id")
     ),
-    path = file.path(
+    file = file.path(
       output_directory,
       paste(prefix_cufflinks, "isoforms_fpkm_tracking.tsv", sep = "_")
     )
@@ -567,7 +567,7 @@ rm(i)
 
 readr::write_tsv(
   x = sample_tibble,
-  path = file.path(
+  file = file.path(
     argument_list$output_directory,
     "rnaseq_cufflinks_summary.tsv"
   )

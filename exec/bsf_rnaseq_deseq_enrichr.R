@@ -276,7 +276,7 @@ load_enrichr_results <-
             dplyr::filter(.data = deseq_results_tibble, .data$log2FoldChange < 0.0)
         }
         readr::write_tsv(x = enrichr_tibble,
-                         path = file.path(output_directory,
+                         file = file.path(output_directory,
                                           paste(
                                             paste(
                                               prefix_enrichr,
@@ -332,7 +332,7 @@ load_enrichr_results <-
               ))
             }
           readr::write_tsv(x = enrichr_result_tibble,
-                           path = file.path(output_directory,
+                           file = file.path(output_directory,
                                             paste(
                                               paste(
                                                 prefix_enrichr,

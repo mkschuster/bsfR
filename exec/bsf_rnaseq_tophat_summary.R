@@ -210,7 +210,7 @@ rm(i)
 
 readr::write_tsv(
   x = sample_tibble,
-  path = file.path(
+  file = file.path(
     argument_list$output_directory,
     "rnaseq_tophat_alignment_summary.tsv"
   )

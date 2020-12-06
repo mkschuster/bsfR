@@ -518,7 +518,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
                                            by = "gene_id")
 
   readr::write_tsv(x = deseq_results_tibble,
-                   path = file.path(output_directory,
+                   file = file.path(output_directory,
                                     paste(
                                       paste(prefix,
                                             "contrast",
@@ -535,7 +535,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
   # Filter for significant genes.
   readr::write_tsv(
     x = dplyr::filter(.data = deseq_results_tibble, .data$padj <= argument_list$padj_threshold),
-    path = file.path(output_directory,
+    file = file.path(output_directory,
                      paste(
                        paste(prefix,
                              "contrast",
@@ -615,7 +615,7 @@ rm(contrast_index)
 
 
 readr::write_tsv(x = contrast_tibble,
-                 path = file.path(
+                 file = file.path(
                    output_directory,
                    paste(prefix, "contrasts", "summary.tsv", sep = "_")
                  ))

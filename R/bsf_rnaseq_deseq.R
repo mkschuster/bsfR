@@ -1340,7 +1340,7 @@ bsfrd_read_annotation_tibble <-
         tibble::as_tibble(x = as.data.frame(x = mcols_frame))
       rm(mcols_frame)
 
-      readr::write_tsv(x = annotation_tibble, path = file_path)
+      readr::write_tsv(x = annotation_tibble, file = file_path)
     }
     rm(file_path)
 

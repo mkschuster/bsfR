@@ -220,7 +220,7 @@ read_group_tibble <- dplyr::mutate(
 message("Writing read group-level summary table")
 readr::write_tsv(
   x = read_group_tibble,
-  path = paste(
+  file = paste(
     paste(argument_list$prefix, "table", "read_group", sep = "_"),
     "tsv",
     sep = "."
@@ -665,7 +665,7 @@ if (file.exists(file_path)) {
   message("Writing sample-level summary table")
   readr::write_tsv(
     x = sample_tibble,
-    path = paste(
+    file = paste(
       paste(argument_list$prefix, "table", "sample", sep = "_"),
       "tsv",
       sep = "."

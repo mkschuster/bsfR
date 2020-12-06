@@ -128,7 +128,7 @@ rm(kallisto_tibble)
 
 readr::write_tsv(
   x = sample_tibble,
-  path = paste(paste(argument_list$prefix,
+  file = paste(paste(argument_list$prefix,
                      "sample",
                      sep = "_"),
                "tsv",

@@ -1898,7 +1898,7 @@ reduced_formula_frame <- plyr::ldply(
                          by = "gene_id")
       # Write all genes.
       readr::write_tsv(x = deseq_results_lrt_tibble,
-                       path = file_path_all)
+                       file = file_path_all)
 
       # Write only significant genes.
       deseq_results_lrt_tibble <-
@@ -1906,7 +1906,7 @@ reduced_formula_frame <- plyr::ldply(
                       .data$padj <= argument_list$padj_threshold)
       # Write signiciant genes.
       readr::write_tsv(x = deseq_results_lrt_tibble,
-                       path = file_path_significant)
+                       file = file_path_significant)
 
       summary_frame <- data.frame(
         "design" = global_design_list$design,
@@ -2048,7 +2048,7 @@ readr::write_tsv(
     ),
     by = "gene_id"
   ),
-  path = file.path(output_directory,
+  file = file.path(output_directory,
                    paste(
                      paste(prefix,
                            "counts",
@@ -2072,7 +2072,7 @@ readr::write_tsv(
     ),
     by = "gene_id"
   ),
-  path = file.path(output_directory,
+  file = file.path(output_directory,
                    paste(
                      paste(prefix,
                            "counts",
@@ -2097,7 +2097,7 @@ readr::write_tsv(
     y = tibble::as_tibble(x = fpkm_matrix, rownames = "gene_id"),
     by = "gene_id"
   ),
-  path = file.path(output_directory,
+  file = file.path(output_directory,
                    paste(
                      paste(prefix,
                            "fpkms",
@@ -2146,7 +2146,7 @@ for (blind in c(FALSE, TRUE)) {
       ),
       by = "gene_id"
     ),
-    path = file.path(output_directory,
+    file = file.path(output_directory,
                      paste(
                        paste(prefix,
                              "counts",

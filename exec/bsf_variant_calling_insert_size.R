@@ -162,7 +162,7 @@ summary_tibble <-
 rm(summary_vector)
 
 readr::write_tsv(x = summary_tibble,
-                 path = paste(paste(prefix,
+                 file = paste(paste(prefix,
                                     sample_name,
                                     "insert_size",
                                     sep = "_"),

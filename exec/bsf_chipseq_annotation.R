@@ -253,7 +253,7 @@ for (plot_path in plot_paths) {
 # Write the chromosome region fractions to a TSV file.
 readr::write_tsv(
   x = ggplot_object$data,
-  path = file.path(output_directory,
+  file = file.path(output_directory,
                    paste(
                      paste(prefix,
                            "peak",
@@ -562,7 +562,7 @@ process_per_contrast <-
       # Write the fractions to a TSV file.
       readr::write_tsv(
         x = ggplot_object$data,
-        path = file.path(
+        file = file.path(
           output_directory,
           sprintf("%s_peaks_%s__%s_regions.tsv",
                   prefix,

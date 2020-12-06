@@ -361,7 +361,7 @@ process_trimlog <- function(file_path, number = -1L) {
 
   # Write the summary frame to disk.
   readr::write_tsv(x = summary_tibble,
-                   path = paste(paste(file_prefix, "summary", sep = "_"), "tsv", sep = "."))
+                   file = paste(paste(file_prefix, "summary", sep = "_"), "tsv", sep = "."))
 
   # Coverage Summary Plot -------------------------------------------------
 
@@ -492,7 +492,7 @@ process_summary <- function(directory_path) {
       dplyr::bind_rows(summary_tibble, sample_tibble)
     rm(sample_tibble)
   }
-  readr::write_tsv(x = summary_tibble, path = "trimmomatic_summary.tsv")
+  readr::write_tsv(x = summary_tibble, file = "trimmomatic_summary.tsv")
   rm(file_path, file_list, summary_tibble)
 }
 

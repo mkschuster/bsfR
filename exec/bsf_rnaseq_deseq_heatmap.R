@@ -157,7 +157,7 @@ if (!is.null(x = argument_list$gene_path)) {
 
   readr::write_tsv(
     x = plot_annotation_tibble,
-    path = file.path(output_directory, paste0(prefix_heatmap, "_gene_set.tsv")),
+    file = file.path(output_directory, paste0(prefix_heatmap, "_gene_set.tsv")),
     col_names = TRUE
   )
 
