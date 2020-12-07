@@ -1,4 +1,4 @@
-# /usr/bin/env Rscript
+#!/usr/bin/env Rscript
 #
 # BSF R script to create summary statistics of aligned versus counted reads.
 #
