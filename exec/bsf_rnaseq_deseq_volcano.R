@@ -430,7 +430,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
         false = .data$pvalue
       ),
       "padj" = dplyr::if_else(
-        condition = .data$padj < .Machine$double.min,
+        condition = .data$padj < .Machine$double.xmin,
         true = .Machine$double.xmin,
         false = .data$padj
       )
