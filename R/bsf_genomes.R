@@ -407,8 +407,7 @@ bsfg_get_ensembl_transcriptome <-
 #' NCBI names that are used.
 #'
 #' @param genome_list A \code{list} of genome assembly annotation.
-#' @param ncbi_granges A \code{GenomicRanges::GRanges} object with NCBI annotation.
-#' @param ucsc_granges A \code{GenomicRanges::GRanges} object with UCSC annotation.
+#' @param source_granges A \code{GenomicRanges::GRanges} object.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A \code{GenomicRanges::GRanges} object with converted sequence levels.
@@ -418,67 +417,63 @@ bsfg_get_ensembl_transcriptome <-
 #' \dontrun{
 #' target_granges <- bsfR::bsfg_convert_seqlevels(
 #'   genome_list,
-#'   ncbi_granges = source_granges,
-#'   ucsc_granges = NULL,
-#'   verbose = FALSE)
-#' }
-#' \dontrun{
-#' target_granges <- bsfR::bsfg_convert_seqlevels(
-#'   genome_list,
-#'   ncbi_granges = NULL,
-#'   ucsc_granges = source_granges,
+#'   source_granges = source_granges,
 #'   verbose = FALSE)
 #' }
 bsfg_convert_seqlevels <-
   function(genome_list,
-           ncbi_granges = NULL,
-           ucsc_granges = NULL,
+           source_granges,
            verbose = FALSE) {
-    # UCSC seqlevels can map to sequence names (e.g. 1, 2,
-    # HSCHR1_CTG1_UNLOCALIZED, ...) or GenBank accession numbers (e.g.
-    # CM000663.2, CM000664.2, KI270706.1, ...). Therefore, a map needs building
-    # depending on the NCBI names that are used.
+    target_granges <- NULL
+    ncbi_granges <- NULL
+    ucsc_granges <- NULL
+    ncbi_seqinfo <- NULL
+    ucsc_seqinfo <- NULL
 
-    # Get a GenomeInfoDb::Seqinfo object for NCBI.
-    seqinfo_ncbi <- NULL
-    if (!is.na(x = genome_list$bsgenome_ncbi)) {
-      seqinfo_ncbi <-
-        rtracklayer::SeqinfoForBSGenome(genome = genome_list$bsgenome_ncbi)
+    # Is the source GenomicRanges::GRanges object associated with a GenomeInfoDb::Seqinfo object?
+    source_seqinfo <- GenomicRanges::seqinfo(x = source_granges)
+    if (!is.null(x = source_seqinfo)) {
+      # Get a GenomeInfoDb::Seqinfo object for NCBI.
+      if (!is.na(x = genome_list$bsgenome_ncbi)) {
+        ncbi_seqinfo <-
+          rtracklayer::SeqinfoForBSGenome(genome = genome_list$bsgenome_ncbi)
+      }
+      # Get a GenomeInfoDb::Seqinfo object for UCSC.
+      if (!is.na(x = genome_list$bsgenome_ucsc)) {
+        ucsc_seqinfo <-
+          rtracklayer::SeqinfoForBSGenome(genome = genome_list$bsgenome_ucsc)
+      }
+
+      if (GenomeInfoDb::genome(x = source_seqinfo)[1L] == GenomeInfoDb::genome(x = ncbi_seqinfo)[1L]) {
+        ncbi_granges <- source_granges
+        ncbi_seqinfo <- source_seqinfo
+      }
+      if (GenomeInfoDb::genome(x = source_seqinfo)[1L] == GenomeInfoDb::genome(x = ucsc_seqinfo)[1L]) {
+        ucsc_granges <- source_granges
+        ucsc_seqinfo <- source_seqinfo
+      }
     }
-    if (is.null(x = seqinfo_ncbi) && !is.null(x = ncbi_granges)) {
-      seqinfo_ncbi <-
-        GenomicRanges::seqinfo(x = ncbi_granges)
-    }
-    if (is.null(x = seqinfo_ncbi)) {
-      stop("Could not retrieve a NCBI Seqinfo object")
+
+    if (is.null(x = ncbi_seqinfo)) {
+      stop("Could not retrieve a NCBI Seqinfo object.")
     }
     if (verbose) {
       print(x = paste(
         "NCBI sequence levels:",
-        length(x = GenomeInfoDb::seqlevels(x = seqinfo_ncbi))
+        length(x = GenomeInfoDb::seqlevels(x = ncbi_seqinfo))
       ))
-      print(x = GenomeInfoDb::seqlevels(x = seqinfo_ncbi))
+      print(x = GenomeInfoDb::seqlevels(x = ncbi_seqinfo))
     }
 
-    # Get a GenomeInfoDb::Seqinfo object for UCSC.
-    seqinfo_ucsc <- NULL
-    if (!is.na(x = genome_list$bsgenome_ucsc)) {
-      seqinfo_ucsc <-
-        rtracklayer::SeqinfoForBSGenome(genome = genome_list$bsgenome_ucsc)
-    }
-    if (is.null(x = seqinfo_ucsc) && !is.null(x = ucsc_granges)) {
-      seqinfo_ucsc <-
-        GenomicRanges::seqinfo(x = ucsc_granges)
-    }
-    if (is.null(x = seqinfo_ucsc)) {
-      stop("Could not retrieve a UCSC Seqinfo object")
+    if (is.null(x = ucsc_seqinfo)) {
+      stop("Could not retrieve a UCSC Seqinfo object.")
     }
     if (verbose) {
       print(x = paste(
         "UCSC sequence levels:",
-        length(x = GenomeInfoDb::seqlevels(x = seqinfo_ucsc))
+        length(x = GenomeInfoDb::seqlevels(x = ucsc_seqinfo))
       ))
-      print(x = GenomeInfoDb::seqlevels(x = seqinfo_ucsc))
+      print(x = GenomeInfoDb::seqlevels(x = ucsc_seqinfo))
     }
 
     assembly_report_tibble <-
@@ -494,9 +489,9 @@ bsfg_convert_seqlevels <-
       # numbers.
 
       ucsc_levels <-
-        base::rep(NA_character_, times = length(x = GenomeInfoDb::seqlevels(x = seqinfo_ncbi)))
+        base::rep(NA_character_, times = length(x = GenomeInfoDb::seqlevels(x = ncbi_seqinfo)))
       names(x = ucsc_levels) <-
-        GenomeInfoDb::seqlevels(x = seqinfo_ncbi)
+        GenomeInfoDb::seqlevels(x = ncbi_seqinfo)
 
       ucsc_names <-
         assembly_report_tibble$ucsc_style_name
@@ -557,7 +552,7 @@ bsfg_convert_seqlevels <-
       }
       target_granges <- ucsc_granges
       GenomicRanges::seqinfo(x = target_granges, new2old = match_integer) <-
-        seqinfo_ncbi
+        ncbi_seqinfo
       rm(match_integer, ucsc_levels)
     }
 
@@ -571,9 +566,9 @@ bsfg_convert_seqlevels <-
       # GenBank accession numbers.
 
       ncbi_levels <-
-        base::rep(NA_character_, times = length(x = GenomeInfoDb::seqlevels(x = seqinfo_ucsc)))
+        base::rep(NA_character_, times = length(x = GenomeInfoDb::seqlevels(x = ucsc_seqinfo)))
       names(x = ncbi_levels) <-
-        GenomeInfoDb::seqlevels(x = seqinfo_ucsc)
+        GenomeInfoDb::seqlevels(x = ucsc_seqinfo)
       # if (verbose) {
       #   print(x = paste("NCBI levels:", length(x = ncbi_levels)))
       #   print(x = ncbi_levels)
@@ -653,10 +648,10 @@ bsfg_convert_seqlevels <-
       }
       target_granges <- ncbi_granges
       GenomicRanges::seqinfo(x = target_granges, new2old = match_integer) <-
-        seqinfo_ucsc
+        ucsc_seqinfo
       rm(match_integer)
     }
-    rm(assembly_report_tibble, seqinfo_ncbi, seqinfo_ucsc)
+    rm(assembly_report_tibble, ncbi_granges, ncbi_seqinfo, ucsc_granges, ucsc_seqinfo)
 
     return(target_granges)
   }
