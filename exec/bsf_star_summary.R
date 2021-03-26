@@ -87,6 +87,8 @@ suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 # Save plots in the following formats.
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
+# Maximum size for the PNG device in inches.
+graphics_maximum_size_png <- 200.0
 
 # Parse STAR aligner log files --------------------------------------------
 
@@ -282,6 +284,14 @@ ggplot_object <-
 plot_width <-
   argument_list$plot_width + (ceiling(x = nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.75
 for (graphics_format in graphics_formats) {
+  if (graphics_format == "png" &&
+      plot_width > graphics_maximum_size_png) {
+    message("PNG plot exceeding maximum size: ",
+            plot_width,
+            " > ",
+            graphics_maximum_size_png)
+    next
+  }
   ggplot2::ggsave(
     filename = paste(
       paste(argument_list$prefix,
@@ -356,6 +366,14 @@ ggplot_object <-
 plot_width <-
   argument_list$plot_width + (ceiling(x = nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
+  if (graphics_format == "png" &&
+      plot_width > graphics_maximum_size_png) {
+    message("PNG plot exceeding maximum size: ",
+            plot_width,
+            " > ",
+            graphics_maximum_size_png)
+    next
+  }
   ggplot2::ggsave(
     filename = paste(
       paste(argument_list$prefix,
@@ -432,6 +450,14 @@ ggplot_object <-
 plot_width <-
   argument_list$plot_width + (ceiling(x = nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
+  if (graphics_format == "png" &&
+      plot_width > graphics_maximum_size_png) {
+    message("PNG plot exceeding maximum size: ",
+            plot_width,
+            " > ",
+            graphics_maximum_size_png)
+    next
+  }
   ggplot2::ggsave(
     filename = paste(
       paste(
@@ -509,6 +535,14 @@ ggplot_object <-
 plot_width <-
   argument_list$plot_width + (ceiling(x = nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
+  if (graphics_format == "png" &&
+      plot_width > graphics_maximum_size_png) {
+    message("PNG plot exceeding maximum size: ",
+            plot_width,
+            " > ",
+            graphics_maximum_size_png)
+    next
+  }
   ggplot2::ggsave(
     filename = paste(
       paste(
@@ -586,6 +620,14 @@ ggplot_object <-
 plot_width <-
   argument_list$plot_width + (ceiling(x = nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
+  if (graphics_format == "png" &&
+      plot_width > graphics_maximum_size_png) {
+    message("PNG plot exceeding maximum size: ",
+            plot_width,
+            " > ",
+            graphics_maximum_size_png)
+    next
+  }
   ggplot2::ggsave(
     filename = paste(
       paste(
@@ -735,6 +777,14 @@ if (file.exists(file_path)) {
   plot_width <-
     argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.33
   for (graphics_format in graphics_formats) {
+    if (graphics_format == "png" &&
+        plot_width > graphics_maximum_size_png) {
+      message("PNG plot exceeding maximum size: ",
+              plot_width,
+              " > ",
+              graphics_maximum_size_png)
+      next
+    }
     ggplot2::ggsave(
       filename = paste(
         paste(argument_list$prefix,
@@ -812,6 +862,14 @@ if (file.exists(file_path)) {
   plot_width <-
     argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
+    if (graphics_format == "png" &&
+        plot_width > graphics_maximum_size_png) {
+      message("PNG plot exceeding maximum size: ",
+              plot_width,
+              " > ",
+              graphics_maximum_size_png)
+      next
+    }
     ggplot2::ggsave(
       filename = paste(
         paste(argument_list$prefix,
@@ -890,6 +948,14 @@ if (file.exists(file_path)) {
   plot_width <-
     argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
+    if (graphics_format == "png" &&
+        plot_width > graphics_maximum_size_png) {
+      message("PNG plot exceeding maximum size: ",
+              plot_width,
+              " > ",
+              graphics_maximum_size_png)
+      next
+    }
     ggplot2::ggsave(
       filename = paste(
         paste(argument_list$prefix,
@@ -969,6 +1035,14 @@ if (file.exists(file_path)) {
   plot_width <-
     argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
+    if (graphics_format == "png" &&
+        plot_width > graphics_maximum_size_png) {
+      message("PNG plot exceeding maximum size: ",
+              plot_width,
+              " > ",
+              graphics_maximum_size_png)
+      next
+    }
     ggplot2::ggsave(
       filename = paste(
         paste(argument_list$prefix,
@@ -1048,6 +1122,14 @@ if (file.exists(file_path)) {
   plot_width <-
     argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
+    if (graphics_format == "png" &&
+        plot_width > graphics_maximum_size_png) {
+      message("PNG plot exceeding maximum size: ",
+              plot_width,
+              " > ",
+              graphics_maximum_size_png)
+      next
+    }
     ggplot2::ggsave(
       filename = paste(
         paste(
@@ -1073,6 +1155,7 @@ if (file.exists(file_path)) {
 rm(file_path)
 
 rm(read_group_tibble,
+   graphics_maximum_size_png,
    graphics_formats,
    argument_list)
 

@@ -73,8 +73,9 @@ suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 
 # Save plots in the following formats.
-
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
+# Maximum size for the PNG device in inches.
+graphics_maximum_size_png <- 200.0
 
 # Assign a file prefix.
 prefix_summary <- paste(argument_list$prefix, "summary", sep = "_")
@@ -153,7 +154,7 @@ for (file_name in file_names) {
     picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
                            (picard_metrics_total$SAMPLE != "") &
                            (picard_metrics_total$LIBRARY == "") &
-                           (picard_metrics_total$READ_GROUP == ""), ]
+                           (picard_metrics_total$READ_GROUP == ""),]
   if (is.null(x = combined_metrics_sample)) {
     combined_metrics_sample <- picard_metrics_sample
   } else {
@@ -164,7 +165,7 @@ for (file_name in file_names) {
 
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP information.
   picard_metrics_read_group <-
-    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""), ]
+    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
   if (is.null(x = combined_metrics_read_group)) {
     combined_metrics_read_group <- picard_metrics_read_group
   } else {
@@ -180,7 +181,7 @@ rm(file_name, file_names)
 if (!is.null(x = combined_metrics_sample)) {
   # Order the data frame by SAMPLE.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
   # Manually convert CATEGORY and SAMPLE columns into factors, which are handy for plotting.
   combined_metrics_sample$CATEGORY <-
     as.factor(x = combined_metrics_sample$CATEGORY)
@@ -204,7 +205,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   # Order the data frame by READ_GROUP
   combined_metrics_read_group <-
-    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP), ]
+    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP),]
   # Manually convert CATEGORY and READ_GROUP columns into factors, which are handy for plotting.
   combined_metrics_read_group$CATEGORY <-
     as.factor(x = combined_metrics_read_group$CATEGORY)
@@ -267,6 +268,14 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_width <-
     argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample$SAMPLE) / 24L) - 1L) * argument_list$plot_width * 0.33
   for (graphics_format in graphics_formats) {
+    if (graphics_format == "png" &&
+        plot_width > graphics_maximum_size_png) {
+      message("PNG plot exceeding maximum size: ",
+              plot_width,
+              " > ",
+              graphics_maximum_size_png)
+      next
+    }
     ggplot2::ggsave(
       filename = paste(
         paste(prefix_summary,
@@ -324,6 +333,14 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_width <-
     argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_read_group$READ_GROUP) / 24L) - 1L) * argument_list$plot_width * 0.75
   for (graphics_format in graphics_formats) {
+    if (graphics_format == "png" &&
+        plot_width > graphics_maximum_size_png) {
+      message("PNG plot exceeding maximum size: ",
+              plot_width,
+              " > ",
+              graphics_maximum_size_png)
+      next
+    }
     ggplot2::ggsave(
       filename = paste(
         paste(
@@ -381,6 +398,16 @@ if (!is.null(x = combined_metrics_sample)) {
       )
     )
   for (graphics_format in graphics_formats) {
+    if (graphics_format == "png" &&
+        plot_width_sample > graphics_maximum_size_png) {
+      message(
+        "PNG plot exceeding maximum size: ",
+        plot_width_sample,
+        " > ",
+        graphics_maximum_size_png
+      )
+      next
+    }
     ggplot2::ggsave(
       filename = paste(
         paste(prefix_summary,
@@ -430,6 +457,16 @@ if (!is.null(x = combined_metrics_sample)) {
       )
     )
   for (graphics_format in graphics_formats) {
+    if (graphics_format == "png" &&
+        plot_width_read_group > graphics_maximum_size_png) {
+      message(
+        "PNG plot exceeding maximum size: ",
+        plot_width_read_group,
+        " > ",
+        graphics_maximum_size_png
+      )
+      next
+    }
     ggplot2::ggsave(
       filename = paste(
         paste(
@@ -482,6 +519,16 @@ if (!is.null(x = combined_metrics_sample)) {
       )
     )
   for (graphics_format in graphics_formats) {
+    if (graphics_format == "png" &&
+        plot_width_sample > graphics_maximum_size_png) {
+      message(
+        "PNG plot exceeding maximum size: ",
+        plot_width_sample,
+        " > ",
+        graphics_maximum_size_png
+      )
+      next
+    }
     ggplot2::ggsave(
       filename = paste(
         paste(prefix_summary,
@@ -532,6 +579,16 @@ if (!is.null(x = combined_metrics_sample)) {
       )
     )
   for (graphics_format in graphics_formats) {
+    if (graphics_format == "png" &&
+        plot_width_read_group > graphics_maximum_size_png) {
+      message(
+        "PNG plot exceeding maximum size: ",
+        plot_width_read_group,
+        " > ",
+        graphics_maximum_size_png
+      )
+      next
+    }
     ggplot2::ggsave(
       filename = paste(
         paste(
@@ -584,6 +641,16 @@ if (!is.null(x = combined_metrics_sample)) {
       )
     )
   for (graphics_format in graphics_formats) {
+    if (graphics_format == "png" &&
+        plot_width_sample > graphics_maximum_size_png) {
+      message(
+        "PNG plot exceeding maximum size: ",
+        plot_width_sample,
+        " > ",
+        graphics_maximum_size_png
+      )
+      next
+    }
     ggplot2::ggsave(
       filename = paste(
         paste(
@@ -636,6 +703,16 @@ if (!is.null(x = combined_metrics_sample)) {
       )
     )
   for (graphics_format in graphics_formats) {
+    if (graphics_format == "png" &&
+        plot_width_read_group > graphics_maximum_size_png) {
+      message(
+        "PNG plot exceeding maximum size: ",
+        plot_width_read_group,
+        " > ",
+        graphics_maximum_size_png
+      )
+      next
+    }
     ggplot2::ggsave(
       filename = paste(
         paste(
@@ -745,7 +822,7 @@ rm(file_name, file_names)
 if (!is.null(x = combined_metrics_sample)) {
   # Order the sample frame by SAMPLE.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
   # Convert the SAMPLE column into factors, which come more handy for plotting.
   combined_metrics_sample$SAMPLE <-
     as.factor(x = combined_metrics_sample$SAMPLE)
@@ -793,6 +870,14 @@ if (!is.null(x = combined_metrics_sample)) {
       )
     )
   for (graphics_format in graphics_formats) {
+    if (graphics_format == "png" &&
+        plot_width > graphics_maximum_size_png) {
+      message("PNG plot exceeding maximum size: ",
+              plot_width,
+              " > ",
+              graphics_maximum_size_png)
+      next
+    }
     ggplot2::ggsave(
       filename = paste(
         paste(prefix_summary,
@@ -881,11 +966,14 @@ if (!is.null(x = combined_metrics_sample)) {
 }
 rm(combined_metrics_sample)
 
-rm(prefix_pdsm,
-   prefix_pasm,
-   prefix_summary,
-   argument_list,
-   graphics_formats)
+rm(
+  prefix_pdsm,
+  prefix_pasm,
+  prefix_summary,
+  argument_list,
+  graphics_maximum_size_png,
+  graphics_formats
+)
 
 message("All done")
 
