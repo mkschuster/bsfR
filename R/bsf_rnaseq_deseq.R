@@ -407,28 +407,6 @@ bsfrd_read_design_list <-
     ))
   }
 
-#' Match a Design Name.
-#'
-#' Private function to match a design name \code{character} scalar in the
-#' \code{character} vector of sample-specific design names.
-#'
-#' @param design_names A \code{character} vector of sample-specific design names.
-#' @param design_name A \code{character} scalar with a design name
-#'
-#' @return A \code{logical} scalar if the design name \code{character} scalar is
-#'   in the design names \code{character} vector.
-#' @noRd
-#'
-#' @examples
-#' \dontrun{
-#' design_logical <- .bsfrd_match_design_name(
-#'   design_names=c("global", "test"),
-#'   design_name="global")
-#' }
-.bsfrd_match_design_name <- function(design_names, design_name) {
-  return(design_name %in% design_names)
-}
-
 #' Process a Factor Specification.
 #'
 #' Private function to process a factor specification by splitting factor levels
@@ -452,9 +430,11 @@ bsfrd_read_design_list <-
     factor_levels <-
       stringr::str_split(string = factor_specification[2L],
                          pattern = stringr::fixed(pattern = ","))[[1L]]
+
     # Set the first component of factor_specification, the factor name, as attribute.
     attr(x = factor_levels, which = "factor_name") <-
       factor_specification[1L]
+
     return(factor_levels)
   }
 
@@ -554,17 +534,14 @@ bsfrd_read_sample_frame <-
     rownames(x = mcols_frame) <- mcols_frame$sample
 
     # Select only those samples, which have the design name annotated in the
-    # designs variable.
+    # designs variable split into a character vector.
     index_logical <-
-      unlist(
-        x = lapply(
-          X = stringr::str_split(
-            string = as.character(mcols_frame$designs),
-            pattern = stringr::fixed(pattern = ",")
-          ),
-          FUN = .bsfrd_match_design_name,
-          design_name = design_name
-        )
+      purrr::map_lgl(
+        .x = stringr::str_split(
+          string = as.character(mcols_frame$designs),
+          pattern = stringr::fixed(pattern = ",")
+        ),
+        .f = ~ design_name %in% .
       )
     mcols_frame <- mcols_frame[index_logical, , drop = FALSE]
     rm(index_logical)
@@ -594,24 +571,23 @@ bsfrd_read_sample_frame <-
              levels = c("SE", "PE"))
 
     # The "factor_levels" variable of the design data frame specifies the order
-    # of factor levels. Turn the factor_levels variable into a list of character
-    # vectors, where the factor names are set as attributes of the character
-    # vectors of factor levels list components.
+    # of factor levels.
     #
     # factor_levels="factor_1:level_1,level_2;factor_2:level_A,level_B"
-    factor_list <- lapply(
-      # The "factor_levels" variable is a character vector, always with just a
-      # single component.
-      #
-      # Split by the ";" then by the ":" character.
-      X = stringr::str_split(
+    #
+    # Turn the factor_levels character scalar into a list of character vectors
+    # by splitting factor specifications by ";" then factor names and levels by
+    # ":" characters. Set the factor names  as "factor_name" attribute of the
+    # character vectors of factor levels list components.
+    factor_list <- purrr::map(
+      .x = stringr::str_split(
         string = stringr::str_split(
           string = factor_levels[1L],
           pattern = stringr::fixed(pattern = ";")
         )[[1L]],
         pattern = stringr::fixed(pattern = ":")
       ),
-      FUN = .bsfrd_process_factor_specification
+      .f = .bsfrd_process_factor_specification
     )
 
     # Apply the factor levels to each factor.
@@ -638,7 +614,7 @@ bsfrd_read_sample_frame <-
     }
     rm(i, design_variables, factor_list)
 
-    # Drop any unused levels from the sample data frame before retrning it.
+    # Drop any unused levels from the sample data frame before returning it.
     return(droplevels(x = mcols_frame))
   }
 
@@ -750,7 +726,7 @@ bsfrd_read_summarized_experiment <-
 
           sub_sample_frame <-
             sample_frame[(sample_frame$library_type == library_type) &
-                           (sample_frame$sequencing_type == sequencing_type), ]
+                           (sample_frame$sequencing_type == sequencing_type),]
 
           if (nrow(x = sub_sample_frame) == 0L) {
             rm(sub_sample_frame)
@@ -1432,3 +1408,267 @@ bsfrd_read_gene_set_tibble <-
 
     return(gene_set_tibble)
   }
+
+#' Convert Aesthetic and Variable Specifications.
+#'
+#' Split a \code{character} vector of multiple aesthetic and variable pairs
+#' separated by "=" characters. Convert into a named \code{list} with the
+#' variables as components and the aesthetics as names.
+#'
+#' @param aes_var_character A \code{character} vector of multiple aesthetic and
+#'   variable pairs separated by "=" characters.
+#'
+#' @return A named \code{list} of variables as components and aesthetics as
+#'   names.
+#' @noRd
+#'
+#' @examples
+#' \dontrun{
+#' aes_var_list <-
+#'   .bsfrd_convert_aesthetic_variable(
+#'      aes_var_character = c("colour=variable_A", "shape=variable_B"))
+#' }
+.bsfrd_convert_aesthetic_variable <- function(aes_var_character) {
+  # Split the character vector on "=" characters.
+  character_list <-
+    stringr::str_split(string = aes_var_character,
+                       pattern = stringr::fixed(pattern = "="))
+
+  # Assign the variables [2L] as list components.
+  aes_var_list <- purrr::map(.x = character_list, .f = ~ .[2L])
+
+  # Assign the aesthetics [1L] as names.
+  names(x = aes_var_list) <-
+    purrr::map_chr(.x = character_list, .f = ~ .[1L])
+
+  rm(character_list)
+
+  return(aes_var_list)
+}
+
+#' Convert a Geometric and Aesthetic Specification.
+#'
+#' Split the second component of a two-component \code{character} vector with
+#' geometric ([1L]) and multiple aesthetic and variable definitions ([2L]) into
+#' a named list of aesthetic components named by the geometric.
+#'
+#' @param geom_aes_character A two-component \code{character} vector of
+#'   geometric ([1L]) and multiple aesthetics and variable definitions
+#'   ([2L]).
+#'
+#' @return A named \code{list} of \code{list} objects of aesthetic and variable
+#'   information named by the geometric. The \code{list} contains a single
+#'   component to allow for naming of the component.
+#' @noRd
+#'
+#' @examples
+#' \dontrun{
+#' geom_aes_list <-
+#'   .bsfrd_convert_geometric_aesthetic(
+#'     geom_aes_character = c("geom_point", "colour=variable_A,shape=variable_B"))
+#' }
+.bsfrd_convert_geometric_aesthetic <- function(geom_aes_character) {
+  # Split geometric definitions on "," characters and assign names (geometric
+  # names) to the list components (aesthetic list).
+
+  # Assign the aesthetics definitions [2L] as the list component.
+  # Since only component [2L] gets split, the list contains just one component.
+  geom_aes_list <- purrr::map(
+    .x = stringr::str_split(
+      string = geom_aes_character[2L],
+      pattern = stringr::fixed(pattern = ",")
+    ),
+    .f = .bsfrd_convert_aesthetic_variable
+  )
+
+  # Assign the geometric [1L] as name to the only list component.
+  names(x = geom_aes_list) <- geom_aes_character[1L]
+
+  return(geom_aes_list)
+}
+
+#' Convert a Plot Specification.
+#'
+#' Split a \code{character} vector of a single plot specification into a
+#' two-component \code{character} vector of geometric ([1L]) and multiple
+#' aesthetic and variable definitions ([2L]).
+#'
+#' @param plot_character
+#'
+#' @return A named \code{list} of aesthetic specification \code{list} objects
+#'   named by geometrics.
+#' @noRd
+#'
+#' @examples
+#' \dontrun{
+#' plot_list <-
+#'   .bsfrd_convert_plot(
+#'     plot_character =
+#'     "geom_point:colour=variable_A,shape=variable_B;geom_text:colour=variable_C,label=variable_D")
+#' }
+.bsfrd_convert_plot <- function(plot_character) {
+  # Split the character vector with multiple plot specifications on ";"
+  # characters into single plot specifications. Split each plot specification
+  # into two-component character vectors with geometric [1L] and aesthetic [2L]
+  # information. The resulting list contains a single component named by the geometric.
+  single_geom_aes_list <- purrr::map(
+    .x = stringr::str_split(
+      string = stringr::str_split(
+        string = plot_character[1L],
+        pattern = stringr::fixed(pattern = ";")
+      )[[1L]],
+      pattern = stringr::fixed(pattern = ":")
+    ),
+    .f = .bsfrd_convert_geometric_aesthetic
+  )
+
+  # Flatten the list of single-component geometric lists into a single,
+  # plot-specific list. Select the single list-component and assign geometric
+  # names to the new list components.
+
+  # Assign the first (and only) list component [[1L]] as new list components.
+  plot_list <- purrr::map(.x = single_geom_aes_list, .f = ~ .[[1L]])
+
+  # Assign the geometric names of the first (and only) list component [1L] as
+  # new list component names.
+  names(x = plot_list) <-
+    purrr::map_chr(.x = single_geom_aes_list, .f = ~ names(x = .[1L]))
+
+  rm(single_geom_aes_list)
+
+  return(plot_list)
+}
+
+
+#' Convert Multiple Plot Specifications.
+#'
+#' Convert a \code{character} scalar encoding mutliple plot specificatios into a
+#' \code{list}.
+#'
+#' @param plots_character A \code{character} scalar encoding multiple plot
+#'   specifications.
+#'
+#' @return A \code{list} of plot specification \code{list} objects.
+#' @export
+#' @seealso bsfrd_plots_list_to_character
+#'
+#' @examples
+#' \dontrun{
+#' plot_list <-
+#'   bsfR::bsfrd_plots_character_to_list(
+#'     plots_character =
+#'     "geom_point:colour=variable_A,shape=variable_B;geom_text:colour=variable_C,label=variable_D")
+#' }
+bsfrd_plots_character_to_list <- function(plots_character) {
+  # Split multiple plot definitions separated by "|" characters.
+  plot_list <- purrr::map(
+    .x = stringr::str_split(
+      string = plots_character[1L],
+      pattern = stringr::fixed(pattern = "|")
+    )[[1L]],
+    .f = .bsfrd_convert_plot
+  )
+
+  return(plot_list)
+}
+
+
+#' Convert an Aesthetics List into a Character Scalar.
+#'
+#' Convert a \code{list} of variables as components and aesthetics as names into
+#' a "_"_separated \code{character} scalar.
+#'
+#' @param aes_list A \code{list} of variables as components and aesthetics as
+#'   names.
+#'
+#' @return A "_"_separated \code{character} scalar.
+#' @noRd
+#'
+#' @examples
+#' \dontrun{
+#'  aes_character <-
+#'    bsfR::.bsfrd_convert_aesthetics_list(
+#'      aes_list = list("colour" = "variable_A", "shape" = "variable_B")
+#'    )
+#' }
+.bsfrd_convert_aesthetics_list <- function(aes_list) {
+  # This could also be achieved via unlist().
+  aes_character <- purrr::map_chr(.x = aes_list, .f = ~ .)
+
+  # Combine the aesthetics and the variables, before collapsing into a single
+  # "_"-separated character scalar.
+  return(paste(paste(
+    names(x = aes_character), aes_character, sep = "_"
+  ), collapse = "_"))
+}
+
+#' Convert a List of Geometrics and Aesthetics into a Character Scalar.
+#'
+#' Convert a \code{list} of \code{list} objects with aesthetics and variable
+#' information named by geometrics into a "__"-separated \code{character}
+#' scalar. Remove the "geom_" prefix to get a cleaner character representation
+#' for file naming.
+#'
+#' @param geom_list A \code{list} of aesthetics and variables \code{list}
+#'   objects as components and geometrics as names.
+#'
+#' @return A "__"-separated \code{character} scalar.
+#' @noRd
+#'
+#' @examples
+#' \dontrun{
+#'  geom_character <-
+#'    .bsfrd_convert_geometrics_list(
+#'      geom_list = list(
+#'        "geom_point" = list("colour" = "variable_A", "shape" = "variable_B"),
+#'        "geom_text" = list("colour" = "variable_C", "shape" = "variable_D")
+#'      )
+#'    )
+#' }
+.bsfrd_convert_geometrics_list <- function(geom_list) {
+  geom_character <-
+    purrr::map_chr(.x = geom_list, .f = .bsfrd_convert_aesthetics_list)
+
+  # Remove the "geom_" prefix from the geometrics, then combine them with the
+  # aesthetics, before collapsing into a single "__"-separated character scalar.
+
+  return(paste(paste(
+    sub(
+      pattern = 'geom_',
+      replacement = '',
+      x = names(x = geom_character)
+    ),
+    geom_character,
+    sep = "_"
+  ), collapse = "__"))
+}
+
+#' Convert a Plot Specification List into a Character Scalar.
+#'
+#' Convert a \code{list} of plot specifications into a \code{character} scalar.
+#'
+#' @param plots_list A \code{list} of plot specifications.
+#'
+#' @return A \code{character} scalar.
+#' @export
+#' @seealso bsfrd_plots_character_to_list
+#'
+#' @examples
+#' \dontrun{
+#'  plot_character <-
+#'    bsfR::bsfrd_plots_list_to_character(
+#'      plots_list = list(
+#'        list(
+#'          "geom_point" = list("colour" = "variable_A", "shape" = "variable_B"),
+#'          "geom_text" = list("colour" = "variable_C", "shape" = "variable_D")
+#'        ),
+#'        list(
+#'          "geom_point" = list("colour" = "variable_1", "shape" = "variable_2"),
+#'          "geom_text" = list("colour" = "variable_3", "shape" = "variable_4")
+#'        )
+#'      )
+#'    )
+#' }
+bsfrd_plots_list_to_character <- function(plots_list) {
+  return(purrr::map_chr(.x = plots_list, .f = .bsfrd_convert_geometrics_list))
+}
