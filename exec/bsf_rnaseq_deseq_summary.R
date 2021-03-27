@@ -135,7 +135,7 @@ for (design_name in design_names) {
 rm(design_name, design_names)
 
 # Drop the "Exclude" variable.
-summary_tibble <- dplyr::select(.data = summary_tibble, -Exclude)
+summary_tibble <- dplyr::select(.data = summary_tibble, -.data$Exclude)
 
 # Replace NA and "" values in the Numerator and Denominator with character "1".
 summary_tibble <-
@@ -150,7 +150,7 @@ summary_tibble <-
 
 # Check for unique keys.
 key_tibble <-
-  dplyr::select(.data = summary_tibble, Design, Numerator, Denominator)
+  dplyr::select(.data = summary_tibble, .data$Design, .data$Numerator, .data$Denominator)
 duplicated_tibble <-
   summary_tibble[duplicated(x = key_tibble) |
                    duplicated(x = key_tibble, fromLast = TRUE),]
@@ -163,10 +163,10 @@ rm(duplicated_tibble, key_tibble)
 # Remove the "Label" variable,
 # then spread "Significant" values on the "Design" key.
 readr::write_tsv(
-  x = tidyr::spread(
-    data = dplyr::select(.data = summary_tibble, -Label),
-    key = Design,
-    value = Significant
+  x = tidyr::pivot_wider(
+    data = dplyr::select(.data = summary_tibble, -.data$Label),
+    names_from = .data$Design,
+    values_from = .data$Significant
   ),
   file = file.path(output_directory, "rnaseq_deseq_summary_design.tsv"),
   col_names = TRUE
@@ -176,7 +176,7 @@ readr::write_tsv(
 
 
 # Check for unique keys.
-key_tibble <- dplyr::select(.data = summary_tibble, Design, Label)
+key_tibble <- dplyr::select(.data = summary_tibble, .data$Design, .data$Label)
 duplicated_tibble <-
   summary_tibble[duplicated(x = key_tibble) |
                    duplicated(x = key_tibble, fromLast = TRUE),]
@@ -189,10 +189,10 @@ rm(duplicated_tibble, key_tibble)
 # Remove the "Numerator" and "Denominator" variables,
 # then spread "Significant" values on the "Design" key.
 readr::write_tsv(
-  x = tidyr::spread(
-    data = dplyr::select(.data = summary_tibble, -Numerator, -Denominator),
-    key = Design,
-    value = Significant
+  x = tidyr::pivot_wider(
+    data = dplyr::select(.data = summary_tibble, -.data$Numerator, -.data$Denominator),
+    names_from = .data$Design,
+    values_from = .data$Significant
   ),
   file = file.path(output_directory, "rnaseq_deseq_summary_labels.tsv"),
   col_names = TRUE
