@@ -123,6 +123,7 @@ if (is.null(x = argument_list$design_name)) {
   stop("Missing --design-name option")
 }
 
+suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
 suppressPackageStartupMessages(expr = library(package = "bsfR"))
 suppressPackageStartupMessages(expr = library(package = "DESeq2"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))

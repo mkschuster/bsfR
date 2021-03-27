@@ -110,6 +110,7 @@ if (is.null(x = argument_list$design_name)) {
   stop("Missing --design-name option")
 }
 
+suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "bsfR"))
 suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
@@ -127,7 +128,7 @@ message("Processing design '", argument_list$design_name, "'")
 
 BiocParallel::register(BPPARAM = BiocParallel::MulticoreParam(workers = argument_list$threads))
 
-# The working directory is the analyis genome directory.
+# The working directory is the analysis genome directory.
 # Create a new sub-directory for results if it does not exist.
 
 prefix <-

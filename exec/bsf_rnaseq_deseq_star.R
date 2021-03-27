@@ -93,8 +93,9 @@ if (is.null(x = argument_list$design_name)) {
   stop("Missing --design-name option")
 }
 
-suppressPackageStartupMessages(expr = library(package = "bsfR"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+suppressPackageStartupMessages(expr = library(package = "bsfR"))
+suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
 suppressPackageStartupMessages(expr = library(package = "DESeq2"))
 
 # Save plots in the following formats.
