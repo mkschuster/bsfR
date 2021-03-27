@@ -117,6 +117,8 @@ argument_list <-
 
 
 suppressPackageStartupMessages(expr = library(package = "AnnotationDbi"))
+suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
+suppressPackageStartupMessages(expr = library(package = "Biostrings"))
 suppressPackageStartupMessages(expr = library(package = "ChIPpeakAnno"))
 suppressPackageStartupMessages(expr = library(package = "DiffBind"))
 suppressPackageStartupMessages(expr = library(package = "GenomicFeatures"))
@@ -285,7 +287,8 @@ gene_frame <-
                                          "gene_name",
                                          "gene_biotype",
                                          "gene_source")]
-# Add the gene location as an Ensembl-like location, lacking the coordinate system name and version.
+# Add the gene location as an Ensembl-like location, lacking the coordinate
+# system name and version.
 gene_frame$gene_location <-
   methods::as(object = gene_granges, Class = "character")
 rm(gene_granges)
@@ -362,7 +365,8 @@ rm(merged_frame)
 #' @param contrast contrast frame row name indicating the contrast number
 #' @param group1 A \code{character} scalar of contrast group 1
 #' @param group2 A \code{character} scalar of contrast group 2
-#' @param db_number An \code{integer} scalar with the number of differntually bound sites
+#' @param db_number An \code{integer} scalar with the number of differentially
+#'   bound sites
 #'
 #' @return TRUE
 #' @export
@@ -585,10 +589,20 @@ contrast_frame <-
   DiffBind::dba.show(DBA = diffbind_dba, bContrasts = TRUE)
 
 # Replace '!' characters with 'not_'.
-contrast_frame$Group1 <-
+
+# DiffBind3 seems to use "Group", while DiffBind2 used "Group1".
+group1_name <-
+  if ("Group" %in% names(x = contrast_frame)) {
+    "Group"
+  } else {
+    "Group1"
+  }
+
+contrast_frame[, group1_name] <-
   gsub(pattern = "!",
        replacement = "not_",
-       x = contrast_frame$Group1)
+       x = contrast_frame[, group1_name])
+
 contrast_frame$Group2 <-
   gsub(pattern = "!",
        replacement = "not_",
@@ -598,13 +612,13 @@ return_value <-
   mapply(
     FUN = process_per_contrast,
     row.names(contrast_frame),
-    contrast_frame$Group1,
+    contrast_frame[, group1_name],
     contrast_frame$Group2,
-    # Since column 5 (DB.DESeq2) is a factor, it needs converting into a character,
-    # before converting into an integer.
+    # Since column 5 (DB.DESeq2) is a factor, it needs converting into a
+    # character, before converting into an integer.
     as.integer(x = as.character(x = contrast_frame[, 5L]))
   )
-rm(return_value, contrast_frame, process_per_contrast)
+rm(return_value, contrast_frame, group1_name, process_per_contrast)
 
 rm(
   annotation_granges,

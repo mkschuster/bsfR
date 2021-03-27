@@ -95,6 +95,7 @@ argument_list <-
 
 
 # suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
+suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
 # suppressPackageStartupMessages(expr = library(package = "ChIPQC"))
 suppressPackageStartupMessages(expr = library(package = "DiffBind"))
 
@@ -134,11 +135,12 @@ if (file.exists(file_path) &&
 
   message("Creating a DiffBind DBA object")
   diffbind_dba <-
-    dba(sampleSheet = argument_list$sample_annotation,
-        bCorPlot = FALSE)
+    dba(sampleSheet = argument_list$sample_annotation)
 
   # Count via the BiocParallel package that can be controlled more easily.
-  # Unfortunately, this does not work because DBA_PARALLEL_BIOC does not seem to be exported.
+  # Unfortunately, this does not work because DBA_PARALLEL_BIOC does not seem to
+  # be exported.
+  #
   # diffbind_dba$config$parallelPackage <- DBA_PARALLEL_BIOC
 
   # Plot a heatmap on peak caller scores ----------------------------------
@@ -176,13 +178,18 @@ if (file.exists(file_path) &&
 
   rm(return_value)
 
+  # Blacklisting ----------------------------------------------------------
+
+
+  # TODO: Support also GRanges black lists.
+  diffbind_dba <- DiffBind::dba.blacklist(DBA = diffbind_dba)
+
   # Count reads -----------------------------------------------------------
 
 
   message("Counting reads")
   diffbind_dba <-
     DiffBind::dba.count(DBA = diffbind_dba,
-                        bCorPlot = FALSE,
                         bParallel = FALSE)
 
   # Plot a heatmap on read counts -----------------------------------------
@@ -219,6 +226,11 @@ if (file.exists(file_path) &&
     grDevices::dev.off()
 
   rm(return_value)
+
+  # Normalise ---------------------------------------------------------------
+
+  diffbind_dba <- DiffBind::dba.normalize(DBA = diffbind_dba)
+
 
   # Establish contrasts -----------------------------------------------------
 
@@ -258,7 +270,7 @@ if (file.exists(file_path) &&
 
   message("Running differential binding affinity analysis")
   diffbind_dba <-
-    DiffBind::dba.analyze(DBA = diffbind_dba, bCorPlot = FALSE)
+    DiffBind::dba.analyze(DBA = diffbind_dba, bParallel = FALSE)
 
   # Plot a heatmap on differential binding affinity -----------------------
 
@@ -734,10 +746,20 @@ contrast_frame <-
   DiffBind::dba.show(DBA = diffbind_dba, bContrasts = TRUE)
 
 # Replace '!' characters with 'not_'.
-contrast_frame$Group1 <-
+
+# DiffBind3 seems to use "Group", while DiffBind2 used "Group1".
+group1_name <-
+  if ("Group" %in% names(x = contrast_frame)) {
+    "Group"
+  } else {
+    "Group1"
+  }
+
+contrast_frame[, group1_name] <-
   gsub(pattern = "!",
        replacement = "not_",
-       x = contrast_frame$Group1)
+       x = contrast_frame[, group1_name])
+
 contrast_frame$Group2 <-
   gsub(pattern = "!",
        replacement = "not_",
@@ -767,13 +789,13 @@ return_value <-
   mapply(
     FUN = process_per_contrast,
     row.names(contrast_frame),
-    contrast_frame$Group1,
+    contrast_frame[, group1_name],
     contrast_frame$Group2,
     # Since column 5 (DB.DESeq2) is a factor, it needs converting into a character,
     # before converting into an integer.
     as.integer(x = as.character(x = contrast_frame[, 5L]))
   )
-rm(return_value, contrast_frame)
+rm(return_value, contrast_frame, group1_name)
 
 rm(
   diffbind_dba,
