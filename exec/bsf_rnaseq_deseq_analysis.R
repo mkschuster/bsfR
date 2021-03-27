@@ -195,6 +195,7 @@ if (is.null(x = argument_list$design_name)) {
   stop("Missing --design-name option")
 }
 
+suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
 suppressPackageStartupMessages(expr = library(package = "DESeq2"))
 suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
 suppressPackageStartupMessages(expr = library(package = "GenomicAlignments"))
@@ -302,7 +303,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
         )
         sub_sample_frame <-
           sample_frame[(sample_frame$library_type == library_type) &
-                         (sample_frame$sequencing_type == sequencing_type),]
+                         (sample_frame$sequencing_type == sequencing_type), ]
 
         if (nrow(x = sub_sample_frame) == 0L) {
           rm(sub_sample_frame)
@@ -448,7 +449,7 @@ fix_model_matrix <- function(model_matrix_local) {
         "Attempting to fix the model matrix by removing empty columns."
       )
       model_matrix_local <-
-        model_matrix_local[, -which(x = model_all_zero)]
+        model_matrix_local[,-which(x = model_all_zero)]
     } else {
       linear_combinations_list <-
         caret::findLinearCombos(x = model_matrix_local)
@@ -472,7 +473,7 @@ fix_model_matrix <- function(model_matrix_local) {
         paste(colnames(x = model_matrix_local)[linear_combinations_list$remove], collapse = "\n  ")
       )
       model_matrix_local <-
-        model_matrix_local[,-linear_combinations_list$remove]
+        model_matrix_local[, -linear_combinations_list$remove]
     }
     rm(model_all_zero)
   }
@@ -1389,7 +1390,7 @@ plot_pca <- function(object,
   # Perform a PCA on the (count) matrix returned by
   # SummarizedExperiment::assay() for the selected genes.
   pca_object <-
-    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows, ]))
+    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows,]))
   rm(selected_rows)
 
   # Plot the variance for a maximum of 100 components.
@@ -1490,7 +1491,7 @@ plot_pca <- function(object,
             y = numeric(),
             # Also initialise all variables of the column data, but do not
             # include data (i.e. 0L rows).
-            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L,])
+            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L, ])
           )
 
         for (column_number in seq_len(length.out = ncol(x = pca_pair_matrix))) {
@@ -1709,36 +1710,28 @@ plot_rin_scores(object = deseq_data_set)
 # Likelihood Ratio Test (LRT) ---------------------------------------------
 
 
-# The "reduced_formulas" variable of the "design" data frame encodes reduced
-# formulas for LRT. Example: "name_1:~genotype + gender;name_2:~1"
-reduced_formula_list <-
-  lapply(
-    X = stringr::str_split(
-      string = stringr::str_split(
-        string = global_design_list$reduced_formulas[1L],
-        pattern = stringr::fixed(pattern = ";")
-      )[[1L]],
-      pattern = stringr::fixed(pattern = ":")
-    ),
-    FUN = function(character_1) {
-      reduced_formula_character <- character_1[2L]
-      attr(x = reduced_formula_character, which = "reduced_name") <-
-        character_1[1L]
-      return(reduced_formula_character)
-    }
-  )
-
-# The plyr::ldply() function iterates over a list and returns a data frame.
-# Each list element should yield a data frame.
-reduced_formula_frame <- plyr::ldply(
-  .data = reduced_formula_list,
-  .fun = function(reduced_formula_character) {
-    summary_frame <- NULL
+#' Run an Likelihood Ratio Test (LRT) on a Reduced Formula.
+#'
+#' @param reduced_formula_character A \code{character} scalar of a reduced
+#'   formula with a "reduced_name" attribute.
+#' @references global_design_list
+#' @references output_directory
+#' @references prefix
+#' @references global_design_list
+#'
+#' @return A \code{tibble} of LRT summary information.
+#' @noRd
+#'
+#' @examples
+lrt_reduced_formula_test <-
+  function(reduced_formula_character) {
+    lrt_tibble <- NULL
     # Skip NA or empty character vectors.
     if (is.na(x = reduced_formula_character) ||
         !base::nzchar(x = reduced_formula_character)) {
-      # Return NULL instead of a data.frame, which can still be processed by rbind().
-      return(summary_frame)
+      # Return NULL instead of a tibble, which can still be processed by
+      # purrr::map_dfr().
+      return(lrt_tibble)
     }
 
     file_path_all <-
@@ -1777,13 +1770,12 @@ reduced_formula_frame <- plyr::ldply(
         utils::read.table(file = file_path_significant,
                           header = TRUE,
                           sep = "\t")
-      summary_frame <- data.frame(
+      lrt_tibble <- tibble::tibble(
         "design" = global_design_list$design,
         "full_formula" = global_design_list$full_formula,
         "reduced_name" = attr(x = reduced_formula_character, which = "reduced_name"),
         "reduced_formula" = reduced_formula_character,
-        "significant" = nrow(deseq_merge_significant),
-        stringsAsFactors = FALSE
+        "significant" = nrow(deseq_merge_significant)
       )
       rm(deseq_merge_significant)
     } else {
@@ -1908,26 +1900,67 @@ reduced_formula_frame <- plyr::ldply(
       readr::write_tsv(x = deseq_results_lrt_tibble,
                        file = file_path_significant)
 
-      summary_frame <- data.frame(
+      lrt_tibble <- tibble::tibble(
         "design" = global_design_list$design,
         "full_formula" = global_design_list$full_formula,
         "reduced_name" = attr(x = reduced_formula_character, which = "reduced_name"),
         "reduced_formula" = reduced_formula_character,
-        "significant" = nrow(deseq_results_lrt_tibble),
-        stringsAsFactors = FALSE
+        "significant" = nrow(deseq_results_lrt_tibble)
       )
       rm(deseq_results_lrt_tibble,
          deseq_results_lrt,
          deseq_data_set_lrt)
     }
     rm(file_path_all, file_path_significant)
-    return(summary_frame)
-  }
-)
 
-# Write the reduced formula (LRT) summary frame to disk.
+    return(lrt_tibble)
+  }
+
+#' Convert a Reduced Formula Character Vector into a Scalar.
+#'
+#' @param reduced_formula_character A two component \code{character} vector
+#'   after splitting the reduced formula name [1L] and the reduced formula
+#'   [2L].
+#'
+#' @return A \code{character} scalar of the reduced formula with a
+#'   "reduced_name" attribute.
+#' @noRd
+#'
+#' @examples
+lrt_reduced_formula_scalar <-
+  function(reduced_formula_character) {
+    character_scalar <- reduced_formula_character[2L]
+
+    attr(x = character_scalar, which = "reduced_name") <-
+      reduced_formula_character[1L]
+
+    return(character_scalar)
+  }
+
+# The "reduced_formulas" variable of the design list encodes one or more named
+# reduced formulas for LRT (e.g., "name_1:~genotype + gender;name_2:~1"). Split
+# reduced formulas on ";" characters, then select the formula [2L] and assign
+# the name [1L] as "reduced_name" attribute. Finally run LRT tests on the
+# reduced formulas and combine the resulting LRT tibbles into a LRT summary tibble.
+
+lrt_summary_tibble <-
+  purrr::map_dfr(
+    .x = purrr::map(
+      .x = stringr::str_split(
+        string = stringr::str_split(
+          string = global_design_list$reduced_formulas[1L],
+          pattern = stringr::fixed(pattern = ";")
+        )[[1L]],
+        pattern = stringr::fixed(pattern = ":")
+      ),
+      .f = lrt_reduced_formula_scalar
+    ),
+    .f = lrt_reduced_formula_test
+  )
+
+# Write the LRT summary tibble to disk.
 utils::write.table(
-  x = reduced_formula_frame,
+  x = lrt_summary_tibble,
   file = file.path(output_directory,
                    paste(
                      paste(prefix,
@@ -1941,7 +1974,7 @@ utils::write.table(
   row.names = FALSE,
   col.names = TRUE
 )
-rm(reduced_formula_frame, reduced_formula_list)
+rm(lrt_summary_tibble)
 
 
 # Plot Aesthetics ---------------------------------------------------------
@@ -2062,7 +2095,7 @@ readr::write_tsv(
 # Export normalised counts ------------------------------------------------
 
 
-# Export the normalised counts from the DEseq2::DESeqDataSet object.
+# Export the normalised counts from the DESeq2::DESeqDataSet object.
 readr::write_tsv(
   x = dplyr::left_join(
     x = annotation_tibble,
@@ -2176,6 +2209,8 @@ rm(
   plot_rin_scores,
   plot_cooks_distances,
   plot_fpkm_values,
+  lrt_reduced_formula_test,
+  lrt_reduced_formula_scalar,
   aes_list_to_character,
   initialise_deseq_transform,
   initialise_deseq_data_set,
