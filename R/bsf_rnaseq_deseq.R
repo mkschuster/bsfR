@@ -843,8 +843,7 @@ bsfrd_read_summarized_experiment <-
       SummarizedExperiment::colData(x = ranged_summarized_experiment) <-
         sample_frame
 
-      rm(sample_frame,
-         gene_granges_list,
+      rm(gene_granges_list,
          exon_granges,
          sample_frame)
 
