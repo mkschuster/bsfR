@@ -23,23 +23,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
-#' Private function to get the last component of a character vector.
-#'
-#' @param character_vector A \code{character} vector.
-#'
-#' @return A \code{character} scalar with the last component.
-#'
-#' @examples
-#' \dontrun{
-#' character_scalar <- bsfR::.bsfg_get_last_component(
-#'   character_vector = c("path", "to", "resources", "genomes")
-#' )
-#' }
-.bsfg_get_last_component <- function(character_vector) {
-  # Return the last element of the URL split by "/" characters.
-  return(character_vector[length(x = character_vector)])
-}
-
 #' Get a genome information tibble.
 #'
 #' @param resource_directory A \code{character} scalar with the resource (i.e.
@@ -100,13 +83,13 @@ bsfg_get_genome_tibble <-
       .data = genome_tibble,
       # Set the assembly report name, which is the last element of the URL split
       # by "/" characters.
-      "assembly_report_name" = unlist(x = lapply(
-        X = stringr::str_split(
+      "assembly_report_name" = purrr::map_chr(
+        .x = stringr::str_split(
           string = .data$assembly_report_url,
           pattern = stringr::fixed(pattern = "/")
         ),
-        FUN = .bsfg_get_last_component
-      )),
+        .f = ~ .[length(x = .)]
+      ),
       # Set assembly report paths for NCBI directories.
       "assembly_report_path_ncbi" = file.path(
         .env$resource_directory,
