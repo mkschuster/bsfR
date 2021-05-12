@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to summarise a variant caling analysis. Picard Duplication
+# BSF R script to summarise a variant calling analysis. Picard Duplication
 # Metrics, Picard Alignment Summary Metrics and Picard Hybrid Selection Metrics
 # reports are read for each sample and plotted at the read group or sample
 # level.
@@ -75,6 +75,8 @@ suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 # Save plots in the following formats.
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
+# Maximum size for the PNG device in inches.
+graphics_maximum_size_png <- 100.0
 
 # Assign a file prefix.
 prefix_summary <- "variant_calling_summary"
@@ -190,8 +192,9 @@ if (!is.null(x = combined_metrics_sample)) {
   )
 
   # Adjust the plot width according to batches of 24 samples or read groups.
-  plot_width <-
+  plot_width_sample <-
     argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample$SAMPLE) / 24L) - 1L) * argument_list$plot_width * 0.3
+  # message("Plot width sample: ", plot_width_sample)
 
   # Plot Duplication Fraction per Sample ----------------------------------
 
@@ -220,7 +223,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width,
+      width = if (graphics_format == "png" &&
+                  plot_width_sample > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_sample,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -278,7 +285,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width,
+      width = if (graphics_format == "png" &&
+                  plot_width_sample > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_sample,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -286,7 +297,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   rm(graphics_format, ggplot_object)
 
-  rm(plot_width)
+  rm(plot_width_sample)
 }
 rm(combined_metrics_sample)
 
@@ -435,6 +446,8 @@ if (!is.null(x = combined_metrics_sample)) {
     argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample$SAMPLE) / 24L) - 1L) * argument_list$plot_width * 0.25
   plot_width_read_group <-
     argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_read_group$READ_GROUP) / 24L) - 1L) * argument_list$plot_width * 0.35
+  # message("Plot width sample: ", plot_width_sample)
+  # message("Plot width read group: ", plot_width_read_group)
 
   # Plot the aligned pass-filter reads number per sample ------------------
 
@@ -472,7 +485,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_sample,
+      width = if (graphics_format == "png" &&
+                  plot_width_sample > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_sample,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -517,7 +534,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_read_group,
+      width = if (graphics_format == "png" &&
+                  plot_width_read_group > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_read_group,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -562,7 +583,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_sample,
+      width = if (graphics_format == "png" &&
+                  plot_width_sample > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_sample,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -607,7 +632,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_read_group,
+      width = if (graphics_format == "png" &&
+                  plot_width_read_group > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_read_group,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -650,7 +679,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_sample,
+      width = if (graphics_format == "png" &&
+                  plot_width_sample > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_sample,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -699,7 +732,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_read_group,
+      width = if (graphics_format == "png" &&
+                  plot_width_read_group > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_read_group,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -862,6 +899,8 @@ if (!is.null(x = combined_metrics_sample)) {
   plot_width_read_group <- argument_list$plot_width + (ceiling(x = (
     nlevels(x = combined_metrics_read_group$READ_GROUP) / 24L
   )) - 1L) * argument_list$plot_width * 0.25
+  # message("Plot width sample: ", plot_width_sample)
+  # message("Plot width read group: ", plot_width_read_group)
 
   # Plot the percentage of unique pass-filter reads per sample ------------
 
@@ -890,7 +929,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_sample,
+      width = if (graphics_format == "png" &&
+                  plot_width_sample > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_sample,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -944,7 +987,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_read_group,
+      width = if (graphics_format == "png" &&
+                  plot_width_read_group > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_read_group,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -978,7 +1025,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_sample,
+      width = if (graphics_format == "png" &&
+                  plot_width_sample > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_sample,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -1032,7 +1083,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_read_group,
+      width = if (graphics_format == "png" &&
+                  plot_width_read_group > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_read_group,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -1093,7 +1148,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_sample,
+      width = if (graphics_format == "png" &&
+                  plot_width_sample > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_sample,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -1163,7 +1222,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_sample,
+      width = if (graphics_format == "png" &&
+                  plot_width_sample > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_sample,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -1229,7 +1292,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_sample,
+      width = if (graphics_format == "png" &&
+                  plot_width_sample > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_sample,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -1309,7 +1376,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_sample,
+      width = if (graphics_format == "png" &&
+                  plot_width_sample > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_sample,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -1357,7 +1428,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_sample,
+      width = if (graphics_format == "png" &&
+                  plot_width_sample > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_sample,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -1422,7 +1497,11 @@ if (!is.null(x = combined_metrics_sample)) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_read_group,
+      width = if (graphics_format == "png" &&
+                  plot_width_read_group > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_read_group,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -1448,11 +1527,15 @@ combined_metrics_sample$file_name <-
   row.names(x = combined_metrics_sample)
 combined_metrics_sample$exon_path <-
   character(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample$exon_number_raw <-
+  integer(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample$exon_width_raw <-
+  integer(length = nrow(x = combined_metrics_sample))
 combined_metrics_sample$exon_number <-
   integer(length = nrow(x = combined_metrics_sample))
 combined_metrics_sample$exon_width <-
   integer(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$exon_flank_width <-
+combined_metrics_sample$exon_width_flank <-
   integer(length = nrow(x = combined_metrics_sample))
 combined_metrics_sample$transcribed_number <-
   integer(length = nrow(x = combined_metrics_sample))
@@ -1464,9 +1547,11 @@ combined_metrics_sample$target_number_raw <-
   integer(length = nrow(x = combined_metrics_sample))
 combined_metrics_sample$target_width_raw <-
   integer(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$target_number_constrained <-
+combined_metrics_sample$target_width_flank <-
   integer(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$target_width_constrained <-
+combined_metrics_sample$constrained_number <-
+  integer(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample$constrained_width <-
   integer(length = nrow(x = combined_metrics_sample))
 combined_metrics_sample$callable_loci_path <-
   character(length = nrow(x = combined_metrics_sample))
@@ -1478,7 +1563,7 @@ combined_metrics_sample$non_callable_width_raw <-
   integer(length = nrow(x = combined_metrics_sample))
 for (level in c(
   "REF_N",
-  # "PASS" according to documentation, but should be "CALLABLE" in practice
+  # "PASS" according to documentation, but should be "CALLABLE" in practice.
   "NO_COVERAGE",
   "LOW_COVERAGE",
   "EXCESSIVE_COVERAGE",
@@ -1503,19 +1588,19 @@ for (i in seq_len(length.out = nrow(x = combined_metrics_sample))) {
       header = TRUE,
       colClasses = c(
         "exon_path" = "character",
-        # Raw exons before filtering processed_transcripts, etc. via 'tag "basic";'
-        # "exon_number_raw" = "integer",
-        # "exon_width_raw" = "integer",
+        "exon_number_raw" = "integer",
+        "exon_width_raw" = "integer",
         "exon_number" = "integer",
         "exon_width" = "integer",
-        "exon_flank_width" = "integer",
+        "exon_width_flank" = "integer",
         "transcribed_number" = "integer",
         "transcribed_width" = "integer",
         "target_path" = "character",
         "target_number_raw" = "integer",
         "target_width_raw" = "integer",
-        "target_number_constrained" = "integer",
-        "target_width_constrained" = "integer",
+        "target_width_flank" = "integer",
+        "constrained_number" = "integer",
+        "constrained_width" = "integer",
         "callable_loci_path" = "character",
         "sample_name" = "character",
         "non_callable_number_raw" = "integer",
@@ -1567,6 +1652,7 @@ if (nrow(x = combined_metrics_sample) > 0L) {
   plot_width_sample <- argument_list$plot_width + (ceiling(x = (
     nlevels(x = combined_metrics_sample$sample_name) / 24L
   )) - 1L) * argument_list$plot_width * 0.25
+  # message("Plot width sample: ", plot_width_sample)
 
   utils::write.table(
     x = combined_metrics_sample,
@@ -1582,7 +1668,7 @@ if (nrow(x = combined_metrics_sample) > 0L) {
   message("Plotting the number of non-callable loci per sample")
   plotting_frame <- data.frame(
     sample_name = combined_metrics_sample$sample_name,
-    target_number_constrained = combined_metrics_sample$target_number_constrained
+    constrained_number = combined_metrics_sample$constrained_number
   )
   # Only columns that begin with "^non_callable_number_constrained\." are
   # required, the remainder is the mapping status.
@@ -1599,17 +1685,17 @@ if (nrow(x = combined_metrics_sample) > 0L) {
   }
   rm(i, mapping_status, column_names)
 
-  # Now, pivot the data frame, but keep sample_name and target_width_constrained
+  # Now, pivot the data frame, but keep sample_name and constrained_width
   # as identifiers.
   plotting_frame <- tidyr::pivot_longer(
     data = plotting_frame,
-    cols = -c(.data$sample_name, .data$target_number_constrained),
+    cols = -c(.data$sample_name, .data$constrained_number),
     names_to = "mapping_status",
     values_to = "number"
   )
   # Calculate the fractions on the basis of the constrained target number.
   plotting_frame$fraction <-
-    plotting_frame$number / plotting_frame$target_number_constrained
+    plotting_frame$number / plotting_frame$constrained_number
   # For the moment, remove lines with "TOTAL".
   plotting_frame <-
     plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
@@ -1647,7 +1733,11 @@ if (nrow(x = combined_metrics_sample) > 0L) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_sample,
+      width = if (graphics_format == "png" &&
+                  plot_width_sample > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_sample,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -1662,7 +1752,7 @@ if (nrow(x = combined_metrics_sample) > 0L) {
   # target widths.
   plotting_frame <- data.frame(
     sample_name = combined_metrics_sample$sample_name,
-    target_width_constrained = combined_metrics_sample$target_width_constrained
+    constrained_width = combined_metrics_sample$constrained_width
   )
   # Only columns that begin with "^non_callable_width_constrained\." are
   # required, the remainder is the mapping status.
@@ -1679,17 +1769,17 @@ if (nrow(x = combined_metrics_sample) > 0L) {
   }
   rm(i, mapping_status, column_names)
 
-  # Now, pivot the data frame, but keep sample_name and target_width_constrained
+  # Now, pivot the data frame, but keep sample_name and constrained_width
   # as identifiers.
   plotting_frame <- tidyr::pivot_longer(
     data = plotting_frame,
-    cols = -c(.data$sample_name, .data$target_width_constrained),
+    cols = -c(.data$sample_name, .data$constrained_width),
     names_to = "mapping_status",
     values_to = "width"
   )
   # Calculate the fractions on the basis of the constrained target width.
   plotting_frame$fraction <-
-    plotting_frame$width / plotting_frame$target_width_constrained
+    plotting_frame$width / plotting_frame$constrained_width
   # For the moment, remove lines with "TOTAL".
   plotting_frame <-
     plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
@@ -1727,7 +1817,11 @@ if (nrow(x = combined_metrics_sample) > 0L) {
         sep = "_"
       ),
       plot = ggplot_object,
-      width = plot_width_sample,
+      width = if (graphics_format == "png" &&
+                  plot_width_sample > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width_sample,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
@@ -1738,7 +1832,10 @@ if (nrow(x = combined_metrics_sample) > 0L) {
 }
 rm(combined_metrics_sample)
 
-rm(prefix_summary, argument_list, graphics_formats)
+rm(prefix_summary,
+   argument_list,
+   graphics_maximum_size_png,
+   graphics_formats)
 
 message("All done")
 

@@ -60,7 +60,7 @@ bsfvc_get_prefix <- function() {
 #' @return A named \code{list} with summary information.
 #' \describe{
 #' \item{exon_path}{Ensembl GTF file path.}
-#' \item{exon_granges}{Ensembl Exon \code{GenomicRanges::GRanges} object.}
+#' \item{exon_granges}{Ensembl Exon \code{GenomicRanges::GRanges} object, optionally, filtered and with flanks.}
 #' \item{exon_number_raw}{Total number of unfiltered Ensembl Exon \code{GenomicRanges::GRanges} components.}
 #' \item{exon_width_raw}{Total number of unfiltered Ensembl Exon bases.}
 #' \item{exon_number}{Total number of filtered Ensembl Exon \code{GenomicRanges::GRanges} components.}
@@ -134,10 +134,11 @@ bsfvc_import_ensembl <-
       # Use the %in% operator for character matching as it sets NA values to FALSE,
       # automatically.
       summary_list$exon_granges <-
-        summary_list$exon_granges[S4Vectors::mcols(x = summary_list$exon_granges)$tag %in% "basic", ]
+        summary_list$exon_granges[S4Vectors::mcols(x = summary_list$exon_granges)$tag %in% "basic",]
     }
 
-    summary_list$exon_number <- length(x = summary_list$exon_granges)
+    summary_list$exon_number <-
+      length(x = summary_list$exon_granges)
 
     if (verbose) {
       message("Number of exon GRanges: ", summary_list$exon_number)
@@ -147,7 +148,8 @@ bsfvc_import_ensembl <-
       sum(GenomicRanges::width(x = summary_list$exon_granges))
 
     if (verbose) {
-      message("Cumulative width of exon GRanges: ", summary_list$exon_width)
+      message("Cumulative width of exon GRanges: ",
+              summary_list$exon_width)
     }
 
     # Resize the GenomicRanges::GRanges to apply flanking regions, by default
@@ -220,7 +222,7 @@ bsfvc_import_ensembl <-
 #' @return A named \code{list} with summary information.
 #' \describe{
 #' \item{target_path}{Target region GTF file path.}
-#' \item{target_granges}{Target \code{GenomicRanges::GRanges} object.}
+#' \item{target_granges}{Target \code{GenomicRanges::GRanges} object, optionally, with flanks.}
 #' \item{target_number_raw}{Total number of target \code{GenomicRanges::GRanges} components.}
 #' \item{target_width_raw}{Total number of target bases.}
 #' \item{target_width_flank}{Total number of filtered target bases including flanks.}
@@ -247,7 +249,7 @@ bsfvc_import_targets <-
     summary_list$target_path <- target_path
 
     if (verbose) {
-      message("Importing target range annotation: ",
+      message("Importing target GRanges: ",
               summary_list$target_path)
     }
 
@@ -266,7 +268,8 @@ bsfvc_import_targets <-
       length(x = summary_list$target_granges)
 
     if (verbose) {
-      message("Number of target GRanges: ", summary_list$target_number_raw)
+      message("Number of target GRanges: ",
+              summary_list$target_number_raw)
     }
 
     summary_list$target_width_raw <-
@@ -297,8 +300,10 @@ bsfvc_import_targets <-
       sum(GenomicRanges::width(x = summary_list$target_granges))
 
     if (verbose) {
-      message("Cumulative width of target GRanges with flanks: ",
-              summary_list$target_width_flank)
+      message(
+        "Cumulative width of target GRanges with flanks: ",
+        summary_list$target_width_flank
+      )
     }
 
     return(summary_list)
@@ -314,7 +319,7 @@ bsfvc_import_targets <-
 #' @return A named \code{list} with summary information.
 #' \describe{
 #' \item{exon_path}{Ensembl GTF file path.}
-#' \item{exon_granges}{Ensembl Exon \code{GenomicRanges::GRanges} object.}
+#' \item{exon_granges}{Ensembl Exon \code{GenomicRanges::GRanges} object, optionally, filtered and with flanks.}
 #' \item{exon_number_raw}{Total number of unfiltered Ensembl Exon \code{GenomicRanges::GRanges} components.}
 #' \item{exon_width_raw}{Total number of unfiltered Ensembl Exon bases.}
 #' \item{exon_number}{Total number of filtered Ensembl Exon \code{GenomicRanges::GRanges} components.}
@@ -324,7 +329,7 @@ bsfvc_import_targets <-
 #' \item{transcribed_number}{Total number of reduced Ensembl Exon \code{GenomicRanges::GRanges} components.}
 #' \item{transcribed_width}{Total number of reduced Ensembl Exon bases including flanks.}
 #' \item{target_path}{Target region GTF file path.}
-#' \item{target_granges}{Target \code{GenomicRanges::GRanges} object.}
+#' \item{target_granges}{Target \code{GenomicRanges::GRanges} object, optionally, with flanks.}
 #' \item{target_number_raw}{Total number of target \code{GenomicRanges::GRanges} components.}
 #' \item{target_width_raw}{Total number of target bases.}
 #' \item{target_width_flank}{Total number of filtered target bases including flanks.}
@@ -391,7 +396,10 @@ bsfvc_import_constrained_granges <-
             subject = summary_list$transcribed_granges,
             ignore.strand = TRUE
           ),
-          ignore.strand = TRUE
+          ignore.strand = TRUE,
+          # Experimentally add this argument that should have an effect on GenomicRanges::pintersect(),
+          # once the Pair of GenomicRanges::GRanges gets passed into the function.
+          drop.nohit.ranges = TRUE
         )
 
       summary_list$constrained_number <-
@@ -421,8 +429,10 @@ bsfvc_import_constrained_granges <-
       message("Number of constrained target GRanges: ",
               summary_list$constrained_number)
 
-      message("Cumulative width of constrained target GRanges: ",
-              summary_list$constrained_width)
+      message(
+        "Cumulative width of constrained target GRanges: ",
+        summary_list$constrained_width
+      )
     }
 
     return(summary_list)
