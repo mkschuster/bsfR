@@ -202,7 +202,6 @@ suppressPackageStartupMessages(expr = library(package = "GenomicAlignments"))
 suppressPackageStartupMessages(expr = library(package = "RColorBrewer"))
 suppressPackageStartupMessages(expr = library(package = "Rsamtools"))
 suppressPackageStartupMessages(expr = library(package = "caret"))
-suppressPackageStartupMessages(expr = library(package = "plyr"))
 suppressPackageStartupMessages(expr = library(package = "genefilter"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "grid"))
@@ -770,6 +769,7 @@ plot_fpkm_values <- function(object) {
           file.info(plot_paths)$size > 0L)) {
     message("Skipping a FPKM density plot")
   } else {
+    message("Create a FPKM density plot")
     # Pivot the tibble to get just a "name" and a "value" variable.
     ggplot_object <-
       ggplot2::ggplot(data = tidyr::pivot_longer(
@@ -778,23 +778,27 @@ plot_fpkm_values <- function(object) {
       ))
 
     ggplot_object <-
-      ggplot_object + ggplot2::geom_density(
+      ggplot_object +
+      ggplot2::geom_density(
         mapping = ggplot2::aes(
           x = log10(x = .data$value),
           y = ..density..,
           colour = .data$name
         ),
-        alpha = I(1 / 3)
+        alpha = I(1 / 3),
+        na.rm = TRUE
       )
 
     ggplot_object <-
-      ggplot_object + ggplot2::labs(
+      ggplot_object +
+      ggplot2::labs(
         x = "log10(FPKM)",
         y = "Density",
         colour = "Sample",
         title = "FPKM Density",
         subtitle = paste("Design", argument_list$design_name)
       )
+
     # Increase the plot width per 24 samples.
     # The number of samples is the number of columns of the matrix.
     # Rather than argument_list$plot_factor, a fixed number of 0.25 is used here.
@@ -853,18 +857,25 @@ plot_cooks_distances <- function(object) {
         data = tibble::as_tibble(x = SummarizedExperiment::assays(x = object)$cooks),
         cols = tidyselect::everything()
       ))
+
     ggplot_object <-
-      ggplot_object + ggplot2::geom_boxplot(mapping = ggplot2::aes(x = .data$name,
-                                                                   y = .data$value))
+      ggplot_object +
+      ggplot2::geom_boxplot(mapping = ggplot2::aes(x = .data$name,
+                                                   y = .data$value),
+                            na.rm = TRUE)
+
     ggplot_object <-
-      ggplot_object + ggplot2::labs(
+      ggplot_object +
+      ggplot2::labs(
         x = "Sample",
         y = "Cook's Distance",
         title = "Cook's Distance per Sample",
         subtitle = paste("Design", argument_list$design_name)
       )
+
     ggplot_object <-
-      ggplot_object + ggplot2::theme(
+      ggplot_object +
+      ggplot2::theme(
         axis.text.x = ggplot2::element_text(
           size = ggplot2::rel(x = 0.8),
           hjust = 0.0,
@@ -936,28 +947,34 @@ plot_rin_scores <- function(object) {
         ggplot2::ggplot(data = BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)))
 
       ggplot_object <-
-        ggplot_object + ggplot2::xlim(RIN = c(0.0, 10.0))
+        ggplot_object +
+        ggplot2::xlim(RIN = c(0.0, 10.0))
 
       ggplot_object <-
-        ggplot_object + ggplot2::geom_vline(xintercept = 1.0,
-                                            colour = "red",
-                                            linetype = 2L)
+        ggplot_object +
+        ggplot2::geom_vline(xintercept = 1.0,
+                            colour = "red",
+                            linetype = 2L)
 
       ggplot_object <-
-        ggplot_object + ggplot2::geom_vline(xintercept = 4.0,
-                                            colour = "yellow",
-                                            linetype = 2L)
+        ggplot_object +
+        ggplot2::geom_vline(xintercept = 4.0,
+                            colour = "yellow",
+                            linetype = 2L)
 
       ggplot_object <-
-        ggplot_object + ggplot2::geom_vline(xintercept = 7.0,
-                                            colour = "green",
-                                            linetype = 2L)
+        ggplot_object +
+        ggplot2::geom_vline(xintercept = 7.0,
+                            colour = "green",
+                            linetype = 2L)
 
       ggplot_object <-
-        ggplot_object + ggplot2::geom_density(mapping = ggplot2::aes(x = .data$RIN, y = ..density..))
+        ggplot_object +
+        ggplot2::geom_density(mapping = ggplot2::aes(x = .data$RIN, y = ..density..))
 
       ggplot_object <-
-        ggplot_object + ggplot2::labs(
+        ggplot_object +
+        ggplot2::labs(
           x = "RIN score",
           y = "density",
           title = "RNA Integrity Number (RIN) Density Plot",
@@ -1084,7 +1101,8 @@ plot_mds <- function(object,
 
           # geom_point
           if (!is.null(x = aes_list$geom_point)) {
-            ggplot_object <- ggplot_object +
+            ggplot_object <-
+              ggplot_object +
               ggplot2::geom_point(
                 mapping = ggplot2::aes_(
                   x = quote(expr = X1),
@@ -1106,13 +1124,15 @@ plot_mds <- function(object,
               # (scale_shape_manual()) needs setting up.
               # https://ggplot2.tidyverse.org/reference/scale_shape.html
               ggplot_object <-
-                ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = mds_frame[, aes_list$geom_point$shape])))
+                ggplot_object +
+                ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = mds_frame[, aes_list$geom_point$shape])))
             }
           }
 
           # geom_text
           if (!is.null(x = aes_list$geom_text)) {
-            ggplot_object <- ggplot_object +
+            ggplot_object <-
+              ggplot_object +
               ggplot2::geom_text(
                 mapping = ggplot2::aes_(
                   x = quote(expr = X1),
@@ -1134,7 +1154,8 @@ plot_mds <- function(object,
           # geom_path
           if (!is.null(x = aes_list$geom_path)) {
             ggplot_object <-
-              ggplot_object + ggplot2::geom_path(
+              ggplot_object +
+              ggplot2::geom_path(
                 mapping = ggplot2::aes_(
                   x = quote(expr = X1),
                   y = quote(expr = X2),
@@ -1154,16 +1175,17 @@ plot_mds <- function(object,
                 arrow = if (is.null(x = aes_list$geom_path$arrow))
                   NULL
                 else
-                  arrow(
-                    length = unit(x = 0.08, units = "inches"),
+                  grid::arrow(
+                    length = grid::unit(x = 0.08, units = "inches"),
                     type = "closed"
                   )
               )
           }
 
-          ggplot_object <- ggplot_object +
+          ggplot_object <-
+            ggplot_object +
             ggplot2::theme_bw() +
-            coord_fixed()
+            ggplot2::coord_fixed()
 
           # ggplot_object <- ggplot_object + ggplot2::xlim(min(mds_frame$X1, mds_frame$X2), max(mds_frame$X1, mds_frame$X2))
           # ggplot_object <- ggplot_object + ggplot2::ylim(min(mds_frame$X1, mds_frame$X2), max(mds_frame$X1, mds_frame$X2))
@@ -1413,10 +1435,14 @@ plot_pca <- function(object,
 
   ggplot_object <-
     ggplot2::ggplot(data = plotting_tibble[seq_len(length.out = min(100L, length(x = pca_object$sdev))), , drop = FALSE])
+
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = .data$component, y = .data$variance))
+    ggplot_object +
+    ggplot2::geom_point(mapping = ggplot2::aes(x = .data$component, y = .data$variance))
+
   ggplot_object <-
-    ggplot_object + ggplot2::labs(
+    ggplot_object +
+    ggplot2::labs(
       x = "Principal Component",
       y = "Variance",
       title = "Variance by Principal Component",
@@ -1433,6 +1459,7 @@ plot_pca <- function(object,
     )
   }
   rm(plot_path, ggplot_object, plotting_tibble, plot_paths)
+
   # The pca_object$x matrix has as many columns and rows as there are samples.
   pca_dimensions <-
     min(argument_list$pca_dimensions, ncol(x = pca_object$x))
@@ -1538,7 +1565,8 @@ plot_pca <- function(object,
 
         # geom_point
         if (!is.null(x = aes_list$geom_point)) {
-          ggplot_object <- ggplot_object +
+          ggplot_object <-
+            ggplot_object +
             ggplot2::geom_point(
               mapping = ggplot2::aes_(
                 x = quote(expr = x),
@@ -1560,13 +1588,15 @@ plot_pca <- function(object,
             # (scale_shape_manual()) needs setting up.
             # https://ggplot2.tidyverse.org/reference/scale_shape.html
             ggplot_object <-
-              ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = plotting_frame[, aes_list$geom_point$shape])))
+              ggplot_object +
+              ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = plotting_frame[, aes_list$geom_point$shape])))
           }
         }
 
         # geom_text
         if (!is.null(x = aes_list$geom_text)) {
-          ggplot_object <- ggplot_object +
+          ggplot_object <-
+            ggplot_object +
             ggplot2::geom_text(
               mapping = ggplot2::aes_(
                 x = quote(expr = x),
@@ -1588,7 +1618,8 @@ plot_pca <- function(object,
         # geom_path
         if (!is.null(x = aes_list$geom_path)) {
           ggplot_object <-
-            ggplot_object + ggplot2::geom_path(
+            ggplot_object +
+            ggplot2::geom_path(
               mapping = ggplot2::aes_(
                 x = quote(expr = x),
                 y = quote(expr = y),
@@ -1613,11 +1644,13 @@ plot_pca <- function(object,
         }
 
         ggplot_object <-
-          ggplot_object + facet_grid(
+          ggplot_object +
+          ggplot2::facet_grid(
             rows = ggplot2::vars(component_1),
             cols = ggplot2::vars(component_2),
             labeller = ggplot2::labeller(component_1 = label_function, component_2 = label_function)
           )
+
         for (plot_path in plot_paths) {
           ggplot2::ggsave(
             filename = plot_path,
@@ -1980,87 +2013,17 @@ rm(lrt_summary_tibble)
 # Plot Aesthetics ---------------------------------------------------------
 
 
-# The plot_aes variable of the design data frame supplies a semi-colon-separated
-# list of geometric objects and their associated aesthetics for each plot, which
-# is a comma-separated list of aesthetics=variable mappings.
+# The plot_aes variable of the design data frame supplies a pipe-separated list
+# of plot definitions. Each plot definition contains a semi-colon-separated list
+# of geometric objects and their associated aesthetics for each plot, which is a
+# comma-separated list of aesthetics=variable mappings.
 #
 # geom_point:colour=test_1,shape=test_2;geom_line:colour=test_3,group=test_4|
 # geom_point:colour=test_a,shape=test_b;geom_line:colour=test_c,group=test_d
 #
 # Convert into a list of list objects with variables and aesthetics as names.
 plot_list <-
-  lapply(
-    X = stringr::str_split(
-      string = global_design_list$plot_aes[1L],
-      pattern = stringr::fixed(pattern = "|")
-    )[[1L]],
-    FUN = function(plot_character) {
-      single_geom_list <- lapply(
-        X = stringr::str_split(
-          string = stringr::str_split(
-            string = plot_character[1L],
-            pattern = stringr::fixed(pattern = ";")
-          )[[1L]],
-          pattern = stringr::fixed(pattern = ":")
-        ),
-        FUN = function(geom_aes_character) {
-          # Split on "," characters and assign names (geometric names) to the
-          # list components (aesthetic list).
-          geom_aes_list <-
-            lapply(
-              X = stringr::str_split(
-                string = geom_aes_character[2L],
-                pattern = stringr::fixed(pattern = ",")
-              ),
-              FUN = function(aes_character) {
-                # Split on "=" characters and assign names (aesthetic names) to
-                # the list components (variable names).
-                temporary_list <-
-                  stringr::str_split(string = aes_character,
-                                     pattern = stringr::fixed(pattern = "="))
-                aes_list <-
-                  lapply(
-                    X = temporary_list,
-                    FUN = function(temporary_character) {
-                      return(temporary_character[2L])
-                    }
-                  )
-                names(x = aes_list) <-
-                  lapply(
-                    X = temporary_list,
-                    FUN = function(temporary_character) {
-                      return(temporary_character[1L])
-                    }
-                  )
-                rm(temporary_list)
-                return(aes_list)
-              }
-            )
-          names(x = geom_aes_list) <- geom_aes_character[1L]
-          return(geom_aes_list)
-        }
-      )
-      # Flatten the single geometric list and assign geometric object names to
-      # the list components.
-      geom_list <-
-        lapply(
-          X = single_geom_list,
-          FUN = function(temporary_list) {
-            return(temporary_list[[1L]])
-          }
-        )
-      names(geom_list) <-
-        lapply(
-          X = single_geom_list,
-          FUN = function(temporary_list) {
-            return(names(x = temporary_list[1L]))
-          }
-        )
-      rm(single_geom_list)
-      return(geom_list)
-    }
-  )
-
+  bsfR::bsfrd_plots_character_to_list(plots_character = global_design_list$plot_aes)
 
 # DESeqDataSet Results ----------------------------------------------------
 
