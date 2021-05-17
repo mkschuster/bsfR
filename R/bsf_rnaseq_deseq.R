@@ -1612,19 +1612,19 @@ bsfrd_plots_character_to_list <- function(plots_character) {
 #'   objects as components and geometrics as names.
 #'
 #' @return A "__"-separated \code{character} scalar.
-#' @noRd
+#' @export
 #'
 #' @examples
 #' \dontrun{
 #'  geom_character <-
-#'    .bsfrd_convert_geometrics_list(
+#'    bsfrd_geometrics_list_to_character(
 #'      geom_list = list(
 #'        "geom_point" = list("colour" = "variable_A", "shape" = "variable_B"),
 #'        "geom_text" = list("colour" = "variable_C", "shape" = "variable_D")
 #'      )
 #'    )
 #' }
-.bsfrd_convert_geometrics_list <- function(geom_list) {
+bsfrd_geometrics_list_to_character <- function(geom_list) {
   geom_character <-
     purrr::map_chr(.x = geom_list, .f = .bsfrd_convert_aesthetics_list)
 
@@ -1669,5 +1669,5 @@ bsfrd_plots_character_to_list <- function(plots_character) {
 #'    )
 #' }
 bsfrd_plots_list_to_character <- function(plots_list) {
-  return(purrr::map_chr(.x = plots_list, .f = .bsfrd_convert_geometrics_list))
+  return(purrr::map_chr(.x = plots_list, .f = bsfrd_geometrics_list_to_character))
 }
