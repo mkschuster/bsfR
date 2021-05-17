@@ -302,7 +302,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
         )
         sub_sample_frame <-
           sample_frame[(sample_frame$library_type == library_type) &
-                         (sample_frame$sequencing_type == sequencing_type), ]
+                         (sample_frame$sequencing_type == sequencing_type),]
 
         if (nrow(x = sub_sample_frame) == 0L) {
           rm(sub_sample_frame)
@@ -448,7 +448,7 @@ fix_model_matrix <- function(model_matrix_local) {
         "Attempting to fix the model matrix by removing empty columns."
       )
       model_matrix_local <-
-        model_matrix_local[,-which(x = model_all_zero)]
+        model_matrix_local[, -which(x = model_all_zero)]
     } else {
       linear_combinations_list <-
         caret::findLinearCombos(x = model_matrix_local)
@@ -472,7 +472,7 @@ fix_model_matrix <- function(model_matrix_local) {
         paste(colnames(x = model_matrix_local)[linear_combinations_list$remove], collapse = "\n  ")
       )
       model_matrix_local <-
-        model_matrix_local[, -linear_combinations_list$remove]
+        model_matrix_local[,-linear_combinations_list$remove]
     }
     rm(model_all_zero)
   }
@@ -693,46 +693,6 @@ initialise_deseq_transform <-
 
     return(deseq_transform)
   }
-
-# Convert aes_list into character -----------------------------------------
-
-
-#' Convert an aesthetics list to a character scalar.
-#'
-#' Convert a \code{list} of \code{ggplot2} aesthetics into a simple
-#' \code{character} scalar for file and plot naming.
-#'
-#' @param aes_list A \code{list} of aesthetics.
-#'
-#' @return A \code{character} scalar.
-#'
-#' @examples
-#' \dontrun{
-#' aes_character <- aes_list_to_character(aes_list = aes_list)
-#' }
-#' @noRd
-aes_list_to_character <- function(aes_list) {
-  aes_character <-
-    unlist(x = lapply(
-      X = aes_list,
-      FUN = function(list_1) {
-        character_1 <- unlist(x = list_1)
-        # Use paste() twice rather than c() to retain the order of name and value.
-        return(paste(paste(
-          names(x = character_1), character_1, sep = "_"
-        ), collapse = "_"))
-      }
-    ))
-  return(paste(c(
-    sub(
-      pattern = 'geom_',
-      replacement = '',
-      x = names(x = aes_character)
-    ),
-    aes_character
-  ), collapse = "__"))
-}
-
 
 # Plot FPKM Values --------------------------------------------------------
 
@@ -1048,131 +1008,124 @@ plot_mds <- function(object,
   dummy_list <-
     lapply(
       X = plot_list,
-      FUN = function(aes_list) {
+      FUN = function(geom_list) {
         aes_character <-
-          unique(x = unlist(x = aes_list, use.names = TRUE))
+          bsfR::bsfrd_geometrics_list_to_character(geom_list = geom_list)
 
         plot_paths <- file.path(output_directory,
                                 paste(
-                                  paste(
-                                    prefix,
-                                    "mds",
-                                    aes_list_to_character(aes_list = aes_list),
-                                    suffix,
-                                    sep = "_"
-                                  ),
+                                  paste(prefix,
+                                        "mds",
+                                        aes_character,
+                                        suffix,
+                                        sep = "_"),
                                   graphics_formats,
                                   sep = "."
                                 ))
 
         if (all(file.exists(plot_paths) &&
                 file.info(plot_paths)$size > 0L)) {
-          message(paste(c("  Skipping MDS plot:", aes_character), collapse = " "))
+          message("  Skipping MDS plot: ", aes_character)
         } else {
-          message(paste(c("  Creating MDS plot:", aes_character), collapse = " "))
+          message("  Creating MDS plot: ", aes_character)
 
           ggplot_object <-
             ggplot2::ggplot(data = mds_frame)
 
           # geom_line
-          if (!is.null(x = aes_list$geom_line)) {
+          if (!is.null(x = geom_list$geom_line)) {
+            mapping_list <-
+              ggplot2::aes(x = .data$X1, y = .data$X2)
+            if (!is.null(x = geom_list$geom_line$colour)) {
+              mapping_list <-
+                utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_line$colour]]))
+            }
+            if (!is.null(x = geom_list$geom_line$group)) {
+              mapping_list <-
+                utils::modifyList(x = mapping_list, val = ggplot2::aes(group = .data[[geom_list$geom_line$group]]))
+            }
+            if (!is.null(x = geom_list$geom_line$linetype)) {
+              mapping_list <-
+                utils::modifyList(x = mapping_list,
+                                  val = ggplot2::aes(linetype = .data[[geom_list$geom_line$linetype]]))
+            }
             ggplot_object <-
               ggplot_object +
-              ggplot2::geom_line(
-                mapping = ggplot2::aes_(
-                  x = quote(expr = X1),
-                  y = quote(expr = X2),
-                  colour = if (is.null(x = aes_list$geom_line$colour))
-                    NULL
-                  else
-                    as.name(x = aes_list$geom_line$colour),
-                  group = if (is.null(x = aes_list$geom_line$group))
-                    NULL
-                  else
-                    as.name(x = aes_list$geom_line$group),
-                  linetype = if (is.null(x = aes_list$geom_path$linetype))
-                    NULL
-                  else
-                    as.name(x = aes_list$geom_path$linetype)
-                ),
-                alpha = I(1 / 3)
-              )
+              ggplot2::geom_line(mapping = mapping_list,
+                                 alpha = I(1 / 3))
+            rm(mapping_list)
           }
 
           # geom_point
-          if (!is.null(x = aes_list$geom_point)) {
+          if (!is.null(x = geom_list$geom_point)) {
+            mapping_list <-
+              ggplot2::aes(x = .data$X1, y = .data$X2)
+            if (!is.null(x = geom_list$geom_point$colour)) {
+              mapping_list <-
+                utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_point$colour]]))
+            }
+            if (!is.null(x = geom_list$geom_point$shape)) {
+              mapping_list <-
+                utils::modifyList(x = mapping_list, val = ggplot2::aes(shape = .data[[geom_list$geom_point$shape]]))
+            }
             ggplot_object <-
               ggplot_object +
-              ggplot2::geom_point(
-                mapping = ggplot2::aes_(
-                  x = quote(expr = X1),
-                  y = quote(expr = X2),
-                  colour = if (is.null(x = aes_list$geom_point$colour))
-                    NULL
-                  else
-                    as.name(x = aes_list$geom_point$colour),
-                  shape = if (is.null(x = aes_list$geom_point$shape))
-                    NULL
-                  else
-                    as.name(x = aes_list$geom_point$shape)
-                ),
-                size = 2.0,
-                alpha = I(1 / 3)
-              )
-            if (!is.null(x = aes_list$geom_point$shape)) {
+              ggplot2::geom_point(mapping = mapping_list,
+                                  size = 2.0,
+                                  alpha = I(1 / 3))
+            if (!is.null(x = geom_list$geom_point$shape)) {
               # For more than six shapes (scale_shape()), a manual scale
               # (scale_shape_manual()) needs setting up.
               # https://ggplot2.tidyverse.org/reference/scale_shape.html
               ggplot_object <-
                 ggplot_object +
-                ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = mds_frame[, aes_list$geom_point$shape])))
+                ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = mds_frame[, geom_list$geom_point$shape])))
             }
+            rm(mapping_list)
           }
 
           # geom_text
-          if (!is.null(x = aes_list$geom_text)) {
+          if (!is.null(x = geom_list$geom_text)) {
+            mapping_list <-
+              ggplot2::aes(x = .data$X1, y = .data$X2)
+            if (!is.null(x = geom_list$geom_text$label)) {
+              mapping_list <-
+                utils::modifyList(x = mapping_list, val = ggplot2::aes(label = .data[[geom_list$geom_text$label]]))
+            }
+            if (!is.null(x = geom_list$geom_text$colour)) {
+              mapping_list <-
+                utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_text$colour]]))
+            }
             ggplot_object <-
               ggplot_object +
-              ggplot2::geom_text(
-                mapping = ggplot2::aes_(
-                  x = quote(expr = X1),
-                  y = quote(expr = X2),
-                  label = if (is.null(x = aes_list$geom_text$label))
-                    "x"
-                  else
-                    as.name(x = aes_list$geom_text$label),
-                  colour = if (is.null(x = aes_list$geom_text$colour))
-                    NULL
-                  else
-                    as.name(x = aes_list$geom_text$colour)
-                ),
-                size = 2.0,
-                alpha = I(1 / 3)
-              )
+              ggplot2::geom_text(mapping = mapping_list,
+                                 size = 2.0,
+                                 alpha = I(1 / 3))
+            rm(mapping_list)
           }
 
           # geom_path
-          if (!is.null(x = aes_list$geom_path)) {
+          if (!is.null(x = geom_list$geom_path)) {
+            mapping_list <-
+              ggplot2::aes(x = .data$X1, y = .data$X2)
+            if (!is.null(x = geom_list$geom_path$colour)) {
+              mapping_list <-
+                utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_path$colour]]))
+            }
+            if (!is.null(x = geom_list$geom_path$group)) {
+              mapping_list <-
+                utils::modifyList(x = mapping_list, val = ggplot2::aes(group = .data[[geom_list$geom_path$group]]))
+            }
+            if (!is.null(x = geom_list$geom_path$linetype)) {
+              mapping_list <-
+                utils::modifyList(x = mapping_list,
+                                  val = ggplot2::aes(linetype = .data[[geom_list$geom_path$linetype]]))
+            }
             ggplot_object <-
               ggplot_object +
               ggplot2::geom_path(
-                mapping = ggplot2::aes_(
-                  x = quote(expr = X1),
-                  y = quote(expr = X2),
-                  colour = if (is.null(x = aes_list$geom_path$colour))
-                    NULL
-                  else
-                    as.name(x = aes_list$geom_path$colour),
-                  group = if (is.null(x = aes_list$geom_path$group))
-                    NULL
-                  else
-                    as.name(x = aes_list$geom_path$group),
-                  linetype = if (is.null(x = aes_list$geom_path$linetype))
-                    NULL
-                  else
-                    as.name(x = aes_list$geom_path$linetype)
-                ),
-                arrow = if (is.null(x = aes_list$geom_path$arrow))
+                mapping = mapping_list,
+                arrow = if (is.null(x = geom_list$geom_path$arrow))
                   NULL
                 else
                   grid::arrow(
@@ -1180,15 +1133,13 @@ plot_mds <- function(object,
                     type = "closed"
                   )
               )
+            rm(mapping_list)
           }
 
           ggplot_object <-
             ggplot_object +
             ggplot2::theme_bw() +
             ggplot2::coord_fixed()
-
-          # ggplot_object <- ggplot_object + ggplot2::xlim(min(mds_frame$X1, mds_frame$X2), max(mds_frame$X1, mds_frame$X2))
-          # ggplot_object <- ggplot_object + ggplot2::ylim(min(mds_frame$X1, mds_frame$X2), max(mds_frame$X1, mds_frame$X2))
 
           for (plot_path in plot_paths) {
             ggplot2::ggsave(
@@ -1259,21 +1210,22 @@ plot_heatmap <- function(object,
   dummy_list <-
     lapply(
       X = plot_list,
-      FUN = function(aes_list) {
+      FUN = function(geom_list) {
         aes_character <-
-          unique(x = unlist(x = aes_list, use.names = TRUE))
-        message(paste(c(
-          "  Creating heat map plot:", aes_character
-        ), collapse = " "))
+          bsfR::bsfrd_geometrics_list_to_character(geom_list = geom_list)
+        message("  Creating heatmap plot: ", aes_character)
+
+        aes_factors <-
+          unique(x = unlist(x = geom_list, use.names = TRUE))
 
         plotting_frame <-
-          BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object))[, aes_character, drop = FALSE]
+          BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object))[, aes_factors, drop = FALSE]
 
         pheatmap_object <- NULL
 
         if (FALSE) {
-          # Add the aes_character factors together to create a new grouping factor
-          group_factor <- if (length(x = aes_character) > 1) {
+          # Add the aes_factors together to create a new grouping factor
+          group_factor <- if (length(x = aes_factors) > 1) {
             factor(x = apply(
               X = plotting_frame,
               MARGIN = 1,
@@ -1281,7 +1233,7 @@ plot_heatmap <- function(object,
               collapse = " : "
             ))
           } else {
-            SummarizedExperiment::colData(x = object)[[aes_character]]
+            SummarizedExperiment::colData(x = object)[[aes_factors]]
           }
 
           # Assign the grouping factor to the distance matrix row names.
@@ -1320,13 +1272,11 @@ plot_heatmap <- function(object,
         }
         plot_paths <- file.path(output_directory,
                                 paste(
-                                  paste(
-                                    prefix,
-                                    "heatmap",
-                                    paste(aes_character, collapse = "_"),
-                                    suffix,
-                                    sep = "_"
-                                  ),
+                                  paste(prefix,
+                                        "heatmap",
+                                        aes_character,
+                                        suffix,
+                                        sep = "_"),
                                   graphics_formats,
                                   sep = "."
                                 ))
@@ -1338,7 +1288,6 @@ plot_heatmap <- function(object,
           width = argument_list$plot_width,
           height = argument_list$plot_height
         )
-        # grid::grid.newpage()
         grid::grid.draw(pheatmap_object$gtable)
         base::invisible(x = grDevices::dev.off())
 
@@ -1350,13 +1299,13 @@ plot_heatmap <- function(object,
           units = "in",
           res = 300L
         )
-        # grid::grid.newpage()
         grid::grid.draw(pheatmap_object$gtable)
         base::invisible(x = grDevices::dev.off())
 
         rm(plot_paths,
            pheatmap_object,
            plotting_frame,
+           aes_factors,
            aes_character)
       }
     )
@@ -1412,7 +1361,7 @@ plot_pca <- function(object,
   # Perform a PCA on the (count) matrix returned by
   # SummarizedExperiment::assay() for the selected genes.
   pca_object <-
-    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows,]))
+    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows, ]))
   rm(selected_rows)
 
   # Plot the variance for a maximum of 100 components.
@@ -1486,20 +1435,18 @@ plot_pca <- function(object,
   dummy_list <-
     lapply(
       X = plot_list,
-      FUN = function(aes_list) {
+      FUN = function(geom_list) {
         aes_character <-
-          unique(x = unlist(x = aes_list, use.names = TRUE))
-        message(paste(c("  Creating PCA plot:", aes_character), collapse = " "))
+          bsfR::bsfrd_geometrics_list_to_character(geom_list = geom_list)
+        message("  Creating PCA plot: ", aes_character)
 
         plot_paths <- file.path(output_directory,
                                 paste(
-                                  paste(
-                                    prefix,
-                                    "pca",
-                                    aes_list_to_character(aes_list = aes_list),
-                                    suffix,
-                                    sep = "_"
-                                  ),
+                                  paste(prefix,
+                                        "pca",
+                                        aes_character,
+                                        suffix,
+                                        sep = "_"),
                                   graphics_formats,
                                   sep = "."
                                 ))
@@ -1518,7 +1465,7 @@ plot_pca <- function(object,
             y = numeric(),
             # Also initialise all variables of the column data, but do not
             # include data (i.e. 0L rows).
-            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L, ])
+            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L,])
           )
 
         for (column_number in seq_len(length.out = ncol(x = pca_pair_matrix))) {
@@ -1543,104 +1490,96 @@ plot_pca <- function(object,
         ggplot_object <- ggplot2::ggplot(data = plotting_frame)
 
         # geom_line
-        if (!is.null(x = aes_list$geom_line)) {
+        if (!is.null(x = geom_list$geom_line)) {
+          mapping_list <-
+            ggplot2::aes(x = .data$x, y = .data$y)
+          if (!is.null(x = geom_list$geom_line$colour)) {
+            mapping_list <-
+              utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_line$colour]]))
+          }
+          if (!is.null(x = geom_list$geom_line$group)) {
+            mapping_list <-
+              utils::modifyList(x = mapping_list, val = ggplot2::aes(group = .data[[geom_list$geom_line$group]]))
+          }
           ggplot_object <-
             ggplot_object +
-            ggplot2::geom_line(
-              mapping = ggplot2::aes_(
-                x = quote(expr = x),
-                y = quote(expr = y),
-                colour = if (is.null(x = aes_list$geom_line$colour))
-                  NULL
-                else
-                  as.name(x = aes_list$geom_line$colour),
-                group = if (is.null(x = aes_list$geom_line$group))
-                  NULL
-                else
-                  as.name(x = aes_list$geom_line$group)
-              ),
-              alpha = I(1 / 3)
-            )
+            ggplot2::geom_line(mapping = mapping_list,
+                               alpha = I(1 / 3))
+          rm(mapping_list)
         }
 
         # geom_point
-        if (!is.null(x = aes_list$geom_point)) {
+        if (!is.null(x = geom_list$geom_point)) {
+          mapping_list <-
+            ggplot2::aes(x = .data$x, y = .data$y)
+          if (!is.null(x = geom_list$geom_point$colour)) {
+            mapping_list <-
+              utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_point$colour]]))
+          }
+          if (!is.null(x = geom_list$geom_point$shape)) {
+            mapping_list <-
+              utils::modifyList(x = mapping_list, val = ggplot2::aes(shape = .data[[geom_list$geom_point$shape]]))
+          }
           ggplot_object <-
             ggplot_object +
-            ggplot2::geom_point(
-              mapping = ggplot2::aes_(
-                x = quote(expr = x),
-                y = quote(expr = y),
-                colour = if (is.null(x = aes_list$geom_point$colour))
-                  NULL
-                else
-                  as.name(x = aes_list$geom_point$colour),
-                shape = if (is.null(x = aes_list$geom_point$shape))
-                  NULL
-                else
-                  as.name(x = aes_list$geom_point$shape)
-              ),
-              size = 2.0,
-              alpha = I(1 / 3)
-            )
-          if (!is.null(x = aes_list$geom_point$shape)) {
+            ggplot2::geom_point(mapping = mapping_list,
+                                size = 2.0,
+                                alpha = I(1 / 3))
+          if (!is.null(x = geom_list$geom_point$shape)) {
             # For more than six shapes (scale_shape()), a manual scale
             # (scale_shape_manual()) needs setting up.
             # https://ggplot2.tidyverse.org/reference/scale_shape.html
             ggplot_object <-
               ggplot_object +
-              ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = plotting_frame[, aes_list$geom_point$shape])))
+              ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = plotting_frame[, geom_list$geom_point$shape])))
           }
+          rm(mapping_list)
         }
 
         # geom_text
-        if (!is.null(x = aes_list$geom_text)) {
+        if (!is.null(x = geom_list$geom_text)) {
+          mapping_list <-
+            ggplot2::aes(x = .data$x, y = .data$y)
+          if (!is.null(x = geom_list$geom_text$label)) {
+            mapping_list <-
+              utils::modifyList(x = mapping_list, val = ggplot2::aes(label = .data[[geom_list$geom_text$label]]))
+          }
+          if (!is.null(x = geom_list$geom_text$colour)) {
+            mapping_list <-
+              utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_text$colour]]))
+          }
           ggplot_object <-
             ggplot_object +
-            ggplot2::geom_text(
-              mapping = ggplot2::aes_(
-                x = quote(expr = x),
-                y = quote(expr = y),
-                label = if (is.null(x = aes_list$geom_text$label))
-                  "x"
-                else
-                  as.name(x = aes_list$geom_text$label),
-                colour = if (is.null(x = aes_list$geom_text$colour))
-                  NULL
-                else
-                  as.name(x = aes_list$geom_text$colour)
-              ),
-              size = 2.0,
-              alpha = I(1 / 3)
-            )
+            ggplot2::geom_text(mapping = mapping_list,
+                               size = 2.0,
+                               alpha = I(1 / 3))
+          rm(mapping_list)
         }
 
         # geom_path
-        if (!is.null(x = aes_list$geom_path)) {
+        if (!is.null(x = geom_list$geom_path)) {
+          mapping_list <-
+            ggplot2::aes(x = .data$x, y = .data$y)
+          if (!is.null(x = geom_list$geom_path$colour)) {
+            mapping_list <-
+              utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_path$colour]]))
+          }
+          if (!is.null(x = geom_list$geom_path$group)) {
+            mapping_list <-
+              utils::modifyList(x = mapping_list, val = ggplot2::aes(group = .data[[geom_list$geom_path$group]]))
+          }
+          if (!is.null(x = geom_list$geom_path$linetype)) {
+            mapping_list <-
+              utils::modifyList(x = mapping_list, val = ggplot2::aes(linetype = .data[[geom_list$geom_path$linetype]]))
+          }
           ggplot_object <-
             ggplot_object +
-            ggplot2::geom_path(
-              mapping = ggplot2::aes_(
-                x = quote(expr = x),
-                y = quote(expr = y),
-                colour = if (is.null(x = aes_list$geom_path$colour))
-                  NULL
-                else
-                  as.name(x = aes_list$geom_path$colour),
-                group = if (is.null(x = aes_list$geom_path$group))
-                  NULL
-                else
-                  as.name(x = aes_list$geom_path$group),
-                linetype = if (is.null(x = aes_list$geom_path$linetype))
-                  NULL
-                else
-                  as.name(x = aes_list$geom_path$linetype)
-              ),
-              arrow = arrow(
-                length = unit(x = 0.08, units = "inches"),
-                type = "closed"
-              )
-            )
+            ggplot2::geom_path(mapping = mapping_list,
+                               arrow = arrow(
+                                 length = unit(x = 0.08, units = "inches"),
+                                 type = "closed"
+                               ))
+          rm(mapping_list)
         }
 
         ggplot_object <-
@@ -1668,13 +1607,11 @@ plot_pca <- function(object,
             x = plotting_frame,
             file = file.path(output_directory,
                              paste(
-                               paste(
-                                 prefix,
-                                 "pca",
-                                 aes_list_to_character(aes_list = aes_list),
-                                 suffix,
-                                 sep = "_"
-                               ),
+                               paste(prefix,
+                                     "pca",
+                                     aes_character,
+                                     suffix,
+                                     sep = "_"),
                                "tsv",
                                sep = "."
                              )),
@@ -2174,7 +2111,6 @@ rm(
   plot_fpkm_values,
   lrt_reduced_formula_test,
   lrt_reduced_formula_scalar,
-  aes_list_to_character,
   initialise_deseq_transform,
   initialise_deseq_data_set,
   check_model_matrix,
