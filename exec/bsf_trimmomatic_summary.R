@@ -46,20 +46,14 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--directory-path"),
-        dest = "directory_path",
-        help = "Trimmomatic STDERR directory path",
-        type = "character"
-      ),
-      optparse::make_option(
         opt_str = c("--file-path"),
         dest = "file_path",
-        help = "Trimmomatic trimlog file path",
+        help = "Trimmomatic trim log file path",
         type = "character"
       ),
       optparse::make_option(
         opt_str = c("--number"),
-        help = "Maximum number of Trimmomatic trimlog lines, or -1 for unlimited [-1]",
+        help = "Maximum number of Trimmomatic trim log lines, or -1 for unlimited [-1]",
         default = -1L,
         type = "integer"
       ),
@@ -71,59 +65,113 @@ argument_list <-
         type = "integer"
       ),
       optparse::make_option(
+        opt_str = c("--stderr-path"),
+        dest = "stderr_path",
+        help = "Trimmomatic STDERR directory path",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--stderr-pattern-file"),
+        default = "^trimmomatic_read_group_.*\\.err$",
+        dest = "stderr_pattern_file",
+        help = "Trimmomatic STDERR file pattern [trimmomatic_read_group_*_[0-9]+.err]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--stderr-pattern-read-group"),
+        default = "^trimmomatic_read_group_(.*)_[0-9]+\\.err$",
+        dest = "stderr_pattern_read_group",
+        help = "Trimmomatic STDERR read group pattern [^trimmomatic_read_group_(.*)_[0-9]+\\.err$]",
+        type = "character"
+      ),
+      optparse::make_option(
         opt_str = c("--summary-path"),
         dest = "summary_path",
         help = "Trimmomatic summary data frame directory path",
         type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-width"),
+        default = 7.0,
+        dest = "plot_width",
+        help = "Plot width in inches [7.0]",
+        type = "numeric"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-height"),
+        default = 7.0,
+        dest = "plot_height",
+        help = "Plot height in inches [7.0]",
+        type = "numeric"
       )
     )
   ))
 
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
-#' Process Trimmomatic STDOUT files and return a named character vector.
-#' Names are: "line", "input", "both", "first", "second", "dropped"
+# Save plots in the following formats.
+graphics_formats <- c("pdf" = "pdf", "png" = "png")
+# Maximum size for the PNG device in inches.
+graphics_maximum_size_png <- 100.0
+
+#' Process Trimmomatic STDERR files and return a tibble.
 #'
 #' @noRd
 #' @param file_path A \code{character} scalar with the file path.
-#' @return A named \code{character} vector of parsed components.
-process_stdout <- function(file_path) {
+#' @return A \code{tibble} of parsed components.
+#' \describe{
+#' \item{input}{Number of input reads.}
+#' \item{both}{Number of first and second reads.}
+#' \item{first}{Number of first reads.}
+#' \item{second}{Number of second reads.}
+#' \item{dropped}{Number of dropped reads.}
+#' \item{file_path}{STDERR file path.}
+#' }
+process_stderr <- function(file_path) {
   if (is.null(x = file_path)) {
     stop("Missing file_path argument.")
   }
+  trimmomatic_tibble <- NULL
   trimmomatic_lines <- base::readLines(con = file_path)
+
   # Match the relevant line, which looks like:
   # Input Read Pairs: 7999402 Both Surviving: 6629652 (82.88%) Forward Only Surviving: 1271736 (15.90%) Reverse Only Surviving: 18573 (0.23%) Dropped: 79441 (0.99%)
   trimmomatic_matches <-
-    regexec(pattern = "^Input Read Pairs: ([[:digit:]]+) Both Surviving: ([[:digit:]]+) .*Forward Only Surviving: ([[:digit:]]+).*Reverse Only Surviving: ([[:digit:]]+).*Dropped: ([[:digit:]]+) ",
-            text = trimmomatic_lines)
-  # Get the sub-strings corresponding to the matches.
+    base::regexec(pattern = "^Input Read Pairs: ([[:digit:]]+) Both Surviving: ([[:digit:]]+) .*Forward Only Surviving: ([[:digit:]]+).*Reverse Only Surviving: ([[:digit:]]+).*Dropped: ([[:digit:]]+) ",
+                  text = trimmomatic_lines)
+
+  # Get a list of sub-strings corresponding to the matches.
   trimmomatic_strings <-
-    regmatches(x = trimmomatic_lines, m = trimmomatic_matches)
-  # Select only lines with matches from the list via a logical vector.
-  trimmomatic_filter <-
-    as.logical(x = lapply(
-      X = trimmomatic_matches,
-      FUN = function(x) {
-        return(x[1] > -1)
-      }
-    ))
-  trimmomatic_filtered <- trimmomatic_strings[trimmomatic_filter]
-  if (length(x = trimmomatic_filtered) > 0) {
-    # Annotate the list of strings with names.
-    names(x = trimmomatic_filtered[[1]]) <-
-      c("line", "input", "both", "first", "second", "dropped")
+    base::regmatches(x = trimmomatic_lines, m = trimmomatic_matches)
+
+  # Select only lines with matches (> -1L) from the list via a logical vector.
+  trimmomatic_filtered <-
+    trimmomatic_strings[purrr::map_lgl(.x = trimmomatic_matches, .f = ~ .[1L] > -1L)]
+
+  if (length(x = trimmomatic_filtered) > 0L) {
+    # Annotate the character vector with names, but skip the first element, which is the original matched line.
+    trimmomatic_list <-
+      as.list(x = trimmomatic_filtered[[1L]][2L:6L])
+    names(x = trimmomatic_list) <-
+      c("input", "both", "first", "second", "dropped")
+    trimmomatic_list$file_path <- file_path
+    trimmomatic_tibble <- tibble::as_tibble(x = trimmomatic_list)
+    rm(trimmomatic_list)
   }
-  rm(trimmomatic_lines,
-     trimmomatic_matches,
-     trimmomatic_strings,
-     trimmomatic_filter)
-  return(trimmomatic_filtered[[1]])
+
+  rm(
+    trimmomatic_filtered,
+    trimmomatic_strings,
+    trimmomatic_matches,
+    trimmomatic_lines
+  )
+
+  return(trimmomatic_tibble)
 }
 
-#' Process trimlog files.
+#' Process trim log files.
 #'
-#' Trimmomatic trimlog files are tab-separated value (TSV) files with the
+#' Trimmomatic trim log files are tab-separated value (TSV) files with the
 #' following variables:
 #'
 #' 1: read name
@@ -137,7 +185,7 @@ process_stdout <- function(file_path) {
 #' @param number An \code{integer} scalar indicating the maximum number of
 #'   (paired) reads to read.
 #' @return
-process_trimlog <- function(file_path, number = -1L) {
+process_trim_log <- function(file_path, number = -1L) {
   file_prefix <- sub(
     pattern = "_trim_log\\.tsv(\\.gz)?",
     replacement = "",
@@ -157,26 +205,28 @@ process_trimlog <- function(file_path, number = -1L) {
   }
 
   update_summary_tibble <-
-    function(summary_tibble, trimlog_character) {
+    function(summary_tibble, trim_log_character) {
       # Subset the character matrix into columns 2 (surviving), 3 (frequency_5)
       # and 4 (frequency_3). Increment all matrix elements by 1L to convert
       # 0-based sequence indices to 1-based R vector indices.
-      trimlog_integer <-
-        matrix(data = as.integer(x = trimlog_character[, c(2L, 3L, 4L)]),
-               nrow = nrow(x = trimlog_character)) + 1L
+      trim_log_integer <-
+        matrix(
+          data = as.integer(x = trim_log_character[, c(2L, 3L, 4L)]),
+          nrow = nrow(x = trim_log_character)
+        ) + 1L
 
-      for (i in seq_len(length.out = nrow(x = trimlog_integer))) {
+      for (i in seq_len(length.out = nrow(x = trim_log_integer))) {
         # Increment the surviving position.
-        summary_tibble$surviving[trimlog_integer[i, 1L]] <-
-          summary_tibble$surviving[trimlog_integer[i, 1L]] + 1L
+        summary_tibble$surviving[trim_log_integer[i, 1L]] <-
+          summary_tibble$surviving[trim_log_integer[i, 1L]] + 1L
         # Increment the frequency_5 position.
-        summary_tibble$frequency_5[trimlog_integer[i, 2L]] <-
-          summary_tibble$frequency_5[trimlog_integer[i, 2L]] + 1L
+        summary_tibble$frequency_5[trim_log_integer[i, 2L]] <-
+          summary_tibble$frequency_5[trim_log_integer[i, 2L]] + 1L
         # Increment the frequency_3 position.
-        summary_tibble$frequency_3[trimlog_integer[i, 3L]] <-
-          summary_tibble$frequency_3[trimlog_integer[i, 3L]] + 1L
+        summary_tibble$frequency_3[trim_log_integer[i, 3L]] <-
+          summary_tibble$frequency_3[trim_log_integer[i, 3L]] + 1L
       }
-      rm(i, trimlog_integer)
+      rm(i, trim_log_integer)
 
       return(summary_tibble)
     }
@@ -188,27 +238,27 @@ process_trimlog <- function(file_path, number = -1L) {
   summary_tibble_1 <- NULL
   summary_tibble_2 <- NULL
 
-  trimlog_connection <-
+  trim_log_connection <-
     base::file(description = file_path, open = "rt")
   # Since trim log files may start with completely trimmed reads that allow no
   # conclusion about read lengths, the file needs searching for meaningful
   # coordinates first.
   while (TRUE) {
-    trimlog_line <- base::readLines(con = trimlog_connection, n = 1L)
-    if (length(x = trimlog_line) == 0L) {
+    trim_log_line <- base::readLines(con = trim_log_connection, n = 1L)
+    if (length(x = trim_log_line) == 0L) {
       break()
     }
-    trimlog_character <-
-      stringr::str_split(string = trimlog_line,
+    trim_log_character <-
+      stringr::str_split(string = trim_log_line,
                          pattern = stringr::fixed(pattern = " "))[[1L]]
     # The read length is the sum of the end trimming position and the amount
     # trimmed from the end. The tibble length is one longer to store the end
     # position.
     tibble_length <-
-      as.integer(x = trimlog_character[4L]) + as.integer(x = trimlog_character[5L]) + 1L
+      as.integer(x = trim_log_character[4L]) + as.integer(x = trim_log_character[5L]) + 1L
 
     # Check for read 1.
-    if (endsWith(x = trimlog_character[1L], "/1")) {
+    if (endsWith(x = trim_log_character[1L], "/1")) {
       counter_1 <- counter_1 + 1L  # Increment the counter for read 1.
       # Initialise only with meaningful coordinates.
       if (is.null(x = summary_tibble_1) && tibble_length > 1) {
@@ -217,7 +267,7 @@ process_trimlog <- function(file_path, number = -1L) {
       }
     } else {
       # Check for read 2.
-      if (endsWith(x = trimlog_character[1L], "/2")) {
+      if (endsWith(x = trim_log_character[1L], "/2")) {
         counter_2 <- counter_2 + 1L  # Increment the counter for read 2.
         # Initialise only with meaningful coordinates.
         if (is.null(x = summary_tibble_2) && tibble_length > 1) {
@@ -253,71 +303,70 @@ process_trimlog <- function(file_path, number = -1L) {
         }
       }
     }
-    rm(tibble_length, trimlog_character, trimlog_line)
+    rm(tibble_length, trim_log_character, trim_log_line)
   }
 
-  # Re-postion the connection to the start, reset the read counters and re-read the entire file.
-  base::seek(con = trimlog_connection, where = 0L)
+  # Re-position the connection to the start, reset the read counters and re-read
+  # the entire file.
+  base::seek(con = trim_log_connection, where = 0L)
   counter_1 <- 0L
   counter_2 <- 0L
   while (TRUE) {
-    trimlog_lines <-
-      base::readLines(con = trimlog_connection, n = argument_list$chunk_size)
-    if (length(x = trimlog_lines) == 0L) {
+    trim_log_lines <-
+      base::readLines(con = trim_log_connection, n = argument_list$chunk_size)
+    if (length(x = trim_log_lines) == 0L) {
       break()
     }
-    trimlog_character <-
+    trim_log_character <-
       stringr::str_split_fixed(
-        string = trimlog_lines,
+        string = trim_log_lines,
         pattern = stringr::fixed(pattern = " "),
         n = 5L
       )
 
-    reads_1 <- base::endsWith(x = trimlog_character[, 1L], "/1")
-    reads_2 <- base::endsWith(x = trimlog_character[, 1L], "/2")
+    reads_1 <- base::endsWith(x = trim_log_character[, 1L], "/1")
+    reads_2 <- base::endsWith(x = trim_log_character[, 1L], "/2")
     # Check for read 1.
     if (any(reads_1)) {
       counter_1 <- counter_1 + length(x = which(x = reads_1))
       summary_tibble_1 <-
         update_summary_tibble(summary_tibble = summary_tibble_1,
-                              trimlog_character = trimlog_character[reads_1, ])
+                              trim_log_character = trim_log_character[reads_1, ])
     }
     # Check for read 2.
     if (any(reads_2)) {
       counter_2 <- counter_2 + length(x = which(x = reads_2))
       summary_tibble_2 <-
         update_summary_tibble(summary_tibble = summary_tibble_2,
-                              trimlog_character = trimlog_character[reads_2, ])
+                              trim_log_character = trim_log_character[reads_2, ])
     }
     # This must be Trimmomatic data in SE mode, which lacks /1 and /2 suffices.
     if (!any(reads_1, reads_2)) {
-      counter_1 <- counter_1 + nrow(x = trimlog_character)
+      counter_1 <- counter_1 + nrow(x = trim_log_character)
       summary_tibble_1 <-
         update_summary_tibble(summary_tibble = summary_tibble_1,
-                              trimlog_character = trimlog_character)
+                              trim_log_character = trim_log_character)
     }
-    rm(reads_2, reads_1, trimlog_character, trimlog_lines)
-
-    # FIXME: For debugging only!
-    print(x = paste("Counter 1:", counter_1))
+    rm(reads_2, reads_1, trim_log_character, trim_log_lines)
 
     # Break after reaching the maximum number of reads to process.
     if (number > 0L) {
       if (counter_2 > 0L) {
         if (counter_2 >= number) {
-          # If read 2 exists, break after reaching its counter and thus completing the pair.
+          # If read 2 exists, break after reaching its counter and thus
+          # completing the pair.
           break()
         }
       } else {
         if (counter_1 >= number) {
-          # Otherwise, simply break after reaching the first read's counter.
+          # Otherwise, simply break after reaching the read 1 counter.
           break()
         }
       }
     }
   }
-  base::close(con = trimlog_connection)
-  rm(trimlog_connection,
+  base::close(con = trim_log_connection)
+  rm(trim_log_connection,
      update_summary_tibble,
      initialise_summary_tibble)
 
@@ -368,6 +417,7 @@ process_trimlog <- function(file_path, number = -1L) {
 
   # Pivot the data frame on measure variables "coverage_5", "coverage_3" and
   # "coverage" and plot faceted by column on the "read" factor.
+
   ggplot_object <- ggplot2::ggplot(
     data = tidyr::pivot_longer(
       data = summary_tibble,
@@ -376,8 +426,10 @@ process_trimlog <- function(file_path, number = -1L) {
       values_to = "reads"
     )
   )
+
   ggplot_object <-
     ggplot_object + ggplot2::facet_grid(cols = ggplot2::vars(read))
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -387,6 +439,7 @@ process_trimlog <- function(file_path, number = -1L) {
       ),
       alpha = I(1 / 3)
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Position",
@@ -394,14 +447,27 @@ process_trimlog <- function(file_path, number = -1L) {
       colour = "Type",
       title = "Coverage Summary"
     )
-  ggplot2::ggsave(filename = paste(paste(file_prefix, "coverage", sep = "_"), "png", sep = "."),
-                  plot = ggplot_object)
+
+  for (graphics_format in graphics_formats) {
+    ggplot2::ggsave(
+      filename = paste(
+        paste(file_prefix, "coverage", sep = "_"),
+        graphics_format,
+        sep = "."
+      ),
+      plot = ggplot_object,
+      width = argument_list$plot_width,
+      height = argument_list$plot_height
+    )
+  }
+  rm(graphics_format, ggplot_object)
 
   # Frequency Summary Plot ------------------------------------------------
 
 
   # Pivot the data frame on measure variables "frequency_5" and "frequency_3"
   # and plot faceted by column on the "read" factor.
+
   ggplot_object <- ggplot2::ggplot(
     data = tidyr::pivot_longer(
       data = summary_tibble,
@@ -410,8 +476,10 @@ process_trimlog <- function(file_path, number = -1L) {
       values_to = "reads"
     )
   )
+
   ggplot_object <-
     ggplot_object + ggplot2::facet_grid(cols = ggplot2::vars(read))
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -421,6 +489,7 @@ process_trimlog <- function(file_path, number = -1L) {
       ),
       alpha = I(1 / 3)
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Position",
@@ -428,8 +497,20 @@ process_trimlog <- function(file_path, number = -1L) {
       colour = "Type",
       title = "Frequency Summary"
     )
-  ggplot2::ggsave(filename = paste(paste(file_prefix, "frequency", sep = "_"), "png", sep = "."),
-                  plot = ggplot_object)
+
+  for (graphics_format in graphics_formats) {
+    ggplot2::ggsave(
+      filename = paste(
+        paste(file_prefix, "frequency", sep = "_"),
+        graphics_format,
+        sep = "."
+      ),
+      plot = ggplot_object,
+      width = argument_list$plot_width,
+      height = argument_list$plot_height
+    )
+  }
+  rm(graphics_format, ggplot_object)
 
   # Surviving Sequence Plot -----------------------------------------------
 
@@ -440,37 +521,45 @@ process_trimlog <- function(file_path, number = -1L) {
     ggplot2::ggplot(
       data = dplyr::select(.data = summary_tibble, .data$position, .data$read, .data$surviving)
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::facet_grid(cols = ggplot2::vars(read))
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(x = .data$position, y = .data$surviving),
       alpha = I(1 / 3)
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::labs(x = "Position", y = "Reads", title = "Surviving Sequence")
-  ggplot2::ggsave(filename = paste(paste(file_prefix, "surviving", sep = "_"), "png", sep = "."),
-                  plot = ggplot_object)
 
-  rm(ggplot_object, summary_tibble, file_prefix)
+  for (graphics_format in graphics_formats) {
+    ggplot2::ggsave(
+      filename = paste(
+        paste(file_prefix, "surviving", sep = "_"),
+        graphics_format,
+        sep = "."
+      ),
+      plot = ggplot_object,
+      width = argument_list$plot_width,
+      height = argument_list$plot_height
+    )
+  }
+  rm(graphics_format, ggplot_object)
+
+  rm(summary_tibble, file_prefix)
 }
 
 #' Process Trimmomatic summary data frame files, produced by this script by
-#' reading Trimmomatic trimlog files.
+#' reading Trimmomatic trim log files.
 #'
 #' @param directory_path A \code{character} scalar with a directory path.
 #' @return
 #' @noRd
 process_summary <- function(directory_path) {
-  file_list <- base::list.files(
-    path = directory_path,
-    pattern = '^trimmomatic_.*_summary.tsv',
-    full.names = FALSE,
-    recursive = FALSE
-  )
-  summary_tibble <- NULL
-  for (file_path in file_list) {
-    sample_tibble <- readr::read_tsv(
+  process_read_group_tibble <- function(file_path) {
+    read_group_tibble <- readr::read_tsv(
       file = file_path,
       col_types = readr::cols(
         "position" = readr::col_integer(),
@@ -481,62 +570,231 @@ process_summary <- function(directory_path) {
         "coverage_3" = readr::col_integer(),
         "coverage" = readr::col_integer(),
         "counter" = readr::col_integer()
-        # "sample" = readr::col_character()
       )
     )
-    sample_tibble$sample <-
-      sub(pattern = '^trimmomatic_(.*)_summary.tsv',
-          replacement = "\\1",
-          x = file_path)
-    summary_tibble <-
-      dplyr::bind_rows(summary_tibble, sample_tibble)
-    rm(sample_tibble)
+
+    read_group_tibble$read_group <-
+      base::sub(pattern = '^trimmomatic_read_group_(.*)_summary.tsv',
+                replacement = "\\1",
+                x = file_path)
+
+    return(read_group_tibble)
   }
+
+  file_paths <- base::list.files(
+    path = directory_path,
+    pattern = '^trimmomatic_read_group_.*_summary.tsv',
+    full.names = FALSE,
+    recursive = FALSE
+  )
+
+  summary_tibble <-
+    purrr::map_dfr(.x = file_paths, .f = process_read_group_tibble)
+
   readr::write_tsv(x = summary_tibble, file = "trimmomatic_summary.tsv")
-  rm(file_path, file_list, summary_tibble)
+
+  rm(summary_tibble, file_paths, process_read_group_tibble)
 }
 
+# Process Trimmomatic trim log files.
 if (!is.null(x = argument_list$file_path)) {
-  process_trimlog(file_path = argument_list$file_path, number = argument_list$number)
+  process_trim_log(file_path = argument_list$file_path, number = argument_list$number)
 }
 
+# Process Trimmomatic summary files that were created from trim log files with
+# this script via the --file-path option before.
 if (!is.null(x = argument_list$summary_path)) {
   process_summary(directory_path = argument_list$summary_path)
 }
 
-if (!is.null(x = argument_list$directory_path)) {
-  trimmomatic_paths <-
-    base::list.files(
-      path = argument_list$directory_path,
-      pattern = "\\.bsf_run_trimmomatic_.*\\.err",
-      all.files = TRUE,
-      full.names = TRUE
-    )
-  # trimmomatic_reports <- vector(mode = "list", length = length(x = trimmomatic_paths))
+# Process STDERR files with Trimmomatic statistics ------------------------
 
-  trimmomatic_list <-
-    lapply(X = trimmomatic_paths, FUN = process_stdout)
-  # trimmomatic_frame <- rbind.data.frame(trimmomatic_list)
-  # trimmomatic_frame <- do.call(rbind.data.frame, trimmomatic_list)
-  # trimmomatic_frame <- data.frame(
-  #   line = trimmomatic_list$line,
-  #   input = trimmomatic_list$input,
-  #   both = trimmomatic_list$both,
-  #   first = trimmomatic_list$first,
-  #   second = trimmomatic_list$second,
-  #   dropped = trimmomatic_list$dropped)
-  # trimmomatic_frame <- rbind.data.frame(trimmomatic_list)
-  # print(x = trimmomatic_frame)
-  # print(x = paste("trimmomatic_frame names:", names(x = trimmomatic_frame)))
-  # print(head(x = trimmomatic_frame))
-  # print(row.names(x = trimmomatic_frame))
-  rm(trimmomatic_list, trimmomatic_paths)
+
+if (!is.null(x = argument_list$stderr_path)) {
+  summary_tibble <-
+    purrr::map_dfr(
+      .x = base::list.files(
+        path = argument_list$stderr_path,
+        pattern = argument_list$stderr_pattern_file,
+        full.names = TRUE,
+        recursive = TRUE
+      ),
+      .f = process_stderr
+    )
+
+  summary_tibble <-
+    readr::type_convert(
+      df = summary_tibble,
+      col_types = readr::cols(
+        "input" = readr::col_integer(),
+        "both" = readr::col_integer(),
+        "first" = readr::col_integer(),
+        "second" = readr::col_integer(),
+        "dropped" = readr::col_integer()
+      )
+    )
+
+  summary_tibble <-
+    dplyr::mutate(
+      .data = summary_tibble,
+      "read_group" = base::gsub(
+        pattern = argument_list$stderr_pattern_read_group,
+        replacement = "\\1",
+        x = base::basename(path = .data$file_path)
+      ),
+      .before = .data$input
+    )
+
+  readr::write_tsv(x = summary_tibble, file = "trimmomatic_statistics.tsv")
+
+  # Scale the plot width with the number of read groups, by adding a quarter of
+  # the original width for each 24 read groups.
+  # Because read group names are quite long, extend already for the first column.
+  plot_width <-
+    argument_list$plot_width + (ceiling(x = nrow(x = summary_tibble) / 24L) - 1L) * argument_list$plot_width * 0.5
+
+  # Plot the absolute numbers of reads ------------------------------------
+
+  ggplot_object <-
+    ggplot2::ggplot(
+      data = tidyr::pivot_longer(
+        data = summary_tibble,
+        cols = c(
+          .data$input,
+          .data$both,
+          .data$first,
+          .data$second,
+          .data$dropped
+        ),
+        names_to = "state",
+        values_to = "numbers"
+      )
+    )
+
+  ggplot_object <-
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
+      x = .data$read_group,
+      y = .data$numbers,
+      colour = .data$state
+    ))
+
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Read Group",
+      y = "Numbers",
+      colour = "Status",
+      title = "Trimmomatic Read Numbers by Read Group"
+    )
+
+  ggplot_object <-
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.7),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      ),
+      legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
+    )
+
+  for (graphics_format in graphics_formats) {
+    ggplot2::ggsave(
+      filename = paste("trimmomatic_statistics_number", graphics_format, sep = "."),
+      plot = ggplot_object,
+      width = if (graphics_format == "png" &&
+                  plot_width > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(graphics_format, ggplot_object)
+
+  # Plot the fractions of reads -------------------------------------------
+
+  # Calculate fractions on the basis of "input" reads.
+  summary_tibble <-
+    dplyr::mutate(.data = summary_tibble, dplyr::across(
+      .cols = c(.data$both, .data$first, .data$second, .data$dropped),
+      .fns = ~ .x / .data$input
+    ))
+
+  summary_tibble <-
+    dplyr::select(.data = summary_tibble,
+                  c(
+                    .data$read_group,
+                    .data$both,
+                    .data$first,
+                    .data$second,
+                    .data$dropped
+                  ))
+
+  summary_tibble <-
+    tidyr::pivot_longer(
+      data = summary_tibble,
+      cols = c(.data$both, .data$first, .data$second, .data$dropped),
+      names_to = "state",
+      values_to = "fractions"
+    )
+
+  ggplot_object <- ggplot2::ggplot(data = summary_tibble)
+
+  ggplot_object <-
+    ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
+      x = .data$read_group,
+      y = .data$fractions,
+      colour = .data$state
+    ))
+
+  ggplot_object <-
+    ggplot_object + ggplot2::labs(
+      x = "Read Group",
+      y = "Fractions",
+      colour = "Status",
+      title = "Trimmomatic Read Fractions by Read Group"
+    )
+
+  ggplot_object <-
+    ggplot_object + ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        size = ggplot2::rel(x = 0.7),
+        hjust = 0.0,
+        vjust = 0.5,
+        angle = 90.0
+      ),
+      legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
+    )
+
+  for (graphics_format in graphics_formats) {
+    ggplot2::ggsave(
+      filename = paste(
+        "trimmomatic_statistics_fractions",
+        graphics_format,
+        sep = "."
+      ),
+      plot = ggplot_object,
+      width = if (graphics_format == "png" &&
+                  plot_width > graphics_maximum_size_png)
+        graphics_maximum_size_png
+      else
+        plot_width,
+      height = argument_list$plot_height,
+      limitsize = FALSE
+    )
+  }
+  rm(graphics_format, ggplot_object, plot_width, summary_tibble)
 }
 
-rm(argument_list,
-   process_summary,
-   process_trimlog,
-   process_stdout)
+rm(
+  argument_list,
+  process_summary,
+  process_trim_log,
+  process_stderr,
+  graphics_maximum_size_png,
+  graphics_formats
+)
 
 message("All done")
 
