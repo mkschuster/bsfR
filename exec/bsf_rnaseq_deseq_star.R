@@ -115,7 +115,7 @@ if (!file.exists(output_directory)) {
 # Read data ---------------------------------------------------------------
 
 
-# Read the DESeqDataSet object to get the total counts.
+# Read the RangedSummarizedExperiment object to get the total counts.
 
 ranged_summarized_experiment <-
   bsfR::bsfrd_read_summarized_experiment(
