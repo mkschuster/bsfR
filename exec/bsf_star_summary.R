@@ -88,7 +88,7 @@ suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 # Save plots in the following formats.
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
 # Maximum size for the PNG device in inches.
-graphics_maximum_size_png <- 200.0
+graphics_maximum_size_png <- 100.0
 
 # Parse STAR aligner log files --------------------------------------------
 
