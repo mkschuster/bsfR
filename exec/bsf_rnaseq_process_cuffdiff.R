@@ -125,6 +125,7 @@ if (is.null(x = argument_list$genome_version)) {
   stop("Missing --genome_version option")
 }
 
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 suppressPackageStartupMessages(expr = library(package = "Biostrings"))
 suppressPackageStartupMessages(expr = library(package = "cummeRbund"))
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
@@ -261,7 +262,7 @@ replicate_number <- nrow(x = replicate_frame)
 # Some plots require replicates. Check whether at least one row has a
 # replicate column value greater than 0.
 have_replicates <-
-  (nrow(x = replicate_frame[replicate_frame$replicate > 0L, ]) > 0L)
+  (nrow(x = replicate_frame[replicate_frame$replicate > 0L,]) > 0L)
 # Write the replicate_frame.
 frame_path <-
   file.path(output_directory, paste0(prefix, "_replicates.tsv"))
@@ -919,7 +920,7 @@ if (sample_number <= 20L) {
 # Scatter Plot on Genes for each sample pair ------------------------------
 
 
-for (i in seq_along(along.with = sample_pairs[1L, ])) {
+for (i in seq_along(along.with = sample_pairs[1L,])) {
   plot_paths <-
     file.path(output_directory, paste(
       paste(
@@ -967,7 +968,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
         x = sample_pairs[1L, i],
         y = sample_pairs[2L, i],
         features = FALSE
-      )[, -1L]
+      )[,-1L]
     ggplot_object <-
       ggplot2::ggplot(data = diff_data_genes,
                       mapping = ggplot2::aes(x = .data$value_1, y = .data$value_2))
@@ -979,7 +980,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       # which performs much better with typical numbers of genes.
       ggplot_object <-
         ggplot_object + ggplot2::geom_hex(
-          data = diff_data_genes[diff_data_genes$significant == "no", ],
+          data = diff_data_genes[diff_data_genes$significant == "no",],
           alpha = I(1 / 3),
           show.legend = TRUE,
           bins = 50
@@ -991,7 +992,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
       # Plot the significant genes with ggplot2::geom_point() in red.
       ggplot_object <-
         ggplot_object + ggplot2::geom_point(
-          data = diff_data_genes[diff_data_genes$significant == "yes", ],
+          data = diff_data_genes[diff_data_genes$significant == "yes",],
           colour = "red",
           size = 1.2,
           alpha = I(1 / 3)
@@ -1024,9 +1025,9 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
     # For defining the data range for label placement,
     # eliminate rows with value 0.0.
     range_value_1 <-
-      range(diff_data_genes[diff_data_genes$value_1 > 0.0, ]$value_1)
+      range(diff_data_genes[diff_data_genes$value_1 > 0.0,]$value_1)
     range_value_2 <-
-      range(diff_data_genes[diff_data_genes$value_2 > 0.0, ]$value_2)
+      range(diff_data_genes[diff_data_genes$value_2 > 0.0,]$value_2)
 
     # Calculate the (Pearson) correlation coefficient and place it on the plot
     # in the lower right corner at 95% x and 5% y.
@@ -1059,11 +1060,11 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
         label = paste0(
           "Up: ",
           nrow(x = diff_data_genes[diff_data_genes$log2_fold_change > 0.0 &
-                                     diff_data_genes$significant == "yes", ]),
+                                     diff_data_genes$significant == "yes",]),
           "\n",
           "Down: ",
           nrow(x = diff_data_genes[diff_data_genes$log2_fold_change < 0.0 &
-                                     diff_data_genes$significant == "yes", ])
+                                     diff_data_genes$significant == "yes",])
         ),
         colour = "red",
         hjust = 0.0
@@ -1125,7 +1126,7 @@ rm(plot_paths)
 # MA Plot on Genes for each sample pair based on FPKM values --------------
 
 
-for (i in seq_along(along.with = sample_pairs[1L, ])) {
+for (i in seq_along(along.with = sample_pairs[1L,])) {
   plot_paths <-
     file.path(output_directory, paste(
       paste(prefix, sample_pairs[1L, i], sample_pairs[2L, i], "genes", "ma", sep = "_"),
@@ -1197,7 +1198,7 @@ rm(plot_paths)
 # Volcano Plot on Genes for each sample pair ------------------------------
 
 
-for (i in seq_along(along.with = sample_pairs[1L, ])) {
+for (i in seq_along(along.with = sample_pairs[1L,])) {
   plot_paths <-
     file.path(output_directory,
               paste(
@@ -1421,12 +1422,12 @@ if (file.exists(frame_path_genes) &&
   message("Reading gene annotation from file")
   gene_annotation_frame <-
     utils::read.table(file = frame_path_genes,
-               header = TRUE,
-               sep = "\t")
+                      header = TRUE,
+                      sep = "\t")
   isoform_annotation_frame <-
     utils::read.table(file = frame_path_isoforms,
-               header = TRUE,
-               sep = "\t")
+                      header = TRUE,
+                      sep = "\t")
 } else {
   # Unfortunately, cummeRbund does not seem to offer a convenient way to
   # correlate Cufflinks (XLOC) gene identifiers with the original
@@ -1640,7 +1641,7 @@ if ("ensembl_gene_ids" %in% names(x = annotation(object = cummeRbund::genes(obje
 
 
 # Create an annotated differential genes data frame for each sample pair.
-for (i in seq_along(along.with = sample_pairs[1L, ])) {
+for (i in seq_along(along.with = sample_pairs[1L,])) {
   frame_path <-
     file.path(
       output_directory,
@@ -1674,7 +1675,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
         x = sample_pairs[1L, i],
         y = sample_pairs[2L, i],
         features = FALSE
-      )[, -1L]
+      )[,-1L]
     # Calculate ranks for the effect size (log2_fold_change), absolute level
     # and statistical significance (q_value).
     diff_data_genes$rank_log2_fold_change <-
@@ -1724,7 +1725,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
 
 
 # Create an annotated differential isoforms data frame for each sample pair.
-for (i in seq_along(along.with = sample_pairs[1L, ])) {
+for (i in seq_along(along.with = sample_pairs[1L,])) {
   frame_path <-
     file.path(
       output_directory,
@@ -1764,7 +1765,7 @@ for (i in seq_along(along.with = sample_pairs[1L, ])) {
         x = sample_pairs[1L, i],
         y = sample_pairs[2L, i],
         features = FALSE
-      )[, -1L]
+      )[,-1L]
     # Calculate ranks for the effect size (log2_fold_change), absolute level
     # and statistical significance (q_value).
     diff_data_isoform$rank_log2_fold_change <-
@@ -1836,12 +1837,12 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
           paste(x, collapse = "__")
         }
       ),
-      "OK" = integer(length = length(x = sample_pairs[1L, ])),
-      "NOTEST" = integer(length = length(x = sample_pairs[1L, ])),
-      "HIDATA" = integer(length = length(x = sample_pairs[1L, ])),
-      "LOWDATA" = integer(length = length(x = sample_pairs[1L, ])),
-      "FAIL" = integer(length = length(x = sample_pairs[1L, ])),
-      "SUM" = integer(length = length(x = sample_pairs[1L, ])),
+      "OK" = integer(length = length(x = sample_pairs[1L,])),
+      "NOTEST" = integer(length = length(x = sample_pairs[1L,])),
+      "HIDATA" = integer(length = length(x = sample_pairs[1L,])),
+      "LOWDATA" = integer(length = length(x = sample_pairs[1L,])),
+      "FAIL" = integer(length = length(x = sample_pairs[1L,])),
+      "SUM" = integer(length = length(x = sample_pairs[1L,])),
       row.names = apply(
         X = sample_pairs,
         MARGIN = 2L,
@@ -1851,14 +1852,14 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
       )
     )
 
-  for (i in seq_along(along.with = sample_pairs[1L, ])) {
+  for (i in seq_along(along.with = sample_pairs[1L,])) {
     diff_data_genes <-
       cummeRbund::diffData(
         object = cummeRbund::genes(object = cuff_set),
         x = sample_pairs[1L, i],
         y = sample_pairs[2L, i],
         features = FALSE
-      )[, -1L]
+      )[,-1L]
     # Aggregate the test Status column.
     status_integer <- table(diff_data_genes$status)
     for (status in names(x = status_frame)) {
@@ -1898,12 +1899,12 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
           paste(x, collapse = "__")
         }
       ),
-      "OK" = integer(length = length(x = sample_pairs[1L, ])),
-      "NOTEST" = integer(length = length(x = sample_pairs[1L, ])),
-      "HIDATA" = integer(length = length(x = sample_pairs[1L, ])),
-      "LOWDATA" = integer(length = length(x = sample_pairs[1L, ])),
-      "FAIL" = integer(length = length(x = sample_pairs[1L, ])),
-      "SUM" = integer(length = length(x = sample_pairs[1L, ])),
+      "OK" = integer(length = length(x = sample_pairs[1L,])),
+      "NOTEST" = integer(length = length(x = sample_pairs[1L,])),
+      "HIDATA" = integer(length = length(x = sample_pairs[1L,])),
+      "LOWDATA" = integer(length = length(x = sample_pairs[1L,])),
+      "FAIL" = integer(length = length(x = sample_pairs[1L,])),
+      "SUM" = integer(length = length(x = sample_pairs[1L,])),
       row.names = apply(
         X = sample_pairs,
         MARGIN = 2L,
@@ -1913,14 +1914,14 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
       )
     )
 
-  for (i in seq_along(along.with = sample_pairs[1L, ])) {
+  for (i in seq_along(along.with = sample_pairs[1L,])) {
     diff_data_isoforms <-
       cummeRbund::diffData(
         object = cummeRbund::isoforms(object = cuff_set),
         x = sample_pairs[1L, i],
         y = sample_pairs[2L, i],
         features = FALSE
-      )[, -1L]
+      )[,-1L]
     # Aggregate the test Status column.
     status_integer <- table(diff_data_isoforms$status)
     for (status in names(x = status_frame)) {
@@ -2241,4 +2242,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())

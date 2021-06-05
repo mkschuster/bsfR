@@ -135,10 +135,11 @@ if (is.null(x = argument_list$design_name)) {
   stop("Missing --design-name option")
 }
 
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
-suppressPackageStartupMessages(expr = library(package = "bsfR"))
 suppressPackageStartupMessages(expr = library(package = "EnhancedVolcano"))
 suppressPackageStartupMessages(expr = library(package = "Nozzle.R1"))
+suppressPackageStartupMessages(expr = library(package = "bsfR"))
 
 # Save plots in the following formats.
 
@@ -517,4 +518,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())

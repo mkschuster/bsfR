@@ -83,6 +83,7 @@ argument_list <-
     )
   ))
 
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 # Save plots in the following formats.
@@ -96,7 +97,7 @@ graphics_maximum_size_png <- 100.0
 read_group_tibble <- tibble::tibble(
   "file_name" =
     base::list.files(pattern = argument_list$pattern_file, recursive = TRUE),
-  "read_group_name" = gsub(
+  "read_group_name" = base::gsub(
     pattern = argument_list$pattern_sample,
     replacement = "\\1",
     x = base::basename(path = .data$file_name)
@@ -1166,4 +1167,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())

@@ -71,6 +71,7 @@ argument_list <-
     )
   ))
 
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 # Save plots in the following formats.
@@ -86,9 +87,9 @@ if (is.null(x = argument_list$prefix)) {
     base::list.files(pattern = "^variant_calling_process_cohort_.*_genotyped_raw_snp_raw_indel.vcf.gz$")
   for (file_name in file_names) {
     cohort_name <-
-      gsub(pattern = "^variant_calling_process_cohort_(.*?)_genotyped_raw_snp_raw_indel.vcf.gz$",
-           replacement = "\\1",
-           x = file_name)
+      base::gsub(pattern = "^variant_calling_process_cohort_(.*?)_genotyped_raw_snp_raw_indel.vcf.gz$",
+                 replacement = "\\1",
+                 x = file_name)
     message("Cohort name: ", cohort_name)
     prefix_summary <-
       paste("variant_calling_summary", cohort_name, sep = "_")
@@ -111,9 +112,9 @@ file_names <-
   base::list.files(pattern = "^variant_calling_process_sample_.*_duplicate_metrics.tsv$")
 for (file_name in file_names) {
   sample_name <-
-    gsub(pattern = "^variant_calling_process_sample_(.*?)_duplicate_metrics.tsv$",
-         replacement = "\\1",
-         x = file_name)
+    base::gsub(pattern = "^variant_calling_process_sample_(.*?)_duplicate_metrics.tsv$",
+               replacement = "\\1",
+               x = file_name)
   message("  ", sample_name)
 
   # Picard Tools added a histogram section that needs excluding from parsing.
@@ -172,7 +173,7 @@ rm(file_name, file_names)
 if (!is.null(x = combined_metrics_sample)) {
   # Order the sample frame by SAMPLE.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
   # Convert the SAMPLE column into factors, which come more handy for plotting.
   combined_metrics_sample$SAMPLE <-
     as.factor(x = combined_metrics_sample$SAMPLE)
@@ -314,9 +315,9 @@ file_names <-
   base::list.files(pattern = "^variant_calling_process_sample_.*_alignment_summary_metrics.tsv$")
 for (file_name in file_names) {
   sample_name <-
-    gsub(pattern = "^variant_calling_process_sample_(.*?)_alignment_summary_metrics.tsv$",
-         replacement = "\\1",
-         x = file_name)
+    base::gsub(pattern = "^variant_calling_process_sample_(.*?)_alignment_summary_metrics.tsv$",
+               replacement = "\\1",
+               x = file_name)
   message("  ", sample_name)
   # Since the Illumina2bam tools BamIndexDecoder uses a hash character (#) in
   # the read group component to separate platform unit and sample name, the
@@ -361,7 +362,7 @@ for (file_name in file_names) {
     picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
                            (picard_metrics_total$SAMPLE != "") &
                            (picard_metrics_total$LIBRARY == "") &
-                           (picard_metrics_total$READ_GROUP == ""), ]
+                           (picard_metrics_total$READ_GROUP == ""),]
   if (is.null(x = combined_metrics_sample)) {
     combined_metrics_sample <- picard_metrics_sample
   } else {
@@ -373,7 +374,7 @@ for (file_name in file_names) {
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP
   # information.
   picard_metrics_read_group <-
-    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""), ]
+    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
   if (is.null(x = combined_metrics_read_group)) {
     combined_metrics_read_group <- picard_metrics_read_group
   } else {
@@ -389,7 +390,7 @@ rm(file_name, file_names)
 if (!is.null(x = combined_metrics_sample)) {
   # Order the data frame by SAMPLE.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
   # Manually convert CATEGORY and SAMPLE columns into factors, which are handy
   # for plotting.
   combined_metrics_sample$CATEGORY <-
@@ -415,7 +416,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   # Order the data frame by READ_GROUP
   combined_metrics_read_group <-
-    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP),]
+    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP), ]
   # Manually convert CATEGORY and READ_GROUP columns into factors, which are
   # handy for plotting.
   combined_metrics_read_group$CATEGORY <-
@@ -760,9 +761,9 @@ file_names <-
   base::list.files(pattern = "^variant_calling_diagnose_sample_.*_hybrid_selection_metrics.tsv$")
 for (file_name in file_names) {
   sample_name <-
-    gsub(pattern = "^variant_calling_diagnose_sample_(.*?)_hybrid_selection_metrics.tsv$",
-         replacement = "\\1",
-         x = file_name)
+    base::gsub(pattern = "^variant_calling_diagnose_sample_(.*?)_hybrid_selection_metrics.tsv$",
+               replacement = "\\1",
+               x = file_name)
   message("  ", sample_name)
   # Picard Tools added a histogram section that needs excluding from parsing.
   # Find the lines starting with "## METRICS CLASS" and "## HISTOGRAM" and read
@@ -830,7 +831,7 @@ for (file_name in file_names) {
     picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
                            (picard_metrics_total$SAMPLE != "") &
                            (picard_metrics_total$LIBRARY == "") &
-                           (picard_metrics_total$READ_GROUP == ""), ]
+                           (picard_metrics_total$READ_GROUP == ""),]
   if (is.null(x = combined_metrics_sample)) {
     combined_metrics_sample <- picard_metrics_sample
   } else {
@@ -842,7 +843,7 @@ for (file_name in file_names) {
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP
   # information.
   picard_metrics_read_group <-
-    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""), ]
+    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
   if (is.null(x = combined_metrics_read_group)) {
     combined_metrics_read_group <- picard_metrics_read_group
   } else {
@@ -860,7 +861,7 @@ rm(file_name, file_names)
 if (!is.null(x = combined_metrics_sample)) {
   # Sort the data frame by SAMPLE.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
   # Manually convert BAIT_SET and SAMPLE columns into factors, which are handy
   # for plotting.
   combined_metrics_sample$BAIT_SET <-
@@ -877,7 +878,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   # Sort the data frame by READ_GROUP.
   combined_metrics_read_group <-
-    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP), ]
+    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP),]
   # Manually convert BAIT_SET and READ_GROUP columns into factors, which are
   # handy for plotting.
   combined_metrics_read_group$BAIT_SET <-
@@ -1578,9 +1579,9 @@ rm(level)
 
 for (i in seq_len(length.out = nrow(x = combined_metrics_sample))) {
   sample_name <-
-    gsub(pattern = "^variant_calling_diagnose_sample_(.*?)_non_callable_summary.tsv$",
-         replacement = "\\1",
-         x = combined_metrics_sample$file_name[i])
+    base::gsub(pattern = "^variant_calling_diagnose_sample_(.*?)_non_callable_summary.tsv$",
+               replacement = "\\1",
+               x = combined_metrics_sample$file_name[i])
   message("  ", sample_name)
   non_callable_metrics_sample <-
     utils::read.table(
@@ -1642,7 +1643,7 @@ rm(i)
 if (nrow(x = combined_metrics_sample) > 0L) {
   # Sort the data frame by sample_name.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$sample_name), ]
+    combined_metrics_sample[order(combined_metrics_sample$sample_name),]
   # Convert the sample_name column into factors, which come more handy for
   # plotting.
   combined_metrics_sample$sample_name <-
@@ -1674,9 +1675,9 @@ if (nrow(x = combined_metrics_sample) > 0L) {
   # required, the remainder is the mapping status.
   column_names <- names(x = combined_metrics_sample)
   mapping_status <-
-    gsub(pattern = "^non_callable_number_constrained\\.(.*)$",
-         replacement = "\\1",
-         x = column_names)
+    base::gsub(pattern = "^non_callable_number_constrained\\.(.*)$",
+               replacement = "\\1",
+               x = column_names)
   # Extract only those columns which had a match and set the mapping status as
   # their new name.
   for (i in which(x = grepl(pattern = "^non_callable_number_constrained\\.", x = column_names))) {
@@ -1698,7 +1699,7 @@ if (nrow(x = combined_metrics_sample) > 0L) {
     plotting_frame$number / plotting_frame$constrained_number
   # For the moment, remove lines with "TOTAL".
   plotting_frame <-
-    plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
+    plotting_frame[plotting_frame$mapping_status != "TOTAL",]
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
@@ -1758,9 +1759,9 @@ if (nrow(x = combined_metrics_sample) > 0L) {
   # required, the remainder is the mapping status.
   column_names <- names(x = combined_metrics_sample)
   mapping_status <-
-    gsub(pattern = "^non_callable_width_constrained\\.(.*)$",
-         replacement = "\\1",
-         x = column_names)
+    base::gsub(pattern = "^non_callable_width_constrained\\.(.*)$",
+               replacement = "\\1",
+               x = column_names)
   # Extract only those columns which had a match and set the mapping status as
   # their new name.
   for (i in which(x = grepl(pattern = "^non_callable_width_constrained\\.", x = column_names))) {
@@ -1782,7 +1783,7 @@ if (nrow(x = combined_metrics_sample) > 0L) {
     plotting_frame$width / plotting_frame$constrained_width
   # For the moment, remove lines with "TOTAL".
   plotting_frame <-
-    plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
+    plotting_frame[plotting_frame$mapping_status != "TOTAL",]
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
@@ -1844,4 +1845,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())

@@ -70,6 +70,7 @@ argument_list <-
 # Start of main script ----------------------------------------------------
 
 
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
 suppressPackageStartupMessages(expr = library(package = "ChIPQC"))
 suppressPackageStartupMessages(expr = library(package = "DiffBind"))
@@ -131,4 +132,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())

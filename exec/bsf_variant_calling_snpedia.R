@@ -111,6 +111,7 @@ if (is.null(x = argument_list$genome_assembly)) {
   stop("Missing --genome-assembly option")
 }
 
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
 suppressPackageStartupMessages(expr = library(package = "VariantAnnotation"))
@@ -161,11 +162,11 @@ while (TRUE) {
       }
       # Replace tab characters with their percent encoded value %09.
       character_1[9L] <-
-        gsub(pattern = "\t",
+        base::gsub(pattern = "\t",
              replacement = "%09",
              x = character_1[9L])
       # Replace semicolon characters within quoted values only
-      # with their precent encoded value %3B.
+      # with their percent encoded value %3B.
       #
       # Anchor the regular expression with a look ahead on the closing quote,
       # avoiding an equal character just before the closing quote.
@@ -173,7 +174,7 @@ while (TRUE) {
       # 'Name=rs781362878;ID=rs781362878;Note="CLNSIG=255;CLNDBN=Familial hypercholesterolemia"'
       # The following regular expression over-converts empty "Note" attributes (i.e. %3BNote="").
       character_1[9L] <-
-        gsub(
+        base::gsub(
           pattern = ';(?=[^"]+?[^=]")',
           replacement = "%3B",
           x = character_1[9L],
@@ -181,7 +182,7 @@ while (TRUE) {
         )
       # Revert the semicolon in over-converted empty "Note" attributes.
       character_1[9L] <-
-        gsub(pattern = '%3BNote=""',
+        base::gsub(pattern = '%3BNote=""',
              replacement = ';Note=""',
              x = character_1[9L])
       # Replace any NA values resulting from shorter comment lines.
@@ -286,4 +287,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())

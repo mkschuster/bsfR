@@ -101,6 +101,7 @@ argument_list <-
     )
   ))
 
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 # Save plots in the following formats.
@@ -122,7 +123,7 @@ sample_tibble <- tibble::tibble(
     value = TRUE
   ),
   # R character vector of sample names.
-  "sample_name" = gsub(
+  "sample_name" = base::gsub(
     pattern = argument_list$pattern_sample,
     replacement = "\\1",
     x = .data$directory_path
@@ -284,4 +285,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())

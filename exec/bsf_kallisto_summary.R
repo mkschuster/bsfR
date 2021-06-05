@@ -88,6 +88,7 @@ argument_list <-
     )
   ))
 
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "rjson"))
 
@@ -100,7 +101,7 @@ graphics_formats <- c("pdf" = "pdf", "png" = "png")
 sample_tibble <- tibble::tibble(
   "file_name" =
     base::list.files(pattern = argument_list$pattern_file, recursive = TRUE),
-  "sample_name" = gsub(
+  "sample_name" = base::gsub(
     pattern = argument_list$pattern_sample,
     replacement = "\\1",
     x = base::basename(path = base::dirname(path = .data$file_name))
@@ -366,4 +367,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())

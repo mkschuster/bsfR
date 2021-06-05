@@ -99,6 +99,7 @@ if (is.null(x = argument_list$directory)) {
   stop("Missing --directory option")
 }
 
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
 suppressPackageStartupMessages(expr = library(package = "GenomicAlignments"))
 suppressPackageStartupMessages(expr = library(package = "GenomicRanges"))
@@ -133,13 +134,13 @@ if (nrow(x = sample_frame) == 0L) {
   stop("Could not find any files in the supplied directory.")
 }
 sample_frame$bai_path <-
-  gsub(pattern = "\\.bam$",
-       replacement = ".bai",
-       x = sample_frame$bam_path)
+  base::gsub(pattern = "\\.bam$",
+             replacement = ".bai",
+             x = sample_frame$bam_path)
 sample_frame$sample <-
-  gsub(pattern = "^star_sample_(.*)\\.bam$",
-       replacement = "\\1",
-       x = sample_frame$bam_path)
+  base::gsub(pattern = "^star_sample_(.*)\\.bam$",
+             replacement = "\\1",
+             x = sample_frame$bam_path)
 bam_file_list <- Rsamtools::BamFileList(
   file = as.character(x = sample_frame$bam_path),
   index = as.character(x = sample_frame$bai_path),
@@ -195,4 +196,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())

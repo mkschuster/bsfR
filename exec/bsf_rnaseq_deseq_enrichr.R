@@ -111,6 +111,7 @@ if (is.null(x = argument_list$design_name)) {
 }
 
 suppressPackageStartupMessages(expr = library(package = "enrichR"))
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 suppressPackageStartupMessages(expr = library(package = "Nozzle.R1"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
@@ -619,4 +620,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())

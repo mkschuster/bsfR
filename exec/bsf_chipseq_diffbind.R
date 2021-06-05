@@ -94,6 +94,7 @@ argument_list <-
 # Start of main script ----------------------------------------------------
 
 
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 # suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
 suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
 # suppressPackageStartupMessages(expr = library(package = "ChIPQC"))
@@ -245,7 +246,7 @@ if (file.exists(file_path) &&
     if (nrow(x = diffbind_dba$samples) == 2) {
       message("In lack of replicates, setting contrasts on the basis of the first two conditions")
       diffbind_conditions <-
-        unique(x = diffbind_dba$class[DiffBind::DBA_CONDITION, ])
+        unique(x = diffbind_dba$class[DiffBind::DBA_CONDITION,])
       diffbind_dba <- DiffBind::dba.contrast(
         DBA = diffbind_dba,
         group1 = DiffBind::dba.mask(
@@ -480,7 +481,7 @@ process_per_contrast <-
 
       # Extract only significant peaks by filtering for the FDR threshold.
       report_frame <-
-        report_frame[report_frame$FDR <= argument_list$fdr_threshold, ]
+        report_frame[report_frame$FDR <= argument_list$fdr_threshold,]
       utils::write.table(
         x = report_frame,
         file = sprintf(fmt = "%s_significant_%s__%s.tsv", prefix, group1, group2),
@@ -756,14 +757,14 @@ group1_name <-
   }
 
 contrast_frame[, group1_name] <-
-  gsub(pattern = "!",
-       replacement = "not_",
-       x = contrast_frame[, group1_name])
+  base::gsub(pattern = "!",
+             replacement = "not_",
+             x = contrast_frame[, group1_name])
 
 contrast_frame$Group2 <-
-  gsub(pattern = "!",
-       replacement = "not_",
-       x = contrast_frame$Group2)
+  base::gsub(pattern = "!",
+             replacement = "not_",
+             x = contrast_frame$Group2)
 
 # Write the contrasts data frame to disk.
 write.csv(
@@ -813,4 +814,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())

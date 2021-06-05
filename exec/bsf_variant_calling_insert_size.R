@@ -87,6 +87,7 @@ if (is.null(x = argument_list$file_path)) {
   stop("Missing --file-path option")
 }
 
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "Rsamtools"))
 
@@ -97,7 +98,7 @@ graphics_formats <- c("pdf" = "pdf", "png" = "png")
 prefix <- "variant_calling_diagnose_sample"
 
 sample_name <-
-  gsub(
+  base::gsub(
     pattern = "^variant_calling_process_sample_(.*)_realigned.bam$",
     replacement = "\\1",
     x = base::basename(path = argument_list$file_path)
@@ -225,4 +226,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())

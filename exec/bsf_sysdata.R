@@ -26,6 +26,7 @@
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
 suppressPackageStartupMessages(expr = library(package = "devtools"))
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "usethis"))
 
@@ -153,4 +154,3 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())

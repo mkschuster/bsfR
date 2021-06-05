@@ -119,6 +119,7 @@ if (grepl(pattern = "\\W",
   stop("Only word characters [0-9A-Z_a-z] are allowed for the --set-name option.")
 }
 
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 # Pre-process the sample names to get a character vector.
@@ -182,12 +183,12 @@ process_CAF_element <- function(x) {
   if (length(x = x) == 0L) {
     return(TRUE)
   }
-  # TODO: Report a BioCoductor VariantAnnotation bug?
+  # TODO: Report a BioConductor VariantAnnotation bug?
   #   Square brackets in the INFO variable are lost, if the last value of a list is missing (i.e. '.').
   # if (length(x = which(x = grepl(pattern = "^\\.$", x = x, perl = TRUE)))) { print(x = x) }
   # Replace square brackets seemingly specific to the GATK bundle CAF variable.
   x <-
-    gsub(
+    base::gsub(
       pattern = "[\\[\\]]",
       replacement = "",
       x = x,
@@ -199,7 +200,7 @@ process_CAF_element <- function(x) {
 }
 
 #' Filter function object for the FilterRules object to filter out variants with
-#' a calcualted allele frequency (CAF) greater than the minor allele frequency (MAF)
+#' a calculated allele frequency (CAF) greater than the minor allele frequency (MAF)
 #' specified by the "--maf" option.
 #'
 #' @param x: Fully parsed VCF object
@@ -407,14 +408,14 @@ while (nrow(
   # Reorder columns, but drop "strand" and "paramRangeID".
   row_granges_frame <-
     row_granges_frame[c("seqnames",
-                       "start",
-                       "end",
-                       "width",
-                       "identifier",
-                       "REF",
-                       "ALT",
-                       "QUAL",
-                       "FILTER")]
+                        "start",
+                        "end",
+                        "width",
+                        "identifier",
+                        "REF",
+                        "ALT",
+                        "QUAL",
+                        "FILTER")]
 
   # Secondly, get the VCF INFO frame.
   info_frame <- info(x = vcf_object)
@@ -531,7 +532,7 @@ while (nrow(
     integer(length = nrow(x = info_frame))
   for (i in seq_len(length.out = dim(genotype_list[["GT"]])[1L])) {
     info_frame$Recurrence[i] <-
-      sum(grepl(pattern = "[1-9]", x = genotype_list[["GT"]][i,]))
+      sum(grepl(pattern = "[1-9]", x = genotype_list[["GT"]][i, ]))
   }
   rm(i, genotype_list, column_data_frame)
 
@@ -546,7 +547,7 @@ while (nrow(
   # Select only rows which Recurrence variable is equal to or more than the
   # recurrence threshold option.
   combined_frame <-
-    combined_frame[combined_frame$Recurrence >= argument_list$recurrence, ]
+    combined_frame[combined_frame$Recurrence >= argument_list$recurrence,]
 
   sum_records_written <-
     sum_records_written + nrow(x = combined_frame)
@@ -603,4 +604,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())

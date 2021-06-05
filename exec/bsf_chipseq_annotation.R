@@ -116,6 +116,8 @@ argument_list <-
 # Start of main script ----------------------------------------------------
 
 
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
+suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "AnnotationDbi"))
 suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
 suppressPackageStartupMessages(expr = library(package = "Biostrings"))
@@ -123,7 +125,6 @@ suppressPackageStartupMessages(expr = library(package = "ChIPpeakAnno"))
 suppressPackageStartupMessages(expr = library(package = "DiffBind"))
 suppressPackageStartupMessages(expr = library(package = "GenomicFeatures"))
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
-suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 # Save plots in the following formats.
 
@@ -337,7 +338,7 @@ rm(annotated_frame)
 
 # Order by the numeric "peak" variable.
 merged_frame <-
-  merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)),]
+  merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)), ]
 
 utils::write.table(
   x = merged_frame,
@@ -462,7 +463,7 @@ process_per_contrast <-
 
     # Order by the numeric "peak" variable.
     merged_frame <-
-      merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)),]
+      merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)), ]
 
     utils::write.table(
       x = merged_frame,
@@ -482,7 +483,7 @@ process_per_contrast <-
 
     # Filter by the FDR threshold value.
     merged_frame <-
-      merged_frame[merged_frame$FDR <= argument_list$fdr_threshold,]
+      merged_frame[merged_frame$FDR <= argument_list$fdr_threshold, ]
 
     utils::write.table(
       x = merged_frame,
@@ -503,7 +504,7 @@ process_per_contrast <-
     rm(merged_frame)
 
     significant_granges <-
-      report_granges[report_granges$FDR <= argument_list$fdr_threshold,]
+      report_granges[report_granges$FDR <= argument_list$fdr_threshold, ]
     message(sprintf(fmt = "  Assigning chromosome regions for significant peak set: %d",
                     length(x = significant_granges)))
 
@@ -599,14 +600,14 @@ group1_name <-
   }
 
 contrast_frame[, group1_name] <-
-  gsub(pattern = "!",
-       replacement = "not_",
-       x = contrast_frame[, group1_name])
+  base::gsub(pattern = "!",
+             replacement = "not_",
+             x = contrast_frame[, group1_name])
 
 contrast_frame$Group2 <-
-  gsub(pattern = "!",
-       replacement = "not_",
-       x = contrast_frame$Group2)
+  base::gsub(pattern = "!",
+             replacement = "not_",
+             x = contrast_frame$Group2)
 
 return_value <-
   mapply(
@@ -618,7 +619,10 @@ return_value <-
     # character, before converting into an integer.
     as.integer(x = as.character(x = contrast_frame[, 5L]))
   )
-rm(return_value, contrast_frame, group1_name, process_per_contrast)
+rm(return_value,
+   contrast_frame,
+   group1_name,
+   process_per_contrast)
 
 rm(
   annotation_granges,
@@ -643,4 +647,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())

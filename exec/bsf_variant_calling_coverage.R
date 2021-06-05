@@ -48,6 +48,7 @@
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
@@ -140,7 +141,7 @@ argument_list <-
 
 if (file.size(argument_list$callable_loci_path) > 1e+09) {
   message("The file specified by the --callable-loci option is too large to process.")
-  print(x = sessionInfo())
+  print(x = sessioninfo::session_info())
   quit()
 }
 
@@ -184,7 +185,7 @@ summary_list$callable_loci_path <-
 
 # Store the sample name in the summary list.
 summary_list$sample_name <-
-  gsub(
+  base::gsub(
     pattern = paste(paste0(".*", prefix), "(.*?)_callable_loci.bed$", sep = "_"),
     replacement = "\\1",
     x = summary_list$callable_loci_path
@@ -209,7 +210,7 @@ S4Vectors::mcols(x = callable_granges) <-
 
 # Filter out "CALLABLE" GenomicRanges::GRanges.
 non_callable_granges <-
-  callable_granges[callable_granges$mapping_status != "CALLABLE",]
+  callable_granges[callable_granges$mapping_status != "CALLABLE", ]
 rm(callable_granges)
 
 non_callable_granges$mapping_status <-
@@ -584,4 +585,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())

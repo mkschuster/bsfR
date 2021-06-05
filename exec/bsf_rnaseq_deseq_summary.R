@@ -87,8 +87,9 @@ argument_list <-
     )
   ))
 
-suppressPackageStartupMessages(expr = library(package = "bsfR"))
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+suppressPackageStartupMessages(expr = library(package = "bsfR"))
 
 # For the moment, no other prefix-based directory gets created under the output
 # directory.
@@ -207,4 +208,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())

@@ -95,6 +95,7 @@ if (is.null(x = argument_list$directory_path) &
 }
 
 message("Loading packages")
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "PicardReports"))
 
@@ -240,4 +241,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())

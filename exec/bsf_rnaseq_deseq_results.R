@@ -110,8 +110,9 @@ if (is.null(x = argument_list$design_name)) {
   stop("Missing --design-name option")
 }
 
-suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
 suppressPackageStartupMessages(expr = library(package = "bsfR"))
 suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
 suppressPackageStartupMessages(expr = library(package = "DESeq2"))
@@ -639,4 +640,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())
