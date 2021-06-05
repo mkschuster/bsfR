@@ -207,6 +207,7 @@ suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "grid"))
 suppressPackageStartupMessages(expr = library(package = "pheatmap"))
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 suppressPackageStartupMessages(expr = library(package = "bsfR"))
 
 # Global Variables --------------------------------------------------------
@@ -453,16 +454,16 @@ fix_model_matrix <- function(model_matrix_local) {
       linear_combinations_list <-
         caret::findLinearCombos(x = model_matrix_local)
       message_character <-
-        unlist(x = lapply(
-          X = linear_combinations_list$linearCombos,
-          FUN = function(x) {
+        purrr::map_chr(
+          .x = linear_combinations_list$linearCombos,
+          .f = function(x) {
             return(paste0(
               "  Linear combinations:\n    ",
               paste(colnames(x = model_matrix_local)[x], collapse = "\n    "),
               "\n"
             ))
           }
-        ))
+        )
       message(
         "One or more variables or interaction terms in the design formula are\n",
         "linear combinations of the others.\n",
@@ -1005,159 +1006,157 @@ plot_mds <- function(object,
       BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object))
     )
 
-  dummy_list <-
-    lapply(
-      X = plot_list,
-      FUN = function(geom_list) {
-        aes_character <-
-          bsfR::bsfrd_geometrics_list_to_character(geom_list = geom_list)
+  purrr::walk(
+    .x = plot_list,
+    .f = function(geom_list) {
+      aes_character <-
+        bsfR::bsfrd_geometrics_list_to_character(geom_list = geom_list)
 
-        plot_paths <- file.path(output_directory,
-                                paste(
-                                  paste(prefix,
-                                        "mds",
-                                        aes_character,
-                                        suffix,
-                                        sep = "_"),
-                                  graphics_formats,
-                                  sep = "."
-                                ))
+      plot_paths <- file.path(output_directory,
+                              paste(
+                                paste(prefix,
+                                      "mds",
+                                      aes_character,
+                                      suffix,
+                                      sep = "_"),
+                                graphics_formats,
+                                sep = "."
+                              ))
 
-        if (all(file.exists(plot_paths) &&
-                file.info(plot_paths)$size > 0L)) {
-          message("  Skipping MDS plot: ", aes_character)
-        } else {
-          message("  Creating MDS plot: ", aes_character)
+      if (all(file.exists(plot_paths) &&
+              file.info(plot_paths)$size > 0L)) {
+        message("  Skipping MDS plot: ", aes_character)
+      } else {
+        message("  Creating MDS plot: ", aes_character)
 
-          ggplot_object <-
-            ggplot2::ggplot(data = mds_frame)
+        ggplot_object <-
+          ggplot2::ggplot(data = mds_frame)
 
-          # geom_line
-          if (!is.null(x = geom_list$geom_line)) {
+        # geom_line
+        if (!is.null(x = geom_list$geom_line)) {
+          mapping_list <-
+            ggplot2::aes(x = .data$X1, y = .data$X2)
+          if (!is.null(x = geom_list$geom_line$colour)) {
             mapping_list <-
-              ggplot2::aes(x = .data$X1, y = .data$X2)
-            if (!is.null(x = geom_list$geom_line$colour)) {
-              mapping_list <-
-                utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_line$colour]]))
-            }
-            if (!is.null(x = geom_list$geom_line$group)) {
-              mapping_list <-
-                utils::modifyList(x = mapping_list, val = ggplot2::aes(group = .data[[geom_list$geom_line$group]]))
-            }
-            if (!is.null(x = geom_list$geom_line$linetype)) {
-              mapping_list <-
-                utils::modifyList(x = mapping_list,
-                                  val = ggplot2::aes(linetype = .data[[geom_list$geom_line$linetype]]))
-            }
-            ggplot_object <-
-              ggplot_object +
-              ggplot2::geom_line(mapping = mapping_list,
-                                 alpha = I(1 / 3))
-            rm(mapping_list)
+              utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_line$colour]]))
           }
-
-          # geom_point
-          if (!is.null(x = geom_list$geom_point)) {
+          if (!is.null(x = geom_list$geom_line$group)) {
             mapping_list <-
-              ggplot2::aes(x = .data$X1, y = .data$X2)
-            if (!is.null(x = geom_list$geom_point$colour)) {
-              mapping_list <-
-                utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_point$colour]]))
-            }
-            if (!is.null(x = geom_list$geom_point$shape)) {
-              mapping_list <-
-                utils::modifyList(x = mapping_list, val = ggplot2::aes(shape = .data[[geom_list$geom_point$shape]]))
-            }
-            ggplot_object <-
-              ggplot_object +
-              ggplot2::geom_point(mapping = mapping_list,
-                                  size = 2.0,
-                                  alpha = I(1 / 3))
-            if (!is.null(x = geom_list$geom_point$shape)) {
-              # For more than six shapes (scale_shape()), a manual scale
-              # (scale_shape_manual()) needs setting up.
-              # https://ggplot2.tidyverse.org/reference/scale_shape.html
-              ggplot_object <-
-                ggplot_object +
-                ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = mds_frame[, geom_list$geom_point$shape])))
-            }
-            rm(mapping_list)
+              utils::modifyList(x = mapping_list, val = ggplot2::aes(group = .data[[geom_list$geom_line$group]]))
           }
-
-          # geom_text
-          if (!is.null(x = geom_list$geom_text)) {
+          if (!is.null(x = geom_list$geom_line$linetype)) {
             mapping_list <-
-              ggplot2::aes(x = .data$X1, y = .data$X2)
-            if (!is.null(x = geom_list$geom_text$label)) {
-              mapping_list <-
-                utils::modifyList(x = mapping_list, val = ggplot2::aes(label = .data[[geom_list$geom_text$label]]))
-            }
-            if (!is.null(x = geom_list$geom_text$colour)) {
-              mapping_list <-
-                utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_text$colour]]))
-            }
-            ggplot_object <-
-              ggplot_object +
-              ggplot2::geom_text(mapping = mapping_list,
-                                 size = 2.0,
-                                 alpha = I(1 / 3))
-            rm(mapping_list)
+              utils::modifyList(x = mapping_list,
+                                val = ggplot2::aes(linetype = .data[[geom_list$geom_line$linetype]]))
           }
-
-          # geom_path
-          if (!is.null(x = geom_list$geom_path)) {
-            mapping_list <-
-              ggplot2::aes(x = .data$X1, y = .data$X2)
-            if (!is.null(x = geom_list$geom_path$colour)) {
-              mapping_list <-
-                utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_path$colour]]))
-            }
-            if (!is.null(x = geom_list$geom_path$group)) {
-              mapping_list <-
-                utils::modifyList(x = mapping_list, val = ggplot2::aes(group = .data[[geom_list$geom_path$group]]))
-            }
-            if (!is.null(x = geom_list$geom_path$linetype)) {
-              mapping_list <-
-                utils::modifyList(x = mapping_list,
-                                  val = ggplot2::aes(linetype = .data[[geom_list$geom_path$linetype]]))
-            }
-            ggplot_object <-
-              ggplot_object +
-              ggplot2::geom_path(
-                mapping = mapping_list,
-                arrow = if (is.null(x = geom_list$geom_path$arrow))
-                  NULL
-                else
-                  grid::arrow(
-                    length = grid::unit(x = 0.08, units = "inches"),
-                    type = "closed"
-                  )
-              )
-            rm(mapping_list)
-          }
-
           ggplot_object <-
             ggplot_object +
-            ggplot2::theme_bw() +
-            ggplot2::coord_fixed()
-
-          for (plot_path in plot_paths) {
-            ggplot2::ggsave(
-              filename = plot_path,
-              plot = ggplot_object,
-              width = argument_list$plot_width,
-              height = argument_list$plot_height,
-              limitsize = FALSE
-            )
-          }
-          rm(plot_path, ggplot_object)
+            ggplot2::geom_line(mapping = mapping_list,
+                               alpha = I(1 / 3))
+          rm(mapping_list)
         }
-        rm(plot_paths, aes_character)
-      }
-    )
 
-  rm(dummy_list,
-     mds_frame,
+        # geom_point
+        if (!is.null(x = geom_list$geom_point)) {
+          mapping_list <-
+            ggplot2::aes(x = .data$X1, y = .data$X2)
+          if (!is.null(x = geom_list$geom_point$colour)) {
+            mapping_list <-
+              utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_point$colour]]))
+          }
+          if (!is.null(x = geom_list$geom_point$shape)) {
+            mapping_list <-
+              utils::modifyList(x = mapping_list, val = ggplot2::aes(shape = .data[[geom_list$geom_point$shape]]))
+          }
+          ggplot_object <-
+            ggplot_object +
+            ggplot2::geom_point(mapping = mapping_list,
+                                size = 2.0,
+                                alpha = I(1 / 3))
+          if (!is.null(x = geom_list$geom_point$shape)) {
+            # For more than six shapes (scale_shape()), a manual scale
+            # (scale_shape_manual()) needs setting up.
+            # https://ggplot2.tidyverse.org/reference/scale_shape.html
+            ggplot_object <-
+              ggplot_object +
+              ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = mds_frame[, geom_list$geom_point$shape])))
+          }
+          rm(mapping_list)
+        }
+
+        # geom_text
+        if (!is.null(x = geom_list$geom_text)) {
+          mapping_list <-
+            ggplot2::aes(x = .data$X1, y = .data$X2)
+          if (!is.null(x = geom_list$geom_text$label)) {
+            mapping_list <-
+              utils::modifyList(x = mapping_list, val = ggplot2::aes(label = .data[[geom_list$geom_text$label]]))
+          }
+          if (!is.null(x = geom_list$geom_text$colour)) {
+            mapping_list <-
+              utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_text$colour]]))
+          }
+          ggplot_object <-
+            ggplot_object +
+            ggplot2::geom_text(mapping = mapping_list,
+                               size = 2.0,
+                               alpha = I(1 / 3))
+          rm(mapping_list)
+        }
+
+        # geom_path
+        if (!is.null(x = geom_list$geom_path)) {
+          mapping_list <-
+            ggplot2::aes(x = .data$X1, y = .data$X2)
+          if (!is.null(x = geom_list$geom_path$colour)) {
+            mapping_list <-
+              utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_path$colour]]))
+          }
+          if (!is.null(x = geom_list$geom_path$group)) {
+            mapping_list <-
+              utils::modifyList(x = mapping_list, val = ggplot2::aes(group = .data[[geom_list$geom_path$group]]))
+          }
+          if (!is.null(x = geom_list$geom_path$linetype)) {
+            mapping_list <-
+              utils::modifyList(x = mapping_list,
+                                val = ggplot2::aes(linetype = .data[[geom_list$geom_path$linetype]]))
+          }
+          ggplot_object <-
+            ggplot_object +
+            ggplot2::geom_path(
+              mapping = mapping_list,
+              arrow = if (is.null(x = geom_list$geom_path$arrow))
+                NULL
+              else
+                grid::arrow(
+                  length = grid::unit(x = 0.08, units = "inches"),
+                  type = "closed"
+                )
+            )
+          rm(mapping_list)
+        }
+
+        ggplot_object <-
+          ggplot_object +
+          ggplot2::theme_bw() +
+          ggplot2::coord_fixed()
+
+        for (plot_path in plot_paths) {
+          ggplot2::ggsave(
+            filename = plot_path,
+            plot = ggplot_object,
+            width = argument_list$plot_width,
+            height = argument_list$plot_height,
+            limitsize = FALSE
+          )
+        }
+        rm(plot_path, ggplot_object)
+      }
+      rm(plot_paths, aes_character)
+    }
+  )
+
+  rm(mds_frame,
      dist_matrix,
      dist_object,
      suffix)
@@ -1207,111 +1206,109 @@ plot_heatmap <- function(object,
   base::colnames(x = dist_matrix) <- object$sample
   base::rownames(x = dist_matrix) <- object$sample
 
-  dummy_list <-
-    lapply(
-      X = plot_list,
-      FUN = function(geom_list) {
-        aes_character <-
-          bsfR::bsfrd_geometrics_list_to_character(geom_list = geom_list)
-        message("  Creating heatmap plot: ", aes_character)
+  purrr::walk(
+    .x = plot_list,
+    .f = function(geom_list) {
+      aes_character <-
+        bsfR::bsfrd_geometrics_list_to_character(geom_list = geom_list)
+      message("  Creating heatmap plot: ", aes_character)
 
-        aes_factors <-
-          unique(x = unlist(x = geom_list, use.names = TRUE))
+      aes_factors <-
+        unique(x = unlist(x = geom_list, use.names = TRUE))
 
-        plotting_frame <-
-          BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object))[, aes_factors, drop = FALSE]
+      plotting_frame <-
+        BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object))[, aes_factors, drop = FALSE]
 
-        pheatmap_object <- NULL
+      pheatmap_object <- NULL
 
-        if (FALSE) {
-          # Add the aes_factors together to create a new grouping factor
-          group_factor <- if (length(x = aes_factors) > 1) {
-            factor(x = apply(
-              X = plotting_frame,
-              MARGIN = 1,
-              FUN = paste,
-              collapse = " : "
-            ))
-          } else {
-            SummarizedExperiment::colData(x = object)[[aes_factors]]
-          }
-
-          # Assign the grouping factor to the distance matrix row names.
-          base::colnames(x = dist_matrix) <- NULL
-          base::rownames(x = dist_matrix) <-
-            paste(object$sample, group_factor, sep = " - ")
-
-          pheatmap_object <-
-            pheatmap::pheatmap(
-              mat = dist_matrix,
-              color = grDevices::colorRampPalette(colors = rev(x = RColorBrewer::brewer.pal(
-                n = 9, name = "Blues"
-              )))(255),
-              clustering_distance_rows = dist_object,
-              clustering_distance_cols = dist_object,
-              fontsize_row = 6,
-              silent = TRUE
-            )
-          rm(group_factor)
+      if (FALSE) {
+        # Add the aes_factors together to create a new grouping factor
+        group_factor <- if (length(x = aes_factors) > 1) {
+          factor(x = apply(
+            X = plotting_frame,
+            MARGIN = 1,
+            FUN = paste,
+            collapse = " : "
+          ))
         } else {
-          # Draw a heatmap with covariate column annotation.
-          pheatmap_object <-
-            pheatmap::pheatmap(
-              mat = dist_matrix,
-              color = grDevices::colorRampPalette(colors = rev(x = RColorBrewer::brewer.pal(
-                n = 9, name = "Blues"
-              )))(255),
-              clustering_distance_rows = dist_object,
-              clustering_distance_cols = dist_object,
-              annotation_col = plotting_frame,
-              show_rownames = TRUE,
-              show_colnames = FALSE,
-              fontsize_row = 6,
-              silent = TRUE
-            )
+          SummarizedExperiment::colData(x = object)[[aes_factors]]
         }
-        plot_paths <- file.path(output_directory,
-                                paste(
-                                  paste(prefix,
-                                        "heatmap",
-                                        aes_character,
-                                        suffix,
-                                        sep = "_"),
-                                  graphics_formats,
-                                  sep = "."
-                                ))
-        names(x = plot_paths) <- names(x = graphics_formats)
 
-        # PDF output
-        grDevices::pdf(
-          file = plot_paths["pdf"],
-          width = argument_list$plot_width,
-          height = argument_list$plot_height
-        )
-        grid::grid.draw(pheatmap_object$gtable)
-        base::invisible(x = grDevices::dev.off())
+        # Assign the grouping factor to the distance matrix row names.
+        base::colnames(x = dist_matrix) <- NULL
+        base::rownames(x = dist_matrix) <-
+          paste(object$sample, group_factor, sep = " - ")
 
-        # PNG output
-        grDevices::png(
-          filename = plot_paths["png"],
-          width = argument_list$plot_width,
-          height = argument_list$plot_height,
-          units = "in",
-          res = 300L
-        )
-        grid::grid.draw(pheatmap_object$gtable)
-        base::invisible(x = grDevices::dev.off())
-
-        rm(plot_paths,
-           pheatmap_object,
-           plotting_frame,
-           aes_factors,
-           aes_character)
+        pheatmap_object <-
+          pheatmap::pheatmap(
+            mat = dist_matrix,
+            color = grDevices::colorRampPalette(colors = rev(x = RColorBrewer::brewer.pal(
+              n = 9, name = "Blues"
+            )))(255),
+            clustering_distance_rows = dist_object,
+            clustering_distance_cols = dist_object,
+            fontsize_row = 6,
+            silent = TRUE
+          )
+        rm(group_factor)
+      } else {
+        # Draw a heatmap with covariate column annotation.
+        pheatmap_object <-
+          pheatmap::pheatmap(
+            mat = dist_matrix,
+            color = grDevices::colorRampPalette(colors = rev(x = RColorBrewer::brewer.pal(
+              n = 9, name = "Blues"
+            )))(255),
+            clustering_distance_rows = dist_object,
+            clustering_distance_cols = dist_object,
+            annotation_col = plotting_frame,
+            show_rownames = TRUE,
+            show_colnames = FALSE,
+            fontsize_row = 6,
+            silent = TRUE
+          )
       }
-    )
+      plot_paths <- file.path(output_directory,
+                              paste(
+                                paste(prefix,
+                                      "heatmap",
+                                      aes_character,
+                                      suffix,
+                                      sep = "_"),
+                                graphics_formats,
+                                sep = "."
+                              ))
+      names(x = plot_paths) <- names(x = graphics_formats)
 
-  rm(dummy_list,
-     dist_matrix,
+      # PDF output
+      grDevices::pdf(
+        file = plot_paths["pdf"],
+        width = argument_list$plot_width,
+        height = argument_list$plot_height
+      )
+      grid::grid.draw(pheatmap_object$gtable)
+      base::invisible(x = grDevices::dev.off())
+
+      # PNG output
+      grDevices::png(
+        filename = plot_paths["png"],
+        width = argument_list$plot_width,
+        height = argument_list$plot_height,
+        units = "in",
+        res = 300L
+      )
+      grid::grid.draw(pheatmap_object$gtable)
+      base::invisible(x = grDevices::dev.off())
+
+      rm(plot_paths,
+         pheatmap_object,
+         plotting_frame,
+         aes_factors,
+         aes_character)
+    }
+  )
+
+  rm(dist_matrix,
      dist_object,
      suffix)
 }
@@ -1432,202 +1429,200 @@ plot_pca <- function(object,
     return(label_list[value])
   }
 
-  dummy_list <-
-    lapply(
-      X = plot_list,
-      FUN = function(geom_list) {
-        aes_character <-
-          bsfR::bsfrd_geometrics_list_to_character(geom_list = geom_list)
-        message("  Creating PCA plot: ", aes_character)
+  purrr::walk(
+    .x = plot_list,
+    .f = function(geom_list) {
+      aes_character <-
+        bsfR::bsfrd_geometrics_list_to_character(geom_list = geom_list)
+      message("  Creating PCA plot: ", aes_character)
 
-        plot_paths <- file.path(output_directory,
-                                paste(
-                                  paste(prefix,
-                                        "pca",
-                                        aes_character,
-                                        suffix,
-                                        sep = "_"),
-                                  graphics_formats,
-                                  sep = "."
-                                ))
+      plot_paths <- file.path(output_directory,
+                              paste(
+                                paste(prefix,
+                                      "pca",
+                                      aes_character,
+                                      suffix,
+                                      sep = "_"),
+                                graphics_formats,
+                                sep = "."
+                              ))
 
-        # Assemble the data for the plot from the rotated data matrix.
-        pca_frame <- base::as.data.frame(x = pca_object$x)
-        plotting_frame <-
+      # Assemble the data for the plot from the rotated data matrix.
+      pca_frame <- base::as.data.frame(x = pca_object$x)
+      plotting_frame <-
+        base::data.frame(
+          component_1 = factor(levels = paste0(
+            "PC", seq_len(length.out = pca_dimensions)
+          )),
+          component_2 = factor(levels = paste0(
+            "PC", seq_len(length.out = pca_dimensions)
+          )),
+          x = numeric(),
+          y = numeric(),
+          # Also initialise all variables of the column data, but do not
+          # include data (i.e. 0L rows).
+          BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L,])
+        )
+
+      for (column_number in seq_len(length.out = ncol(x = pca_pair_matrix))) {
+        pca_label_1 <-
+          paste0("PC", pca_pair_matrix[1L, column_number])
+        pca_label_2 <-
+          paste0("PC", pca_pair_matrix[2L, column_number])
+        plotting_frame <- base::rbind(
+          plotting_frame,
           base::data.frame(
-            component_1 = factor(levels = paste0(
-              "PC", seq_len(length.out = pca_dimensions)
-            )),
-            component_2 = factor(levels = paste0(
-              "PC", seq_len(length.out = pca_dimensions)
-            )),
-            x = numeric(),
-            y = numeric(),
-            # Also initialise all variables of the column data, but do not
-            # include data (i.e. 0L rows).
-            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L,])
+            component_1 = pca_label_1,
+            component_2 = pca_label_2,
+            x = pca_frame[, pca_label_1],
+            y = pca_frame[, pca_label_2],
+            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object))
           )
+        )
+        rm(pca_label_1, pca_label_2)
+      }
+      rm(column_number)
 
-        for (column_number in seq_len(length.out = ncol(x = pca_pair_matrix))) {
-          pca_label_1 <-
-            paste0("PC", pca_pair_matrix[1L, column_number])
-          pca_label_2 <-
-            paste0("PC", pca_pair_matrix[2L, column_number])
-          plotting_frame <- base::rbind(
-            plotting_frame,
-            base::data.frame(
-              component_1 = pca_label_1,
-              component_2 = pca_label_2,
-              x = pca_frame[, pca_label_1],
-              y = pca_frame[, pca_label_2],
-              BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object))
-            )
-          )
-          rm(pca_label_1, pca_label_2)
-        }
-        rm(column_number)
+      ggplot_object <- ggplot2::ggplot(data = plotting_frame)
 
-        ggplot_object <- ggplot2::ggplot(data = plotting_frame)
-
-        # geom_line
-        if (!is.null(x = geom_list$geom_line)) {
+      # geom_line
+      if (!is.null(x = geom_list$geom_line)) {
+        mapping_list <-
+          ggplot2::aes(x = .data$x, y = .data$y)
+        if (!is.null(x = geom_list$geom_line$colour)) {
           mapping_list <-
-            ggplot2::aes(x = .data$x, y = .data$y)
-          if (!is.null(x = geom_list$geom_line$colour)) {
-            mapping_list <-
-              utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_line$colour]]))
-          }
-          if (!is.null(x = geom_list$geom_line$group)) {
-            mapping_list <-
-              utils::modifyList(x = mapping_list, val = ggplot2::aes(group = .data[[geom_list$geom_line$group]]))
-          }
-          ggplot_object <-
-            ggplot_object +
-            ggplot2::geom_line(mapping = mapping_list,
-                               alpha = I(1 / 3))
-          rm(mapping_list)
+            utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_line$colour]]))
         }
-
-        # geom_point
-        if (!is.null(x = geom_list$geom_point)) {
+        if (!is.null(x = geom_list$geom_line$group)) {
           mapping_list <-
-            ggplot2::aes(x = .data$x, y = .data$y)
-          if (!is.null(x = geom_list$geom_point$colour)) {
-            mapping_list <-
-              utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_point$colour]]))
-          }
-          if (!is.null(x = geom_list$geom_point$shape)) {
-            mapping_list <-
-              utils::modifyList(x = mapping_list, val = ggplot2::aes(shape = .data[[geom_list$geom_point$shape]]))
-          }
-          ggplot_object <-
-            ggplot_object +
-            ggplot2::geom_point(mapping = mapping_list,
-                                size = 2.0,
-                                alpha = I(1 / 3))
-          if (!is.null(x = geom_list$geom_point$shape)) {
-            # For more than six shapes (scale_shape()), a manual scale
-            # (scale_shape_manual()) needs setting up.
-            # https://ggplot2.tidyverse.org/reference/scale_shape.html
-            ggplot_object <-
-              ggplot_object +
-              ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = plotting_frame[, geom_list$geom_point$shape])))
-          }
-          rm(mapping_list)
+            utils::modifyList(x = mapping_list, val = ggplot2::aes(group = .data[[geom_list$geom_line$group]]))
         }
-
-        # geom_text
-        if (!is.null(x = geom_list$geom_text)) {
-          mapping_list <-
-            ggplot2::aes(x = .data$x, y = .data$y)
-          if (!is.null(x = geom_list$geom_text$label)) {
-            mapping_list <-
-              utils::modifyList(x = mapping_list, val = ggplot2::aes(label = .data[[geom_list$geom_text$label]]))
-          }
-          if (!is.null(x = geom_list$geom_text$colour)) {
-            mapping_list <-
-              utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_text$colour]]))
-          }
-          ggplot_object <-
-            ggplot_object +
-            ggplot2::geom_text(mapping = mapping_list,
-                               size = 2.0,
-                               alpha = I(1 / 3))
-          rm(mapping_list)
-        }
-
-        # geom_path
-        if (!is.null(x = geom_list$geom_path)) {
-          mapping_list <-
-            ggplot2::aes(x = .data$x, y = .data$y)
-          if (!is.null(x = geom_list$geom_path$colour)) {
-            mapping_list <-
-              utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_path$colour]]))
-          }
-          if (!is.null(x = geom_list$geom_path$group)) {
-            mapping_list <-
-              utils::modifyList(x = mapping_list, val = ggplot2::aes(group = .data[[geom_list$geom_path$group]]))
-          }
-          if (!is.null(x = geom_list$geom_path$linetype)) {
-            mapping_list <-
-              utils::modifyList(x = mapping_list, val = ggplot2::aes(linetype = .data[[geom_list$geom_path$linetype]]))
-          }
-          ggplot_object <-
-            ggplot_object +
-            ggplot2::geom_path(mapping = mapping_list,
-                               arrow = arrow(
-                                 length = unit(x = 0.08, units = "inches"),
-                                 type = "closed"
-                               ))
-          rm(mapping_list)
-        }
-
         ggplot_object <-
           ggplot_object +
-          ggplot2::facet_grid(
-            rows = ggplot2::vars(component_1),
-            cols = ggplot2::vars(component_2),
-            labeller = ggplot2::labeller(component_1 = label_function, component_2 = label_function)
-          )
-
-        for (plot_path in plot_paths) {
-          ggplot2::ggsave(
-            filename = plot_path,
-            plot = ggplot_object,
-            width = argument_list$plot_width,
-            height = argument_list$plot_height,
-            limitsize = FALSE
-          )
-        }
-        rm(plot_path, ggplot_object)
-
-        if (argument_list$verbose) {
-          # Write the PCA plot data frame.
-          utils::write.table(
-            x = plotting_frame,
-            file = file.path(output_directory,
-                             paste(
-                               paste(prefix,
-                                     "pca",
-                                     aes_character,
-                                     suffix,
-                                     sep = "_"),
-                               "tsv",
-                               sep = "."
-                             )),
-            sep = "\t",
-            row.names = FALSE,
-            col.names = TRUE
-          )
-        }
-        rm(pca_frame,
-           plotting_frame,
-           aes_character)
+          ggplot2::geom_line(mapping = mapping_list,
+                             alpha = I(1 / 3))
+        rm(mapping_list)
       }
-    )
+
+      # geom_point
+      if (!is.null(x = geom_list$geom_point)) {
+        mapping_list <-
+          ggplot2::aes(x = .data$x, y = .data$y)
+        if (!is.null(x = geom_list$geom_point$colour)) {
+          mapping_list <-
+            utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_point$colour]]))
+        }
+        if (!is.null(x = geom_list$geom_point$shape)) {
+          mapping_list <-
+            utils::modifyList(x = mapping_list, val = ggplot2::aes(shape = .data[[geom_list$geom_point$shape]]))
+        }
+        ggplot_object <-
+          ggplot_object +
+          ggplot2::geom_point(mapping = mapping_list,
+                              size = 2.0,
+                              alpha = I(1 / 3))
+        if (!is.null(x = geom_list$geom_point$shape)) {
+          # For more than six shapes (scale_shape()), a manual scale
+          # (scale_shape_manual()) needs setting up.
+          # https://ggplot2.tidyverse.org/reference/scale_shape.html
+          ggplot_object <-
+            ggplot_object +
+            ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = plotting_frame[, geom_list$geom_point$shape])))
+        }
+        rm(mapping_list)
+      }
+
+      # geom_text
+      if (!is.null(x = geom_list$geom_text)) {
+        mapping_list <-
+          ggplot2::aes(x = .data$x, y = .data$y)
+        if (!is.null(x = geom_list$geom_text$label)) {
+          mapping_list <-
+            utils::modifyList(x = mapping_list, val = ggplot2::aes(label = .data[[geom_list$geom_text$label]]))
+        }
+        if (!is.null(x = geom_list$geom_text$colour)) {
+          mapping_list <-
+            utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_text$colour]]))
+        }
+        ggplot_object <-
+          ggplot_object +
+          ggplot2::geom_text(mapping = mapping_list,
+                             size = 2.0,
+                             alpha = I(1 / 3))
+        rm(mapping_list)
+      }
+
+      # geom_path
+      if (!is.null(x = geom_list$geom_path)) {
+        mapping_list <-
+          ggplot2::aes(x = .data$x, y = .data$y)
+        if (!is.null(x = geom_list$geom_path$colour)) {
+          mapping_list <-
+            utils::modifyList(x = mapping_list, val = ggplot2::aes(colour = .data[[geom_list$geom_path$colour]]))
+        }
+        if (!is.null(x = geom_list$geom_path$group)) {
+          mapping_list <-
+            utils::modifyList(x = mapping_list, val = ggplot2::aes(group = .data[[geom_list$geom_path$group]]))
+        }
+        if (!is.null(x = geom_list$geom_path$linetype)) {
+          mapping_list <-
+            utils::modifyList(x = mapping_list, val = ggplot2::aes(linetype = .data[[geom_list$geom_path$linetype]]))
+        }
+        ggplot_object <-
+          ggplot_object +
+          ggplot2::geom_path(mapping = mapping_list,
+                             arrow = arrow(
+                               length = unit(x = 0.08, units = "inches"),
+                               type = "closed"
+                             ))
+        rm(mapping_list)
+      }
+
+      ggplot_object <-
+        ggplot_object +
+        ggplot2::facet_grid(
+          rows = ggplot2::vars(component_1),
+          cols = ggplot2::vars(component_2),
+          labeller = ggplot2::labeller(component_1 = label_function, component_2 = label_function)
+        )
+
+      for (plot_path in plot_paths) {
+        ggplot2::ggsave(
+          filename = plot_path,
+          plot = ggplot_object,
+          width = argument_list$plot_width,
+          height = argument_list$plot_height,
+          limitsize = FALSE
+        )
+      }
+      rm(plot_path, ggplot_object)
+
+      if (argument_list$verbose) {
+        # Write the PCA plot data frame.
+        utils::write.table(
+          x = plotting_frame,
+          file = file.path(output_directory,
+                           paste(
+                             paste(prefix,
+                                   "pca",
+                                   aes_character,
+                                   suffix,
+                                   sep = "_"),
+                             "tsv",
+                             sep = "."
+                           )),
+          sep = "\t",
+          row.names = FALSE,
+          col.names = TRUE
+        )
+      }
+      rm(pca_frame,
+         plotting_frame,
+         aes_character)
+    }
+  )
 
   rm(
-    dummy_list,
     label_function,
     label_list,
     pca_pair_matrix,
@@ -2126,4 +2121,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())
