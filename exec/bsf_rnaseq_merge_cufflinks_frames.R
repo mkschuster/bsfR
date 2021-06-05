@@ -39,6 +39,7 @@ suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 #' Process a Cufflinks FPKM tracking table for a particular, named replicate.
 #'
+#' @noRd
 #' @param replicate_name: Replicate name
 #' @type replicate_name: char
 #' @param object_type: Cufflinks object type i.e. genes or isoforms
@@ -66,19 +67,18 @@ process_cufflinks_table <-
     prefix_cufflinks <-
       paste("rnaseq", "cufflinks", replicate_name, sep = "_")
 
-    file_path <-
-      file.path(
-        prefix_cufflinks,
-        paste(prefix_cufflinks, object_type, "fpkm_tracking.tsv", sep = "_")
-      )
     cufflinks_frame <-
-      utils::read.table(file = file_path,
-                        header = TRUE,
-                        stringsAsFactors = FALSE)
-    rm(file_path)
+      utils::read.table(
+        file = file.path(
+          prefix_cufflinks,
+          paste(prefix_cufflinks, object_type, "fpkm_tracking.tsv", sep = "_")
+        ),
+        header = TRUE,
+        stringsAsFactors = FALSE
+      )
 
     # Subset the data frame by removing unused columns.
-    obsolete_columns = NULL
+    obsolete_columns <- NULL
     if (object_type == "genes") {
       obsolete_columns <- c(
         "class_code",
@@ -121,7 +121,7 @@ process_cufflinks_table <-
     if (is.null(x = merge_frame)) {
       return(ensembl_frame)
     } else {
-      # Merge the data frames. The 'by' paramater defaults to an intersection of the column names.
+      # Merge the data frames. The 'by' parameter defaults to an intersection of the column names.
       return(merge(
         x = merge_frame,
         y = ensembl_frame,
@@ -156,6 +156,8 @@ argument_list <-
     )
   ))
 
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
+
 # Process all "rnaseq_cufflinks_*" directories in the current working directory.
 # List all rnaseq_cufflinks directories via their common prefix and
 # parse the sample (or replicate) name simply by removing the prefix.
@@ -171,7 +173,7 @@ replicate_names <- sub(
 )
 
 # Process genes tables and write the merged data frame onto disk.
-merge_frame = NULL
+merge_frame <- NULL
 for (replicate_name in replicate_names) {
   merge_frame <- process_cufflinks_table(
     replicate_name = replicate_name,
@@ -180,18 +182,17 @@ for (replicate_name in replicate_names) {
   )
 }
 rm(replicate_name)
-file_path <- "rnaseq_cufflinks_genes_fpkm_tracking.tsv"
 utils::write.table(
   x = merge_frame,
-  file = file_path,
+  file = "rnaseq_cufflinks_genes_fpkm_tracking.tsv",
   col.names = TRUE,
   row.names = FALSE,
   sep = "\t"
 )
-rm(merge_frame, file_path)
+rm(merge_frame)
 
 # Process isoforms tables and write the merged data frame onto disk.
-merge_frame = NULL
+merge_frame <- NULL
 for (replicate_name in replicate_names) {
   merge_frame <- process_cufflinks_table(
     replicate_name = replicate_name,
@@ -200,15 +201,14 @@ for (replicate_name in replicate_names) {
   )
 }
 rm(replicate_name)
-file_path <- "rnaseq_cufflinks_isoforms_fpkm_tracking.tsv"
 utils::write.table(
   x = merge_frame,
-  file = file_path,
+  file = "rnaseq_cufflinks_isoforms_fpkm_tracking.tsv",
   col.names = TRUE,
   row.names = FALSE,
   sep = "\t"
 )
-rm(merge_frame, file_path)
+rm(merge_frame)
 
 rm(replicate_names, process_cufflinks_table, argument_list)
 
@@ -219,4 +219,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
-print(x = sessionInfo())
+print(x = sessioninfo::session_info())
