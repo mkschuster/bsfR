@@ -103,7 +103,7 @@ bsfg_get_genome_tibble <-
         .data$assembly_report_name
       ),
       # Set a species prefix.
-      "species_prefix" = gsub(
+      "species_prefix" = base::gsub(
         pattern = " ",
         replacement = "_",
         x = .data$scientific_name
@@ -634,7 +634,11 @@ bsfg_convert_seqlevels <-
         ucsc_seqinfo
       rm(match_integer)
     }
-    rm(assembly_report_tibble, ncbi_granges, ncbi_seqinfo, ucsc_granges, ucsc_seqinfo)
+    rm(assembly_report_tibble,
+       ncbi_granges,
+       ncbi_seqinfo,
+       ucsc_granges,
+       ucsc_seqinfo)
 
     return(target_granges)
   }
