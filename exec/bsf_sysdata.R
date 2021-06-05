@@ -109,6 +109,26 @@ bsfg_genome_tibble <- tibble::add_row(
   "bsgenome_ucsc" = "BSgenome.Mmusculus.UCSC.mm10"
 )
 
+# Mus musculus mm39 GRCm39 ------------------------------------------------
+
+
+bsfg_genome_tibble <- tibble::add_row(
+  .data = bsfg_genome_tibble,
+  "scientific_name" = "Mus musculus",
+  "genus" = "Mus",
+  "species" = "musculus",
+  "taxon" = 10090L,
+  "assembly_version_ncbi" = "GRCm39",
+  "assembly_version_ucsc" = "mm39",
+  # The RefSeq assembly report does not contain "UCSC-style-name" values.
+# "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/635/GCF_000001635.27_GRCm39/GCF_000001635.27_GRCm39_assembly_report.txt",
+  "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/635/GCA_000001635.9_GRCm39/GCA_000001635.9_GRCm39_assembly_report.txt",
+  "bsgenome_ncbi" = NA_character_,
+  "bsgenome_ucsc" = NA_character_,
+# The Bioconductor BSgenome is not available, yet.
+  # "bsgenome_ucsc" = "BSgenome.Mmusculus.UCSC.mm39"
+)
+
 # Gallus gallus galGal5 ---------------------------------------------------
 
 
@@ -154,3 +174,4 @@ if (length(x = ls())) {
   print(x = ls())
 }
 
+print(x = sessioninfo::session_info())
