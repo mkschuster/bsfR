@@ -61,6 +61,20 @@ argument_list <-
         type = "character"
       ),
       optparse::make_option(
+        opt_str = c("--black-list"),
+        default = NULL,
+        dest = "black_list",
+        help = "BED file specifying a black list",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--genome-version"),
+        default = NULL,
+        dest = "genome_version",
+        help = "Genome version",
+        type = "character"
+      ),
+      optparse::make_option(
         opt_str = c("--fdr-threshold"),
         default = 0.05,
         dest = "fdr_threshold",
@@ -95,13 +109,14 @@ argument_list <-
 
 
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
-# suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
+suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
 suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
 # suppressPackageStartupMessages(expr = library(package = "ChIPQC"))
 suppressPackageStartupMessages(expr = library(package = "DiffBind"))
+suppressPackageStartupMessages(expr = library(package = "GenomeInfoDb"))
 
 # Set the number of parallel threads in the MulticoreParam instance.
-# BiocParallel::register(BPPARAM = BiocParallel::MulticoreParam(workers = argument_list$threads))
+BiocParallel::register(BPPARAM = BiocParallel::MulticoreParam(workers = argument_list$threads))
 
 prefix <-
   paste("chipseq",
@@ -127,14 +142,14 @@ file_path <-
   file.path(output_directory, paste0(prefix, '_DBA.RData'))
 if (file.exists(file_path) &&
     file.info(file_path)$size > 0L) {
-  message("Loading a DiffBind DBA object")
+  message("Loading a DiffBind DBA object ...")
   diffbind_dba <-
     DiffBind::dba.load(dir = output_directory, pre = paste0(prefix, "_"))
 } else {
   # Create a DBA object ---------------------------------------------------
 
 
-  message("Creating a DiffBind DBA object")
+  message("Creating a DiffBind DBA object ...")
   diffbind_dba <-
     dba(sampleSheet = argument_list$sample_annotation)
 
@@ -147,7 +162,7 @@ if (file.exists(file_path) &&
   # Plot a heatmap on peak caller scores ----------------------------------
 
 
-  message("Plotting a correlation heatmap based on peak caller score data")
+  message("Creating a correlation heatmap plot based on peak caller score data ...")
 
   grDevices::pdf(
     file = file.path(
@@ -182,13 +197,38 @@ if (file.exists(file_path) &&
   # Blacklisting ----------------------------------------------------------
 
 
-  # TODO: Support also GRanges black lists.
-  diffbind_dba <- DiffBind::dba.blacklist(DBA = diffbind_dba)
+  if (is.null(x = argument_list$black_list)) {
+    diffbind_dba <- DiffBind::dba.blacklist(DBA = diffbind_dba)
+  } else {
+    # FIXME: Switch off grey list processing for the moment, since genomes show
+    # sequence region mismatches. The dba.blacklist() function establishes the
+    # genome version via pv.BlackGreyList(), pv.genomes() and pv.genome(). It
+    # compares the sequence region names and the sequence lengths against a data
+    # file loaded from "extra/ktypes.rda". In the case of the UCSC hg38 genome
+    # that can be downloaded for NGS analyses, it does not match the
+    # Bioconductor BSgenome.Hsapiens.UCSC.hg38 since the former has a "chrEBV".
+    diffbind_dba$config$doGreylist <- FALSE
+    # FIXME: Providing a matching Seqinfo object to the greylist option does
+    # also not resolve the mismatch.
+
+    # If a black list was provided read it.
+    # message("Creating a GenomeInfoDb::Seqinfo object ...")
+    genome_seqinfo <-
+      GenomeInfoDb::Seqinfo(genome = argument_list$genome_version)
+
+    # message("Importing black list GRanges ...")
+    blacklist_granges <-
+      rtracklayer::import(con = argument_list$black_list, seqinfo = genome_seqinfo)
+
+    diffbind_dba <-
+      DiffBind::dba.blacklist(DBA = diffbind_dba, blacklist = blacklist_granges)
+    rm(blacklist_granges, genome_seqinfo)
+  }
 
   # Count reads -----------------------------------------------------------
 
 
-  message("Counting reads")
+  message("Counting reads ...")
   diffbind_dba <-
     DiffBind::dba.count(DBA = diffbind_dba,
                         bParallel = FALSE)
@@ -196,7 +236,7 @@ if (file.exists(file_path) &&
   # Plot a heatmap on read counts -----------------------------------------
 
 
-  message("Plotting a correlation heatmap based on read counts")
+  message("Creating a correlation heatmap plot based on read counts ...")
 
   grDevices::pdf(
     file = file.path(
@@ -236,7 +276,7 @@ if (file.exists(file_path) &&
   # Establish contrasts -----------------------------------------------------
 
 
-  message("Establishing contrasts by tissue")
+  message("Establishing contrasts by tissue ...")
   # The categories default to DiffBind::DBA_TISSUE, DiffBind::DBA_FACTOR, DiffBind::DBA_CONDITION and DiffBind::DBA_TREATMENT.
   diffbind_dba <-
     DiffBind::dba.contrast(DBA = diffbind_dba, minMembers = 2)
@@ -246,7 +286,7 @@ if (file.exists(file_path) &&
     if (nrow(x = diffbind_dba$samples) == 2) {
       message("In lack of replicates, setting contrasts on the basis of the first two conditions")
       diffbind_conditions <-
-        unique(x = diffbind_dba$class[DiffBind::DBA_CONDITION,])
+        unique(x = diffbind_dba$class[DiffBind::DBA_CONDITION, ])
       diffbind_dba <- DiffBind::dba.contrast(
         DBA = diffbind_dba,
         group1 = DiffBind::dba.mask(
@@ -269,13 +309,15 @@ if (file.exists(file_path) &&
   # Run a differential binding affinity analysis --------------------------
 
 
-  message("Running differential binding affinity analysis")
+  message("Running a differential binding affinity analysis ...")
   diffbind_dba <-
     DiffBind::dba.analyze(DBA = diffbind_dba, bParallel = FALSE)
 
   # Plot a heatmap on differential binding affinity -----------------------
 
-  message("Plotting correlation heatmap based on differential binding affinity analysis")
+  message(
+    "Creating a correlation heatmap plot based on the differential binding affinity analysis"
+  )
 
   grDevices::pdf(
     file = file.path(
@@ -310,7 +352,7 @@ if (file.exists(file_path) &&
   # Save the DBA object ---------------------------------------------------
 
 
-  message("Saving DBA object to disk")
+  message("Saving the DBA object to disk ...")
   return_value <-
     DiffBind::dba.save(DBA = diffbind_dba,
                        dir = output_directory,
@@ -325,7 +367,7 @@ rm(file_path)
 # Create a PCA plot irrespective of contrasts on the basis of scores in the main binding matrix.
 message(
   sprintf(
-    "Creating a PCA plot for comparison %s and factor %s",
+    "Creating a PCA plot for comparison %s and factor %s ...",
     argument_list$comparison,
     argument_list$factor
   )
@@ -359,7 +401,7 @@ rm(return_value)
 # Write the consensus peak set --------------------------------------------
 
 
-message("Loading the DiffBind peakset (GRanges) object")
+message("Loading the DiffBind peakset (GRanges) object ...")
 diffbind_peakset_granges <-
   DiffBind::dba.peakset(
     DBA = diffbind_dba,
@@ -481,7 +523,7 @@ process_per_contrast <-
 
       # Extract only significant peaks by filtering for the FDR threshold.
       report_frame <-
-        report_frame[report_frame$FDR <= argument_list$fdr_threshold,]
+        report_frame[report_frame$FDR <= argument_list$fdr_threshold, ]
       utils::write.table(
         x = report_frame,
         file = sprintf(fmt = "%s_significant_%s__%s.tsv", prefix, group1, group2),
@@ -519,7 +561,7 @@ process_per_contrast <-
 
     message(
       sprintf(
-        "Creating a MA plot for comparison %s, factor %s and contrast %s versus %s",
+        "Creating a MA plot for comparison %s, factor %s and contrast %s versus %s ...",
         argument_list$comparison,
         argument_list$factor,
         group1,
@@ -566,7 +608,7 @@ process_per_contrast <-
 
     message(
       sprintf(
-        "Creating a Scatter plot for comparison %s, factor %s and contrast %s versus %s",
+        "Creating a Scatter plot for comparison %s, factor %s and contrast %s versus %s ...",
         argument_list$comparison,
         argument_list$factor,
         group1,
@@ -615,7 +657,7 @@ process_per_contrast <-
     if (db_number == 0L) {
       message(
         sprintf(
-          "Skipping a PCA plot for comparison %s, factor %s and contrast %s versus %s",
+          "Skipping a PCA plot for comparison %s, factor %s and contrast %s versus %s ...",
           argument_list$comparison,
           argument_list$factor,
           group1,
@@ -625,7 +667,7 @@ process_per_contrast <-
     } else {
       message(
         sprintf(
-          "Creating a PCA plot for comparison %s, factor %s and contrast %s versus %s",
+          "Creating a PCA plot for comparison %s, factor %s and contrast %s versus %s ...",
           argument_list$comparison,
           argument_list$factor,
           group1,
@@ -681,7 +723,7 @@ process_per_contrast <-
     if (db_number == 0L) {
       message(
         sprintf(
-          "Skipping a Box plot for comparison %s, factor %s and contrast %s versus %s",
+          "Skipping a Box plot for comparison %s, factor %s and contrast %s versus %s ...",
           argument_list$comparison,
           argument_list$factor,
           group1,
@@ -691,7 +733,7 @@ process_per_contrast <-
     } else {
       message(
         sprintf(
-          "Creating a Box plot for comparison %s, factor %s and contrast %s versus %s",
+          "Creating a Box plot for comparison %s, factor %s and contrast %s versus %s ...",
           argument_list$comparison,
           argument_list$factor,
           group1,
