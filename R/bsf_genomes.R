@@ -35,10 +35,11 @@
 #'
 #' @examples
 #' \dontrun{
-#' genome_tibble <- bsfR::bsfg_get_genome_tibble(
-#'   resource_directory = "/path/to/resources/genomes/",
-#'   ensembl_version = "96"
-#' )
+#'  genome_tibble <-
+#'    bsfR::bsfg_get_genome_tibble(
+#'      resource_directory = "/path/to/resources/genomes/",
+#'      ensembl_version = "96"
+#'    )
 #' }
 bsfg_get_genome_tibble <-
   function(resource_directory, ensembl_version) {
@@ -127,12 +128,13 @@ bsfg_get_genome_tibble <-
 #'
 #' @examples
 #' \dontrun{
-#' genome_list <- bsfR::bsfg_get_genome_list(
-#'   resource_directory = "/path/to/resources/genomes/",
-#'   ensembl_version = "96",
-#'   ncbi_version = "GRCh38",
-#'   ucsc_version = "hg38"
-#' )
+#'  genome_list <-
+#'    bsfR::bsfg_get_genome_list(
+#'      resource_directory = "/path/to/resources/genomes/",
+#'      ensembl_version = "96",
+#'      ncbi_version = "GRCh38",
+#'      ucsc_version = "hg38"
+#'    )
 #' }
 bsfg_get_genome_list <-
   function(resource_directory,
@@ -168,7 +170,8 @@ bsfg_get_genome_list <-
 #'  bsfR::bsfg_create_resource_directory(
 #'    genome_list = genome_list,
 #'    biological_type = "genome",
-#'    verbose = verbose)
+#'    verbose = verbose
+#'  )
 #' }
 bsfg_create_resource_directory <-
   function(genome_list, biological_type, verbose = FALSE) {
@@ -216,9 +219,11 @@ bsfg_create_resource_directory <-
 #'
 #' @examples
 #' \dontrun{
-#' assembly_report_tibble <- bsfR::bsfg_get_assembly_report(
-#'   genome_list,
-#'   verbose = FALSE)
+#'  assembly_report_tibble <-
+#'    bsfR::bsfg_get_assembly_report(
+#'      genome_list,
+#'      verbose = FALSE
+#'    )
 #' }
 bsfg_get_assembly_report <- function(genome_list, verbose = FALSE) {
   # Create NCBI and UCSC-style genome and transcriptome directories, if they do
@@ -313,12 +318,14 @@ bsfg_get_assembly_report <- function(genome_list, verbose = FALSE) {
 #'
 #' @examples
 #' \dontrun{
-#' ensembl_transcriptome_gtf <- bsfR::bsfg_get_ensembl_transcriptome(
-#'   genome_list = genome_list,
-#'   ensembl_version = "100",
-#'   ensembl_ftp = "ftp://ftp.ensembl.org",
-#'   file_type = "gtf",
-#'   verbose = FALSE)
+#'  ensembl_transcriptome_gtf <-
+#'    bsfR::bsfg_get_ensembl_transcriptome(
+#'      genome_list = genome_list,
+#'      ensembl_version = "100",
+#'      ensembl_ftp = "ftp://ftp.ensembl.org",
+#'      file_type = "gtf",
+#'      verbose = FALSE
+#'    )
 #' }
 bsfg_get_ensembl_transcriptome <-
   function(genome_list,
@@ -398,10 +405,12 @@ bsfg_get_ensembl_transcriptome <-
 #'
 #' @examples
 #' \dontrun{
-#' target_granges <- bsfR::bsfg_convert_seqlevels(
-#'   genome_list,
-#'   source_granges = source_granges,
-#'   verbose = FALSE)
+#'  target_granges <-
+#'    bsfR::bsfg_convert_seqlevels(
+#'      genome_list,
+#'      source_granges = source_granges,
+#'      verbose = FALSE
+#'    )
 #' }
 bsfg_convert_seqlevels <-
   function(genome_list,

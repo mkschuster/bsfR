@@ -33,9 +33,11 @@
 #' @export
 #'
 #' @examples
-#' comparison_name <- "global"
-#' prefix_tuxedo <- bsfrt_get_prefix_tuxedo(
-#'   comparison_name = comparison_name)
+#' \dontrun{
+#'  comparison_name <- "global"
+#'  prefix_tuxedo <-
+#'    bsfrt_get_prefix_tuxedo(comparison_name = comparison_name)
+#' }
 bsfrt_get_prefix_tuxedo <- function(comparison_name) {
   return(paste("rnaseq", "tuxedo", comparison_name, sep = "_"))
 }
@@ -50,9 +52,12 @@ bsfrt_get_prefix_tuxedo <- function(comparison_name) {
 #' @export
 #'
 #' @examples
-#' comparison_name <- "global"
-#' prefix_cuffdiff <- bsfrt_get_prefix_cuffdiff(
-#'   comparison_name = comparison_name)
+#' \dontrun{
+#'  comparison_name <- "global"
+#'
+#'  prefix_cuffdiff <-
+#'    bsfrt_get_prefix_cuffdiff(comparison_name = comparison_name)
+#' }
 bsfrt_get_prefix_cuffdiff <- function(comparison_name) {
   return(paste("rnaseq", "cuffdiff", comparison_name, sep = "_"))
 }
@@ -67,9 +72,12 @@ bsfrt_get_prefix_cuffdiff <- function(comparison_name) {
 #' @export
 #'
 #' @examples
-#' comparison_name <- "global"
-#' prefix_process_cuffdiff <- bsfrt_get_prefix_process_cuffdiff(
-#'   comparison_name = comparison_name)
+#' \dontrun{
+#'  comparison_name <- "global"
+#'
+#'  prefix_process_cuffdiff <-
+#'    bsfrt_get_prefix_process_cuffdiff(comparison_name = comparison_name)
+#' }
 bsfrt_get_prefix_process_cuffdiff <- function(comparison_name) {
   return(paste("rnaseq", "process", "cuffdiff", comparison_name, sep = "_"))
 }

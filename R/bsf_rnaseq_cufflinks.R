@@ -33,9 +33,12 @@
 #' @export
 #'
 #' @examples
-#' comparison_name <- "global"
-#' prefix_cuffdiff <- bsfrc_get_prefix_cuffdiff(
-#'   comparison_name = comparison_name)
+#' \dontrun{
+#'  comparison_name <- "global"
+#'
+#'  prefix_cuffdiff <-
+#'    bsfrc_get_prefix_cuffdiff(comparison_name = comparison_name)
+#' }
 bsfrc_get_prefix_cuffdiff <- function(comparison_name) {
   return(paste("rnaseq",
                "cuffdiff",
@@ -53,9 +56,12 @@ bsfrc_get_prefix_cuffdiff <- function(comparison_name) {
 #' @export
 #'
 #' @examples
-#' comparison_name <- "global"
-#' prefix_process_cuffdiff <- bsfrc_get_prefix_process_cuffdiff(
-#'   comparison_name = comparison_name)
+#' \dontrun{
+#'  comparison_name <- "global"
+#'
+#'  prefix_process_cuffdiff <-
+#'    bsfrc_get_prefix_process_cuffdiff(comparison_name = comparison_name)
+#' }
 bsfrc_get_prefix_process_cuffdiff <- function(comparison_name) {
   return(paste("rnaseq",
                "process",
@@ -77,12 +83,18 @@ bsfrc_get_prefix_process_cuffdiff <- function(comparison_name) {
 #' @export
 #'
 #' @examples
-#' comparison_name <- "global"
-#' genome_directory <- "."
-#' gene_annotation_tibble <- bsfrc_read_gene_annotation_tibble(
-#'   genome_directory = genome_directory,
-#'   comparison_name = comparison_name,
-#'   verbose = FALSE)
+#' \dontrun{
+#'  comparison_name <- "global"
+#'
+#'  genome_directory <- "."
+#'
+#'  gene_annotation_tibble <-
+#'    bsfrc_read_gene_annotation_tibble(
+#'      genome_directory = genome_directory,
+#'      comparison_name = comparison_name,
+#'      verbose = FALSE
+#'    )
+#' }
 bsfrc_read_gene_annotation_tibble <-
   function(genome_directory,
            comparison_name,
@@ -140,12 +152,18 @@ bsfrc_read_gene_annotation_tibble <-
 #' @export
 #'
 #' @examples
-#' comparison_name <- "global"
-#' genome_directory <- "."
-#' isoform_annotation_tibble <- bsfrc_read_isoform_annotation_tibble(
-#'   genome_directory = genome_directory,
-#'   comparison_name = comparison_name,
-#'   verbose = FALSE)
+#' \dontrun{
+#'  comparison_name <- "global"
+#'
+#'  genome_directory <- "."
+#'
+#'  isoform_annotation_tibble <-
+#'    bsfrc_read_isoform_annotation_tibble(
+#'      genome_directory = genome_directory,
+#'      comparison_name = comparison_name,
+#'      verbose = FALSE
+#'    )
+#' }
 bsfrc_read_isoform_annotation_tibble <- function(genome_directory,
                                                  comparison_name,
                                                  verbose = FALSE) {

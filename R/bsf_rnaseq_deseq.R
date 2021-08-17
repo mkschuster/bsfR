@@ -34,9 +34,10 @@
 #'
 #' @examples
 #' \dontrun{
-#' design_name <- "global"
-#' prefix_deseq <- bsfrd_get_prefix_deseq(
-#'   design_name = design_name)
+#'  design_name <- "global"
+#'
+#'  prefix_deseq <-
+#'    bsfrd_get_prefix_deseq(design_name = design_name)
 #' }
 bsfrd_get_prefix_deseq <- function(design_name) {
   return(paste("rnaseq",
@@ -56,9 +57,10 @@ bsfrd_get_prefix_deseq <- function(design_name) {
 #'
 #' @examples
 #' \dontrun{
-#' design_name <- "global"
-#' prefix_enrichr <- bsfrd_get_prefix_enrichr(
-#'   design_name = design_name)
+#'  design_name <- "global"
+#'
+#'  prefix_enrichr <-
+#'    bsfrd_get_prefix_enrichr(design_name = design_name)
 #' }
 bsfrd_get_prefix_enrichr <- function(design_name) {
   return(paste("rnaseq",
@@ -79,9 +81,10 @@ bsfrd_get_prefix_enrichr <- function(design_name) {
 #'
 #' @examples
 #' \dontrun{
-#' design_name <- "global"
-#' prefix_go <- bsfrd_get_prefix_go(
-#'   design_name = design_name)
+#'  design_name <- "global"
+#'
+#'  prefix_go <-
+#'    bsfrd_get_prefix_go(design_name = design_name)
 #' }
 bsfrd_get_prefix_go <- function(design_name) {
   return(paste("rnaseq",
@@ -102,9 +105,10 @@ bsfrd_get_prefix_go <- function(design_name) {
 #'
 #' @examples
 #' \dontrun{
-#' design_name <- "global"
-#' prefix_deseq_heatmap <- bsfrd_get_prefix_heatmap(
-#'   design_name = design_name)
+#'  design_name <- "global"
+#'
+#'  prefix_deseq_heatmap <-
+#'    bsfrd_get_prefix_heatmap(design_name = design_name)
 #' }
 bsfrd_get_prefix_heatmap <- function(design_name) {
   return(paste("rnaseq",
@@ -125,9 +129,10 @@ bsfrd_get_prefix_heatmap <- function(design_name) {
 #'
 #' @examples
 #' \dontrun{
-#' design_name <- "global"
-#' prefix_deseq_volcano <- bsfrd_get_prefix_volcano(
-#'   design_name = design_name)
+#'  design_name <- "global"
+#'
+#'  prefix_deseq_volcano <-
+#'    bsfrd_get_prefix_volcano(design_name = design_name)
 #' }
 bsfrd_get_prefix_volcano <- function(design_name) {
   return(paste("rnaseq",
@@ -164,11 +169,16 @@ bsfrd_get_prefix_volcano <- function(design_name) {
 #'
 #' @examples
 #' \dontrun{
-#' contrast_tibble <- bsfrd_read_contrast_tibble(
-#'   genome_directory = genome_directory,
-#'   design_name = design_name,
-#'   summary = FALSE,
-#'   verbose = FALSE)
+#'  genome_directory <- "."
+#'  design_name <- "global"
+#'
+#'  contrast_tibble <-
+#'    bsfrd_read_contrast_tibble(
+#'      genome_directory = genome_directory,
+#'      design_name = design_name,
+#'      summary = FALSE,
+#'      verbose = FALSE
+#'    )
 #' }
 bsfrd_read_contrast_tibble <-
   function(genome_directory,
@@ -240,9 +250,11 @@ bsfrd_read_contrast_tibble <-
 #'
 #' @examples
 #' \dontrun{
-#' contrast_list <- bsfrd_get_contrast_list(
-#'   contrast_tibble = contrast_tibble,
-#'   index = 1L)
+#'  contrast_list <-
+#'    bsfrd_get_contrast_list(
+#'      contrast_tibble = contrast_tibble,
+#'      index = 1L
+#'    )
 #' }
 bsfrd_get_contrast_list <- function(contrast_tibble, index) {
   numerator_character <-
@@ -286,9 +298,11 @@ bsfrd_get_contrast_list <- function(contrast_tibble, index) {
 #'
 #' @examples
 #' \dontrun{
-#' contrast_character <- bsfrd_get_contrast_character(
-#'   contrast_tibble = contrast_tibble,
-#'   index = 1L)
+#'  contrast_character <-
+#'    bsfrd_get_contrast_character(
+#'      contrast_tibble = contrast_tibble,
+#'      index = 1L
+#'    )
 #' }
 bsfrd_get_contrast_character <- function(contrast_tibble, index) {
   contrast_list <-
@@ -318,7 +332,7 @@ bsfrd_get_contrast_character <- function(contrast_tibble, index) {
 #' \item{full_formula}{A \code{character} with the full model formula.}
 #' \item{reduced_formulas}{A \code{character} with a comma-separated list of reduced model formulas.}
 #' \item{factor_levels}{A \code{character} with semicolon-separated factors and their levels.
-#' e.g. factor_levels="factor_1:level_1,level_2;factor_2:level_A,level_B"}
+#' e.g. factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"}
 #' \item{plot_aes}{A \code{character} with \code{ggplot2} aesthetics.}
 #' }
 #'
@@ -333,10 +347,14 @@ bsfrd_get_contrast_character <- function(contrast_tibble, index) {
 #'
 #' @examples
 #' \dontrun{
-#' design_tibble <- bsfrd_read_design_tibble(
-#'   genome_directory = genome_directory,
-#'   design_name = design_name,
-#'   verbose = FALSE)
+#'  design_name <- "global"
+#'
+#'  design_tibble <-
+#'    bsfrd_read_design_tibble(
+#'      genome_directory = genome_directory,
+#'      design_name = design_name,
+#'      verbose = FALSE
+#'    )
 #' }
 bsfrd_read_design_tibble <-
   function(genome_directory, design_name, verbose = FALSE) {
@@ -384,17 +402,21 @@ bsfrd_read_design_tibble <-
 #' \item{full_formula}{A \code{character} with the full model formula.}
 #' \item{reduced_formulas}{A \code{character} with a comma-separated list of reduced model formulas.}
 #' \item{factor_levels}{A \code{character} with semicolon-separated factors and their levels.
-#' e.g. factor_levels="factor_1:level_1,level_2;factor_2:level_A,level_B"}
+#' e.g. factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"}
 #' \item{plot_aes}{A \code{character} with \code{ggplot2} aesthetics.}
 #' }
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' design_list <- bsfrd_read_design_list(
-#'   genome_directory = genome_directory,
-#'   design_name = design_name,
-#'   verbose = FALSE)
+#'  design_name <- "global"
+#'
+#'  design_list <-
+#'    bsfrd_read_design_list(
+#'      genome_directory = genome_directory,
+#'      design_name = design_name,
+#'      verbose = FALSE
+#'    )
 #' }
 bsfrd_read_design_list <-
   function(genome_directory, design_name, verbose = FALSE) {
@@ -421,8 +443,10 @@ bsfrd_read_design_list <-
 #'
 #' @examples
 #' \dontrun{
-#' factor_levels <- .bsfrd_process_factor_specification(
-#'   factor_specification = "factor_name:level_1,level_2")
+#'  factor_levels <-
+#'    .bsfrd_process_factor_specification(
+#'      factor_specification = "factor_name:level_1,level_2"
+#'    )
 #' }
 .bsfrd_process_factor_specification <-
   function(factor_specification) {
@@ -482,12 +506,13 @@ bsfrd_read_design_list <-
 #'
 #' @examples
 #' \dontrun{
-#' sample_frame <- bsfrd_read_sample_frame(
-#'   genome_directory = genome_directory,
-#'   design_name = design_name,
-#'   factor_levels="factor_1:level_1,level_2;factor_2:level_A,level_B",
-#'   verbose = TRUE
-#' )
+#'  sample_frame <-
+#'    bsfrd_read_sample_frame(
+#'      genome_directory = genome_directory,
+#'      design_name = design_name,
+#'      factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B",
+#'      verbose = TRUE
+#'    )
 #' }
 bsfrd_read_sample_frame <-
   function(genome_directory,
@@ -573,7 +598,7 @@ bsfrd_read_sample_frame <-
     # The "factor_levels" variable of the design data frame specifies the order
     # of factor levels.
     #
-    # factor_levels="factor_1:level_1,level_2;factor_2:level_A,level_B"
+    # factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"
     #
     # Turn the factor_levels character scalar into a list of character vectors
     # by splitting factor specifications by ";" then factor names and levels by
@@ -644,12 +669,14 @@ bsfrd_read_sample_frame <-
 #'
 #' @examples
 #' \dontrun{
-#' bsfrd_read_summarized_experiment <- bsfrd_read_summarized_experiment(
-#'   genome_directory = genome_directory,
-#'   design_name = "global",
-#'   gtf_path = "Homo_sapiens.e100.gtf.gz",
-#'   genome_version = "hg38",
-#'   verbose = FALSE)
+#'  bsfrd_read_summarized_experiment <-
+#'    bsfrd_read_summarized_experiment(
+#'      genome_directory = genome_directory,
+#'      design_name = "global",
+#'      gtf_path = "Homo_sapiens.e100.gtf.gz",
+#'      genome_version = "hg38",
+#'      verbose = FALSE
+#'    )
 #' }
 bsfrd_read_summarized_experiment <-
   function(genome_directory,
@@ -726,7 +753,7 @@ bsfrd_read_summarized_experiment <-
 
           sub_sample_frame <-
             sample_frame[(sample_frame$library_type == library_type) &
-                           (sample_frame$sequencing_type == sequencing_type),]
+                           (sample_frame$sequencing_type == sequencing_type), ]
 
           if (nrow(x = sub_sample_frame) == 0L) {
             rm(sub_sample_frame)
@@ -868,10 +895,12 @@ bsfrd_read_summarized_experiment <-
 #'
 #' @examples
 #' \dontrun{
-#' deseq_data_set <- bsfrd_read_deseq_data_set(
-#'   genome_directory = genome_directory,
-#'   design_name = design_name,
-#'   verbose = FALSE)
+#'  deseq_data_set <-
+#'    bsfrd_read_deseq_data_set(
+#'      genome_directory = genome_directory,
+#'      design_name = design_name,
+#'      verbose = FALSE
+#'    )
 #' }
 bsfrd_read_deseq_data_set <-
   function(genome_directory, design_name, verbose = FALSE) {
@@ -914,11 +943,13 @@ bsfrd_read_deseq_data_set <-
 #'
 #' @examples
 #' \dontrun{
-#' deseq_transform <- bsfrd_read_deseq_transform(
-#'   genome_directory = genome_directory,
-#'   design_name = design_name,
-#'   model = TRUE,
-#'   verbose = FALSE)
+#'  deseq_transform <-
+#'    bsfrd_read_deseq_transform(
+#'      genome_directory = genome_directory,
+#'      design_name = design_name,
+#'      model = TRUE,
+#'      verbose = FALSE
+#'    )
 #' }
 bsfrd_read_deseq_transform <-
   function(genome_directory,
@@ -980,18 +1011,22 @@ bsfrd_read_deseq_transform <-
 #'
 #' @examples
 #' \dontrun{
-#' deseq_results <- bsfrd_read_deseq_results(
-#'   genome_directory = genome_directory,
-#'   design_name = design_name,
-#'   contrast_tibble = contrast_tibble,
-#'   index = index,
-#'   verbose = FALSE)
+#'  deseq_results <-
+#'    bsfrd_read_deseq_results(
+#'      genome_directory = genome_directory,
+#'      design_name = design_name,
+#'      contrast_tibble = contrast_tibble,
+#'      index = index,
+#'      verbose = FALSE
+#'    )
 #'
-#' deseq_results <- bsfrd_read_deseq_results(
-#'   genome_directory = genome_directory,
-#'   design_name = design_name,
-#'   contrast_character = contrast_character,
-#'   verbose = FALSE)
+#'  deseq_results <-
+#'    bsfrd_read_deseq_results(
+#'      genome_directory = genome_directory,
+#'      design_name = design_name,
+#'      contrast_character = contrast_character,
+#'      verbose = FALSE
+#'    )
 #' }
 bsfrd_read_deseq_results <-
   function(genome_directory,
@@ -1068,18 +1103,22 @@ bsfrd_read_deseq_results <-
 #'
 #' @examples
 #' \dontrun{
-#' result_tibble <- bsfrd_read_result_tibble(
-#'   genome_directory = genome_directory,
-#'   design_name = design_name,
-#'   contrast_tibble = contrast_tibble,
-#'   index = index,
-#'   verbose = FALSE)
+#'  result_tibble <-
+#'    bsfrd_read_result_tibble(
+#'      genome_directory = genome_directory,
+#'      design_name = design_name,
+#'      contrast_tibble = contrast_tibble,
+#'      index = index,
+#'      verbose = FALSE
+#'    )
 #'
-#' result_tibble <- bsfrd_read_result_tibble(
-#'   genome_directory = genome_directory,
-#'   design_name = design_name,
-#'   contrast_character = contrast_character,
-#'   verbose = FALSE)
+#'  result_tibble <-
+#'    bsfrd_read_result_tibble(
+#'      genome_directory = genome_directory,
+#'      design_name = design_name,
+#'      contrast_character = contrast_character,
+#'      verbose = FALSE
+#'    )
 #' }
 bsfrd_read_result_tibble <-
   function(genome_directory,
@@ -1177,14 +1216,15 @@ bsfrd_read_result_tibble <-
 #'
 #' @examples
 #' \dontrun{
-#' annotation_tibble <- bsfR::bsfrd_read_annotation_tibble(
-#'   genome_directory = genome_directory,
-#'   design_name = design_name,
-#'   feature_types = "gene",
-#'   gtf_file_path = gtf_file_path,
-#'   genome = "hg38",
-#'   verbose = TRUE
-#' )
+#'  annotation_tibble <-
+#'    bsfR::bsfrd_read_annotation_tibble(
+#'      genome_directory = genome_directory,
+#'      design_name = design_name,
+#'      feature_types = "gene",
+#'      gtf_file_path = gtf_file_path,
+#'      genome = "hg38",
+#'      verbose = TRUE
+#'    )
 #' }
 bsfrd_read_annotation_tibble <-
   function(genome_directory,
@@ -1350,11 +1390,13 @@ bsfrd_read_annotation_tibble <-
 #'
 #' @examples
 #' \dontrun{
-#' gene_set_tibble <- bsfrd_read_gene_set_tibble(
-#'   genome_directory = genome_directory,
-#'   design_name = design_name,
-#'   gene_set_path = gene_set_path,
-#'   verbose = FALSE)
+#'  gene_set_tibble <-
+#'    bsfrd_read_gene_set_tibble(
+#'      genome_directory = genome_directory,
+#'      design_name = design_name,
+#'      gene_set_path = gene_set_path,
+#'      verbose = FALSE
+#'    )
 #' }
 bsfrd_read_gene_set_tibble <-
   function(genome_directory,
@@ -1423,9 +1465,13 @@ bsfrd_read_gene_set_tibble <-
 #'
 #' @examples
 #' \dontrun{
-#' aes_var_list <-
-#'   .bsfrd_convert_aesthetic_variable(
-#'      aes_var_character = c("colour=variable_A", "shape=variable_B"))
+#'  aes_var_character <-
+#'    c("colour=variable_A", "shape=variable_B")
+#'
+#'  aes_var_list <-
+#'    .bsfrd_convert_aesthetic_variable(
+#'      aes_var_character = aes_var_character
+#'    )
 #' }
 .bsfrd_convert_aesthetic_variable <- function(aes_var_character) {
   # Split the character vector on "=" characters.
@@ -1462,9 +1508,13 @@ bsfrd_read_gene_set_tibble <-
 #'
 #' @examples
 #' \dontrun{
-#' geom_aes_list <-
-#'   .bsfrd_convert_geometric_aesthetic(
-#'     geom_aes_character = c("geom_point", "colour=variable_A,shape=variable_B"))
+#'  geom_aes_character <-
+#'    c("geom_point", "colour=variable_A,shape=variable_B")
+#'
+#'  geom_aes_list <-
+#'    .bsfrd_convert_geometric_aesthetic(
+#'      geom_aes_character = geom_aes_character
+#'    )
 #' }
 .bsfrd_convert_geometric_aesthetic <- function(geom_aes_character) {
   # Split geometric definitions on "," characters and assign names (geometric
@@ -1500,10 +1550,13 @@ bsfrd_read_gene_set_tibble <-
 #'
 #' @examples
 #' \dontrun{
-#' plot_list <-
-#'   .bsfrd_convert_plot(
-#'     plot_character =
-#'     "geom_point:colour=variable_A,shape=variable_B;geom_text:colour=variable_C,label=variable_D")
+#'  plot_character <-
+#'    "geom_point:colour=variable_A,shape=variable_B;geom_text:colour=variable_C,label=variable_D"
+#'
+#'  plot_list <-
+#'    .bsfrd_convert_plot(
+#'      plot_character = plot_character
+#'    )
 #' }
 .bsfrd_convert_plot <- function(plot_character) {
   # Split the character vector with multiple plot specifications on ";"
@@ -1553,10 +1606,13 @@ bsfrd_read_gene_set_tibble <-
 #'
 #' @examples
 #' \dontrun{
-#' plot_list <-
-#'   bsfR::bsfrd_plots_character_to_list(
-#'     plots_character =
-#'     "geom_point:colour=variable_A,shape=variable_B;geom_text:colour=variable_C,label=variable_D")
+#'  plots_character <-
+#'    "geom_point:colour=variable_A,shape=variable_B;geom_text:colour=variable_C,label=variable_D"
+#'
+#'  plot_list <-
+#'    bsfR::bsfrd_plots_character_to_list(
+#'      plots_character = plots_character
+#'    )
 #' }
 bsfrd_plots_character_to_list <- function(plots_character) {
   # Split multiple plot definitions separated by "|" characters.
@@ -1585,9 +1641,15 @@ bsfrd_plots_character_to_list <- function(plots_character) {
 #'
 #' @examples
 #' \dontrun{
+#'  aes_list <-
+#'    list(
+#'      "colour" = "variable_A",
+#'      "shape" = "variable_B"
+#'    )
+#'
 #'  aes_character <-
 #'    bsfR::.bsfrd_convert_aesthetics_list(
-#'      aes_list = list("colour" = "variable_A", "shape" = "variable_B")
+#'      aes_list = aes_list
 #'    )
 #' }
 .bsfrd_convert_aesthetics_list <- function(aes_list) {
@@ -1616,12 +1678,15 @@ bsfrd_plots_character_to_list <- function(plots_character) {
 #'
 #' @examples
 #' \dontrun{
+#'  geom_list <-
+#'    list(
+#'      "geom_point" = list("colour" = "variable_A", "shape" = "variable_B"),
+#'      "geom_text" = list("colour" = "variable_C", "shape" = "variable_D")
+#'    )
+#'
 #'  geom_character <-
 #'    bsfrd_geometrics_list_to_character(
-#'      geom_list = list(
-#'        "geom_point" = list("colour" = "variable_A", "shape" = "variable_B"),
-#'        "geom_text" = list("colour" = "variable_C", "shape" = "variable_D")
-#'      )
+#'      geom_list = geom_list
 #'    )
 #' }
 bsfrd_geometrics_list_to_character <- function(geom_list) {
@@ -1654,18 +1719,21 @@ bsfrd_geometrics_list_to_character <- function(geom_list) {
 #'
 #' @examples
 #' \dontrun{
+#'  plots_list <-
+#'    list(
+#'      list(
+#'        "geom_point" = list("colour" = "variable_A", "shape" = "variable_B"),
+#'        "geom_text" = list("colour" = "variable_C", "shape" = "variable_D")
+#'      ),
+#'      list(
+#'        "geom_point" = list("colour" = "variable_1", "shape" = "variable_2"),
+#'        "geom_text" = list("colour" = "variable_3", "shape" = "variable_4")
+#'      )
+#'    )
+#'
 #'  plot_character <-
 #'    bsfR::bsfrd_plots_list_to_character(
-#'      plots_list = list(
-#'        list(
-#'          "geom_point" = list("colour" = "variable_A", "shape" = "variable_B"),
-#'          "geom_text" = list("colour" = "variable_C", "shape" = "variable_D")
-#'        ),
-#'        list(
-#'          "geom_point" = list("colour" = "variable_1", "shape" = "variable_2"),
-#'          "geom_text" = list("colour" = "variable_3", "shape" = "variable_4")
-#'        )
-#'      )
+#'      plots_list = plots_list
 #'    )
 #' }
 bsfrd_plots_list_to_character <- function(plots_list) {
