@@ -112,7 +112,7 @@ message(
 # more cumbersome than necessary. Use base::readLines() and
 # stringr::str_split_fixed() to split into a matrix.
 #
-# > stringr::str_split_fixed(string=star_lines, pattern=fixed(pattern="\t"), n=2)
+# > stringr::str_split_fixed(string = star_lines, pattern = fixed(pattern = "\t"), n = 2)
 # [,1]                                                [,2]
 # [1,] "                                 Started job on |" "Apr 01 20:49:14"
 # [2,] "                             Started mapping on |" "Apr 01 20:50:12"

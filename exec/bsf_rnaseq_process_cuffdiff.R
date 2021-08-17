@@ -1235,7 +1235,7 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
     # setMethod("csVolcano", signature(object = "CuffData"), .volcano)
     # In R/AllGenerics.R:
     # setGeneric("csVolcano",
-    #            function(object, x, y, features=F, ...) standardGeneric("csVolcano"))
+    #            function(object, x, y, features = F, ...) standardGeneric("csVolcano"))
     ggplot_object <-
       cummeRbund::csVolcano(
         object = cummeRbund::genes(object = cuff_set),
