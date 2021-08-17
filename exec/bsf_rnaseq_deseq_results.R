@@ -487,7 +487,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     "gene_id" = row.names(x = deseq_results),
     # Calculate a factor indicating significance.
     "significant" = factor(
-      x = if_else(
+      x = dplyr::if_else(
         condition = .data$padj <= argument_list$padj_threshold,
         true = "yes",
         false = "no",
