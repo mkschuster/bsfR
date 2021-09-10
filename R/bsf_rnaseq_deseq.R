@@ -1341,21 +1341,31 @@ bsfrd_read_annotation_tibble <-
             "exon_number")
       }
 
+      # Select those variable names that are defined in the GTF file.
+      gtf_variables <-
+        variable_names %in% names(x = S4Vectors::mcols(x = granges_object))
+
       mcols_frame <-
-        S4Vectors::mcols(x = granges_object)[, variable_names]
-      rm(variable_names)
+        S4Vectors::mcols(x = granges_object)[, variable_names[gtf_variables]]
+
+      # Add all standard variables not defined in the DataFrame.
+      for (variable_name in variable_names[!gtf_variables]) {
+        mcols_frame[, variable_name] <-
+          character(length = nrow(x = mcols_frame))
+      }
+      rm(variable_name, gtf_variables, variable_names)
 
       # Add the location as an Ensembl-like location, lacking the coordinate
       # system name and version.
       mcols_frame$location <-
         methods::as(object = granges_object, Class = "character")
-      rm(granges_object)
 
       annotation_tibble <-
         tibble::as_tibble(x = as.data.frame(x = mcols_frame))
-      rm(mcols_frame)
 
       readr::write_tsv(x = annotation_tibble, file = file_path)
+
+      rm(mcols_frame, granges_object)
     }
     rm(file_path)
 

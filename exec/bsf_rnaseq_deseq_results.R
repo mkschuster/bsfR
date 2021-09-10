@@ -515,9 +515,9 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
   )
 
   # Left join with the reference transcriptome annotation tibble.
-  deseq_results_tibble <- dplyr::left_join(x = annotation_tibble,
-                                           y = deseq_results_tibble,
-                                           by = "gene_id")
+  deseq_results_tibble <- dplyr::right_join(x = annotation_tibble,
+                                            y = deseq_results_tibble,
+                                            by = "gene_id")
 
   readr::write_tsv(x = deseq_results_tibble,
                    file = file.path(output_directory,

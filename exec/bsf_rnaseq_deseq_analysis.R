@@ -1850,9 +1850,9 @@ lrt_reduced_formula_test <-
         )
       )
       deseq_results_lrt_tibble <-
-        dplyr::left_join(x = annotation_tibble,
-                         y = deseq_results_lrt_tibble,
-                         by = "gene_id")
+        dplyr::right_join(x = annotation_tibble,
+                          y = deseq_results_lrt_tibble,
+                          by = "gene_id")
       # Write all genes.
       readr::write_tsv(x = deseq_results_lrt_tibble,
                        file = file_path_all)
@@ -1968,7 +1968,7 @@ print(x = DESeq2::resultsNames(object = deseq_data_set))
 
 # Export the raw counts from the DESeqDataSet object.
 readr::write_tsv(
-  x = dplyr::left_join(
+  x = dplyr::right_join(
     x = annotation_tibble,
     y = tibble::as_tibble(
       x = BiocGenerics::counts(object = deseq_data_set, normalized = FALSE),
@@ -1992,7 +1992,7 @@ readr::write_tsv(
 
 # Export the normalised counts from the DESeq2::DESeqDataSet object.
 readr::write_tsv(
-  x = dplyr::left_join(
+  x = dplyr::right_join(
     x = annotation_tibble,
     y = tibble::as_tibble(
       x = BiocGenerics::counts(object = deseq_data_set, normalized = TRUE),
@@ -2020,7 +2020,7 @@ plot_fpkm_values(object = fpkm_matrix)
 
 # Export FPKM values from the DESeq2::DESeqDataSet object.
 readr::write_tsv(
-  x = dplyr::left_join(
+  x = dplyr::right_join(
     x = annotation_tibble,
     y = tibble::as_tibble(x = fpkm_matrix, rownames = "gene_id"),
     by = "gene_id"
@@ -2066,7 +2066,7 @@ for (blind in c(FALSE, TRUE)) {
 
   # Export the vst counts from the DESeq2::DESeqTransform object
   readr::write_tsv(
-    x = dplyr::left_join(
+    x = dplyr::right_join(
       x = annotation_tibble,
       y = tibble::as_tibble(
         x = SummarizedExperiment::assay(x = deseq_transform, i = 1L),
