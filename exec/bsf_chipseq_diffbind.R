@@ -114,6 +114,7 @@ suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
 # suppressPackageStartupMessages(expr = library(package = "ChIPQC"))
 suppressPackageStartupMessages(expr = library(package = "DiffBind"))
 suppressPackageStartupMessages(expr = library(package = "GenomeInfoDb"))
+suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
 
 # Set the number of parallel threads in the MulticoreParam instance.
 BiocParallel::register(BPPARAM = BiocParallel::MulticoreParam(workers = argument_list$threads))
@@ -423,8 +424,26 @@ utils::write.table(
   row.names = FALSE,
   col.names = TRUE
 )
-rm(diffbind_peakset_granges)
 
+# Export the consensus peak set as UCSC BED and BigBed files, but set the score first.
+
+GenomicRanges::score(x = diffbind_peakset_granges) <- 0L
+
+diffbind_peakset_granges <-
+  GenomicRanges::sort(x = diffbind_peakset_granges, ignore.strand = TRUE)
+
+rtracklayer::export(object = diffbind_peakset_granges,
+                    con = rtracklayer::BEDFile(resource = file.path(
+                      output_directory, sprintf(fmt = "%s_peak_set.bed", prefix)
+                    )))
+
+# NOTE: The GenomicRanges::GRanges object has no GenomeInfoDb::Seqinfo object attached.
+# rtracklayer::export(object = diffbind_peakset_granges,
+#                     con = rtracklayer::BigBedFile(path = file.path(
+#                       output_directory, sprintf(fmt = "%s_peak_set.bb", prefix)
+#                     )))
+
+rm(diffbind_peakset_granges)
 
 #' Process a contrasts data frame obtained via DiffBind::dba.show() per row.
 #'
