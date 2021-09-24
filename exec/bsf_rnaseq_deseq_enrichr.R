@@ -158,7 +158,7 @@ if (!file.exists(output_directory)) {
 #' @noRd
 #'
 #' @examples
-load_contrast_frame <- function(contrast_character) {
+load_deseq_result_tibble <- function(contrast_character) {
   deseq_results_tibble <-
     bsfR::bsfrd_read_result_tibble(
       genome_directory = argument_list$genome_directory,
@@ -170,8 +170,9 @@ load_contrast_frame <- function(contrast_character) {
   if (is.null(x = deseq_results_tibble)) {
     stop("No DESeqResults frame for contrast ", contrast_character)
   }
+
   # Importantly, NA values need removing.
-  message("Total number of genes: ",
+  message("Number of genes in total: ",
           nrow(x = deseq_results_tibble))
 
   deseq_results_tibble <-
@@ -190,7 +191,7 @@ load_contrast_frame <- function(contrast_character) {
     dplyr::filter(.data = deseq_results_tibble,
                   abs(x = .data$log2FoldChange) >= argument_list$l2fc_threshold)
 
-  message("Number of gene after applying the l2fc threshold: ",
+  message("Number of genes after applying the l2fc threshold: ",
           nrow(x = deseq_results_tibble))
 
   return(deseq_results_tibble)
@@ -235,6 +236,7 @@ load_enrichr_results <-
                 enrichr_database,
                 " ",
                 directions[direction_index])
+
         result_list[[directions[direction_index]]] <-
           readr::read_tsv(
             file = file_paths[direction_index],
@@ -257,8 +259,9 @@ load_enrichr_results <-
               contrast_character,
               " ",
               enrichr_database)
+
       deseq_results_tibble <-
-        load_contrast_frame(contrast_character = contrast_character)
+        load_deseq_result_tibble(contrast_character = contrast_character)
 
       for (direction_index in seq_along(along.with = directions)) {
         # Split the results into up- and down-regulated genes.
@@ -268,14 +271,14 @@ load_enrichr_results <-
                 enrichr_database,
                 " ",
                 directions[direction_index])
-        enrichr_tibble <- NULL
-        if (directions[direction_index] == "up") {
-          enrichr_tibble <-
+
+        enrichr_tibble <-
+          if (directions[direction_index] == "up") {
             dplyr::filter(.data = deseq_results_tibble, .data$log2FoldChange > 0.0)
-        } else {
-          enrichr_tibble <-
+          } else {
             dplyr::filter(.data = deseq_results_tibble, .data$log2FoldChange < 0.0)
-        }
+          }
+
         readr::write_tsv(x = enrichr_tibble,
                          file = file.path(output_directory,
                                           paste(
@@ -289,13 +292,17 @@ load_enrichr_results <-
                                             "tsv",
                                             sep = "."
                                           )))
-        enrichr_result_list <- if (nrow(x = enrichr_tibble) > 0L) {
-          # Upload to Enrichr only, if genes were filtered.
-          enrichR::enrichr(genes = enrichr_tibble$gene_name,
-                           databases = enrichr_databases)
-        } else {
-          NULL
-        }
+
+        enrichr_result_list <-
+          if ((nrow(x = enrichr_tibble) > 0L) &&
+              ("gene_name" %in% names(enrichr_tibble))) {
+            # Upload to Enrichr only, if genes are available after filtering and a gene_name variable is available.
+            enrichR::enrichr(genes = enrichr_tibble$gene_name,
+                             databases = enrichr_databases)
+          } else {
+            NULL
+          }
+
         # Save the Enrichr results for each database, so that it is
         # automatically available for the next query.
         for (edb in enrichr_databases) {
@@ -332,6 +339,7 @@ load_enrichr_results <-
                 )
               ))
             }
+
           readr::write_tsv(x = enrichr_result_tibble,
                            file = file.path(output_directory,
                                             paste(
@@ -376,8 +384,10 @@ contrast_tibble <-
 # Create a "Contrasts" report section
 nozzle_section_contrasts <-
   Nozzle.R1::newSection("Contrasts", class = SECTION.CLASS.RESULTS)
+
 nozzle_section_contrasts <-
-  addTo(parent = nozzle_section_contrasts, Nozzle.R1::newTable(table = as.data.frame(x = contrast_tibble)))
+  Nozzle.R1::addTo(parent = nozzle_section_contrasts, Nozzle.R1::newTable(table = base::as.data.frame(x = contrast_tibble)))
+
 nozzle_section_enrichr <-
   Nozzle.R1::newSection("Enrichr Reports", class = SECTION.CLASS.RESULTS)
 
@@ -454,6 +464,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       rm(result_tibble, result_list)
       next()
     }
+
     # Order from lowest (down-regulated) to highest (up-regulated) combined
     # score, which means that the up-regulated genes appear on top.
     # FIXME: Keep the order of scores.
@@ -496,6 +507,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
         labels = c("Down regulated", "Up regulated"),
         values = c("down" = "#00ba38", "up" = "#f8766d")
       )
+
     ggplot_object <- ggplot_object + ggplot2::coord_flip()
 
     ggplot_object <-
@@ -575,6 +587,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
        result_tibble,
        result_list)
   }
+
   nozzle_section_enrichr <-
     Nozzle.R1::addTo(parent = nozzle_section_enrichr, nozzle_section_contrast)
 
@@ -605,7 +618,7 @@ rm(
   enrichr_databases,
   output_directory,
   load_enrichr_results,
-  load_contrast_frame,
+  load_deseq_result_tibble,
   prefix_enrichr,
   prefix_deseq,
   graphics_formats,
