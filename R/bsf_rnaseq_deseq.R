@@ -226,6 +226,7 @@ bsfrd_read_contrast_tibble <-
       col_names = TRUE,
       col_types = col_types
     )
+
     rm(col_types, file_path_components, prefix_deseq)
 
     # Subset to the selected design.
@@ -278,6 +279,7 @@ bsfrd_get_contrast_list <- function(contrast_tibble, index) {
     } else {
       denomintor_character
     })
+
   rm(denomintor_character, numerator_character)
 
   return(character_list)
@@ -307,6 +309,7 @@ bsfrd_get_contrast_list <- function(contrast_tibble, index) {
 bsfrd_get_contrast_character <- function(contrast_tibble, index) {
   contrast_list <-
     bsfrd_get_contrast_list(contrast_tibble = contrast_tibble, index = index)
+
   return(paste(
     paste(contrast_list$numerator, collapse = "_"),
     "against",
@@ -380,6 +383,7 @@ bsfrd_read_design_tibble <-
         plot_aes = readr::col_character()
       )
     )
+
     rm(prefix_deseq)
 
     return(dplyr::filter(.data = design_tibble, .data$design == .env$design_name))
@@ -506,7 +510,7 @@ bsfrd_read_design_list <-
 #'
 #' @examples
 #' \dontrun{
-#'  sample_frame <-
+#'  sample_dframe <-
 #'    bsfrd_read_sample_frame(
 #'      genome_directory = genome_directory,
 #'      design_name = design_name,
@@ -530,7 +534,9 @@ bsfrd_read_sample_frame <-
           design_name = design_name,
           verbose = verbose
         )
+
       factor_levels <- design_list$factor_levels
+
       rm(design_list)
     }
 
@@ -541,7 +547,7 @@ bsfrd_read_sample_frame <-
       message("Loading a sample S4Vectors::DataFrame ...")
     }
 
-    mcols_frame <-
+    mcols_dframe <-
       methods::as(
         object = utils::read.table(
           file = file.path(
@@ -556,46 +562,49 @@ bsfrd_read_sample_frame <-
         ),
         "DataFrame"
       )
-    rownames(x = mcols_frame) <- mcols_frame$sample
+
+    rownames(x = mcols_dframe) <- mcols_dframe$sample
 
     # Select only those samples, which have the design name annotated in the
     # designs variable split into a character vector.
     index_logical <-
       purrr::map_lgl(
         .x = stringr::str_split(
-          string = as.character(mcols_frame$designs),
+          string = as.character(mcols_dframe$designs),
           pattern = stringr::fixed(pattern = ",")
         ),
         .f = ~ design_name %in% .
       )
-    mcols_frame <- mcols_frame[index_logical, , drop = FALSE]
+
+    mcols_dframe <- mcols_dframe[index_logical, , drop = FALSE]
+
     rm(index_logical)
 
-    if (nrow(x = mcols_frame) == 0L) {
+    if (nrow(x = mcols_dframe) == 0L) {
       stop("No sample remaining after selection for design name.")
     }
 
     # The sequencing_type and library_type variables are required to set options
     # for the GenomicAlignments::summarizeOverlaps() read counting function.
 
-    if (!"sequencing_type" %in% names(x = mcols_frame)) {
-      stop("A sequencing_type variable is missing from the sample annotation frame.")
+    if (!"sequencing_type" %in% names(x = mcols_dframe)) {
+      stop("A sequencing_type variable is missing from the sample annotation DataFrame.")
     }
 
-    if (!"library_type" %in% names(x = mcols_frame)) {
-      stop("A library_type variable is missing from the sample annotation frame.")
+    if (!"library_type" %in% names(x = mcols_dframe)) {
+      stop("A library_type variable is missing from the sample annotation DataFrame.")
     }
 
     # Re-level the library_type and sequencing_type variables.
-    mcols_frame$library_type <-
-      factor(x = mcols_frame$library_type,
+    mcols_dframe$library_type <-
+      factor(x = mcols_dframe$library_type,
              levels = c("unstranded", "first", "second"))
 
-    mcols_frame$sequencing_type <-
-      factor(x = mcols_frame$sequencing_type,
+    mcols_dframe$sequencing_type <-
+      factor(x = mcols_dframe$sequencing_type,
              levels = c("SE", "PE"))
 
-    # The "factor_levels" variable of the design data frame specifies the order
+    # The "factor_levels" variable of the design DataFrame specifies the order
     # of factor levels.
     #
     # factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"
@@ -616,31 +625,33 @@ bsfrd_read_sample_frame <-
     )
 
     # Apply the factor levels to each factor.
-    design_variables <- names(x = mcols_frame)
+    design_variables <- names(x = mcols_dframe)
     for (i in seq_along(along.with = factor_list)) {
       factor_name <- attr(x = factor_list[[i]], which = "factor_name")
       if (!is.na(x = factor_name) && factor_name != "") {
         if (factor_name %in% design_variables) {
-          mcols_frame[, factor_name] <-
-            factor(x = as.character(x = mcols_frame[, factor_name]),
+          mcols_dframe[, factor_name] <-
+            factor(x = as.character(x = mcols_dframe[, factor_name, drop = TRUE]),
                    levels = factor_list[[i]])
           # Check for NA values in case a factor level was missing.
-          if (any(is.na(x = mcols_frame[, factor_name]))) {
+          if (any(is.na(x = mcols_dframe[, factor_name, drop = TRUE]))) {
             stop("Missing values after assigning factor levels for factor name ",
                  factor_name)
           }
         } else {
-          stop("Factor name ",
-               factor_name,
-               " does not resemble a variable of the design frame.")
+          stop(
+            "Factor name ",
+            factor_name,
+            " does not resemble a variable of the design DataFrame."
+          )
         }
       }
       rm(factor_name)
     }
     rm(i, design_variables, factor_list)
 
-    # Drop any unused levels from the sample data frame before returning it.
-    return(droplevels(x = mcols_frame))
+    # Drop any unused levels from the sample DataFrame before returning it.
+    return(droplevels(x = mcols_dframe))
   }
 
 #' Read a RangedSummarizedExperiment Object.
@@ -707,7 +718,7 @@ bsfrd_read_summarized_experiment <-
     } else {
       # Get a S4Vectors::DataFrame with sample annotation.
 
-      sample_frame <-
+      sample_dframe <-
         bsfR::bsfrd_read_sample_frame(
           genome_directory = genome_directory,
           design_name = design_name,
@@ -740,8 +751,8 @@ bsfrd_read_summarized_experiment <-
       # Process per library_type and sequencing_type and merge the
       # SummarizedExperiment::RangedSummarizedExperiment objects.
 
-      for (library_type in levels(x = sample_frame$library_type)) {
-        for (sequencing_type in levels(x = sample_frame$sequencing_type)) {
+      for (library_type in levels(x = sample_dframe$library_type)) {
+        for (sequencing_type in levels(x = sample_dframe$sequencing_type)) {
           if (verbose) {
             message(
               "Processing library_type: ",
@@ -751,12 +762,12 @@ bsfrd_read_summarized_experiment <-
             )
           }
 
-          sub_sample_frame <-
-            sample_frame[(sample_frame$library_type == library_type) &
-                           (sample_frame$sequencing_type == sequencing_type), ]
+          sub_sample_dframe <-
+            sample_dframe[(sample_dframe$library_type == library_type) &
+                            (sample_dframe$sequencing_type == sequencing_type), , drop = FALSE]
 
-          if (nrow(x = sub_sample_frame) == 0L) {
-            rm(sub_sample_frame)
+          if (nrow(x = sub_sample_dframe) == 0L) {
+            rm(sub_sample_dframe)
             next()
           }
 
@@ -767,8 +778,8 @@ bsfrd_read_summarized_experiment <-
           }
 
           bam_file_list <- Rsamtools::BamFileList(
-            file = as.character(x = sub_sample_frame$bam_path),
-            index = as.character(x = sub_sample_frame$bai_path),
+            file = as.character(x = sub_sample_dframe$bam_path),
+            index = as.character(x = sub_sample_dframe$bai_path),
             yieldSize = 2000000L,
             asMates = (sequencing_type == "PE")
           )
@@ -777,12 +788,12 @@ bsfrd_read_summarized_experiment <-
           # and the "sample" variable has duplicate values. Hence, use "run"
           # instead of "sample" for naming.
 
-          if ("run" %in% names(x = sub_sample_frame)) {
+          if ("run" %in% names(x = sub_sample_dframe)) {
             names(x = bam_file_list) <-
-              as.character(x = sub_sample_frame$run)
+              as.character(x = sub_sample_dframe$run)
           } else {
             names(x = bam_file_list) <-
-              as.character(x = sub_sample_frame$sample)
+              as.character(x = sub_sample_dframe$sample)
           }
 
           if (verbose) {
@@ -808,7 +819,7 @@ bsfrd_read_summarized_experiment <-
             )
 
           SummarizedExperiment::colData(x = sub_ranged_summarized_experiment) <-
-            sub_sample_frame
+            sub_sample_dframe
 
           # Combine SummarizedExperiment::RangedSummarizedExperiment objects
           # with the same GenomicRanges::GRanges, but different samples via
@@ -823,7 +834,7 @@ bsfrd_read_summarized_experiment <-
           }
 
           rm(sub_ranged_summarized_experiment,
-             sub_sample_frame,
+             sub_sample_dframe,
              bam_file_list)
         }
         rm(sequencing_type)
@@ -832,10 +843,10 @@ bsfrd_read_summarized_experiment <-
 
       # Collapse technical replicates if variable "run" is defined.
 
-      sample_frame <-
+      sample_dframe <-
         SummarizedExperiment::colData(x = ranged_summarized_experiment)
 
-      if ("run" %in% names(x = sample_frame)) {
+      if ("run" %in% names(x = sample_dframe)) {
         if (verbose) {
           message("Collapsing technical replicates ...")
         }
@@ -847,32 +858,32 @@ bsfrd_read_summarized_experiment <-
 
         ranged_summarized_experiment <- DESeq2::collapseReplicates(
           object = ranged_summarized_experiment,
-          groupby = sample_frame$sample,
-          run = sample_frame$run,
+          groupby = sample_dframe$sample,
+          run = sample_dframe$run,
           renameCols = TRUE
         )
       }
-      rm(sample_frame)
+      rm(sample_dframe)
 
       # Calculate colSums() of SummarizedExperiment::assays()$counts and add as
       # total_count into the SummarizedExperiment::colData()
       # S4Vectors::DataFrame.
 
-      sample_frame <-
+      sample_dframe <-
         SummarizedExperiment::colData(x = ranged_summarized_experiment)
 
-      sample_frame$total_counts <-
+      sample_dframe$total_counts <-
         base::colSums(
           x = SummarizedExperiment::assays(x = ranged_summarized_experiment)$counts,
           na.rm = TRUE
         )
 
       SummarizedExperiment::colData(x = ranged_summarized_experiment) <-
-        sample_frame
+        sample_dframe
 
       rm(gene_granges_list,
          exon_granges,
-         sample_frame)
+         sample_dframe)
 
       base::saveRDS(object = ranged_summarized_experiment, file = file_path)
     }
@@ -905,6 +916,7 @@ bsfrd_read_summarized_experiment <-
 bsfrd_read_deseq_data_set <-
   function(genome_directory, design_name, verbose = FALSE) {
     deseq_data_set <- NULL
+
     prefix_deseq <-
       bsfrd_get_prefix_deseq(design_name = design_name)
 
@@ -957,13 +969,16 @@ bsfrd_read_deseq_transform <-
            model = TRUE,
            verbose = FALSE) {
     deseq_transform <- NULL
+
     suffix <- if (model) {
       "model"
     } else {
       "blind"
     }
+
     prefix_deseq <-
       bsfrd_get_prefix_deseq(design_name = design_name)
+
     file_path <-
       file.path(genome_directory,
                 prefix_deseq,
@@ -977,11 +992,13 @@ bsfrd_read_deseq_transform <-
       if (verbose) {
         message("Loading a ", suffix, " DESeqTransform object ...")
       }
+
       deseq_transform <- base::readRDS(file = file_path)
     } else {
       warning("Require a pre-calculated DESeqTransform object in file: ",
               file_path)
     }
+
     rm(file_path, prefix_deseq, suffix)
 
     return(deseq_transform)
@@ -1036,15 +1053,19 @@ bsfrd_read_deseq_results <-
            contrast_character = NULL,
            verbose = FALSE) {
     deseq_results <- NULL
+
     prefix_deseq <-
       bsfrd_get_prefix_deseq(design_name = design_name)
+
     if (is.null(x = contrast_character)) {
       if (is.null(x = contrast_tibble) || is.null(x = index)) {
         warning(
           "Either a contrast_tibble and index or a (valid) contrast_character option are required."
         )
+
         return(NULL)
       }
+
       contrast_character <-
         bsfrd_get_contrast_character(contrast_tibble = contrast_tibble, index = index)
     }
@@ -1128,18 +1149,23 @@ bsfrd_read_result_tibble <-
            contrast_character = NULL,
            verbose = FALSE) {
     deseq_results_tibble <- NULL
+
     prefix_deseq <-
       bsfrd_get_prefix_deseq(design_name = design_name)
+
     if (is.null(x = contrast_character)) {
       if (is.null(x = contrast_tibble) || is.null(x = index)) {
         warning(
           "Either a contrast_tibble and index or a (valid) contrast_character option are required."
         )
+
         return(NULL)
       }
+
       contrast_character <-
         bsfrd_get_contrast_character(contrast_tibble = contrast_tibble, index = index)
     }
+
     file_path <-
       file.path(genome_directory,
                 prefix_deseq,
@@ -1316,6 +1342,7 @@ bsfrd_read_annotation_tibble <-
       if (verbose) {
         message("Creating an annotation tibble ...")
       }
+
       variable_names <- c("gene_id",
                           "gene_version",
                           "gene_name",
@@ -1345,27 +1372,27 @@ bsfrd_read_annotation_tibble <-
       gtf_variables <-
         variable_names %in% names(x = S4Vectors::mcols(x = granges_object))
 
-      mcols_frame <-
-        S4Vectors::mcols(x = granges_object)[, variable_names[gtf_variables]]
+      mcols_dframe <-
+        S4Vectors::mcols(x = granges_object)[, variable_names[gtf_variables], drop = FALSE]
 
-      # Add all standard variables not defined in the DataFrame.
+      # Add all standard variables not defined in the S4Vectors::DataFrame.
       for (variable_name in variable_names[!gtf_variables]) {
-        mcols_frame[, variable_name] <-
-          character(length = nrow(x = mcols_frame))
+        mcols_dframe[, variable_name] <-
+          character(length = nrow(x = mcols_dframe))
       }
       rm(variable_name, gtf_variables, variable_names)
 
       # Add the location as an Ensembl-like location, lacking the coordinate
       # system name and version.
-      mcols_frame$location <-
+      mcols_dframe$location <-
         methods::as(object = granges_object, Class = "character")
 
       annotation_tibble <-
-        tibble::as_tibble(x = as.data.frame(x = mcols_frame))
+        tibble::as_tibble(x = S4Vectors::as.data.frame(x = mcols_dframe))
 
       readr::write_tsv(x = annotation_tibble, file = file_path)
 
-      rm(mcols_frame, granges_object)
+      rm(mcols_dframe, granges_object)
     }
     rm(file_path)
 
@@ -1433,17 +1460,22 @@ bsfrd_read_gene_set_tibble <-
     missing_ids <-
       is.na(x = gene_set_tibble$gene_id) |
       gene_set_tibble$gene_id == ""
+
     missing_indices <- which(x = missing_ids)
+
     if (length(x = missing_indices) > 0L) {
       # Read the central transcriptome annotation tibble.
       annotation_tibble <-
         bsfrd_read_annotation_tibble(genome_directory = genome_directory, design_name = design_name)
+
       # Associate empty "gene_id" values with corresponding "gene_name" values.
       missing_names <-
         gene_set_tibble$gene_name[missing_indices]
+
       # Reset the missing "gene_id" values, by matching missing names in the annotation_tibble.
       gene_set_tibble$gene_id[missing_indices] <-
         annotation_tibble$gene_id[match(x = missing_names, table = annotation_tibble$gene_name)]
+
       rm(missing_names, annotation_tibble)
     }
 
@@ -1452,6 +1484,7 @@ bsfrd_read_gene_set_tibble <-
     missing_ids <-
       is.na(x = gene_set_tibble$gene_label) |
       gene_set_tibble$gene_label == ""
+
     gene_set_tibble$gene_label[missing_ids] <-
       gene_set_tibble$gene_name[missing_ids]
 
