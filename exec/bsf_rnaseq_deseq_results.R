@@ -304,18 +304,21 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
                 graphics_formats,
                 sep = "."
               ))
-  names(x = plot_paths) <- names(x = graphics_formats)
+  base::names(x = plot_paths) <- base::names(x = graphics_formats)
 
   if (all(file.exists(plot_paths) &&
           file.info(plot_paths)$size > 0L)) {
     message("Skipping IHW weights plots for ", contrast_character)
   } else {
     message("Creating IHW weights plots for ", contrast_character)
+
     ggplot_object <-
       IHW::plot(x = S4Vectors::metadata(x = deseq_results)$ihwResult,
                 what = "weights")
+
     ggplot_object <-
       ggplot_object + ggplot2::ggtitle(label = "Weights", subtitle = "Independent Hypothesis Weighting")
+
     for (plot_path in plot_paths) {
       ggplot2::ggsave(
         filename = plot_path,
@@ -347,7 +350,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
                 graphics_formats,
                 sep = "."
               ))
-  names(x = plot_paths) <- names(x = graphics_formats)
+  base::names(x = plot_paths) <- base::names(x = graphics_formats)
 
   if (all(file.exists(plot_paths) &&
           file.info(plot_paths)$size > 0L)) {
@@ -356,11 +359,14 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
   } else {
     message("Creating IHW decision boundaries plots for ",
             contrast_character)
+
     ggplot_object <-
       IHW::plot(x = S4Vectors::metadata(x = deseq_results)$ihwResult,
                 what = "decisionboundary")
+
     ggplot_object <-
       ggplot_object + ggplot2::ggtitle(label = "Decision Boundaries", subtitle = "Independent Hypothesis Weighting")
+
     for (plot_path in plot_paths) {
       ggplot2::ggsave(
         filename = plot_path,
@@ -391,7 +397,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
                 graphics_formats,
                 sep = "."
               ))
-  names(x = plot_paths) <- names(x = graphics_formats)
+  base::names(x = plot_paths) <- base::names(x = graphics_formats)
 
   if (all(file.exists(plot_paths) &&
           file.info(plot_paths)$size > 0L)) {
@@ -399,8 +405,10 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
             contrast_character)
   } else {
     message("Creating IHW p-values plots for ", contrast_character)
+
     ggplot_object <-
-      ggplot2::ggplot(data = as.data.frame(x = S4Vectors::metadata(x = deseq_results)$ihwResult))
+      ggplot2::ggplot(data = IHW::as.data.frame(x = S4Vectors::metadata(x = deseq_results)$ihwResult))
+
     ggplot_object <- ggplot_object +
       ggplot2::geom_point(
         mapping = ggplot2::aes(
@@ -410,8 +418,10 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
         ),
         size = 0.25
       )
+
     ggplot_object <-
       ggplot_object + ggplot2::scale_colour_hue(c = 150, l = 70, drop = FALSE)
+
     ggplot_object <-
       ggplot_object + ggplot2::labs(
         x = "p-value",
@@ -419,6 +429,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
         title = "Raw versus Adjusted p-Values",
         subtitle = "Independent Hypothesis Weighting"
       )
+
     for (plot_path in plot_paths) {
       ggplot2::ggsave(
         filename = plot_path,
@@ -446,7 +457,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
                 graphics_formats,
                 sep = "."
               ))
-  names(x = plot_paths) <- names(x = graphics_formats)
+  base::names(x = plot_paths) <- base::names(x = graphics_formats)
 
   if (all(file.exists(plot_paths) &&
           file.info(plot_paths)$size > 0L)) {
@@ -454,6 +465,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
             contrast_character)
   } else {
     message("Creating MA plots for ", contrast_character)
+
     grDevices::pdf(
       file = plot_paths["pdf"],
       width = argument_list$plot_width,
@@ -480,11 +492,11 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
   # Coerce the DESeqResults into a tibble and add lots of useful variables.
 
   deseq_results_tibble <-
-    tibble::as_tibble(x = as.data.frame(x = deseq_results))
+    tibble::as_tibble(x = S4Vectors::as.data.frame(x = deseq_results))
 
   deseq_results_tibble <- dplyr::mutate(
     .data = deseq_results_tibble,
-    "gene_id" = row.names(x = deseq_results),
+    "gene_id" = S4Vectors::rownames(x = deseq_results),
     # Calculate a factor indicating significance.
     "significant" = factor(
       x = dplyr::if_else(
@@ -563,7 +575,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
                             graphics_formats,
                             sep = "."
                           ))
-  names(x = plot_paths) <- names(x = graphics_formats)
+  base::names(x = plot_paths) <- base::names(x = graphics_formats)
 
   if (all(file.exists(plot_paths) &&
           file.info(plot_paths)$size > 0L)) {
@@ -573,7 +585,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
 
     # EnhancedVolcano needs the annotation from above, but also coercing the
     # tibble into a data.frame.
-    deseq_results_frame <- as.data.frame(x = deseq_results_tibble)
+    deseq_results_frame <- base::as.data.frame(x = deseq_results_tibble)
 
     ggplot_object <- EnhancedVolcano::EnhancedVolcano(
       toptable = deseq_results_frame,

@@ -563,7 +563,7 @@ bsfrd_read_sample_frame <-
         "DataFrame"
       )
 
-    rownames(x = mcols_dframe) <- mcols_dframe$sample
+    S4Vectors::rownames(x = mcols_dframe) <- mcols_dframe$sample
 
     # Select only those samples, which have the design name annotated in the
     # designs variable split into a character vector.
@@ -580,18 +580,18 @@ bsfrd_read_sample_frame <-
 
     rm(index_logical)
 
-    if (nrow(x = mcols_dframe) == 0L) {
+    if (S4Vectors::nrow(x = mcols_dframe) == 0L) {
       stop("No sample remaining after selection for design name.")
     }
 
     # The sequencing_type and library_type variables are required to set options
     # for the GenomicAlignments::summarizeOverlaps() read counting function.
 
-    if (!"sequencing_type" %in% names(x = mcols_dframe)) {
+    if (!"sequencing_type" %in% S4Vectors::colnames(x = mcols_dframe)) {
       stop("A sequencing_type variable is missing from the sample annotation DataFrame.")
     }
 
-    if (!"library_type" %in% names(x = mcols_dframe)) {
+    if (!"library_type" %in% S4Vectors::colnames(x = mcols_dframe)) {
       stop("A library_type variable is missing from the sample annotation DataFrame.")
     }
 
@@ -625,7 +625,7 @@ bsfrd_read_sample_frame <-
     )
 
     # Apply the factor levels to each factor.
-    design_variables <- names(x = mcols_dframe)
+    design_variables <- S4Vectors::colnames(x = mcols_dframe)
     for (i in seq_along(along.with = factor_list)) {
       factor_name <- attr(x = factor_list[[i]], which = "factor_name")
       if (!is.na(x = factor_name) && factor_name != "") {
@@ -766,7 +766,7 @@ bsfrd_read_summarized_experiment <-
             sample_dframe[(sample_dframe$library_type == library_type) &
                             (sample_dframe$sequencing_type == sequencing_type), , drop = FALSE]
 
-          if (nrow(x = sub_sample_dframe) == 0L) {
+          if (S4Vectors::nrow(x = sub_sample_dframe) == 0L) {
             rm(sub_sample_dframe)
             next()
           }
@@ -788,7 +788,7 @@ bsfrd_read_summarized_experiment <-
           # and the "sample" variable has duplicate values. Hence, use "run"
           # instead of "sample" for naming.
 
-          if ("run" %in% names(x = sub_sample_dframe)) {
+          if ("run" %in% S4Vectors::colnames(x = sub_sample_dframe)) {
             names(x = bam_file_list) <-
               as.character(x = sub_sample_dframe$run)
           } else {
@@ -846,7 +846,7 @@ bsfrd_read_summarized_experiment <-
       sample_dframe <-
         SummarizedExperiment::colData(x = ranged_summarized_experiment)
 
-      if ("run" %in% names(x = sample_dframe)) {
+      if ("run" %in% S4Vectors::colnames(x = sample_dframe)) {
         if (verbose) {
           message("Collapsing technical replicates ...")
         }
@@ -1282,13 +1282,21 @@ bsfrd_read_annotation_tibble <-
         message("Loading an annotation tibble ...")
       }
 
-      col_types <- readr::cols(
-        "gene_id" = readr::col_character(),
-        "gene_version" = readr::col_character(),
-        "gene_name" = readr::col_character(),
-        "gene_biotype" = readr::col_character(),
-        "gene_source" = readr::col_character()
-      )
+      col_types <- readr::cols()
+
+      if (any(c("gene", "transcript", "exon") %in% feature_types)) {
+        col_types$cols <-
+          c(
+            col_types$cols,
+            readr::cols(
+              "gene_id" = readr::col_character(),
+              "gene_version" = readr::col_character(),
+              "gene_name" = readr::col_character(),
+              "gene_biotype" = readr::col_character(),
+              "gene_source" = readr::col_character()
+            )$cols
+          )
+      }
 
       if (any(c("transcript", "exon") %in% feature_types)) {
         col_types$cols <-
@@ -1343,21 +1351,30 @@ bsfrd_read_annotation_tibble <-
         message("Creating an annotation tibble ...")
       }
 
-      variable_names <- c("gene_id",
-                          "gene_version",
-                          "gene_name",
-                          "gene_biotype",
-                          "gene_source")
+      variable_names <- NULL
+
+      if (any(c("gene", "transcript", "exon") %in% feature_types)) {
+        variable_names <-
+          c(
+            variable_names,
+            "gene_id",
+            "gene_version",
+            "gene_name",
+            "gene_biotype",
+            "gene_source"
+          )
+      }
 
       if (any(c("transcript", "exon") %in% feature_types)) {
-        variable_names <- c(
-          variable_names,
-          "transcript_id",
-          "transcript_version",
-          "transcript_name",
-          "transcript_biotype",
-          "transcript_source"
-        )
+        variable_names <-
+          c(
+            variable_names,
+            "transcript_id",
+            "transcript_version",
+            "transcript_name",
+            "transcript_biotype",
+            "transcript_source"
+          )
       }
 
       if ("exon" %in% feature_types) {
@@ -1370,22 +1387,24 @@ bsfrd_read_annotation_tibble <-
 
       # Select those variable names that are defined in the GTF file.
       gtf_variables <-
-        variable_names %in% names(x = S4Vectors::mcols(x = granges_object))
+        variable_names %in% S4Vectors::colnames(x = S4Vectors::mcols(x = granges_object))
 
+      # NOTE: For the moment, do not exclude any (additional) variables, just select all of them.
       mcols_dframe <-
-        S4Vectors::mcols(x = granges_object)[, variable_names[gtf_variables], drop = FALSE]
+        S4Vectors::mcols(x = granges_object)
+      # S4Vectors::mcols(x = granges_object)[, variable_names[gtf_variables], drop = FALSE]
 
       # Add all standard variables not defined in the S4Vectors::DataFrame.
       for (variable_name in variable_names[!gtf_variables]) {
         mcols_dframe[, variable_name] <-
-          character(length = nrow(x = mcols_dframe))
+          character(length = S4Vectors::nrow(x = mcols_dframe))
       }
       rm(variable_name, gtf_variables, variable_names)
 
       # Add the location as an Ensembl-like location, lacking the coordinate
       # system name and version.
       mcols_dframe$location <-
-        methods::as(object = granges_object, Class = "character")
+        as.character(x = granges_object)
 
       annotation_tibble <-
         tibble::as_tibble(x = S4Vectors::as.data.frame(x = mcols_dframe))
@@ -1516,23 +1535,24 @@ bsfrd_read_gene_set_tibble <-
 #'      aes_var_character = aes_var_character
 #'    )
 #' }
-.bsfrd_convert_aesthetic_variable <- function(aes_var_character) {
-  # Split the character vector on "=" characters.
-  character_list <-
-    stringr::str_split(string = aes_var_character,
-                       pattern = stringr::fixed(pattern = "="))
+.bsfrd_convert_aesthetic_variable <-
+  function(aes_var_character) {
+    # Split the character vector on "=" characters.
+    character_list <-
+      stringr::str_split(string = aes_var_character,
+                         pattern = stringr::fixed(pattern = "="))
 
-  # Assign the variables [2L] as list components.
-  aes_var_list <- purrr::map(.x = character_list, .f = ~ .[2L])
+    # Assign the variables [2L] as list components.
+    aes_var_list <- purrr::map(.x = character_list, .f = ~ .[2L])
 
-  # Assign the aesthetics [1L] as names.
-  names(x = aes_var_list) <-
-    purrr::map_chr(.x = character_list, .f = ~ .[1L])
+    # Assign the aesthetics [1L] as names.
+    names(x = aes_var_list) <-
+      purrr::map_chr(.x = character_list, .f = ~ .[1L])
 
-  rm(character_list)
+    rm(character_list)
 
-  return(aes_var_list)
-}
+    return(aes_var_list)
+  }
 
 #' Convert a Geometric and Aesthetic Specification.
 #'
@@ -1559,25 +1579,26 @@ bsfrd_read_gene_set_tibble <-
 #'      geom_aes_character = geom_aes_character
 #'    )
 #' }
-.bsfrd_convert_geometric_aesthetic <- function(geom_aes_character) {
-  # Split geometric definitions on "," characters and assign names (geometric
-  # names) to the list components (aesthetic list).
+.bsfrd_convert_geometric_aesthetic <-
+  function(geom_aes_character) {
+    # Split geometric definitions on "," characters and assign names (geometric
+    # names) to the list components (aesthetic list).
 
-  # Assign the aesthetics definitions [2L] as the list component.
-  # Since only component [2L] gets split, the list contains just one component.
-  geom_aes_list <- purrr::map(
-    .x = stringr::str_split(
-      string = geom_aes_character[2L],
-      pattern = stringr::fixed(pattern = ",")
-    ),
-    .f = .bsfrd_convert_aesthetic_variable
-  )
+    # Assign the aesthetics definitions [2L] as the list component.
+    # Since only component [2L] gets split, the list contains just one component.
+    geom_aes_list <- purrr::map(
+      .x = stringr::str_split(
+        string = geom_aes_character[2L],
+        pattern = stringr::fixed(pattern = ",")
+      ),
+      .f = .bsfrd_convert_aesthetic_variable
+    )
 
-  # Assign the geometric [1L] as name to the only list component.
-  names(x = geom_aes_list) <- geom_aes_character[1L]
+    # Assign the geometric [1L] as name to the only list component.
+    names(x = geom_aes_list) <- geom_aes_character[1L]
 
-  return(geom_aes_list)
-}
+    return(geom_aes_list)
+  }
 
 #' Convert a Plot Specification.
 #'
@@ -1622,7 +1643,8 @@ bsfrd_read_gene_set_tibble <-
   # names to the new list components.
 
   # Assign the first (and only) list component [[1L]] as new list components.
-  plot_list <- purrr::map(.x = single_geom_aes_list, .f = ~ .[[1L]])
+  plot_list <-
+    purrr::map(.x = single_geom_aes_list, .f = ~ .[[1L]])
 
   # Assign the geometric names of the first (and only) list component [1L] as
   # new list component names.

@@ -205,7 +205,7 @@ if (nrow(x = contrast_tibble) == 0L) {
 nozzle_section_contrasts <-
   Nozzle.R1::newSection("Contrasts", class = SECTION.CLASS.RESULTS)
 nozzle_section_contrasts <-
-  addTo(parent = nozzle_section_contrasts, Nozzle.R1::newTable(table = as.data.frame(x = contrast_tibble)))
+  Nozzle.R1::addTo(parent = nozzle_section_contrasts, Nozzle.R1::newTable(table = base::as.data.frame(x = contrast_tibble)))
 
 # Create a "Volcano Plots" report section.
 nozzle_section_list <- list(
@@ -457,7 +457,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
         dplyr::filter(.data = plot_annotation_tibble,
                       .data$plot_name == plot_names[plot_index])
       gene_labels <- filtered_tibble$gene_label
-      names(x = gene_labels) <- filtered_tibble$gene_id
+      base::names(x = gene_labels) <- filtered_tibble$gene_id
       rm(filtered_tibble)
 
       nozzle_section_list <-

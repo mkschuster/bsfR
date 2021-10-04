@@ -293,15 +293,20 @@ load_enrichr_results <-
                                             sep = "."
                                           )))
 
-        enrichr_result_list <-
-          if ((nrow(x = enrichr_tibble) > 0L) &&
-              ("gene_name" %in% names(enrichr_tibble))) {
-            # Upload to Enrichr only, if genes are available after filtering and a gene_name variable is available.
-            enrichR::enrichr(genes = enrichr_tibble$gene_name,
-                             databases = enrichr_databases)
-          } else {
-            NULL
+        # Since Enrichr needs valid gene symbols in the gene_name variable,
+        # post-filter after writing the TSV file.
+        enrichr_result_list <- NULL
+
+        if ("gene_name" %in% base::names(x = enrichr_tibble)) {
+          enrichr_tibble <-
+            dplyr::filter(.data = enrichr_tibble,!is.na(x = .data$gene_name))
+
+          if (nrow(x = enrichr_tibble) > 0L) {
+            enrichr_result_list <-
+              enrichR::enrichr(genes = enrichr_tibble$gene_name,
+                               databases = enrichr_databases)
           }
+        }
 
         # Save the Enrichr results for each database, so that it is
         # automatically available for the next query.

@@ -143,7 +143,7 @@ contrast_tibble <-
     verbose = argument_list$verbose
   )
 
-for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
+for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   contrast_character <-
     bsfR::bsfrd_get_contrast_character(contrast_tibble = contrast_tibble, index = contrast_index)
 
@@ -156,36 +156,36 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       index = contrast_index,
       verbose = argument_list$verbose
     )
+
   if (is.null(x = deseq_results_tibble)) {
     rm(deseq_results_tibble, contrast_character)
     next()
   }
 
-  deseq_results_frame <- as.data.frame(x = deseq_results_tibble)
-
   # Reset the row names from the gene_id variable.
-  row.names(x = deseq_results_frame) <-
-    deseq_results_frame$gene_id
+  deseq_results_frame <- base::as.data.frame(x = deseq_results_tibble, row.names = deseq_results_tibble$gene_id)
 
   # Filter in a data frame to have access to padj and SE.
   # Importantly, NA values need removing.
   message("Number of genes before NA removal: ",
-          nrow(x = deseq_results_frame))
+          base::nrow(x = deseq_results_frame))
+
   deseq_go_frame <-
     deseq_results_frame[!is.na(x = deseq_results_frame$padj), , drop = FALSE]
+
   message("Number of genes after NA removal: ",
-          nrow(x = deseq_go_frame))
+          base::nrow(x = deseq_go_frame))
 
   # Introduce a go_status factor variable for plotting.
   deseq_go_frame$go_status <-
     factor(
-      x = character(length = nrow(x = deseq_go_frame)),
+      x = character(length = base::nrow(x = deseq_go_frame)),
       levels = c("Used", "Not annotated", "Filtered")
     )
 
   # topGO needs a named numeric vector of adjusted p-values.
   all_genes_numeric <- deseq_go_frame$padj
-  names(x = all_genes_numeric) <- deseq_go_frame$gene_id
+  base::names(x = all_genes_numeric) <- deseq_go_frame$gene_id
 
   for (sub_go in c("BP", "CC", "MF")) {
     message("Create a topGOdata object for ontology ", sub_go)

@@ -166,7 +166,7 @@ if (!is.null(x = argument_list$gene_path)) {
   # If the tibble exists, test for NA values in the gene_id variable.
   missing_tibble <-
     dplyr::filter(.data = plot_annotation_tibble, is.na(x = .data$gene_id))
-  if (nrow(x = missing_tibble) > 0L) {
+  if (base::nrow(x = missing_tibble) > 0L) {
     print(x = "The following gene_name values could not be resolved into gene_id values:")
     print(x = missing_tibble)
   }
@@ -174,7 +174,7 @@ if (!is.null(x = argument_list$gene_path)) {
 
   # Finally, filter out all observations with NA values in the gene_id variable.
   plot_annotation_tibble <-
-    dplyr::filter(.data = plot_annotation_tibble, !is.na(x = .data$gene_id))
+    dplyr::filter(.data = plot_annotation_tibble,!is.na(x = .data$gene_id))
 }
 
 # DESeqDataSet ------------------------------------------------------------
@@ -242,14 +242,14 @@ if (is.null(argument_list$variables)) {
                        pattern = stringr::fixed(pattern = ","))[[1L]]
 }
 column_annotation_frame <-
-  data.frame(SummarizedExperiment::colData(x = deseq_data_set)[, variable_names, drop = FALSE])
+  S4Vectors::as.data.frame(x = SummarizedExperiment::colData(x = deseq_data_set)[, variable_names, drop = FALSE])
 rm(variable_names)
 
 # Create a "Contrasts" report section.
 nozzle_section_contrasts <-
   Nozzle.R1::newSection("Contrasts", class = SECTION.CLASS.RESULTS)
 nozzle_section_contrasts <-
-  addTo(parent = nozzle_section_contrasts, Nozzle.R1::newTable(table = as.data.frame(x = contrast_tibble)))
+  Nozzle.R1::addTo(parent = nozzle_section_contrasts, Nozzle.R1::newTable(table = base::as.data.frame(x = contrast_tibble)))
 
 # Create a "Heatmaps" report section.
 nozzle_section_heatmaps <-
@@ -285,7 +285,7 @@ draw_complex_heatmap <-
       # a log2 scale and calculate z-scores per row to centre the scale. Since
       # base::scale() works on columns, two transpositions are required.
       transformed_matrix <-
-        SummarizedExperiment::assay(x = deseq_transform, i = 1L)[top_gene_identifiers, ]
+        SummarizedExperiment::assay(x = deseq_transform, i = 1L)[top_gene_identifiers,]
 
       # Replace negative transformed count values with 0.0.
       # https://support.bioconductor.org/p/59369/
@@ -411,7 +411,7 @@ draw_complex_heatmap <-
     return(nozzle_section)
   }
 
-for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
+for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   contrast_character <-
     bsfR::bsfrd_get_contrast_character(contrast_tibble = contrast_tibble, index = contrast_index)
 
@@ -434,10 +434,8 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
 
   # Coerce into a conventional data.frame object and
   # reset the row names from the "gene_id" variable.
-  deseq_results_frame <- as.data.frame(x = deseq_results_tibble)
+  deseq_results_frame <- base::as.data.frame(x = deseq_results_tibble, row.names = deseq_results_tibble$gene_id)
   rm(deseq_results_tibble)
-  row.names(x = deseq_results_frame) <-
-    deseq_results_frame$gene_id
 
   # In case a gene_set_tibble is available, use it for filtering.
   if (is.null(x = plot_annotation_tibble)) {

@@ -266,7 +266,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     message("Loading a RangedSummarizedExperiment object")
     ranged_summarized_experiment <- base::readRDS(file = file_path)
   } else {
-    sample_frame <-
+    sample_dframe <-
       bsfR::bsfrd_read_sample_frame(
         genome_directory = argument_list$genome_directory,
         design_name = argument_list$design_name,
@@ -293,40 +293,40 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     # Process per library_type and sequencing_type and merge the
     # SummarizedExperiment::RangedSummarizedExperiment objects.
 
-    for (library_type in levels(x = sample_frame$library_type)) {
-      for (sequencing_type in levels(x = sample_frame$sequencing_type)) {
+    for (library_type in levels(x = sample_dframe$library_type)) {
+      for (sequencing_type in levels(x = sample_dframe$sequencing_type)) {
         message(
           "Processing library_type: ",
           library_type,
           " sequencing_type: ",
           sequencing_type
         )
-        sub_sample_frame <-
-          sample_frame[(sample_frame$library_type == library_type) &
-                         (sample_frame$sequencing_type == sequencing_type),]
+        sub_sample_dframe <-
+          sample_dframe[(sample_dframe$library_type == library_type) &
+                          (sample_dframe$sequencing_type == sequencing_type), , drop = FALSE]
 
-        if (nrow(x = sub_sample_frame) == 0L) {
-          rm(sub_sample_frame)
+        if (S4Vectors::nrow(x = sub_sample_dframe) == 0L) {
+          rm(sub_sample_dframe)
           next()
         }
 
         # Create a BamFileList object and set the samples as names.
         message("Creating a BamFileList object")
         bam_file_list <- Rsamtools::BamFileList(
-          file = as.character(x = sub_sample_frame$bam_path),
-          index = as.character(x = sub_sample_frame$bai_path),
+          file = as.character(x = sub_sample_dframe$bam_path),
+          index = as.character(x = sub_sample_dframe$bai_path),
           yieldSize = 2000000L,
           asMates = (sequencing_type == "PE")
         )
         # If a "run" variable is defined, technical replicates need collapsing
         # and the "sample" variable has duplicate values. Hence, use "run"
         # instead of "sample" for naming.
-        if ("run" %in% names(x = sub_sample_frame)) {
+        if ("run" %in% S4Vectors::colnames(x = sub_sample_dframe)) {
           names(x = bam_file_list) <-
-            as.character(x = sub_sample_frame$run)
+            as.character(x = sub_sample_dframe$run)
         } else {
           names(x = bam_file_list) <-
-            as.character(x = sub_sample_frame$sample)
+            as.character(x = sub_sample_dframe$sample)
         }
 
         message("Creating a RangedSummarizedExperiment object")
@@ -348,7 +348,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
               GenomicAlignments::invertStrand
           )
         SummarizedExperiment::colData(x = sub_ranged_summarized_experiment) <-
-          sub_sample_frame
+          sub_sample_dframe
         # Combine SummarizedExperiment::RangedSummarizedExperiment objects with
         # the same GenomicRanges::GRanges, but different samples via
         # SummarizedExperiment::cbind().
@@ -360,7 +360,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
                                         sub_ranged_summarized_experiment)
         }
         rm(sub_ranged_summarized_experiment,
-           sub_sample_frame,
+           sub_sample_dframe,
            bam_file_list)
       }
       rm(sequencing_type)
@@ -368,9 +368,10 @@ initialise_ranged_summarized_experiment <- function(design_list) {
     rm(library_type)
 
     # Collapse technical replicates if variable "run" is defined.
-    sample_frame <-
+    sample_dframe <-
       SummarizedExperiment::colData(x = ranged_summarized_experiment)
-    if ("run" %in% names(x = sample_frame)) {
+
+    if ("run" %in% S4Vectors::colnames(x = sample_dframe)) {
       message("Collapsing technical replicates.")
       # To avoid mismatching column and row names between assay matrices and the
       # column data annotation, variables "sample" and "run" should be used. So
@@ -378,28 +379,31 @@ initialise_ranged_summarized_experiment <- function(design_list) {
       # variable into the sample variable.
       ranged_summarized_experiment <- DESeq2::collapseReplicates(
         object = ranged_summarized_experiment,
-        groupby = sample_frame$sample,
-        run = sample_frame$run,
+        groupby = sample_dframe$sample,
+        run = sample_dframe$run,
         renameCols = TRUE
       )
     }
-    rm(sample_frame)
+    rm(sample_dframe)
 
     # Calculate colSums() of SummarizedExperiment::assays()$counts and add as
     # total_count into the SummarizedExperiment::colData() S4Vectors::DataFrame.
-    sample_frame <-
+    sample_dframe <-
       SummarizedExperiment::colData(x = ranged_summarized_experiment)
-    sample_frame$total_counts <-
+
+    sample_dframe$total_counts <-
       base::colSums(
         x = SummarizedExperiment::assays(x = ranged_summarized_experiment)$counts,
         na.rm = TRUE
       )
+
     SummarizedExperiment::colData(x = ranged_summarized_experiment) <-
-      sample_frame
+      sample_dframe
 
     rm(gene_granges_list,
        exon_granges,
-       sample_frame)
+       sample_dframe)
+
     base::saveRDS(object = ranged_summarized_experiment, file = file_path)
   }
   rm(file_path)
@@ -429,9 +433,11 @@ fix_model_matrix <- function(model_matrix_local) {
   # Check, whether the model matrix is full rank.
   # This is based on the DESeq2::checkFullRank() function.
   full_rank <- TRUE
-  if (qr(x = model_matrix_local)$rank < ncol(x = model_matrix_local)) {
+
+  if (qr(x = model_matrix_local)$rank < base::ncol(x = model_matrix_local)) {
     message("The model matrix is not full rank.")
     full_rank <- FALSE
+
     model_all_zero <-
       apply(
         X = model_matrix_local,
@@ -440,43 +446,49 @@ fix_model_matrix <- function(model_matrix_local) {
           return(all(model_matrix_column == 0))
         }
       )
+
     if (any(model_all_zero)) {
       message(
         "Levels or combinations of levels without any samples have resulted in\n",
         "column(s) of zeros in the model matrix:\n  ",
-        paste(colnames(x = model_matrix_local)[model_all_zero], collapse = "\n  "),
+        paste(base::colnames(x = model_matrix_local)[model_all_zero], collapse = "\n  "),
         "\n",
         "Attempting to fix the model matrix by removing empty columns."
       )
+
       model_matrix_local <-
-        model_matrix_local[, -which(x = model_all_zero)]
+        model_matrix_local[,-which(x = model_all_zero)]
     } else {
       linear_combinations_list <-
         caret::findLinearCombos(x = model_matrix_local)
+
       message_character <-
         purrr::map_chr(
           .x = linear_combinations_list$linearCombos,
           .f = function(x) {
             return(paste0(
               "  Linear combinations:\n    ",
-              paste(colnames(x = model_matrix_local)[x], collapse = "\n    "),
+              paste(base::colnames(x = model_matrix_local)[x], collapse = "\n    "),
               "\n"
             ))
           }
         )
+
       message(
         "One or more variables or interaction terms in the design formula are\n",
         "linear combinations of the others.\n",
         message_character,
         "\n",
         "Attempting to fix the model by removing linear combinations:\n  ",
-        paste(colnames(x = model_matrix_local)[linear_combinations_list$remove], collapse = "\n  ")
+        paste(base::colnames(x = model_matrix_local)[linear_combinations_list$remove], collapse = "\n  ")
       )
+
       model_matrix_local <-
-        model_matrix_local[,-linear_combinations_list$remove]
+        model_matrix_local[, -linear_combinations_list$remove]
     }
     rm(model_all_zero)
   }
+
   return(list("model_matrix" = model_matrix_local, "full_rank" = full_rank))
 }
 
@@ -503,11 +515,16 @@ fix_model_matrix <- function(model_matrix_local) {
 #' @noRd
 check_model_matrix <- function(model_matrix) {
   formula_full_rank <- NULL
+
   matrix_full_rank <- FALSE
+
   while (!matrix_full_rank) {
     result_list <- fix_model_matrix(model_matrix_local = model_matrix)
+
     model_matrix <- result_list$model_matrix
+
     matrix_full_rank <- result_list$full_rank
+
     if (is.null(x = formula_full_rank)) {
       # Capture the intial state of the model matrix, which represents the formula.
       formula_full_rank <- result_list$full_rank
@@ -562,8 +579,10 @@ initialise_deseq_data_set <- function(design_list) {
       object = as.formula(object = design_list$full_formula),
       data = SummarizedExperiment::colData(x = ranged_summarized_experiment)
     )
+
     result_list <-
       check_model_matrix(model_matrix = model_matrix)
+
     if (argument_list$verbose) {
       message("Writing initial model matrix")
       utils::write.table(
@@ -576,6 +595,7 @@ initialise_deseq_data_set <- function(design_list) {
         row.names = TRUE,
         col.names = TRUE
       )
+
       message("Writing modified model matrix")
       utils::write.table(
         x = base::as.data.frame(x = result_list$model_matrix),
@@ -596,6 +616,7 @@ initialise_deseq_data_set <- function(design_list) {
       deseq_data_set <-
         DESeq2::DESeqDataSet(se = ranged_summarized_experiment,
                              design = as.formula(object = design_list$full_formula))
+
       # Start DESeq2 Wald testing.
       #
       # Set betaPrior = FALSE for consistent result names for designs,
@@ -624,6 +645,7 @@ initialise_deseq_data_set <- function(design_list) {
         DESeq2::DESeqDataSet(se = ranged_summarized_experiment,
                              design = ~ 1)
       attr(x = deseq_data_set, which = "full_rank") <- FALSE
+
       message("Started DESeq Wald testing with a model matrix")
       deseq_data_set <-
         DESeq2::DESeq(
@@ -636,6 +658,7 @@ initialise_deseq_data_set <- function(design_list) {
     }
 
     base::saveRDS(object = deseq_data_set, file = file_path)
+
     rm(result_list, ranged_summarized_experiment)
   }
   rm(file_path)
@@ -666,6 +689,7 @@ initialise_deseq_data_set <- function(design_list) {
 initialise_deseq_transform <-
   function(deseq_data_set, blind = FALSE) {
     deseq_transform <- NULL
+
     suffix <- if (blind)
       "blind"
     else
@@ -688,6 +712,7 @@ initialise_deseq_transform <-
       # for PCA plots.
       deseq_transform <-
         DESeq2::varianceStabilizingTransformation(object = deseq_data_set, blind = blind)
+
       base::saveRDS(object = deseq_transform, file = file_path)
     }
     rm(file_path, suffix)
@@ -731,6 +756,7 @@ plot_fpkm_values <- function(object) {
     message("Skipping a FPKM density plot")
   } else {
     message("Create a FPKM density plot")
+
     # Pivot the tibble to get just a "name" and a "value" variable.
     ggplot_object <-
       ggplot2::ggplot(data = tidyr::pivot_longer(
@@ -764,7 +790,7 @@ plot_fpkm_values <- function(object) {
     # The number of samples is the number of columns of the matrix.
     # Rather than argument_list$plot_factor, a fixed number of 0.25 is used here.
     plot_width <-
-      argument_list$plot_width + (ceiling(x = ncol(x = object) / 24L) - 1L) * argument_list$plot_width * 0.25
+      argument_list$plot_width + (ceiling(x = base::ncol(x = object) / 24L) - 1L) * argument_list$plot_width * 0.25
 
     for (plot_path in plot_paths) {
       ggplot2::ggsave(
@@ -871,8 +897,8 @@ plot_cooks_distances <- function(object) {
 
 #' Create a RIN Score Density Plot.
 #'
-#' Create a density plot of the "RIN" variable in the sample annotation frame.
-#' Add vertical lines at 1.0, 4.0 and 7.0 in red, yellow and green,
+#' Create a density plot of the "RIN" variable in the sample annotation
+#' DataFrame. Add vertical lines at 1.0, 4.0 and 7.0 in red, yellow and green,
 #' respectively, to indicate quality tiers. Save PDF and PNG documents.
 #'
 #' @param object A \code{DESeq2::DESeqDataSet} object.
@@ -902,10 +928,10 @@ plot_rin_scores <- function(object) {
           file.info(plot_paths)$size > 0L)) {
     message("Skipping a RIN score density plot")
   } else {
-    if ("RIN" %in% colnames(x = SummarizedExperiment::colData(x = object))) {
+    if ("RIN" %in% S4Vectors::colnames(x = SummarizedExperiment::colData(x = object))) {
       message("Creating a RIN score density plot")
       ggplot_object <-
-        ggplot2::ggplot(data = BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)))
+        ggplot2::ggplot(data = S4Vectors::as.data.frame(x = SummarizedExperiment::colData(x = object)))
 
       ggplot_object <-
         ggplot_object +
@@ -997,13 +1023,15 @@ plot_mds <- function(object,
 
   dist_object <-
     stats::dist(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)))
+
   dist_matrix <- as.matrix(x = dist_object)
+
   # Convert the Multi-Dimensional Scaling matrix into a S4Vectors::DataFrame and
   # bind its columns to the sample annotation S4Vectors::DataFrame.
   mds_frame <-
     base::cbind(
       base::data.frame(stats::cmdscale(d = dist_matrix)),
-      BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object))
+      S4Vectors::as.data.frame(x = SummarizedExperiment::colData(x = object))
     )
 
   purrr::walk(
@@ -1202,7 +1230,9 @@ plot_heatmap <- function(object,
   # assign the sample names as column and row names to the resulting matrix.
   dist_object <-
     dist(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)))
+
   dist_matrix <- as.matrix(x = dist_object)
+
   base::colnames(x = dist_matrix) <- object$sample
   base::rownames(x = dist_matrix) <- object$sample
 
@@ -1217,7 +1247,7 @@ plot_heatmap <- function(object,
         unique(x = unlist(x = geom_list, use.names = TRUE))
 
       plotting_frame <-
-        BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object))[, aes_factors, drop = FALSE]
+        S4Vectors::as.data.frame(x = SummarizedExperiment::colData(x = object))[, aes_factors, drop = FALSE]
 
       pheatmap_object <- NULL
 
@@ -1250,6 +1280,7 @@ plot_heatmap <- function(object,
             fontsize_row = 6,
             silent = TRUE
           )
+
         rm(group_factor)
       } else {
         # Draw a heatmap with covariate column annotation.
@@ -1268,6 +1299,7 @@ plot_heatmap <- function(object,
             silent = TRUE
           )
       }
+
       plot_paths <- file.path(output_directory,
                               paste(
                                 paste(prefix,
@@ -1278,7 +1310,7 @@ plot_heatmap <- function(object,
                                 graphics_formats,
                                 sep = "."
                               ))
-      names(x = plot_paths) <- names(x = graphics_formats)
+      base::names(x = plot_paths) <- names(x = graphics_formats)
 
       # PDF output
       grDevices::pdf(
@@ -1351,6 +1383,7 @@ plot_pca <- function(object,
   # Calculate the variance for each gene.
   row_variance <-
     genefilter::rowVars(x = SummarizedExperiment::assay(x = object, i = 1L))
+
   # Select the top number of genes by variance.
   selected_rows <-
     order(row_variance, decreasing = TRUE)[seq_len(length.out = min(argument_list$pca_top_number, length(x = row_variance)))]
@@ -1358,7 +1391,8 @@ plot_pca <- function(object,
   # Perform a PCA on the (count) matrix returned by
   # SummarizedExperiment::assay() for the selected genes.
   pca_object <-
-    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows, ]))
+    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows,]))
+
   rm(selected_rows)
 
   # Plot the variance for a maximum of 100 components.
@@ -1408,7 +1442,8 @@ plot_pca <- function(object,
 
   # The pca_object$x matrix has as many columns and rows as there are samples.
   pca_dimensions <-
-    min(argument_list$pca_dimensions, ncol(x = pca_object$x))
+    min(argument_list$pca_dimensions, base::ncol(x = pca_object$x))
+
   # Create combinations of all possible principal component pairs.
   pca_pair_matrix <-
     combn(x = seq_len(length.out = pca_dimensions), m = 2L)
@@ -1422,7 +1457,8 @@ plot_pca <- function(object,
       seq_along(along.with = pca_object$sdev),
       100 * (pca_object$sdev ^ 2 / sum(pca_object$sdev ^ 2))
     ))
-  names(x = label_list) <-
+
+  base::names(x = label_list) <-
     paste0("PC", seq_along(along.with = pca_object$sdev))
 
   label_function <- function(value) {
@@ -1449,6 +1485,7 @@ plot_pca <- function(object,
 
       # Assemble the data for the plot from the rotated data matrix.
       pca_frame <- base::as.data.frame(x = pca_object$x)
+
       plotting_frame <-
         base::data.frame(
           component_1 = factor(levels = paste0(
@@ -1461,14 +1498,16 @@ plot_pca <- function(object,
           y = numeric(),
           # Also initialise all variables of the column data, but do not
           # include data (i.e. 0L rows).
-          BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L,])
+          S4Vectors::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L, ])
         )
 
-      for (column_number in seq_len(length.out = ncol(x = pca_pair_matrix))) {
+      for (column_number in seq_len(length.out = base::ncol(x = pca_pair_matrix))) {
         pca_label_1 <-
           paste0("PC", pca_pair_matrix[1L, column_number])
+
         pca_label_2 <-
           paste0("PC", pca_pair_matrix[2L, column_number])
+
         plotting_frame <- base::rbind(
           plotting_frame,
           base::data.frame(
@@ -1476,9 +1515,10 @@ plot_pca <- function(object,
             component_2 = pca_label_2,
             x = pca_frame[, pca_label_1],
             y = pca_frame[, pca_label_2],
-            BiocGenerics::as.data.frame(x = SummarizedExperiment::colData(x = object))
+            S4Vectors::as.data.frame(x = SummarizedExperiment::colData(x = object))
           )
         )
+
         rm(pca_label_1, pca_label_2)
       }
       rm(column_number)
@@ -1691,6 +1731,7 @@ plot_rin_scores(object = deseq_data_set)
 lrt_reduced_formula_test <-
   function(reduced_formula_character) {
     lrt_tibble <- NULL
+
     # Skip NA or empty character vectors.
     if (is.na(x = reduced_formula_character) ||
         !base::nzchar(x = reduced_formula_character)) {
@@ -1730,28 +1771,33 @@ lrt_reduced_formula_test <-
         "Skipping reduced formula: ",
         attr(x = reduced_formula_character, which = "reduced_name")
       )
+
       # Read the existing table to count the number of significant genes after LRT.
-      deseq_merge_significant <-
+      deseq_results_lrt_frame <-
         utils::read.table(file = file_path_significant,
                           header = TRUE,
                           sep = "\t")
+
       lrt_tibble <- tibble::tibble(
         "design" = global_design_list$design,
         "full_formula" = global_design_list$full_formula,
         "reduced_name" = attr(x = reduced_formula_character, which = "reduced_name"),
         "reduced_formula" = reduced_formula_character,
-        "significant" = nrow(deseq_merge_significant)
+        "significant" = base::nrow(deseq_results_lrt_frame)
       )
-      rm(deseq_merge_significant)
+
+      rm(deseq_results_lrt_frame)
     } else {
       message(
         "Processing reduced formula: ",
         attr(x = reduced_formula_character, which = "reduced_name")
       )
+
       # DESeq LRT requires either two model formulas or two model matrices.
       # Create a reduced model matrix and check whether it is full rank.
       formula_full <-
         as.formula(object = global_design_list$full_formula)
+
       result_list_full <-
         check_model_matrix(
           model_matrix = stats::model.matrix.default(
@@ -1762,13 +1808,17 @@ lrt_reduced_formula_test <-
 
       formula_reduced <-
         as.formula(object = reduced_formula_character)
+
       model_matrix_reduced <-
         stats::model.matrix.default(object = formula_reduced,
                                     data = SummarizedExperiment::colData(x = deseq_data_set))
+
       result_list_reduced <-
         check_model_matrix(model_matrix = model_matrix_reduced)
+
       if (argument_list$verbose) {
         message("Writing initial reduced model matrix")
+
         utils::write.table(
           x = base::as.data.frame(x = model_matrix_reduced),
           file = file.path(
@@ -1784,7 +1834,9 @@ lrt_reduced_formula_test <-
           row.names = TRUE,
           col.names = TRUE
         )
+
         message("Writing modified reduced model matrix")
+
         utils::write.table(
           x = base::as.data.frame(x = result_list_reduced$model_matrix),
           file = file.path(
@@ -1801,11 +1853,13 @@ lrt_reduced_formula_test <-
           col.names = TRUE
         )
       }
+
       full_rank <-
         result_list_full$formula_full_rank &
         result_list_reduced$formula_full_rank
+
       deseq_data_set_lrt <-
-        DESeq(
+        DESeq2::DESeq(
           object = deseq_data_set,
           test = "LRT",
           full = if (full_rank)
@@ -1817,6 +1871,7 @@ lrt_reduced_formula_test <-
           else
             result_list_reduced$model_matrix
         )
+
       rm(
         full_rank,
         result_list_reduced,
@@ -1825,20 +1880,22 @@ lrt_reduced_formula_test <-
         formula_full
       )
       # print(x = paste("DESeqDataSet LRT result names for", attr(x = reduced_formula_character, which = "reduced_name")))
-      # print(x = resultsNames(object = deseq_data_set_lrt))
-      deseq_results_lrt <-
-        DESeq2::results(
-          object = deseq_data_set_lrt,
-          format = "DataFrame",
-          # If tidy is TRUE, a classical data.frame is returned.
-          tidy = FALSE,
-          parallel = TRUE
-        )
+      # print(x = DESeq2::resultsNames(object = deseq_data_set_lrt))
 
-      # Convert the DESeqResults object that extends the DataFrame with
-      # additional meta data annotation into a tibble.
+      # Convert the DESeqResults object that extends the S4Vectors::DataFrame
+      # with additional meta data annotation into a tibble.
       deseq_results_lrt_tibble <-
-        tibble::as_tibble(x = deseq_results_lrt, rownames = "gene_id")
+        tibble::as_tibble(x = S4Vectors::as.data.frame(
+          x = DESeq2::results(
+            object = deseq_data_set_lrt,
+            format = "DataFrame",
+            # If tidy is TRUE, a classical data.frame is returned.
+            tidy = FALSE,
+            parallel = TRUE
+          )
+        ),
+        rownames = "gene_id")
+
       # Set a "significant" variable to "yes" or "no".
       deseq_results_lrt_tibble <- dplyr::mutate(
         .data = deseq_results_lrt_tibble,
@@ -1849,19 +1906,23 @@ lrt_reduced_formula_test <-
           missing = "no"
         )
       )
+
+      # Join with the annotation tibble.
       deseq_results_lrt_tibble <-
         dplyr::right_join(x = annotation_tibble,
                           y = deseq_results_lrt_tibble,
                           by = "gene_id")
+
       # Write all genes.
       readr::write_tsv(x = deseq_results_lrt_tibble,
                        file = file_path_all)
 
-      # Write only significant genes.
+      # Filter only significant genes.
       deseq_results_lrt_tibble <-
         dplyr::filter(.data = deseq_results_lrt_tibble,
                       .data$padj <= argument_list$padj_threshold)
-      # Write signiciant genes.
+
+      # Write only significant genes.
       readr::write_tsv(x = deseq_results_lrt_tibble,
                        file = file_path_significant)
 
@@ -1870,10 +1931,10 @@ lrt_reduced_formula_test <-
         "full_formula" = global_design_list$full_formula,
         "reduced_name" = attr(x = reduced_formula_character, which = "reduced_name"),
         "reduced_formula" = reduced_formula_character,
-        "significant" = nrow(deseq_results_lrt_tibble)
+        "significant" = base::nrow(deseq_results_lrt_tibble)
       )
+
       rm(deseq_results_lrt_tibble,
-         deseq_results_lrt,
          deseq_data_set_lrt)
     }
     rm(file_path_all, file_path_significant)
@@ -1939,6 +2000,7 @@ utils::write.table(
   row.names = FALSE,
   col.names = TRUE
 )
+
 rm(lrt_summary_tibble)
 
 
@@ -1971,7 +2033,7 @@ readr::write_tsv(
   x = dplyr::right_join(
     x = annotation_tibble,
     y = tibble::as_tibble(
-      x = BiocGenerics::counts(object = deseq_data_set, normalized = FALSE),
+      x = DESeq2::counts(object = deseq_data_set, normalized = FALSE),
       rownames = "gene_id"
     ),
     by = "gene_id"
@@ -1995,7 +2057,7 @@ readr::write_tsv(
   x = dplyr::right_join(
     x = annotation_tibble,
     y = tibble::as_tibble(
-      x = BiocGenerics::counts(object = deseq_data_set, normalized = TRUE),
+      x = DESeq2::counts(object = deseq_data_set, normalized = TRUE),
       rownames = "gene_id"
     ),
     by = "gene_id"
@@ -2034,6 +2096,7 @@ readr::write_tsv(
                      sep = "."
                    ))
 )
+
 rm(fpkm_matrix)
 
 # DESeqTransform ----------------------------------------------------------
