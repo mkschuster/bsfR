@@ -30,7 +30,7 @@ Imports:
     rtracklayer,
     DESeq2,
     Rsamtools
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Depends: R (>= 3.6)
 Collate:
     'bsf_genomes.R'
