@@ -190,22 +190,25 @@ if (is.null(x = argument_list$biomart_data_set)) {
     "ensembl_gene_name" = reference_mcols$gene_name,
     "ensembl_gene_source" = reference_mcols$gene_source,
     "ensembl_gene_biotype" = reference_mcols$gene_biotype
-    # "havana_gene" = if ("havana_gene" %in% names(x = reference_mcols))
+    # "havana_gene" = if ("havana_gene" %in% S4Vectors::colnames(x = reference_mcols))
     #   reference_mcols$havana_gene
     # else
     #   NA_character_,
-    # "havana_gene_version" = if ("havana_gene_version" %in% names(x = reference_mcols))
+    # "havana_gene_version" = if ("havana_gene_version" %in% S4Vectors::colnames(x = reference_mcols))
     #   reference_mcols$havana_gene_version
     # else
     #   NA_character_
   )
+
   # Optional GTF attributes
+
   # Havana annotation is only avaliable for earlier Ensembl releases.
-  if ("havana_gene" %in% names(x = reference_mcols)) {
+  if ("havana_gene" %in% S4Vectors::colnames(x = reference_mcols)) {
     gene_annotation_tibble$havana_gene <-
       reference_mcols$havana_gene
   }
-  if ("havana_gene_version" %in% names(x = reference_mcols)) {
+
+  if ("havana_gene_version" %in% S4Vectors::colnames(x = reference_mcols)) {
     gene_annotation_tibble$havana_gene_version <-
       reference_mcols$havana_gene_version
   }
@@ -226,62 +229,70 @@ if (is.null(x = argument_list$biomart_data_set)) {
     "ensembl_gene_name" = reference_mcols$gene_name,
     "ensembl_gene_source" = reference_mcols$gene_source,
     "ensembl_gene_biotype" = reference_mcols$gene_biotype,
-    "ccds_id" = if ("ccds_id" %in% names(x = reference_mcols))
+    "ccds_id" = if ("ccds_id" %in% S4Vectors::colnames(x = reference_mcols))
       reference_mcols$ccds_id
     else
       NA_character_,
-    "tag" = if ("tag" %in% names(x = reference_mcols))
+    "tag" = if ("tag" %in% S4Vectors::colnames(x = reference_mcols))
       reference_mcols$tag
     else
       NA_character_
-    # "havana_transcript" = if ("havana_transcript" %in% names(x = reference_mcols))
+    # "havana_transcript" = if ("havana_transcript" %in% S4Vectors::colnames(x = reference_mcols))
     #   reference_mcols$havana_transcript
     # else
     #   NA_character_,
-    # "havana_transcript_version" = if ("havana_transcript_version" %in% names(x = reference_mcols))
+    # "havana_transcript_version" = if ("havana_transcript_version" %in% S4Vectors::colnames(x = reference_mcols))
     #   reference_mcols$havana_transcript_version
     # else
     #   NA_character_,
-    # "havana_transcript_support_level" = if ("havana_transcript_support_level" %in% names(x = reference_mcols))
+    # "havana_transcript_support_level" = if ("havana_transcript_support_level" %in% S4Vectors::colnames(x = reference_mcols))
     #   reference_mcols$havana_transcript_support_level
     # else
     #   NA_character_,
-    # "havana_gene" = if ("havana_gene" %in% names(x = reference_mcols))
+    # "havana_gene" = if ("havana_gene" %in% S4Vectors::colnames(x = reference_mcols))
     #   reference_mcols$havana_gene
     # else
     #   NA_character_,
-    # "havana_gene_version" = if ("havana_gene_version" %in% names(x = reference_mcols))
+    # "havana_gene_version" = if ("havana_gene_version" %in% S4Vectors::colnames(x = reference_mcols))
     #   reference_mcols$havana_gene_version
     # else
     #   NA_character_
   )
+
   # Optional GTF attributes
-  # if ("ccds_id" %in% names(x = reference_mcols)) {
+
+  # if ("ccds_id" %in% S4Vectors::colnames(x = reference_mcols)) {
   #   isoform_annotation_tibble$ccds_id <-
   #     reference_mcols$ccds_id
   # }
-  # if ("tag" %in% names(x = reference_mcols)) {
+  #
+  # if ("tag" %in% S4Vectors::colnames(x = reference_mcols)) {
   #   isoform_annotation_tibble$tag <-
   #     reference_mcols$tag
   # }
+  #
   # Havana annotation is only avaliable for earlier Ensembl releases.
-  if ("havana_transcript" %in% names(x = reference_mcols)) {
+  if ("havana_transcript" %in% S4Vectors::colnames(x = reference_mcols)) {
     isoform_annotation_tibble$havana_transcript <-
       reference_mcols$havana_transcript
   }
-  if ("havana_transcript_version" %in% names(x = reference_mcols)) {
+
+  if ("havana_transcript_version" %in% S4Vectors::colnames(x = reference_mcols)) {
     isoform_annotation_tibble$havana_transcript_version <-
       reference_mcols$havana_transcript_version
   }
-  if ("havana_transcript_support_level" %in% names(x = reference_mcols)) {
+
+  if ("havana_transcript_support_level" %in% S4Vectors::colnames(x = reference_mcols)) {
     isoform_annotation_tibble$havana_transcript_support_level <-
       reference_mcols$havana_transcript_support_level
   }
-  if ("havana_gene" %in% names(x = reference_mcols)) {
+
+  if ("havana_gene" %in% S4Vectors::colnames(x = reference_mcols)) {
     isoform_annotation_tibble$havana_gene <-
       reference_mcols$havana_gene
   }
-  if ("havana_gene_version" %in% names(x = reference_mcols)) {
+
+  if ("havana_gene_version" %in% S4Vectors::colnames(x = reference_mcols)) {
     isoform_annotation_tibble$havana_gene_version <-
       reference_mcols$havana_gene_version
   }
@@ -373,10 +384,10 @@ if (is.null(x = argument_list$biomart_data_set)) {
 
   message("Loading transcript data from BioMart")
   isoform_annotation_tibble <-
-    tibble::as_tibble(biomaRt::getBM(attributes = ensembl_transcript_attributes, mart = ensembl_mart))
+    tibble::as_tibble(x = biomaRt::getBM(attributes = ensembl_transcript_attributes, mart = ensembl_mart))
   rm(ensembl_transcript_attributes)
 
-  # Destroy and thus discconnect the Ensembl BioMart connection already here.
+  # Destroy and thus disconnect the Ensembl BioMart connection already here.
 
   rm(ensembl_mart, ensembl_attributes)
 }

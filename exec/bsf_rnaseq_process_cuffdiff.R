@@ -138,7 +138,7 @@ suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
 #' @return: Single element character vector of comma-sepatated values
 
 character_to_csv <- function(x) {
-  return(paste(sort(x = unique(x = x)), collapse = ","))
+  return(paste(sort(x = base::unique(x = x)), collapse = ","))
 }
 
 # Save plots in the following formats.
@@ -198,6 +198,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
   message("Skipping a run information table")
 } else {
   message("Creating a run information table")
+
   utils::write.table(
     x = cummeRbund::runInfo(object = cuff_set),
     file = frame_path,
@@ -212,18 +213,19 @@ rm(frame_path)
 # Process Cuffdiff sample information -------------------------------------
 
 
-sample_frame <- cummeRbund::samples(object = cuff_set)
+samples_frame <- cummeRbund::samples(object = cuff_set)
 # Get the number of samples.
-sample_number <- nrow(x = sample_frame)
-# Write the sample_frame table.
+sample_number <- base::nrow(x = samples_frame)
+# Write the samples_frame table.
 frame_path <-
   file.path(output_directory, paste0(prefix, "_samples.tsv"))
 if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
   message("Skipping a sample table")
 } else {
   message("Creating a sample table")
+
   utils::write.table(
-    x = sample_frame,
+    x = samples_frame,
     file = frame_path,
     quote = FALSE,
     sep = "\t",
@@ -233,7 +235,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
 }
 rm(frame_path)
 # Define an array of all possible pairwise sample comparisons or sample pairs.
-sample_pairs <- combn(x = sample_frame$sample_name, m = 2L)
+sample_pairs <- combn(x = samples_frame$sample_name, m = 2L)
 # Write a table of sample pair information by transposing the sample pairs
 # array. This table allows the Python web code to link in pairwise plots.
 frame_path <-
@@ -242,6 +244,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
   message("Skipping a sample pairs table")
 } else {
   message("Creating a sample pairs table")
+
   utils::write.table(
     x = aperm(a = sample_pairs),
     file = frame_path,
@@ -251,27 +254,29 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
     col.names = TRUE
   )
 }
-rm(frame_path, sample_frame)
+rm(frame_path, samples_frame)
 
 # Process Cuffdiff replicate information ----------------------------------
 
 
-replicate_frame <- cummeRbund::replicates(object = cuff_set)
+replicates_frame <- cummeRbund::replicates(object = cuff_set)
 # Get the number of replicates.
-replicate_number <- nrow(x = replicate_frame)
+replicate_number <- base::nrow(x = replicates_frame)
 # Some plots require replicates. Check whether at least one row has a
 # replicate column value greater than 0.
 have_replicates <-
-  (nrow(x = replicate_frame[replicate_frame$replicate > 0L,]) > 0L)
-# Write the replicate_frame.
+  (base::nrow(x = replicates_frame[replicates_frame$replicate > 0L,]) > 0L)
+
+# Write the replicates frame.
 frame_path <-
   file.path(output_directory, paste0(prefix, "_replicates.tsv"))
 if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
   message("Skipping a replicate table")
 } else {
   message("Creating a replicate table")
+
   utils::write.table(
-    x = replicate_frame,
+    x = replicates_frame,
     file = frame_path,
     quote = FALSE,
     sep = "\t",
@@ -280,7 +285,8 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
   )
 }
 rm(frame_path)
-# Plot the log10(internal_scale) of the replicate_frame to
+
+# Plot the log10(internal_scale) of the replicates_frame to
 # visualise outliers.
 plot_paths <-
   file.path(output_directory, paste(
@@ -293,7 +299,7 @@ if (all(file.exists(plot_paths) &&
   message("Skipping a library scale plot on replicates")
 } else {
   message("Creating a library scale plot on replicates")
-  ggplot_object <- ggplot2::ggplot(data = replicate_frame)
+  ggplot_object <- ggplot2::ggplot(data = replicates_frame)
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = .data$rep_name, y = log10(.data$internal_scale)))
   ggplot_object <-
@@ -320,7 +326,7 @@ if (all(file.exists(plot_paths) &&
   }
   rm(plot_path, plot_width, ggplot_object)
 }
-rm(plot_paths, replicate_frame)
+rm(plot_paths, replicates_frame)
 
 # Starting QC plotting ----------------------------------------------------
 
@@ -599,12 +605,12 @@ if (all(file.exists(plot_paths) &&
   # ggplot_object <-
   #   cummeRbund::csBoxplot(object = cummeRbund::genes(object = cuff_set),
   #                         replicates = TRUE)
-  rep_fpkm_genes <-
+  genes_fpkm_frame <-
     cummeRbund::repFpkm(object = cummeRbund::genes(object = cuff_set))
   # Rename the "rep_name" column into "condition".
-  colnames(x = rep_fpkm_genes)[colnames(x = rep_fpkm_genes) == "rep_name"] <-
+  base::names(x = genes_fpkm_frame)[base::names(x = genes_fpkm_frame) == "rep_name"] <-
     "condition"
-  ggplot_object <- ggplot2::ggplot(data = rep_fpkm_genes)
+  ggplot_object <- ggplot2::ggplot(data = genes_fpkm_frame)
   ggplot_object <-
     ggplot_object + ggplot2::geom_boxplot(
       mapping = ggplot2::aes(
@@ -632,7 +638,7 @@ if (all(file.exists(plot_paths) &&
   # Arrange a maximum of 24 replicates in each guide column.
   # ggplot_object <-
   #   ggplot_object + ggplot2::guides(fill = ggplot2::guide_legend(nrow = 24))
-  # Use the base plot_witdh and add a quarter of the width for each additional
+  # Use the base plot_width and add a quarter of the width for each additional
   # guide legend column.
   plot_width <-
     argument_list$plot_width + (ceiling(x = replicate_number / 24L) - 1L) * argument_list$plot_width * 0.25
@@ -645,7 +651,7 @@ if (all(file.exists(plot_paths) &&
       limitsize = FALSE
     )
   }
-  rm(plot_path, plot_width, ggplot_object, rep_fpkm_genes)
+  rm(plot_path, plot_width, ggplot_object, genes_fpkm_frame)
 }
 rm(plot_paths)
 
@@ -666,12 +672,12 @@ if (all(file.exists(plot_paths) &&
   # ggplot_object <-
   #   cummeRbund::csBoxplot(object = cummeRbund::genes(object = cuff_set),
   #                         replicates = FALSE)
-  fpkm_genes <-
+  genes_fpkm_frame <-
     cummeRbund::fpkm(object = cummeRbund::genes(object = cuff_set))
   # Rename the "sample_name" column into "condition".
-  colnames(fpkm_genes)[colnames(fpkm_genes) == "sample_name"] <-
+  base::names(x = genes_fpkm_frame)[base::names(x = genes_fpkm_frame) == "sample_name"] <-
     "condition"
-  ggplot_object <- ggplot2::ggplot(data = fpkm_genes)
+  ggplot_object <- ggplot2::ggplot(data = genes_fpkm_frame)
   ggplot_object <-
     ggplot_object + ggplot2::geom_boxplot(
       mapping = ggplot2::aes(
@@ -712,7 +718,7 @@ if (all(file.exists(plot_paths) &&
       limitsize = FALSE
     )
   }
-  rm(plot_path, plot_width, ggplot_object, fpkm_genes)
+  rm(plot_path, plot_width, ggplot_object, genes_fpkm_frame)
 }
 rm(plot_paths)
 
@@ -737,12 +743,12 @@ if (all(file.exists(plot_paths) &&
   # ggplot_object <-
   #   cummeRbund::csBoxplot(object = cummeRbund::isoforms(object = cuff_set),
   #                         replicates = TRUE)
-  rep_fpkm_isoforms <-
+  isoforms_fpkm_frame <-
     cummeRbund::repFpkm(object = cummeRbund::isoforms(object = cuff_set))
   # Rename the "rep_name" column into "condition".
-  colnames(rep_fpkm_isoforms)[colnames(rep_fpkm_isoforms) == "rep_name"] <-
+  base::names(x = isoforms_fpkm_frame)[base::names(x = isoforms_fpkm_frame) == "rep_name"] <-
     "condition"
-  ggplot_object <- ggplot2::ggplot(data = rep_fpkm_isoforms)
+  ggplot_object <- ggplot2::ggplot(data = isoforms_fpkm_frame)
   ggplot_object <-
     ggplot_object + ggplot2::geom_boxplot(
       mapping = ggplot2::aes(
@@ -783,7 +789,7 @@ if (all(file.exists(plot_paths) &&
       limitsize = FALSE
     )
   }
-  rm(plot_path, plot_width, ggplot_object, rep_fpkm_isoforms)
+  rm(plot_path, plot_width, ggplot_object, isoforms_fpkm_frame)
 }
 rm(plot_paths)
 
@@ -804,12 +810,12 @@ if (all(file.exists(plot_paths) &&
   # ggplot_object <-
   #   cummeRbund::csBoxplot(object = cummeRbund::isoforms(object = cuff_set),
   #                         replicates = FALSE)
-  fpkm_isoforms <-
+  isoforms_fpkm_frame <-
     cummeRbund::fpkm(object = cummeRbund::isoforms(object = cuff_set))
   # Rename the "sample_name" column into "condition".
-  colnames(fpkm_isoforms)[colnames(fpkm_isoforms) == "sample_name"] <-
+  base::names(x = isoforms_fpkm_frame)[base::names(x = isoforms_fpkm_frame) == "sample_name"] <-
     "condition"
-  ggplot_object <- ggplot2::ggplot(data = fpkm_isoforms)
+  ggplot_object <- ggplot2::ggplot(data = isoforms_fpkm_frame)
   ggplot_object <-
     ggplot_object + ggplot2::geom_boxplot(
       mapping = ggplot2::aes(
@@ -850,7 +856,7 @@ if (all(file.exists(plot_paths) &&
       limitsize = FALSE
     )
   }
-  rm(plot_path, plot_width, ggplot_object, fpkm_isoforms)
+  rm(plot_path, plot_width, ggplot_object, isoforms_fpkm_frame)
 }
 rm(plot_paths)
 
@@ -962,7 +968,7 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
     # remove the first "gene_id" column, which is duplicated in the second
     # column as a consequence of a SQL table join between the "genes" and
     # "geneExpDiffData" tables.
-    diff_data_genes <-
+    genes_diff_data_frame <-
       cummeRbund::diffData(
         object = cummeRbund::genes(object = cuff_set),
         x = sample_pairs[1L, i],
@@ -970,7 +976,7 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
         features = FALSE
       )[,-1L]
     ggplot_object <-
-      ggplot2::ggplot(data = diff_data_genes,
+      ggplot2::ggplot(data = genes_diff_data_frame,
                       mapping = ggplot2::aes(x = .data$value_1, y = .data$value_2))
     ggplot_object <- ggplot_object + ggplot2::theme_light()
     ggplot_object <-
@@ -980,7 +986,7 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
       # which performs much better with typical numbers of genes.
       ggplot_object <-
         ggplot_object + ggplot2::geom_hex(
-          data = diff_data_genes[diff_data_genes$significant == "no",],
+          data = genes_diff_data_frame[genes_diff_data_frame$significant == "no",],
           alpha = I(1 / 3),
           show.legend = TRUE,
           bins = 50
@@ -992,7 +998,7 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
       # Plot the significant genes with ggplot2::geom_point() in red.
       ggplot_object <-
         ggplot_object + ggplot2::geom_point(
-          data = diff_data_genes[diff_data_genes$significant == "yes",],
+          data = genes_diff_data_frame[genes_diff_data_frame$significant == "yes",],
           colour = "red",
           size = 1.2,
           alpha = I(1 / 3)
@@ -1025,9 +1031,9 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
     # For defining the data range for label placement,
     # eliminate rows with value 0.0.
     range_value_1 <-
-      range(diff_data_genes[diff_data_genes$value_1 > 0.0,]$value_1)
+      range(genes_diff_data_frame[genes_diff_data_frame$value_1 > 0.0,]$value_1)
     range_value_2 <-
-      range(diff_data_genes[diff_data_genes$value_2 > 0.0,]$value_2)
+      range(genes_diff_data_frame[genes_diff_data_frame$value_2 > 0.0,]$value_2)
 
     # Calculate the (Pearson) correlation coefficient and place it on the plot
     # in the lower right corner at 95% x and 5% y.
@@ -1041,7 +1047,7 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
           log10(x = range_value_2[2L]) - log10(x = range_value_2[1L])
         ) * 0.05),
         label = paste0("r = ", round(
-          x = cor(x = diff_data_genes$value_1, y = diff_data_genes$value_2),
+          x = cor(x = genes_diff_data_frame$value_1, y = genes_diff_data_frame$value_2),
           digits = 3L
         ))
       )
@@ -1059,12 +1065,12 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
         ) * 0.95),
         label = paste0(
           "Up: ",
-          nrow(x = diff_data_genes[diff_data_genes$log2_fold_change > 0.0 &
-                                     diff_data_genes$significant == "yes",]),
+          base::nrow(x = genes_diff_data_frame[genes_diff_data_frame$log2_fold_change > 0.0 &
+                                                 genes_diff_data_frame$significant == "yes",]),
           "\n",
           "Down: ",
-          nrow(x = diff_data_genes[diff_data_genes$log2_fold_change < 0.0 &
-                                     diff_data_genes$significant == "yes",])
+          base::nrow(x = genes_diff_data_frame[genes_diff_data_frame$log2_fold_change < 0.0 &
+                                                 genes_diff_data_frame$significant == "yes",])
         ),
         colour = "red",
         hjust = 0.0
@@ -1081,7 +1087,7 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
         limitsize = FALSE
       )
     }
-    rm(plot_path, ggplot_object, diff_data_genes)
+    rm(plot_path, ggplot_object, genes_diff_data_frame)
   }
   rm(plot_paths)
 }
@@ -1303,7 +1309,7 @@ if (replicate_number > 2L) {
         )
       gene_rep_res <-
         data.frame(
-          "names" = rownames(gene_rep_fit$points),
+          "names" = base::rownames(x = gene_rep_fit$points),
           "M1" = gene_rep_fit$points[, 1L],
           "M2" = gene_rep_fit$points[, 2L],
           stringsAsFactors = FALSE
@@ -1410,8 +1416,8 @@ message("Finishing QC plotting")
 # Gene and Isoform Annotation ---------------------------------------------
 
 
-gene_annotation_frame <- NULL
-isoform_annotation_frame <- NULL
+genes_annotation_frame <- NULL
+isoforms_annotation_frame <- NULL
 frame_path_genes <-
   file.path(output_directory, paste0(prefix, "_genes_annotation.tsv"))
 frame_path_isoforms <-
@@ -1420,11 +1426,11 @@ frame_path_isoforms <-
 if (file.exists(frame_path_genes) &&
     file.info(frame_path_genes)$size > 0L) {
   message("Reading gene annotation from file")
-  gene_annotation_frame <-
+  genes_annotation_frame <-
     utils::read.table(file = frame_path_genes,
                       header = TRUE,
                       sep = "\t")
-  isoform_annotation_frame <-
+  isoforms_annotation_frame <-
     utils::read.table(file = frame_path_isoforms,
                       header = TRUE,
                       sep = "\t")
@@ -1445,7 +1451,7 @@ if (file.exists(frame_path_genes) &&
     feature.type = "transcript"
   )
   # Selecting via S4Vectors::mcols()[] returns a S4Vectors::DataFrame object.
-  reference_frame <- unique.data.frame(
+  reference_frame <- base::unique.data.frame(
     x = data.frame(
       "ensembl_gene_id" = S4Vectors::mcols(x = reference_granges)$gene_id,
       "ensembl_transcript_id" = S4Vectors::mcols(x = reference_granges)$transcript_id,
@@ -1466,7 +1472,7 @@ if (file.exists(frame_path_genes) &&
     genome = argument_list$genome_version,
     feature.type = "exon"
   )
-  if ("nearest_ref" %in% names(x = S4Vectors::mcols(x = assembly_granges))) {
+  if ("nearest_ref" %in% S4Vectors::colnames(x = S4Vectors::mcols(x = assembly_granges))) {
     # If a "nearest_ref" variable is defined, the GTF is a Cuffmerge assembly.
     #
     # Example: gene_id "XLOC_000001"; transcript_id "TCONS_00000001"; exon_number "1";
@@ -1474,7 +1480,7 @@ if (file.exists(frame_path_genes) &&
     #          class_code "="; tss_id "TSS1";
     #
     # Selecting via S4Vectors::mcols()[] returns a S4Vectors::DataFrame object.
-    assembly_frame <- unique.data.frame(
+    assembly_frame <- base::unique.data.frame(
       x = data.frame(
         "gene_id" = S4Vectors::mcols(x = assembly_granges)$gene_id,
         "transcript_id" = S4Vectors::mcols(x = assembly_granges)$transcript_id,
@@ -1489,7 +1495,7 @@ if (file.exists(frame_path_genes) &&
     # via Ensembl (ENST) transcript identifiers.
     message("Merging reference and assembled transcriptome annotation")
     ensembl_frame <-
-      merge(
+      base::merge.data.frame(
         x = assembly_frame,
         y = reference_frame,
         by = "ensembl_transcript_id",
@@ -1503,9 +1509,9 @@ if (file.exists(frame_path_genes) &&
     # more Ensembl (ENSG) gene and Ensembl (ENST) transcript identifiers.
     message("Aggregating Ensembl annotation by gene_id")
     aggregate_frame <-
-      aggregate.data.frame(x = ensembl_frame,
-                           by = list(ensembl_frame$gene_id),
-                           FUN = paste)
+      base::aggregate.data.frame(x = ensembl_frame,
+                                 by = list(ensembl_frame$gene_id),
+                                 FUN = paste)
     rm(ensembl_frame)
     # The aggregate frame consists of list objects of character vectors
     # with one or more elements aggregated in each group.
@@ -1513,7 +1519,7 @@ if (file.exists(frame_path_genes) &&
     # elements and sorts them, before collapsing them into a single,
     # comma-separated value.
     message("Collapsing aggregated Ensembl annotation")
-    ensembl_annotation <-
+    ensembl_annotation_frame <-
       data.frame(
         "gene_id" = unlist(x = lapply(
           X = aggregate_frame$gene_id, FUN = character_to_csv
@@ -1545,7 +1551,7 @@ if (file.exists(frame_path_genes) &&
     #
     # 3. Joining reference and assembly frames is not required.
     # 4. Create a new, normalised Ensembl annotation data frame.
-    ensembl_annotation <- data.frame(
+    ensembl_annotation_frame <- data.frame(
       "gene_id" = reference_frame$ensembl_gene_id,
       "transcript_ids" = reference_frame$ensembl_transcript_id,
       "ensembl_gene_ids" = reference_frame$ensembl_gene_id,
@@ -1562,24 +1568,24 @@ if (file.exists(frame_path_genes) &&
   # "ensembl_gene_ids" and "ensembl_transcript_ids" of the
   # Ensembl annotation frame.
   message("Creating gene annotation information")
-  cufflinks_annotation <-
+  cufflinks_annotation_frame <-
     cummeRbund::annotation(object = cummeRbund::genes(object = cuff_set))
-  gene_annotation_frame <- merge(
+  genes_annotation_frame <- base::merge.data.frame(
     # Merge with a simplified cummeRbund gene annotation data frame, since
     # variables "class_code", "nearest_ref_id", "length" and "coverage" seem
     # empty by design. Remove hidden exon information by finding unique
     # rows only.
-    x = unique.data.frame(x = cufflinks_annotation[, c("gene_id", "gene_short_name", "locus"), drop = FALSE]),
+    x = base::unique.data.frame(x = cufflinks_annotation_frame[, c("gene_id", "gene_short_name", "locus"), drop = FALSE]),
     # Merge with the Ensembl annotation data frame that correlates gene (XLOC)
     # identifiers with comma-separated lists of Ensembl Gene and Transcript
     # identifiers.
-    y = ensembl_annotation,
+    y = ensembl_annotation_frame,
     # Merge on gene (XLOC) identifiers, but also keep all rows of the
-    # cufflinks_annotation frame, or else, locus information would be lost.
+    # cufflinks_annotation_frame, or else, locus information would be lost.
     by = "gene_id",
     all.x = TRUE
   )
-  rm(ensembl_annotation, cufflinks_annotation)
+  rm(ensembl_annotation_frame, cufflinks_annotation_frame)
 
   # 6. Create an isoform annotation data frame, ready for enriching
   # cummeRbund isoform information.
@@ -1588,10 +1594,10 @@ if (file.exists(frame_path_genes) &&
   # Remove hidden exon information by finding unique rows only.
 
   message("Creating isoform annotation information")
-  cufflinks_annotation <-
+  cufflinks_annotation_frame <-
     cummeRbund::annotation(object = cummeRbund::isoforms(object = cuff_set))
-  isoform_annotation_frame <-
-    unique.data.frame(x = cufflinks_annotation[, c(
+  isoforms_annotation_frame <-
+    base::unique.data.frame(x = cufflinks_annotation_frame[, c(
       "isoform_id",
       "gene_id",
       "gene_short_name",
@@ -1601,16 +1607,18 @@ if (file.exists(frame_path_genes) &&
       "locus",
       "length"
     ), drop = FALSE])
-  rm(cufflinks_annotation)
-
-  utils::write.table(x = gene_annotation_frame,
-                     frame_path_genes,
-                     sep = "\t",
-                     row.names = FALSE)
+  rm(cufflinks_annotation_frame)
 
   utils::write.table(
-    x = isoform_annotation_frame,
-    frame_path_isoforms,
+    x = genes_annotation_frame,
+    file = frame_path_genes,
+    sep = "\t",
+    row.names = FALSE
+  )
+
+  utils::write.table(
+    x = isoforms_annotation_frame,
+    file = frame_path_isoforms,
     sep = "\t",
     row.names = FALSE
   )
@@ -1621,16 +1629,16 @@ rm(frame_path_genes, frame_path_isoforms)
 
 
 # Push the aggregated Ensembl gene annotation back into the SQLite database.
-if ("ensembl_gene_ids" %in% names(x = annotation(object = cummeRbund::genes(object = cuff_set)))) {
+if ("ensembl_gene_ids" %in% base::names(x = cummeRbund::annotation(object = cummeRbund::genes(object = cuff_set)))) {
   message("Skipping Ensembl annotation for the SQLite database")
 } else {
   message("Creating Ensembl annotation for the SQLite database")
-  addFeatures(
+  cummeRbund::addFeatures(
     object = cuff_set,
     features = data.frame(
-      gene_id = gene_annotation_frame$gene_id,
-      ensembl_gene_ids = gene_annotation_frame$ensembl_gene_ids,
-      ensembl_transcript_ids = gene_annotation_frame$ensembl_transcript_ids,
+      gene_id = genes_annotation_frame$gene_id,
+      ensembl_gene_ids = genes_annotation_frame$ensembl_gene_ids,
+      ensembl_transcript_ids = genes_annotation_frame$ensembl_transcript_ids,
       stringsAsFactors = FALSE
     ),
     level = "genes"
@@ -1661,15 +1669,15 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
       " versus ",
       sample_pairs[2L, i]
     )
-    # The diffData function allows automatic merging with feature annotation,
-    # but that includes some empty columns. For cleaner result tables, merge
-    # with the smaller gene_annotation_frame established above.
+    # The cummeRbund::diffData() function allows automatic merging with feature
+    # annotation, but that includes some empty columns. For cleaner result
+    # tables, merge with the smaller genes_annotation_frame established above.
     #
-    # Retrieve a data frame with differntial expression data for genes, but
+    # Retrieve a data frame with differential expression data for genes, but
     # remove the first "gene_id" column, which is duplicated in the second
     # column as a consequence of a SQL table join between the "genes" and
     # "geneExpDiffData" tables.
-    diff_data_genes <-
+    genes_diff_data_frame <-
       cummeRbund::diffData(
         object = cummeRbund::genes(object = cuff_set),
         x = sample_pairs[1L, i],
@@ -1678,45 +1686,44 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
       )[,-1L]
     # Calculate ranks for the effect size (log2_fold_change), absolute level
     # and statistical significance (q_value).
-    diff_data_genes$rank_log2_fold_change <-
+    genes_diff_data_frame$rank_log2_fold_change <-
       rank(
-        x = -abs(x = diff_data_genes$log2_fold_change),
+        x = -abs(x = genes_diff_data_frame$log2_fold_change),
         ties.method = c("min")
       )
-    diff_data_genes$rank_value <-
+    genes_diff_data_frame$rank_value <-
       rank(
-        x = -abs(x = diff_data_genes$value_2 - diff_data_genes$value_1),
+        x = -abs(x = genes_diff_data_frame$value_2 - genes_diff_data_frame$value_1),
         ties.method = c("min")
       )
-    diff_data_genes$rank_q_value <-
-      rank(x = diff_data_genes$q_value, ties.method = c("min"))
+    genes_diff_data_frame$rank_q_value <-
+      rank(x = genes_diff_data_frame$q_value, ties.method = c("min"))
     # Calculate the rank sum for the three ranks.
-    # diff_data_genes$rank_sum <-
-    #   diff_data_genes$rank_log2_fold_change + diff_data_genes$rank_value +
-    #   diff_data_genes$rank_q_value
+    # genes_diff_data_frame$rank_sum <-
+    #   genes_diff_data_frame$rank_log2_fold_change + genes_diff_data_frame$rank_value +
+    #   genes_diff_data_frame$rank_q_value
     # Calculate the maximum rank of value and q-value, as
     # rank_log2_fold_change is dominated by +/- infinity resulting from genes
     # measured only once.
-    diff_data_genes$max_rank <-
-      pmax(diff_data_genes$rank_value,
-           diff_data_genes$rank_q_value)
-    gene_merge <-
-      merge(
-        x = gene_annotation_frame,
-        y = diff_data_genes,
+    genes_diff_data_frame$max_rank <-
+      pmax(genes_diff_data_frame$rank_value,
+           genes_diff_data_frame$rank_q_value)
+
+    utils::write.table(
+      x = base::merge.data.frame(
+        x = genes_annotation_frame,
+        y = genes_diff_data_frame,
         by = "gene_id",
         all = TRUE,
         sort = TRUE
-      )
-    utils::write.table(
-      x = gene_merge,
+      ),
       file = frame_path,
       quote = FALSE,
       sep = "\t",
       row.names = FALSE,
       col.names = TRUE
     )
-    rm(gene_merge, diff_data_genes)
+    rm(genes_diff_data_frame)
   }
   rm(frame_path)
 }
@@ -1751,15 +1758,15 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
       " versus ",
       sample_pairs[2L, i]
     )
-    # The diffData function allows automatic merging with feature annotation,
-    # but that includes some empty columns. For cleaner result tables, merge
-    # with the smaller isoform_annotation_frame established above.
+    # The cummeRbund::diffData() function allows automatic merging with feature
+    # annotation, but that includes some empty columns. For cleaner result
+    # tables, merge with the smaller isoforms_annotation_frame established above.
     #
-    # Retrieve a data frame with differntial expression data for genes, but
+    # Retrieve a data frame with differential expression data for genes, but
     # remove the first "isoform_id" column, which is duplicated in the second
     # column as a consequence of a SQL table join between the "isoforms" and
     # "isoformExpDiffData" tables.
-    diff_data_isoform <-
+    isoforms_diff_data_frame <-
       cummeRbund::diffData(
         object = cummeRbund::isoforms(object = cuff_set),
         x = sample_pairs[1L, i],
@@ -1768,44 +1775,43 @@ for (i in seq_along(along.with = sample_pairs[1L,])) {
       )[,-1L]
     # Calculate ranks for the effect size (log2_fold_change), absolute level
     # and statistical significance (q_value).
-    diff_data_isoform$rank_log2_fold_change <-
+    isoforms_diff_data_frame$rank_log2_fold_change <-
       rank(
-        x = -abs(x = diff_data_isoform$log2_fold_change),
+        x = -abs(x = isoforms_diff_data_frame$log2_fold_change),
         ties.method = c("min")
       )
-    diff_data_isoform$rank_value <-
+    isoforms_diff_data_frame$rank_value <-
       rank(
-        x = -abs(x = diff_data_isoform$value_2 - diff_data_isoform$value_1),
+        x = -abs(x = isoforms_diff_data_frame$value_2 - isoforms_diff_data_frame$value_1),
         ties.method = c("min")
       )
-    diff_data_isoform$rank_q_value <-
-      rank(x = diff_data_isoform$q_value, ties.method = c("min"))
+    isoforms_diff_data_frame$rank_q_value <-
+      rank(x = isoforms_diff_data_frame$q_value, ties.method = c("min"))
     # Calculate the rank sum for the three ranks.
-    # diff_data_isoform$rank_sum <-
-    #   diff_data_isoform$rank_log2_fold_change + diff_data_isoform$rank_value +
-    #   diff_data_isoform$rank_q_value
+    # isoforms_diff_data_frame$rank_sum <-
+    #   isoforms_diff_data_frame$rank_log2_fold_change + isoforms_diff_data_frame$rank_value +
+    #   isoforms_diff_data_frame$rank_q_value
     # Calculate the maximum rank of value and q-value, as rank_log2_fold_change
     # is dominated by +/- infinity resulting from genes measured only once.
-    diff_data_isoform$max_rank <-
-      pmax(diff_data_isoform$rank_value,
-           diff_data_isoform$rank_q_value)
-    isoform_merge <-
-      merge(
-        x = isoform_annotation_frame,
-        y = diff_data_isoform,
+    isoforms_diff_data_frame$max_rank <-
+      pmax(isoforms_diff_data_frame$rank_value,
+           isoforms_diff_data_frame$rank_q_value)
+
+    utils::write.table(
+      x = base::merge.data.frame(
+        x = isoforms_annotation_frame,
+        y = isoforms_diff_data_frame,
         by = "isoform_id",
         all = TRUE,
         sort = TRUE
-      )
-    utils::write.table(
-      x = isoform_merge,
+      ),
       file = frame_path,
       quote = FALSE,
       sep = "\t",
       row.names = FALSE,
       col.names = TRUE
     )
-    rm(diff_data_isoform, isoform_merge)
+    rm(isoforms_diff_data_frame)
   }
   rm(frame_path)
 }
@@ -1853,7 +1859,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
     )
 
   for (i in seq_along(along.with = sample_pairs[1L,])) {
-    diff_data_genes <-
+    genes_diff_data_frame <-
       cummeRbund::diffData(
         object = cummeRbund::genes(object = cuff_set),
         x = sample_pairs[1L, i],
@@ -1861,13 +1867,13 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
         features = FALSE
       )[,-1L]
     # Aggregate the test Status column.
-    status_integer <- table(diff_data_genes$status)
-    for (status in names(x = status_frame)) {
+    status_integer <- table(genes_diff_data_frame$status)
+    for (status in base::names(x = status_frame)) {
       if (!is.na(x = status_integer[status])) {
         status_frame[i, status] <- status_integer[status]
       }
     }
-    rm(status, status_integer, diff_data_genes)
+    rm(status, status_integer, genes_diff_data_frame)
     status_frame$SUM[i] <- sum(status_frame[i, 2L:6L])
   }
   utils::write.table(
@@ -1915,7 +1921,7 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
     )
 
   for (i in seq_along(along.with = sample_pairs[1L,])) {
-    diff_data_isoforms <-
+    isoforms_diff_data_frame <-
       cummeRbund::diffData(
         object = cummeRbund::isoforms(object = cuff_set),
         x = sample_pairs[1L, i],
@@ -1923,15 +1929,16 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
         features = FALSE
       )[,-1L]
     # Aggregate the test Status column.
-    status_integer <- table(diff_data_isoforms$status)
-    for (status in names(x = status_frame)) {
+    status_integer <- table(isoforms_diff_data_frame$status)
+    for (status in base::names(x = status_frame)) {
       if (!is.na(x = status_integer[status])) {
         status_frame[i, status] <- status_integer[status]
       }
     }
-    rm(status, status_integer, diff_data_isoforms)
+    rm(status, status_integer, isoforms_diff_data_frame)
     status_frame$SUM[i] <- sum(status_frame[i, 2L:6L])
   }
+
   utils::write.table(
     x = status_frame,
     file = frame_path,
@@ -1952,26 +1959,25 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
   message("Skipping a matrix of FPKM values per replicates on genes")
 } else {
   message("Creating a matrix of FPKM values per replicates on genes")
-  gene_rep_fpkm_matrix <-
+  genes_fpkm_frame <-
     cummeRbund::repFpkmMatrix(object = cummeRbund::genes(object = cuff_set))
-  gene_merge <-
-    merge(
-      x = gene_annotation_frame,
-      y = gene_rep_fpkm_matrix,
+
+  utils::write.table(
+    x = base::merge.data.frame(
+      x = genes_annotation_frame,
+      y = genes_fpkm_frame,
       by.x = "gene_id",
       by.y = "row.names",
       all = TRUE,
       sort = TRUE
-    )
-  utils::write.table(
-    x = gene_merge,
+    ),
     file = frame_path,
     quote = FALSE,
     sep = "\t",
     row.names = FALSE,
     col.names = TRUE
   )
-  rm(gene_merge, gene_rep_fpkm_matrix)
+  rm(genes_fpkm_frame)
 }
 rm(frame_path)
 
@@ -1984,26 +1990,25 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
   message("Skipping a matrix of count values per replicates on genes")
 } else {
   message("Creating a matrix of count values per replicates on genes")
-  gene_rep_count_matrix <-
+  genes_count_frame <-
     cummeRbund::repCountMatrix(object = cummeRbund::genes(object = cuff_set))
-  gene_merge <-
-    merge(
-      x = gene_annotation_frame,
-      y = gene_rep_count_matrix,
+
+  utils::write.table(
+    x = base::merge.data.frame(
+      x = genes_annotation_frame,
+      y = genes_count_frame,
       by.x = "gene_id",
       by.y = "row.names",
       all = TRUE,
       sort = TRUE
-    )
-  utils::write.table(
-    x = gene_merge,
+    ),
     file = frame_path,
     quote = FALSE,
     sep = "\t",
     row.names = FALSE,
     col.names = TRUE
   )
-  rm(gene_merge, gene_rep_count_matrix)
+  rm(genes_count_frame)
 }
 rm(frame_path)
 
@@ -2017,26 +2022,25 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
   message("Skipping a matrix of FPKM per replicates on isoforms")
 } else {
   message("Creating a matrix of FPKM per replicates on isoforms")
-  isoform_rep_fpkm_matrix <-
+  isoforms_fpkm_frame <-
     cummeRbund::repFpkmMatrix(object = cummeRbund::isoforms(object = cuff_set))
-  isoform_merge <-
-    merge(
-      x = isoform_annotation_frame,
-      y = isoform_rep_fpkm_matrix,
+
+  utils::write.table(
+    x = base::merge.data.frame(
+      x = isoforms_annotation_frame,
+      y = isoforms_fpkm_frame,
       by.x = "isoform_id",
       by.y = "row.names",
       all = TRUE,
       sort = TRUE
-    )
-  utils::write.table(
-    x = isoform_merge,
+    ),
     file = frame_path,
     quote = FALSE,
     sep = "\t",
     row.names = FALSE,
     col.names = TRUE
   )
-  rm(isoform_merge, isoform_rep_fpkm_matrix)
+  rm(isoforms_fpkm_frame)
 }
 rm(frame_path)
 
@@ -2050,26 +2054,25 @@ if (file.exists(frame_path) && file.info(frame_path)$size > 0L) {
   message("Skipping a matrix of count values per replicates on isoforms")
 } else {
   message("Creating a matrix of count values per replicates on isoforms")
-  isoform_rep_count_matrix <-
+  isoforms_count_frame <-
     cummeRbund::repCountMatrix(object = cummeRbund::isoforms(object = cuff_set))
-  isoform_merge <-
-    merge(
-      x = isoform_annotation_frame,
-      y = isoform_rep_count_matrix,
+
+  utils::write.table(
+    x = base::merge.data.frame(
+      x = isoforms_annotation_frame,
+      y = isoforms_count_frame,
       by.x = "isoform_id",
       by.y = "row.names",
       all = TRUE,
       sort = TRUE
-    )
-  utils::write.table(
-    x = isoform_merge,
+    ),
     file = frame_path,
     quote = FALSE,
     sep = "\t",
     row.names = FALSE,
     col.names = TRUE
   )
-  rm(isoform_merge, isoform_rep_count_matrix)
+  rm(isoforms_count_frame)
 }
 rm(frame_path)
 
@@ -2129,13 +2132,13 @@ if (all(file.exists(plot_paths) &&
 }
 rm(plot_paths)
 
-rm(gene_annotation_frame, isoform_annotation_frame)
+rm(genes_annotation_frame, isoforms_annotation_frame)
 
 # Get a CuffFeatureSet or CuffGeneSet of significant genes.
 
 # TODO: Comment-out for the moment, as the data is currently not used.
 # significant_gene_ids <-
-#   getSig(object = cuff_set, level = "genes")
+#   cummeRbund::getSig(object = cuff_set, level = "genes")
 # significant_genes <-
 #   cummeRbund::getGenes(object = cuff_set, geneIdList = significant_gene_ids)
 

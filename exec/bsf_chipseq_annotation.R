@@ -281,17 +281,20 @@ gene_granges <-
     # genome = ,
     feature.type = "gene"
   )
+
 message("Creating annotation frame")
 gene_frame <-
-  S4Vectors::mcols(x = gene_granges)[, c("gene_id",
-                                         "gene_version",
-                                         "gene_name",
-                                         "gene_biotype",
-                                         "gene_source")]
+  S4Vectors::as.data.frame(x = GenomicRanges::mcols(x = gene_granges)[, c("gene_id",
+                                                                          "gene_version",
+                                                                          "gene_name",
+                                                                          "gene_biotype",
+                                                                          "gene_source")])
+
 # Add the gene location as an Ensembl-like location, lacking the coordinate
 # system name and version.
 gene_frame$gene_location <-
-  methods::as(object = gene_granges, Class = "character")
+  as.character(x = gene_granges)
+
 rm(gene_granges)
 
 utils::write.table(
@@ -325,7 +328,7 @@ annotated_granges <-
                                     AnnotationData = annotation_granges)
 
 annotated_frame <-
-  BiocGenerics::as.data.frame(x = annotated_granges, stringsAsFactors = FALSE)
+  GenomicRanges::as.data.frame(x = annotated_granges, stringsAsFactors = FALSE)
 rm(annotated_granges)
 
 # Merge with the GTF meta annotation columns.
@@ -338,7 +341,7 @@ rm(annotated_frame)
 
 # Order by the numeric "peak" variable.
 merged_frame <-
-  merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)), ]
+  merged_frame[base::order(as.numeric(x = merged_frame$peak)),]
 
 utils::write.table(
   x = merged_frame,
@@ -434,7 +437,7 @@ process_per_contrast <-
     # print(x = base::warnings())
 
     annotated_frame <-
-      BiocGenerics::as.data.frame(x = annotated_granges, stringsAsFactors = FALSE)
+      GenomicRanges::as.data.frame(x = annotated_granges, stringsAsFactors = FALSE)
     rm(annotated_granges)
 
     merged_frame <-
@@ -463,7 +466,7 @@ process_per_contrast <-
 
     # Order by the numeric "peak" variable.
     merged_frame <-
-      merged_frame[BiocGenerics::order(as.numeric(x = merged_frame$peak)), ]
+      merged_frame[base::order(as.numeric(x = merged_frame$peak)),]
 
     utils::write.table(
       x = merged_frame,
@@ -483,7 +486,7 @@ process_per_contrast <-
 
     # Filter by the FDR threshold value.
     merged_frame <-
-      merged_frame[merged_frame$FDR <= argument_list$fdr_threshold, ]
+      merged_frame[merged_frame$FDR <= argument_list$fdr_threshold,]
 
     utils::write.table(
       x = merged_frame,
@@ -504,7 +507,7 @@ process_per_contrast <-
     rm(merged_frame)
 
     significant_granges <-
-      report_granges[report_granges$FDR <= argument_list$fdr_threshold, ]
+      report_granges[report_granges$FDR <= argument_list$fdr_threshold,]
     message(sprintf(fmt = "  Assigning chromosome regions for significant peak set: %d",
                     length(x = significant_granges)))
 
@@ -593,7 +596,7 @@ contrast_frame <-
 
 # DiffBind3 seems to use "Group", while DiffBind2 used "Group1".
 group1_name <-
-  if ("Group" %in% names(x = contrast_frame)) {
+  if ("Group" %in% base::names(x = contrast_frame)) {
     "Group"
   } else {
     "Group1"
@@ -610,9 +613,9 @@ contrast_frame$Group2 <-
              x = contrast_frame$Group2)
 
 return_value <-
-  mapply(
+  base::mapply(
     FUN = process_per_contrast,
-    row.names(contrast_frame),
+    base::row.names(contrast_frame),
     contrast_frame[, group1_name],
     contrast_frame$Group2,
     # Since column 5 (DB.DESeq2) is a factor, it needs converting into a

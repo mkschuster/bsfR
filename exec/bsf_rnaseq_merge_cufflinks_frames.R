@@ -95,34 +95,39 @@ process_cufflinks_table <-
                             "gene_short_name",
                             "tss_id")
     }
+
     subset_frame <-
-      cufflinks_frame[, !(colnames(cufflinks_frame) %in% obsolete_columns)]
+      cufflinks_frame[, !(names(x = cufflinks_frame) %in% obsolete_columns), drop = FALSE]
     rm(cufflinks_frame, obsolete_columns)
 
-    # Select only Ensembl objects i.e. those that have a gene_biotype set.
+    # Select only Ensembl objects i.e., those that have a gene_biotype set.
     ensembl_frame <-
-      subset_frame[!is.na(x = subset_frame$gene_biotype), ]
+      subset_frame[!is.na(x = subset_frame$gene_biotype), , drop = FALSE]
     rm(subset_frame)
 
     # Rename columns to include the replicate name.
     if (object_type == "isoforms") {
-      colnames(ensembl_frame)[grepl('^coverage$', colnames(ensembl_frame))] <-
+      names(x = ensembl_frame)[grepl('^coverage$', names(x = ensembl_frame))] <-
         paste('coverage', replicate_name, sep = '_')
     }
-    colnames(ensembl_frame)[grepl('^FPKM$', colnames(ensembl_frame))] <-
+
+    names(x = ensembl_frame)[grepl('^FPKM$', names(x = ensembl_frame))] <-
       paste('FPKM', replicate_name, sep = '_')
-    colnames(ensembl_frame)[grepl('^FPKM_conf_lo$', colnames(ensembl_frame))] <-
+
+    names(x = ensembl_frame)[grepl('^FPKM_conf_lo$', names(x = ensembl_frame))] <-
       paste('FPKM_conf_lo', replicate_name, sep = '_')
-    colnames(ensembl_frame)[grepl('^FPKM_conf_hi$', colnames(ensembl_frame))] <-
+
+    names(x = ensembl_frame)[grepl('^FPKM_conf_hi$', names(x = ensembl_frame))] <-
       paste('FPKM_conf_hi', replicate_name, sep = '_')
-    colnames(ensembl_frame)[grepl('^FPKM_status$', colnames(ensembl_frame))] <-
+
+    names(x = ensembl_frame)[grepl('^FPKM_status$', names(x = ensembl_frame))] <-
       paste('FPKM_status', replicate_name, sep = '_')
 
     if (is.null(x = merge_frame)) {
       return(ensembl_frame)
     } else {
       # Merge the data frames. The 'by' parameter defaults to an intersection of the column names.
-      return(merge(
+      return(base::merge.data.frame(
         x = merge_frame,
         y = ensembl_frame,
         all = TRUE,
@@ -130,7 +135,6 @@ process_cufflinks_table <-
       ))
     }
   }
-
 
 # Get command line options, if help option encountered print help and exit,
 # otherwise if options not found on command line then set defaults,
@@ -182,6 +186,7 @@ for (replicate_name in replicate_names) {
   )
 }
 rm(replicate_name)
+
 utils::write.table(
   x = merge_frame,
   file = "rnaseq_cufflinks_genes_fpkm_tracking.tsv",
@@ -201,6 +206,7 @@ for (replicate_name in replicate_names) {
   )
 }
 rm(replicate_name)
+
 utils::write.table(
   x = merge_frame,
   file = "rnaseq_cufflinks_isoforms_fpkm_tracking.tsv",

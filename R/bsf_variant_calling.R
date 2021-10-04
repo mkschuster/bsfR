@@ -125,7 +125,7 @@ bsfvc_import_ensembl <-
     # Ensembl now annotates a "tag" in GFF files with value "basic" indicating
     # standard (basic) transcript models. Can the exon GenomicRanges::GRanges be
     # subset by such a tag?
-    if ("tag" %in% names(x = S4Vectors::mcols(x = summary_list$exon_granges)) &&
+    if ("tag" %in% S4Vectors::colnames(x = S4Vectors::mcols(x = summary_list$exon_granges)) &&
         exon_basic) {
       if (verbose) {
         message("Filtering by GTF 'tag = \"basic\"' annotation")

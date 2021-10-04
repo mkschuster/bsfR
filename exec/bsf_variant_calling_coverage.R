@@ -289,10 +289,10 @@ rm(level)
 if (length(x = overlap_granges) > 0L) {
   # Count the number of entries for each mapping_status level.
   aggregate_frame <-
-    as.data.frame(x = base::table(S4Vectors::mcols(x = overlap_granges)$mapping_status))
+    base::as.data.frame(x = base::table(S4Vectors::mcols(x = overlap_granges)$mapping_status))
 
   # Assign the result levels (rows) as summary frame columns.
-  for (j in seq_len(length.out = nrow(x = aggregate_frame))) {
+  for (j in seq_len(length.out = base::nrow(x = aggregate_frame))) {
     summary_list[[paste("non_callable_number_constrained",
                         aggregate_frame[j, 1L, drop = TRUE],
                         sep = ".")]] <-
@@ -309,7 +309,7 @@ if (length(x = overlap_granges) > 0L) {
     )
 
   # Assign the result levels (rows) as summary frame columns.
-  for (j in seq_len(length.out = nrow(x = aggregate_frame))) {
+  for (j in seq_len(length.out = base::nrow(x = aggregate_frame))) {
     summary_list[[paste("non_callable_width_constrained", aggregate_frame[j, 1L, drop = TRUE], sep = ".")]] <-
       aggregate_frame[j, 2L, drop = TRUE]
   }
@@ -457,7 +457,7 @@ if (TRUE) {
         object = GenomicRanges::strand(x = .env$overlap_diagnose_granges),
         Class = "character"
       ),
-      as.data.frame(x = S4Vectors::mcols(x = .env$overlap_diagnose_granges))
+      S4Vectors::as.data.frame(x = S4Vectors::mcols(x = .env$overlap_diagnose_granges))
     )
 
   diagnostic_tibble <-

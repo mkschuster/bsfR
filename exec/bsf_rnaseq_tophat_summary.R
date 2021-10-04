@@ -140,7 +140,7 @@ sample_tibble <- tibble::tibble(
   "threshold" = NA_integer_
 )
 
-for (i in seq_len(length.out = nrow(x = sample_tibble))) {
+for (i in seq_len(length.out = base::nrow(x = sample_tibble))) {
   message("  ", sample_tibble$sample_name[i])
 
   # This is the layout of a Tophat align_summary.txt file.
@@ -257,7 +257,7 @@ ggplot_object <-
 # Scale the plot width with the number of samples, by adding a quarter of
 # the original width for each 24 samples.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * argument_list$plot_factor
+  argument_list$plot_width + (ceiling(x = base::nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * argument_list$plot_factor
 
 for (plot_path in plot_paths) {
   ggplot2::ggsave(

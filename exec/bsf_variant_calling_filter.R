@@ -382,7 +382,7 @@ while (nrow(
   # Firstly, retrieve the GenomicRanges::GRanges object via rowRanges() and
   # convert into a data frame, whereby several columns need adjusting.
   row_granges_frame <-
-    as.data.frame(x = rowRanges(x = vcf_object, fixed = TRUE))
+    GenomicRanges::as.data.frame(x = rowRanges(x = vcf_object, fixed = TRUE))
   # The original VCF ID variable is only available in form of row names.
   row_granges_frame$identifier <- row.names(x = row_granges_frame)
   # The VCF REF variable is a DNAStringSet object
@@ -504,7 +504,7 @@ while (nrow(
         sample_frame <-
           data.frame(column_name = genotype_list[[variable_name]][, sample_name])
         # Change the "column_name" header into its real value.
-        names(x = sample_frame) <- column_name
+        base::row.names(x = sample_frame) <- column_name
       } else {
         # If the sample frame exists, add a column to it.
         sample_frame[[column_name]] <-

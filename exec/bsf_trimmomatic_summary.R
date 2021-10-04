@@ -206,28 +206,28 @@ process_trim_log <- function(file_path, number = -1L) {
   }
 
   update_summary_tibble <-
-    function(summary_tibble, trim_log_character) {
+    function(summary_tibble, trim_log_character_matrix) {
       # Subset the character matrix into columns 2 (surviving), 3 (frequency_5)
       # and 4 (frequency_3). Increment all matrix elements by 1L to convert
       # 0-based sequence indices to 1-based R vector indices.
-      trim_log_integer <-
+      trim_log_integer_matrix <-
         matrix(
-          data = as.integer(x = trim_log_character[, c(2L, 3L, 4L)]),
-          nrow = nrow(x = trim_log_character)
+          data = as.integer(x = trim_log_character_matrix[, c(2L, 3L, 4L)]),
+          nrow = base::nrow(x = trim_log_character_matrix)
         ) + 1L
 
-      for (i in seq_len(length.out = nrow(x = trim_log_integer))) {
+      for (i in seq_len(length.out = base::nrow(x = trim_log_integer_matrix))) {
         # Increment the surviving position.
-        summary_tibble$surviving[trim_log_integer[i, 1L]] <-
-          summary_tibble$surviving[trim_log_integer[i, 1L]] + 1L
+        summary_tibble$surviving[trim_log_integer_matrix[i, 1L]] <-
+          summary_tibble$surviving[trim_log_integer_matrix[i, 1L]] + 1L
         # Increment the frequency_5 position.
-        summary_tibble$frequency_5[trim_log_integer[i, 2L]] <-
-          summary_tibble$frequency_5[trim_log_integer[i, 2L]] + 1L
+        summary_tibble$frequency_5[trim_log_integer_matrix[i, 2L]] <-
+          summary_tibble$frequency_5[trim_log_integer_matrix[i, 2L]] + 1L
         # Increment the frequency_3 position.
-        summary_tibble$frequency_3[trim_log_integer[i, 3L]] <-
-          summary_tibble$frequency_3[trim_log_integer[i, 3L]] + 1L
+        summary_tibble$frequency_3[trim_log_integer_matrix[i, 3L]] <-
+          summary_tibble$frequency_3[trim_log_integer_matrix[i, 3L]] + 1L
       }
-      rm(i, trim_log_integer)
+      rm(i, trim_log_integer_matrix)
 
       return(summary_tibble)
     }
@@ -318,37 +318,37 @@ process_trim_log <- function(file_path, number = -1L) {
     if (length(x = trim_log_lines) == 0L) {
       break()
     }
-    trim_log_character <-
+    trim_log_character_matrix <-
       stringr::str_split_fixed(
         string = trim_log_lines,
         pattern = stringr::fixed(pattern = " "),
         n = 5L
       )
 
-    reads_1 <- base::endsWith(x = trim_log_character[, 1L], "/1")
-    reads_2 <- base::endsWith(x = trim_log_character[, 1L], "/2")
+    reads_1 <- base::endsWith(x = trim_log_character_matrix[, 1L], "/1")
+    reads_2 <- base::endsWith(x = trim_log_character_matrix[, 1L], "/2")
     # Check for read 1.
     if (any(reads_1)) {
       counter_1 <- counter_1 + length(x = which(x = reads_1))
       summary_tibble_1 <-
         update_summary_tibble(summary_tibble = summary_tibble_1,
-                              trim_log_character = trim_log_character[reads_1, ])
+                              trim_log_character_matrix = trim_log_character_matrix[reads_1, ])
     }
     # Check for read 2.
     if (any(reads_2)) {
       counter_2 <- counter_2 + length(x = which(x = reads_2))
       summary_tibble_2 <-
         update_summary_tibble(summary_tibble = summary_tibble_2,
-                              trim_log_character = trim_log_character[reads_2, ])
+                              trim_log_character_matrix = trim_log_character_matrix[reads_2, ])
     }
     # This must be Trimmomatic data in SE mode, which lacks /1 and /2 suffices.
     if (!any(reads_1, reads_2)) {
-      counter_1 <- counter_1 + nrow(x = trim_log_character)
+      counter_1 <- counter_1 + base::nrow(x = trim_log_character_matrix)
       summary_tibble_1 <-
         update_summary_tibble(summary_tibble = summary_tibble_1,
-                              trim_log_character = trim_log_character)
+                              trim_log_character_matrix = trim_log_character_matrix)
     }
-    rm(reads_2, reads_1, trim_log_character, trim_log_lines)
+    rm(reads_2, reads_1, trim_log_character_matrix, trim_log_lines)
 
     # Break after reaching the maximum number of reads to process.
     if (number > 0L) {
@@ -652,7 +652,7 @@ if (!is.null(x = argument_list$stderr_path)) {
   # the original width for each 24 read groups.
   # Because read group names are quite long, extend already for the first column.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = summary_tibble) / 24L) - 1L) * argument_list$plot_width * 0.5
+    argument_list$plot_width + (ceiling(x = base::nrow(x = summary_tibble) / 24L) - 1L) * argument_list$plot_width * 0.5
 
   # Plot the absolute numbers of reads ------------------------------------
 

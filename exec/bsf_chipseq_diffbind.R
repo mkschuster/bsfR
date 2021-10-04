@@ -415,10 +415,10 @@ diffbind_peakset_granges <-
 # Coerce the GenomicRanges::GRanges object into a S4Vectors::DataFrame object.
 # Coercing via methods::as(object = report_granges, Class = "DataFrame") yields
 # a S4Vectors::DataFrame with a variable X that holds GenomicRanges::GRanges
-# objects. Use BiocGenerics::as.data.frame(x = report_granges) for the coercion
+# objects. Use GenomicRanges::as.data.frame(x = report_granges) for the coercion
 # into a plain data.frame object.
 utils::write.table(
-  x = BiocGenerics::as.data.frame(x = diffbind_peakset_granges, stringsAsFactors = FALSE),
+  x = GenomicRanges::as.data.frame(x = diffbind_peakset_granges, stringsAsFactors = FALSE),
   file = file.path(output_directory, sprintf(fmt = "%s_peak_set.tsv", prefix)),
   sep = "\t",
   row.names = FALSE,
@@ -527,10 +527,11 @@ process_per_contrast <-
       # Coerce the GenomicRanges::GRanges object into a S4Vectors::DataFrame
       # object. Coercing via methods::as(object = report_granges, Class =
       # "DataFrame") yields a S4Vectors::DataFrame with a variable X that holds
-      # GenomicRanges::GRanges objects. Use BiocGenerics::as.data.frame(x =
+      # GenomicRanges::GRanges objects. Use GenomicRanges::as.data.frame(x =
       # report_granges) for the coercion into a plain data.frame object.
       report_frame <-
-        BiocGenerics::as.data.frame(x = report_granges, stringsAsFactors = FALSE)
+        GenomicRanges::as.data.frame(x = report_granges, stringsAsFactors = FALSE)
+
       # Write a table of all peaks.
       utils::write.table(
         x = report_frame,
@@ -543,6 +544,7 @@ process_per_contrast <-
       # Extract only significant peaks by filtering for the FDR threshold.
       report_frame <-
         report_frame[report_frame$FDR <= argument_list$fdr_threshold, ]
+
       utils::write.table(
         x = report_frame,
         file = sprintf(fmt = "%s_significant_%s__%s.tsv", prefix, group1, group2),
@@ -811,7 +813,7 @@ contrast_frame <-
 
 # DiffBind3 seems to use "Group", while DiffBind2 used "Group1".
 group1_name <-
-  if ("Group" %in% names(x = contrast_frame)) {
+  if ("Group" %in% base::names(x = contrast_frame)) {
     "Group"
   } else {
     "Group1"
@@ -848,9 +850,9 @@ original_directory <- setwd(dir = output_directory)
 # print(x = "db_number:")
 # print(x = as.integer(x = as.character(x = contrast_frame[, 5L])))
 return_value <-
-  mapply(
+  base::mapply(
     FUN = process_per_contrast,
-    row.names(contrast_frame),
+    base::row.names(x = contrast_frame),
     contrast_frame[, group1_name],
     contrast_frame$Group2,
     # Since column 5 (DB.DESeq2) is a factor, it needs converting into a character,

@@ -105,7 +105,7 @@ read_group_tibble <- tibble::tibble(
 )
 message(
   "Processing STAR alignment reports for number of read groups: ",
-  nrow(x = read_group_tibble)
+  base::nrow(x = read_group_tibble)
 )
 
 # Empty lines and single column rows render parsing STAR Log.final.out files
@@ -187,7 +187,7 @@ variable_names <- c(
 )
 
 star_tibble <- tibble::tibble()
-for (i in seq_len(length.out = nrow(x = read_group_tibble))) {
+for (i in seq_len(length.out = base::nrow(x = read_group_tibble))) {
   message("  ", read_group_tibble$read_group_name[i])
 
   star_character <- stringr::str_split_fixed(
@@ -283,7 +283,7 @@ ggplot_object <-
 # the original width for each 24 read groups.
 # Because read group names are quite long, extend already for the first column.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.75
+  argument_list$plot_width + (ceiling(x = base::nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.75
 for (graphics_format in graphics_formats) {
   if (graphics_format == "png" &&
       plot_width > graphics_maximum_size_png) {
@@ -365,7 +365,7 @@ ggplot_object <-
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = base::nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   if (graphics_format == "png" &&
       plot_width > graphics_maximum_size_png) {
@@ -449,7 +449,7 @@ ggplot_object <-
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = base::nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   if (graphics_format == "png" &&
       plot_width > graphics_maximum_size_png) {
@@ -534,7 +534,7 @@ ggplot_object <-
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = base::nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   if (graphics_format == "png" &&
       plot_width > graphics_maximum_size_png) {
@@ -619,7 +619,7 @@ ggplot_object <-
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 samples.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = base::nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   if (graphics_format == "png" &&
       plot_width > graphics_maximum_size_png) {
@@ -776,7 +776,7 @@ if (file.exists(file_path)) {
   # Scale the plot width with the number of read groups, by adding a quarter of
   # the original width for each 24 read groups.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.33
+    argument_list$plot_width + (ceiling(x = base::nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.33
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width > graphics_maximum_size_png) {
@@ -861,7 +861,7 @@ if (file.exists(file_path)) {
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+    argument_list$plot_width + (ceiling(x = base::nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width > graphics_maximum_size_png) {
@@ -947,7 +947,7 @@ if (file.exists(file_path)) {
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+    argument_list$plot_width + (ceiling(x = base::nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width > graphics_maximum_size_png) {
@@ -1034,7 +1034,7 @@ if (file.exists(file_path)) {
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+    argument_list$plot_width + (ceiling(x = base::nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width > graphics_maximum_size_png) {
@@ -1121,7 +1121,7 @@ if (file.exists(file_path)) {
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+    argument_list$plot_width + (ceiling(x = base::nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width > graphics_maximum_size_png) {

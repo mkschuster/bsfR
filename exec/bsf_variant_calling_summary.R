@@ -106,7 +106,7 @@ if (is.null(x = argument_list$prefix)) {
 # Process Picard Duplication Metrics reports.
 
 message("Processing Picard Duplication Metrics reports for sample:")
-combined_metrics_sample <- NULL
+combined_metrics_sample_frame <- NULL
 
 file_names <-
   base::list.files(pattern = "^variant_calling_process_sample_.*_duplicate_metrics.tsv$")
@@ -134,7 +134,7 @@ for (file_name in file_names) {
     number_read <- -1L
     number_skip <- metrics_line[1L]
   }
-  picard_metrics_sample <-
+  picard_metrics_sample_frame <-
     utils::read.table(
       file = file_name,
       header = TRUE,
@@ -152,40 +152,42 @@ for (file_name in file_names) {
      metrics_lines)
 
   # Add the sample name, which is not part of the Picard report.
-  picard_metrics_sample$SAMPLE <- as.character(x = sample_name)
+  picard_metrics_sample_frame$SAMPLE <-
+    as.character(x = sample_name)
 
   # The Picard Duplication Metrics report has changed format through versions.
   # Column SECONDARY_OR_SUPPLEMENTARY_RDS was added at a later stage.
-  if (is.null(x = picard_metrics_sample$SECONDARY_OR_SUPPLEMENTARY_RDS)) {
-    picard_metrics_sample$SECONDARY_OR_SUPPLEMENTARY_RDS <- 0L
+  if (is.null(x = picard_metrics_sample_frame$SECONDARY_OR_SUPPLEMENTARY_RDS)) {
+    picard_metrics_sample_frame$SECONDARY_OR_SUPPLEMENTARY_RDS <- 0L
   }
 
-  if (is.null(x = combined_metrics_sample)) {
-    combined_metrics_sample <- picard_metrics_sample
+  if (is.null(x = combined_metrics_sample_frame)) {
+    combined_metrics_sample_frame <- picard_metrics_sample_frame
   } else {
-    combined_metrics_sample <-
-      rbind(combined_metrics_sample, picard_metrics_sample)
+    combined_metrics_sample_frame <-
+      rbind(combined_metrics_sample_frame,
+            picard_metrics_sample_frame)
   }
-  rm(picard_metrics_sample)
+  rm(picard_metrics_sample_frame)
 }
 rm(file_name, file_names)
 
-if (!is.null(x = combined_metrics_sample)) {
+if (!is.null(x = combined_metrics_sample_frame)) {
   # Order the sample frame by SAMPLE.
-  combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
+  combined_metrics_sample_frame <-
+    combined_metrics_sample_frame[order(combined_metrics_sample_frame$SAMPLE),]
   # Convert the SAMPLE column into factors, which come more handy for plotting.
-  combined_metrics_sample$SAMPLE <-
-    as.factor(x = combined_metrics_sample$SAMPLE)
+  combined_metrics_sample_frame$SAMPLE <-
+    as.factor(x = combined_metrics_sample_frame$SAMPLE)
   # Add additional percentages into the table.
-  combined_metrics_sample$PERCENT_UNPAIRED_READ_DUPLICATION <-
-    combined_metrics_sample$UNPAIRED_READ_DUPLICATES / combined_metrics_sample$UNPAIRED_READS_EXAMINED
-  combined_metrics_sample$PERCENT_READ_PAIR_DUPLICATION <-
-    combined_metrics_sample$READ_PAIR_DUPLICATES / combined_metrics_sample$READ_PAIRS_EXAMINED
-  combined_metrics_sample$PERCENT_READ_PAIR_OPTICAL_DUPLICATION <-
-    combined_metrics_sample$READ_PAIR_OPTICAL_DUPLICATES / combined_metrics_sample$READ_PAIRS_EXAMINED
+  combined_metrics_sample_frame$PERCENT_UNPAIRED_READ_DUPLICATION <-
+    combined_metrics_sample_frame$UNPAIRED_READ_DUPLICATES / combined_metrics_sample_frame$UNPAIRED_READS_EXAMINED
+  combined_metrics_sample_frame$PERCENT_READ_PAIR_DUPLICATION <-
+    combined_metrics_sample_frame$READ_PAIR_DUPLICATES / combined_metrics_sample_frame$READ_PAIRS_EXAMINED
+  combined_metrics_sample_frame$PERCENT_READ_PAIR_OPTICAL_DUPLICATION <-
+    combined_metrics_sample_frame$READ_PAIR_OPTICAL_DUPLICATES / combined_metrics_sample_frame$READ_PAIRS_EXAMINED
   utils::write.table(
-    x = combined_metrics_sample,
+    x = combined_metrics_sample_frame,
     file = paste(prefix_summary, "duplication_metrics_sample.tsv", sep = "_"),
     sep = "\t",
     row.names = FALSE,
@@ -194,7 +196,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   # Adjust the plot width according to batches of 24 samples or read groups.
   plot_width_sample <-
-    argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample$SAMPLE) / 24L) - 1L) * argument_list$plot_width * 0.3
+    argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample_frame$SAMPLE) / 24L) - 1L) * argument_list$plot_width * 0.3
   # message("Plot width sample: ", plot_width_sample)
 
   # Plot Duplication Fraction per Sample ----------------------------------
@@ -202,7 +204,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the duplication fraction per sample")
   ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_sample)
+    ggplot2::ggplot(data = combined_metrics_sample_frame)
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = .data$SAMPLE, y = .data$PERCENT_DUPLICATION))
   ggplot_object <-
@@ -245,7 +247,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   ggplot_object <- ggplot2::ggplot(
     data = tidyr::pivot_longer(
-      data = combined_metrics_sample,
+      data = combined_metrics_sample_frame,
       cols = c(
         .data$PERCENT_UNPAIRED_READ_DUPLICATION,
         .data$PERCENT_READ_PAIR_DUPLICATION,
@@ -300,7 +302,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   rm(plot_width_sample)
 }
-rm(combined_metrics_sample)
+rm(combined_metrics_sample_frame)
 
 # Picard Alignment Summary Metrics ----------------------------------------
 
@@ -308,8 +310,8 @@ rm(combined_metrics_sample)
 # Process Picard Alignment Summary Metrics reports.
 
 message("Processing Picard Alignment Summary Metrics reports for sample:")
-combined_metrics_sample <- NULL
-combined_metrics_read_group <- NULL
+combined_metrics_sample_frame <- NULL
+combined_metrics_read_group_frame <- NULL
 
 file_names <-
   base::list.files(pattern = "^variant_calling_process_sample_.*_alignment_summary_metrics.tsv$")
@@ -326,7 +328,7 @@ for (file_name in file_names) {
   metrics_lines <- readLines(con = file_name)
   metrics_line <-
     which(x = grepl(pattern = "## METRICS CLASS", x = metrics_lines))
-  picard_metrics_total <-
+  picard_metrics_total_frame <-
     utils::read.table(
       file = file_name,
       header = TRUE,
@@ -339,75 +341,79 @@ for (file_name in file_names) {
   rm(metrics_line, metrics_lines)
   # To support numeric sample names the read.table(stringsAsFactors = FALSE) is
   # turned off. Convert SAMPLE, LIBRARY and READ_GROUP into character vectors.
-  picard_metrics_total$SAMPLE <-
-    as.character(x = picard_metrics_total$SAMPLE)
-  picard_metrics_total$LIBRARY <-
-    as.character(x = picard_metrics_total$LIBRARY)
-  picard_metrics_total$READ_GROUP <-
-    as.character(x = picard_metrics_total$READ_GROUP)
+  picard_metrics_total_frame$SAMPLE <-
+    as.character(x = picard_metrics_total_frame$SAMPLE)
+  picard_metrics_total_frame$LIBRARY <-
+    as.character(x = picard_metrics_total_frame$LIBRARY)
+  picard_metrics_total_frame$READ_GROUP <-
+    as.character(x = picard_metrics_total_frame$READ_GROUP)
 
   # The Picard Alignment Metrics report has changed format through versions.
   # Columns PF_READS_IMPROPER_PAIRS and PCT_PF_READS_IMPROPER_PAIRS were added
   # at a later stage.
-  if (is.null(x = picard_metrics_total$PF_READS_IMPROPER_PAIRS)) {
-    picard_metrics_total$PF_READS_IMPROPER_PAIRS <- 0L
+  if (is.null(x = picard_metrics_total_frame$PF_READS_IMPROPER_PAIRS)) {
+    picard_metrics_total_frame$PF_READS_IMPROPER_PAIRS <- 0L
   }
-  if (is.null(x = picard_metrics_total$PCT_PF_READS_IMPROPER_PAIRS)) {
-    picard_metrics_total$PCT_PF_READS_IMPROPER_PAIRS <- 0.0
+  if (is.null(x = picard_metrics_total_frame$PCT_PF_READS_IMPROPER_PAIRS)) {
+    picard_metrics_total_frame$PCT_PF_READS_IMPROPER_PAIRS <- 0.0
   }
 
   # Select only rows showing the SAMPLE summary, i.e. showing SAMPLE, but no
   # LIBRARY and READ_GROUP information.
-  picard_metrics_sample <-
-    picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
-                           (picard_metrics_total$SAMPLE != "") &
-                           (picard_metrics_total$LIBRARY == "") &
-                           (picard_metrics_total$READ_GROUP == ""),]
-  if (is.null(x = combined_metrics_sample)) {
-    combined_metrics_sample <- picard_metrics_sample
+  picard_metrics_sample_frame <-
+    picard_metrics_total_frame[(!is.na(x = picard_metrics_total_frame$SAMPLE)) &
+                                 (picard_metrics_total_frame$SAMPLE != "") &
+                                 (picard_metrics_total_frame$LIBRARY == "") &
+                                 (picard_metrics_total_frame$READ_GROUP == ""), ]
+  if (is.null(x = combined_metrics_sample_frame)) {
+    combined_metrics_sample_frame <- picard_metrics_sample_frame
   } else {
-    combined_metrics_sample <-
-      rbind(combined_metrics_sample, picard_metrics_sample)
+    combined_metrics_sample_frame <-
+      rbind(combined_metrics_sample_frame,
+            picard_metrics_sample_frame)
   }
-  rm(picard_metrics_sample)
+  rm(picard_metrics_sample_frame)
 
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP
   # information.
   picard_metrics_read_group <-
-    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
-  if (is.null(x = combined_metrics_read_group)) {
-    combined_metrics_read_group <- picard_metrics_read_group
+    picard_metrics_total_frame[(picard_metrics_total_frame$READ_GROUP != ""), ]
+  if (is.null(x = combined_metrics_read_group_frame)) {
+    combined_metrics_read_group_frame <- picard_metrics_read_group
   } else {
-    combined_metrics_read_group <-
-      rbind(combined_metrics_read_group, picard_metrics_read_group)
+    combined_metrics_read_group_frame <-
+      rbind(combined_metrics_read_group_frame,
+            picard_metrics_read_group)
   }
   rm(picard_metrics_read_group)
 
-  rm(sample_name, picard_metrics_total)
+  rm(sample_name, picard_metrics_total_frame)
 }
 rm(file_name, file_names)
 
-if (!is.null(x = combined_metrics_sample)) {
+if (!is.null(x = combined_metrics_sample_frame)) {
   # Order the data frame by SAMPLE.
-  combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
+  combined_metrics_sample_frame <-
+    combined_metrics_sample_frame[order(combined_metrics_sample_frame$SAMPLE),]
   # Manually convert CATEGORY and SAMPLE columns into factors, which are handy
   # for plotting.
-  combined_metrics_sample$CATEGORY <-
-    as.factor(x = combined_metrics_sample$CATEGORY)
-  combined_metrics_sample$SAMPLE <-
-    as.factor(x = combined_metrics_sample$SAMPLE)
+  combined_metrics_sample_frame$CATEGORY <-
+    as.factor(x = combined_metrics_sample_frame$CATEGORY)
+  combined_metrics_sample_frame$SAMPLE <-
+    as.factor(x = combined_metrics_sample_frame$SAMPLE)
   # Add an additional LABEL factor column defined as a concatenation of SAMPLE
   # and CATEGORY.
-  combined_metrics_sample$LABEL <-
-    as.factor(x = paste(
-      combined_metrics_sample$SAMPLE,
-      combined_metrics_sample$CATEGORY,
-      sep =
-        "_"
-    ))
+  combined_metrics_sample_frame$LABEL <-
+    as.factor(
+      x = paste(
+        combined_metrics_sample_frame$SAMPLE,
+        combined_metrics_sample_frame$CATEGORY,
+        sep =
+          "_"
+      )
+    )
   utils::write.table(
-    x = combined_metrics_sample,
+    x = combined_metrics_sample_frame,
     file = paste(prefix_summary, "alignment_metrics_sample.tsv", sep = "_"),
     sep = "\t",
     row.names = FALSE,
@@ -415,27 +421,27 @@ if (!is.null(x = combined_metrics_sample)) {
   )
 
   # Order the data frame by READ_GROUP
-  combined_metrics_read_group <-
-    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP), ]
+  combined_metrics_read_group_frame <-
+    combined_metrics_read_group_frame[order(combined_metrics_read_group_frame$READ_GROUP),]
   # Manually convert CATEGORY and READ_GROUP columns into factors, which are
   # handy for plotting.
-  combined_metrics_read_group$CATEGORY <-
-    as.factor(x = combined_metrics_read_group$CATEGORY)
-  combined_metrics_read_group$READ_GROUP <-
-    as.factor(x = combined_metrics_read_group$READ_GROUP)
+  combined_metrics_read_group_frame$CATEGORY <-
+    as.factor(x = combined_metrics_read_group_frame$CATEGORY)
+  combined_metrics_read_group_frame$READ_GROUP <-
+    as.factor(x = combined_metrics_read_group_frame$READ_GROUP)
   # Add an additional LABEL factor column defined as a concatenation of
   # READ_GROUP and CATEGORY.
-  combined_metrics_read_group$LABEL <-
+  combined_metrics_read_group_frame$LABEL <-
     as.factor(
       x = paste(
-        combined_metrics_read_group$READ_GROUP,
-        combined_metrics_read_group$CATEGORY,
+        combined_metrics_read_group_frame$READ_GROUP,
+        combined_metrics_read_group_frame$CATEGORY,
         sep =
           "_"
       )
     )
   utils::write.table(
-    x = combined_metrics_read_group,
+    x = combined_metrics_read_group_frame,
     file = paste(prefix_summary, "alignment_metrics_read_group.tsv", sep = "_"),
     sep = "\t",
     row.names = FALSE,
@@ -444,9 +450,9 @@ if (!is.null(x = combined_metrics_sample)) {
 
   # Adjust the plot width according to batches of 24 samples or read groups.
   plot_width_sample <-
-    argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample$SAMPLE) / 24L) - 1L) * argument_list$plot_width * 0.25
+    argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample_frame$SAMPLE) / 24L) - 1L) * argument_list$plot_width * 0.25
   plot_width_read_group <-
-    argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_read_group$READ_GROUP) / 24L) - 1L) * argument_list$plot_width * 0.35
+    argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_read_group_frame$READ_GROUP) / 24L) - 1L) * argument_list$plot_width * 0.35
   # message("Plot width sample: ", plot_width_sample)
   # message("Plot width read group: ", plot_width_read_group)
 
@@ -455,7 +461,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the aligned pass-filter reads number per sample")
   ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED"), drop = FALSE])
+    ggplot2::ggplot(data = combined_metrics_sample_frame[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED"), drop = FALSE])
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
       x = .data$SAMPLE,
@@ -502,7 +508,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the aligned pass-filter reads number per read group")
   ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PF_READS_ALIGNED"), drop = FALSE])
+    ggplot2::ggplot(data = combined_metrics_read_group_frame[, c("CATEGORY", "READ_GROUP", "PF_READS_ALIGNED"), drop = FALSE])
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -551,7 +557,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the aligned pass-filter reads fraction per sample")
   ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PCT_PF_READS_ALIGNED"), drop = FALSE])
+    ggplot2::ggplot(data = combined_metrics_sample_frame[, c("CATEGORY", "SAMPLE", "PCT_PF_READS_ALIGNED"), drop = FALSE])
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -600,7 +606,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the aligned pass-filter reads fraction per read group")
   ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PCT_PF_READS_ALIGNED"), drop = FALSE])
+    ggplot2::ggplot(data = combined_metrics_read_group_frame[, c("CATEGORY", "READ_GROUP", "PCT_PF_READS_ALIGNED"), drop = FALSE])
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -649,7 +655,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the strand balance of aligned pass-filter reads per sample")
   ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "STRAND_BALANCE"), drop = FALSE])
+    ggplot2::ggplot(data = combined_metrics_sample_frame[, c("CATEGORY", "SAMPLE", "STRAND_BALANCE"), drop = FALSE])
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
       x = .data$SAMPLE,
@@ -696,7 +702,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the strand balance of aligned pass-filter reads per read group")
   ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "STRAND_BALANCE"), drop = FALSE])
+    ggplot2::ggplot(data = combined_metrics_read_group_frame[, c("CATEGORY", "READ_GROUP", "STRAND_BALANCE"), drop = FALSE])
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -746,7 +752,8 @@ if (!is.null(x = combined_metrics_sample)) {
 
   rm(plot_width_read_group, plot_width_sample)
 }
-rm(combined_metrics_read_group, combined_metrics_sample)
+rm(combined_metrics_read_group_frame,
+   combined_metrics_sample_frame)
 
 # Picard Hybrid Selection Metrics -----------------------------------------
 
@@ -754,8 +761,8 @@ rm(combined_metrics_read_group, combined_metrics_sample)
 # Process Picard Hybrid Selection Metrics reports.
 
 message("Processing Picard Hybrid Selection Metrics reports for sample:")
-combined_metrics_sample <- NULL
-combined_metrics_read_group <- NULL
+combined_metrics_sample_frame <- NULL
+combined_metrics_read_group_frame <- NULL
 
 file_names <-
   base::list.files(pattern = "^variant_calling_diagnose_sample_.*_hybrid_selection_metrics.tsv$")
@@ -780,7 +787,7 @@ for (file_name in file_names) {
     number_read <- -1L
     number_skip <- metrics_line[1L]
   }
-  picard_metrics_total <-
+  picard_metrics_total_frame <-
     utils::read.table(
       file = file_name,
       header = TRUE,
@@ -800,76 +807,78 @@ for (file_name in file_names) {
      metrics_lines)
   # To support numeric sample names the read.table(stringsAsFactors = FALSE) is
   # turned off. Convert SAMPLE, LIBRARY and READ_GROUP into character vectors.
-  picard_metrics_total$SAMPLE <-
-    as.character(x = picard_metrics_total$SAMPLE)
-  picard_metrics_total$LIBRARY <-
-    as.character(x = picard_metrics_total$LIBRARY)
-  picard_metrics_total$READ_GROUP <-
-    as.character(x = picard_metrics_total$READ_GROUP)
+  picard_metrics_total_frame$SAMPLE <-
+    as.character(x = picard_metrics_total_frame$SAMPLE)
+  picard_metrics_total_frame$LIBRARY <-
+    as.character(x = picard_metrics_total_frame$LIBRARY)
+  picard_metrics_total_frame$READ_GROUP <-
+    as.character(x = picard_metrics_total_frame$READ_GROUP)
 
   # The Picard Hybrid Selection Metrics report has changed format through versions.
   # Column PCT_TARGET_BASES_1X was added at a later stage.
-  if (!"PCT_TARGET_BASES_1X" %in% names(x = picard_metrics_total)) {
-    picard_metrics_total$PCT_TARGET_BASES_1X <- 0.0
+  if (!"PCT_TARGET_BASES_1X" %in% base::names(x = picard_metrics_total_frame)) {
+    picard_metrics_total_frame$PCT_TARGET_BASES_1X <- 0.0
   }
 
-  if (!"MAX_TARGET_COVERAGE" %in% names(x = picard_metrics_total)) {
-    picard_metrics_total$MAX_TARGET_COVERAGE <- 0L
+  if (!"MAX_TARGET_COVERAGE" %in% base::names(x = picard_metrics_total_frame)) {
+    picard_metrics_total_frame$MAX_TARGET_COVERAGE <- 0L
   }
 
-  if (!"PCT_EXC_ADAPTER" %in% names(x = picard_metrics_total)) {
-    picard_metrics_total$PCT_EXC_ADAPTER <- 0.0
+  if (!"PCT_EXC_ADAPTER" %in% base::names(x = picard_metrics_total_frame)) {
+    picard_metrics_total_frame$PCT_EXC_ADAPTER <- 0.0
   }
 
-  if (!"PF_BASES" %in% names(x = picard_metrics_total)) {
-    picard_metrics_total$PF_BASES <- 0L
+  if (!"PF_BASES" %in% base::names(x = picard_metrics_total_frame)) {
+    picard_metrics_total_frame$PF_BASES <- 0L
   }
 
   # Select only rows showing the SAMPLE summary, i.e. showing SAMPLE, but no
   # LIBRARY and READ_GROUP information.
-  picard_metrics_sample <-
-    picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
-                           (picard_metrics_total$SAMPLE != "") &
-                           (picard_metrics_total$LIBRARY == "") &
-                           (picard_metrics_total$READ_GROUP == ""),]
-  if (is.null(x = combined_metrics_sample)) {
-    combined_metrics_sample <- picard_metrics_sample
+  picard_metrics_sample_frame <-
+    picard_metrics_total_frame[(!is.na(x = picard_metrics_total_frame$SAMPLE)) &
+                                 (picard_metrics_total_frame$SAMPLE != "") &
+                                 (picard_metrics_total_frame$LIBRARY == "") &
+                                 (picard_metrics_total_frame$READ_GROUP == ""), ]
+  if (is.null(x = combined_metrics_sample_frame)) {
+    combined_metrics_sample_frame <- picard_metrics_sample_frame
   } else {
-    combined_metrics_sample <-
-      rbind(combined_metrics_sample, picard_metrics_sample)
+    combined_metrics_sample_frame <-
+      rbind(combined_metrics_sample_frame,
+            picard_metrics_sample_frame)
   }
-  rm(picard_metrics_sample)
+  rm(picard_metrics_sample_frame)
 
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP
   # information.
   picard_metrics_read_group <-
-    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
-  if (is.null(x = combined_metrics_read_group)) {
-    combined_metrics_read_group <- picard_metrics_read_group
+    picard_metrics_total_frame[(picard_metrics_total_frame$READ_GROUP != ""), ]
+  if (is.null(x = combined_metrics_read_group_frame)) {
+    combined_metrics_read_group_frame <- picard_metrics_read_group
   } else {
-    combined_metrics_read_group <-
-      rbind(combined_metrics_read_group, picard_metrics_read_group)
+    combined_metrics_read_group_frame <-
+      rbind(combined_metrics_read_group_frame,
+            picard_metrics_read_group)
   }
   rm(picard_metrics_read_group)
 
-  rm(sample_name, picard_metrics_total)
+  rm(sample_name, picard_metrics_total_frame)
 }
 rm(file_name, file_names)
 
 # The Picard Hybrid Selection Metrics is currently optional.
 
-if (!is.null(x = combined_metrics_sample)) {
+if (!is.null(x = combined_metrics_sample_frame)) {
   # Sort the data frame by SAMPLE.
-  combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
+  combined_metrics_sample_frame <-
+    combined_metrics_sample_frame[order(combined_metrics_sample_frame$SAMPLE), ]
   # Manually convert BAIT_SET and SAMPLE columns into factors, which are handy
   # for plotting.
-  combined_metrics_sample$BAIT_SET <-
-    as.factor(x = combined_metrics_sample$BAIT_SET)
-  combined_metrics_sample$SAMPLE <-
-    as.factor(x = combined_metrics_sample$SAMPLE)
+  combined_metrics_sample_frame$BAIT_SET <-
+    as.factor(x = combined_metrics_sample_frame$BAIT_SET)
+  combined_metrics_sample_frame$SAMPLE <-
+    as.factor(x = combined_metrics_sample_frame$SAMPLE)
   utils::write.table(
-    x = combined_metrics_sample,
+    x = combined_metrics_sample_frame,
     file = paste(prefix_summary, "hybrid_metrics_sample.tsv", sep = "_"),
     sep = "\t",
     row.names = FALSE,
@@ -877,16 +886,16 @@ if (!is.null(x = combined_metrics_sample)) {
   )
 
   # Sort the data frame by READ_GROUP.
-  combined_metrics_read_group <-
-    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP),]
+  combined_metrics_read_group_frame <-
+    combined_metrics_read_group_frame[order(combined_metrics_read_group_frame$READ_GROUP), ]
   # Manually convert BAIT_SET and READ_GROUP columns into factors, which are
   # handy for plotting.
-  combined_metrics_read_group$BAIT_SET <-
-    as.factor(x = combined_metrics_read_group$BAIT_SET)
-  combined_metrics_read_group$READ_GROUP <-
-    as.factor(x = combined_metrics_read_group$READ_GROUP)
+  combined_metrics_read_group_frame$BAIT_SET <-
+    as.factor(x = combined_metrics_read_group_frame$BAIT_SET)
+  combined_metrics_read_group_frame$READ_GROUP <-
+    as.factor(x = combined_metrics_read_group_frame$READ_GROUP)
   utils::write.table(
-    x = combined_metrics_read_group,
+    x = combined_metrics_read_group_frame,
     file = paste(prefix_summary, "hybrid_metrics_read_group.tsv", sep = "_"),
     sep = "\t",
     row.names = FALSE,
@@ -895,10 +904,10 @@ if (!is.null(x = combined_metrics_sample)) {
 
   # Adjust the plot width according to batches of 24 samples or read groups.
   plot_width_sample <- argument_list$plot_width + (ceiling(x = (
-    nlevels(x = combined_metrics_sample$SAMPLE) / 24L
+    nlevels(x = combined_metrics_sample_frame$SAMPLE) / 24L
   )) - 1L) * argument_list$plot_width * 0.25
   plot_width_read_group <- argument_list$plot_width + (ceiling(x = (
-    nlevels(x = combined_metrics_read_group$READ_GROUP) / 24L
+    nlevels(x = combined_metrics_read_group_frame$READ_GROUP) / 24L
   )) - 1L) * argument_list$plot_width * 0.25
   # message("Plot width sample: ", plot_width_sample)
   # message("Plot width read group: ", plot_width_read_group)
@@ -908,7 +917,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the percentage of unique pass-filter reads per sample")
   ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_sample)
+    ggplot2::ggplot(data = combined_metrics_sample_frame)
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = .data$SAMPLE, y = .data$PCT_PF_UQ_READS))
   ggplot_object <-
@@ -946,7 +955,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the percentage of unique pass-filter reads per read group")
   ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_read_group)
+    ggplot2::ggplot(data = combined_metrics_read_group_frame)
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -966,7 +975,9 @@ if (!is.null(x = combined_metrics_sample)) {
   # (scale_shape_manual()) needs setting up.
   # https://ggplot2.tidyverse.org/reference/scale_shape.html
   ggplot_object <-
-    ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
+    ggplot_object + ggplot2::scale_shape_manual(values = seq_len(
+      length.out = nlevels(x = combined_metrics_read_group_frame$BAIT_SET)
+    ))
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
@@ -1004,7 +1015,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the mean target coverage per sample")
   ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_sample)
+    ggplot2::ggplot(data = combined_metrics_sample_frame)
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(x = .data$SAMPLE, y = .data$MEAN_TARGET_COVERAGE))
   ggplot_object <-
@@ -1042,7 +1053,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the mean target coverage per read group")
   ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_read_group)
+    ggplot2::ggplot(data = combined_metrics_read_group_frame)
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -1062,7 +1073,9 @@ if (!is.null(x = combined_metrics_sample)) {
   # (scale_shape_manual()) needs setting up.
   # https://ggplot2.tidyverse.org/reference/scale_shape.html
   ggplot_object <-
-    ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
+    ggplot_object + ggplot2::scale_shape_manual(values = seq_len(
+      length.out = nlevels(x = combined_metrics_read_group_frame$BAIT_SET)
+    ))
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
@@ -1102,7 +1115,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   ggplot_object <- ggplot2::ggplot(
     data = tidyr::pivot_longer(
-      data = combined_metrics_sample,
+      data = combined_metrics_sample_frame,
       cols = c(
         .data$PCT_EXC_DUPE,
         .data$PCT_EXC_MAPQ,
@@ -1167,7 +1180,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   ggplot_object <- ggplot2::ggplot(
     data = tidyr::pivot_longer(
-      data = combined_metrics_read_group,
+      data = combined_metrics_read_group_frame,
       cols = c(
         .data$PCT_EXC_DUPE,
         .data$PCT_EXC_MAPQ,
@@ -1244,7 +1257,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   ggplot_object <- ggplot2::ggplot(
     data = tidyr::pivot_longer(
-      data = combined_metrics_sample,
+      data = combined_metrics_sample_frame,
       cols = c(
         .data$PCT_TARGET_BASES_1X,
         .data$PCT_TARGET_BASES_2X,
@@ -1314,7 +1327,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   ggplot_object <- ggplot2::ggplot(
     data = tidyr::pivot_longer(
-      data = combined_metrics_read_group,
+      data = combined_metrics_read_group_frame,
       cols = c(
         .data$PCT_TARGET_BASES_1X,
         .data$PCT_TARGET_BASES_2X,
@@ -1350,7 +1363,9 @@ if (!is.null(x = combined_metrics_sample)) {
   # (scale_shape_manual()) needs setting up.
   # https://ggplot2.tidyverse.org/reference/scale_shape.html
   ggplot_object <-
-    ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
+    ggplot_object + ggplot2::scale_shape_manual(values = seq_len(
+      length.out = nlevels(x = combined_metrics_read_group_frame$BAIT_SET)
+    ))
   ggplot_object <-
     ggplot_object + ggplot2::guides(
       colour = ggplot2::guide_legend(order = 1L),
@@ -1396,11 +1411,11 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the nominal coverage per sample")
   plotting_frame <-
-    combined_metrics_sample[, c("SAMPLE",
-                                "READ_GROUP",
-                                "BAIT_SET",
-                                "PF_BASES_ALIGNED",
-                                "TARGET_TERRITORY")]
+    combined_metrics_sample_frame[, c("SAMPLE",
+                                      "READ_GROUP",
+                                      "BAIT_SET",
+                                      "PF_BASES_ALIGNED",
+                                      "TARGET_TERRITORY")]
   plotting_frame$NOMINAL_COVERAGE <-
     plotting_frame$PF_BASES_ALIGNED / plotting_frame$TARGET_TERRITORY
 
@@ -1448,11 +1463,11 @@ if (!is.null(x = combined_metrics_sample)) {
 
   message("Plotting the nominal coverage per read group")
   plotting_frame <-
-    combined_metrics_read_group[, c("SAMPLE",
-                                    "READ_GROUP",
-                                    "BAIT_SET",
-                                    "PF_BASES_ALIGNED",
-                                    "TARGET_TERRITORY")]
+    combined_metrics_read_group_frame[, c("SAMPLE",
+                                          "READ_GROUP",
+                                          "BAIT_SET",
+                                          "PF_BASES_ALIGNED",
+                                          "TARGET_TERRITORY")]
   plotting_frame$NOMINAL_COVERAGE <-
     plotting_frame$PF_BASES_ALIGNED / plotting_frame$TARGET_TERRITORY
 
@@ -1476,7 +1491,9 @@ if (!is.null(x = combined_metrics_sample)) {
   # (scale_shape_manual()) needs setting up.
   # https://ggplot2.tidyverse.org/reference/scale_shape.html
   ggplot_object <-
-    ggplot_object + ggplot2::scale_shape_manual(values = seq_len(length.out = nlevels(x = combined_metrics_read_group$BAIT_SET)))
+    ggplot_object + ggplot2::scale_shape_manual(values = seq_len(
+      length.out = nlevels(x = combined_metrics_read_group_frame$BAIT_SET)
+    ))
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
@@ -1511,7 +1528,8 @@ if (!is.null(x = combined_metrics_sample)) {
 
   rm(plot_width_read_group, plot_width_sample)
 }
-rm(combined_metrics_read_group, combined_metrics_sample)
+rm(combined_metrics_read_group_frame,
+   combined_metrics_sample_frame)
 
 # Non-callable Summary Reports --------------------------------------------
 
@@ -1521,47 +1539,47 @@ rm(combined_metrics_read_group, combined_metrics_sample)
 message("Processing non-callable summary reports for sample:")
 
 # Initialise a data frame with all possible columns and rows at once.
-combined_metrics_sample <- data.frame(
+combined_metrics_sample_frame <- data.frame(
   row.names = base::list.files(pattern = "^variant_calling_diagnose_sample_.*_non_callable_summary.tsv$")
 )
-combined_metrics_sample$file_name <-
-  row.names(x = combined_metrics_sample)
-combined_metrics_sample$exon_path <-
-  character(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$exon_number_raw <-
-  integer(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$exon_width_raw <-
-  integer(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$exon_number <-
-  integer(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$exon_width <-
-  integer(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$exon_width_flank <-
-  integer(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$transcribed_number <-
-  integer(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$transcribed_width <-
-  integer(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$target_path <-
-  character(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$target_number_raw <-
-  integer(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$target_width_raw <-
-  integer(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$target_width_flank <-
-  integer(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$constrained_number <-
-  integer(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$constrained_width <-
-  integer(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$callable_loci_path <-
-  character(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$sample_name <-
-  character(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$non_callable_number_raw <-
-  integer(length = nrow(x = combined_metrics_sample))
-combined_metrics_sample$non_callable_width_raw <-
-  integer(length = nrow(x = combined_metrics_sample))
+combined_metrics_sample_frame$file_name <-
+  base::row.names(x = combined_metrics_sample_frame)
+combined_metrics_sample_frame$exon_path <-
+  character(length = nrow(x = combined_metrics_sample_frame))
+combined_metrics_sample_frame$exon_number_raw <-
+  integer(length = nrow(x = combined_metrics_sample_frame))
+combined_metrics_sample_frame$exon_width_raw <-
+  integer(length = nrow(x = combined_metrics_sample_frame))
+combined_metrics_sample_frame$exon_number <-
+  integer(length = nrow(x = combined_metrics_sample_frame))
+combined_metrics_sample_frame$exon_width <-
+  integer(length = nrow(x = combined_metrics_sample_frame))
+combined_metrics_sample_frame$exon_width_flank <-
+  integer(length = nrow(x = combined_metrics_sample_frame))
+combined_metrics_sample_frame$transcribed_number <-
+  integer(length = nrow(x = combined_metrics_sample_frame))
+combined_metrics_sample_frame$transcribed_width <-
+  integer(length = nrow(x = combined_metrics_sample_frame))
+combined_metrics_sample_frame$target_path <-
+  character(length = nrow(x = combined_metrics_sample_frame))
+combined_metrics_sample_frame$target_number_raw <-
+  integer(length = nrow(x = combined_metrics_sample_frame))
+combined_metrics_sample_frame$target_width_raw <-
+  integer(length = nrow(x = combined_metrics_sample_frame))
+combined_metrics_sample_frame$target_width_flank <-
+  integer(length = nrow(x = combined_metrics_sample_frame))
+combined_metrics_sample_frame$constrained_number <-
+  integer(length = nrow(x = combined_metrics_sample_frame))
+combined_metrics_sample_frame$constrained_width <-
+  integer(length = nrow(x = combined_metrics_sample_frame))
+combined_metrics_sample_frame$callable_loci_path <-
+  character(length = nrow(x = combined_metrics_sample_frame))
+combined_metrics_sample_frame$sample_name <-
+  character(length = nrow(x = combined_metrics_sample_frame))
+combined_metrics_sample_frame$non_callable_number_raw <-
+  integer(length = nrow(x = combined_metrics_sample_frame))
+combined_metrics_sample_frame$non_callable_width_raw <-
+  integer(length = nrow(x = combined_metrics_sample_frame))
 for (level in c(
   "REF_N",
   # "PASS" according to documentation, but should be "CALLABLE" in practice.
@@ -1570,22 +1588,22 @@ for (level in c(
   "EXCESSIVE_COVERAGE",
   "POOR_MAPPING_QUALITY"
 )) {
-  combined_metrics_sample[, paste("non_callable_number_constrained", level, sep = ".")] <-
-    integer(length = nrow(x = combined_metrics_sample))
-  combined_metrics_sample[, paste("non_callable_width_constrained", level, sep = ".")] <-
-    integer(length = nrow(x = combined_metrics_sample))
+  combined_metrics_sample_frame[, paste("non_callable_number_constrained", level, sep = ".")] <-
+    integer(length = nrow(x = combined_metrics_sample_frame))
+  combined_metrics_sample_frame[, paste("non_callable_width_constrained", level, sep = ".")] <-
+    integer(length = nrow(x = combined_metrics_sample_frame))
 }
 rm(level)
 
-for (i in seq_len(length.out = nrow(x = combined_metrics_sample))) {
+for (i in seq_len(length.out = nrow(x = combined_metrics_sample_frame))) {
   sample_name <-
     base::gsub(pattern = "^variant_calling_diagnose_sample_(.*?)_non_callable_summary.tsv$",
                replacement = "\\1",
-               x = combined_metrics_sample$file_name[i])
+               x = combined_metrics_sample_frame$file_name[i])
   message("  ", sample_name)
-  non_callable_metrics_sample <-
+  non_callable_metrics_sample_frame <-
     utils::read.table(
-      file = combined_metrics_sample$file_name[i],
+      file = combined_metrics_sample_frame$file_name[i],
       header = TRUE,
       colClasses = c(
         "exon_path" = "character",
@@ -1623,40 +1641,42 @@ for (i in seq_len(length.out = nrow(x = combined_metrics_sample))) {
       ),
       fill = TRUE
     )
-  for (column_name in names(x = combined_metrics_sample)) {
-    if (column_name %in% names(x = non_callable_metrics_sample)) {
-      combined_metrics_sample[i, column_name] <-
-        non_callable_metrics_sample[[1, column_name]]
+  for (column_name in base::names(x = combined_metrics_sample_frame)) {
+    if (column_name %in% base::names(x = non_callable_metrics_sample_frame)) {
+      combined_metrics_sample_frame[i, column_name] <-
+        non_callable_metrics_sample_frame[[1, column_name]]
     } else {
       # With the exception of the "file_name" component, set all components
       # undefined in the sample-specific data frame to NA in the combined data
       # frame.
       if (column_name != "file_name") {
-        combined_metrics_sample[i, column_name] <- NA
+        combined_metrics_sample_frame[i, column_name] <- NA
       }
     }
   }
-  rm(column_name, non_callable_metrics_sample, sample_name)
+  rm(column_name,
+     non_callable_metrics_sample_frame,
+     sample_name)
 }
 rm(i)
 
-if (nrow(x = combined_metrics_sample) > 0L) {
+if (nrow(x = combined_metrics_sample_frame) > 0L) {
   # Sort the data frame by sample_name.
-  combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$sample_name),]
+  combined_metrics_sample_frame <-
+    combined_metrics_sample_frame[order(combined_metrics_sample_frame$sample_name), ]
   # Convert the sample_name column into factors, which come more handy for
   # plotting.
-  combined_metrics_sample$sample_name <-
-    as.factor(x = combined_metrics_sample$sample_name)
+  combined_metrics_sample_frame$sample_name <-
+    as.factor(x = combined_metrics_sample_frame$sample_name)
 
   # Adjust the plot width according to batches of 24 samples or read groups.
   plot_width_sample <- argument_list$plot_width + (ceiling(x = (
-    nlevels(x = combined_metrics_sample$sample_name) / 24L
+    nlevels(x = combined_metrics_sample_frame$sample_name) / 24L
   )) - 1L) * argument_list$plot_width * 0.25
   # message("Plot width sample: ", plot_width_sample)
 
   utils::write.table(
-    x = combined_metrics_sample,
+    x = combined_metrics_sample_frame,
     file = paste(prefix_summary, "non_callable_metrics_sample.tsv", sep = "_"),
     sep = "\t",
     row.names = FALSE,
@@ -1668,12 +1688,12 @@ if (nrow(x = combined_metrics_sample) > 0L) {
 
   message("Plotting the number of non-callable loci per sample")
   plotting_frame <- data.frame(
-    sample_name = combined_metrics_sample$sample_name,
-    constrained_number = combined_metrics_sample$constrained_number
+    sample_name = combined_metrics_sample_frame$sample_name,
+    constrained_number = combined_metrics_sample_frame$constrained_number
   )
   # Only columns that begin with "^non_callable_number_constrained\." are
   # required, the remainder is the mapping status.
-  column_names <- names(x = combined_metrics_sample)
+  column_names <- base::names(x = combined_metrics_sample_frame)
   mapping_status <-
     base::gsub(pattern = "^non_callable_number_constrained\\.(.*)$",
                replacement = "\\1",
@@ -1682,7 +1702,7 @@ if (nrow(x = combined_metrics_sample) > 0L) {
   # their new name.
   for (i in which(x = grepl(pattern = "^non_callable_number_constrained\\.", x = column_names))) {
     plotting_frame[, mapping_status[i]] <-
-      combined_metrics_sample[, column_names[i]]
+      combined_metrics_sample_frame[, column_names[i]]
   }
   rm(i, mapping_status, column_names)
 
@@ -1699,7 +1719,7 @@ if (nrow(x = combined_metrics_sample) > 0L) {
     plotting_frame$number / plotting_frame$constrained_number
   # For the moment, remove lines with "TOTAL".
   plotting_frame <-
-    plotting_frame[plotting_frame$mapping_status != "TOTAL",]
+    plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
@@ -1749,15 +1769,15 @@ if (nrow(x = combined_metrics_sample) > 0L) {
 
 
   message("Plotting the fraction of non-callable loci per sample")
-  # Reorganise the combined_metrics_sample data frame for plotting non-callable
+  # Reorganise the combined_metrics_sample_frame data frame for plotting non-callable
   # target widths.
   plotting_frame <- data.frame(
-    sample_name = combined_metrics_sample$sample_name,
-    constrained_width = combined_metrics_sample$constrained_width
+    sample_name = combined_metrics_sample_frame$sample_name,
+    constrained_width = combined_metrics_sample_frame$constrained_width
   )
   # Only columns that begin with "^non_callable_width_constrained\." are
   # required, the remainder is the mapping status.
-  column_names <- names(x = combined_metrics_sample)
+  column_names <- base::names(x = combined_metrics_sample_frame)
   mapping_status <-
     base::gsub(pattern = "^non_callable_width_constrained\\.(.*)$",
                replacement = "\\1",
@@ -1766,7 +1786,7 @@ if (nrow(x = combined_metrics_sample) > 0L) {
   # their new name.
   for (i in which(x = grepl(pattern = "^non_callable_width_constrained\\.", x = column_names))) {
     plotting_frame[, mapping_status[i]] <-
-      combined_metrics_sample[, column_names[i]]
+      combined_metrics_sample_frame[, column_names[i]]
   }
   rm(i, mapping_status, column_names)
 
@@ -1783,7 +1803,7 @@ if (nrow(x = combined_metrics_sample) > 0L) {
     plotting_frame$width / plotting_frame$constrained_width
   # For the moment, remove lines with "TOTAL".
   plotting_frame <-
-    plotting_frame[plotting_frame$mapping_status != "TOTAL",]
+    plotting_frame[plotting_frame$mapping_status != "TOTAL", ]
 
   ggplot_object <- ggplot2::ggplot(data = plotting_frame)
   ggplot_object <-
@@ -1831,7 +1851,7 @@ if (nrow(x = combined_metrics_sample) > 0L) {
 
   rm(plot_width_sample)
 }
-rm(combined_metrics_sample)
+rm(combined_metrics_sample_frame)
 
 rm(prefix_summary,
    argument_list,

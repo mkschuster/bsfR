@@ -147,7 +147,7 @@ bsfg_get_genome_list <-
       .data$assembly_version_ncbi %in% .env$ncbi_version &
         .data$assembly_version_ucsc %in% .env$ucsc_version
     )
-    if (nrow(x = genome_tibble) != 1L) {
+    if (base::nrow(x = genome_tibble) != 1L) {
       # This should only retrieve one row of the tibble.
       stop("Could not get a single record for source and target assembly version.")
     }

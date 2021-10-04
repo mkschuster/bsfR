@@ -125,7 +125,7 @@ while (TRUE) {
     pattern = stringr::fixed(pattern = " "),
     n = 11L
   )[,-1L]
-  colnames(x = character_matrix) <- variable_names
+  base::colnames(x = character_matrix) <- variable_names
 
   vulgar_tibble <-
     dplyr::bind_rows(vulgar_tibble,
