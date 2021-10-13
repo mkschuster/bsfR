@@ -190,11 +190,11 @@ bsfrd_read_contrast_tibble <-
     file_path_components <- c(prefix_deseq, "contrasts")
 
     col_types <- readr::cols(
-      Design = readr::col_character(),
-      Numerator = readr::col_character(),
-      Denominator = readr::col_character(),
-      Label = readr::col_character(),
-      Exclude = readr::col_logical()
+      "Design" = readr::col_character(),
+      "Numerator" = readr::col_character(),
+      "Denominator" = readr::col_character(),
+      "Label" = readr::col_character(),
+      "Exclude" = readr::col_logical()
     )
 
     if (summary) {
@@ -204,9 +204,9 @@ bsfrd_read_contrast_tibble <-
         c(
           col_types$cols,
           readr::cols(
-            Significant = readr::col_integer(),
-            SignificantUp = readr::col_integer(),
-            SignificantDown = readr::col_integer()
+            "Significant" = readr::col_integer(),
+            "SignificantUp" = readr::col_integer(),
+            "SignificantDown" = readr::col_integer()
           )$cols
         )
     }
@@ -375,12 +375,12 @@ bsfrd_read_design_tibble <-
       ),
       col_names = TRUE,
       col_types = readr::cols(
-        design = readr::col_character(),
-        exclude = readr::col_logical(),
-        full_formula = readr::col_character(),
-        reduced_formulas = readr::col_character(),
-        factor_levels = readr::col_character(),
-        plot_aes = readr::col_character()
+        "design" = readr::col_character(),
+        "exclude" = readr::col_logical(),
+        "full_formula" = readr::col_character(),
+        "reduced_formulas" = readr::col_character(),
+        "factor_levels" = readr::col_character(),
+        "plot_aes" = readr::col_character()
       )
     )
 
@@ -1190,23 +1190,23 @@ bsfrd_read_result_tibble <-
         readr::read_tsv(
           file = file_path,
           col_types = readr::cols(
-            gene_id = readr::col_character(),
-            gene_version = readr::col_double(),
-            gene_name = readr::col_character(),
-            gene_biotype = readr::col_character(),
-            gene_source = readr::col_character(),
-            location = readr::col_character(),
-            baseMean = readr::col_double(),
-            log2FoldChange = readr::col_double(),
-            lfcSE = readr::col_double(),
-            # stat = readr::col_double(), # No longer available after lfcShrink().
-            pvalue = readr::col_double(),
-            padj = readr::col_double(),
-            significant = readr::col_character(),
-            rank_log2_fold_change = readr::col_double(),
-            rank_base_mean = readr::col_double(),
-            rank_padj = readr::col_double(),
-            max_rank = readr::col_double()
+            "gene_id" = readr::col_character(),
+            "gene_version" = readr::col_double(),
+            "gene_name" = readr::col_character(),
+            "gene_biotype" = readr::col_character(),
+            "gene_source" = readr::col_character(),
+            "location" = readr::col_character(),
+            "baseMean" = readr::col_double(),
+            "log2FoldChange" = readr::col_double(),
+            "lfcSE" = readr::col_double(),
+            # "stat" = readr::col_double(), # No longer available after lfcShrink().
+            "pvalue" = readr::col_double(),
+            "padj" = readr::col_double(),
+            "significant" = readr::col_character(),
+            "rank_log2_fold_change" = readr::col_double(),
+            "rank_base_mean" = readr::col_double(),
+            "rank_padj" = readr::col_double(),
+            "max_rank" = readr::col_double()
           )
         )
     } else {
@@ -1468,46 +1468,50 @@ bsfrd_read_gene_set_tibble <-
         file = gene_set_path,
         col_names = TRUE,
         col_types = readr::cols(
-          gene_id = readr::col_character(),
-          gene_name = readr::col_character(),
-          gene_label = readr::col_character(),
-          plot_name = readr::col_character()
+          "gene_id" = readr::col_character(),
+          "gene_name" = readr::col_character(),
+          "gene_label" = readr::col_character(),
+          "plot_name" = readr::col_character()
         )
       )
 
-    # Find all those observations in "gene_id" that are NA or empty.
-    missing_ids <-
-      is.na(x = gene_set_tibble$gene_id) |
-      gene_set_tibble$gene_id == ""
+    # Find all those observations in "gene_id" that are NA or empty and populate
+    # them via matching "gene_name" values of the annotation tibble.
 
-    missing_indices <- which(x = missing_ids)
+    missing_indices <-
+      which(x = is.na(x = gene_set_tibble$gene_id) |
+              gene_set_tibble$gene_id == "")
 
     if (length(x = missing_indices) > 0L) {
       # Read the central transcriptome annotation tibble.
       annotation_tibble <-
         bsfrd_read_annotation_tibble(genome_directory = genome_directory, design_name = design_name)
 
-      # Associate empty "gene_id" values with corresponding "gene_name" values.
-      missing_names <-
-        gene_set_tibble$gene_name[missing_indices]
+      # Populate empty "gene_id" observations of the gene_set_tibble by mapping
+      # the corresponding "gene_name" observations to "gene_name" observations
+      # of the annotation_tibble.
 
-      # Reset the missing "gene_id" values, by matching missing names in the annotation_tibble.
       gene_set_tibble$gene_id[missing_indices] <-
-        annotation_tibble$gene_id[match(x = missing_names, table = annotation_tibble$gene_name)]
+        annotation_tibble$gene_id[match(x = gene_set_tibble$gene_name[missing_indices],
+                                        table = annotation_tibble$gene_name)]
 
-      rm(missing_names, annotation_tibble)
+      rm(annotation_tibble)
     }
 
+    rm(missing_indices)
+
     # Find all those observations in "gene_label" that are NA or empty and
-    # replace with "gene_name" values.
-    missing_ids <-
-      is.na(x = gene_set_tibble$gene_label) |
-      gene_set_tibble$gene_label == ""
+    # populate them with "gene_name" values.
 
-    gene_set_tibble$gene_label[missing_ids] <-
-      gene_set_tibble$gene_name[missing_ids]
-
-    rm(missing_indices, missing_ids)
+    gene_set_tibble <- dplyr::mutate(
+      .data = gene_set_tibble,
+      "gene_label" = dplyr::if_else(
+        condition = .data$gene_label == "",
+        true = .data$gene_name,
+        false = .data$gene_label,
+        missing = .data$gene_name
+      )
+    )
 
     return(gene_set_tibble)
   }
