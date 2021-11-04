@@ -271,7 +271,7 @@ if (is.null(x = argument_list$biomart_data_set)) {
   #     reference_mcols$tag
   # }
   #
-  # Havana annotation is only avaliable for earlier Ensembl releases.
+  # Havana annotation is only available for earlier Ensembl releases.
   if ("havana_transcript" %in% S4Vectors::colnames(x = reference_mcols)) {
     isoform_annotation_tibble$havana_transcript <-
       reference_mcols$havana_transcript
@@ -462,7 +462,7 @@ for (i in seq_len(length.out = nrow(x = sample_tibble))) {
           # Not populated for genes and isoforms.
           "tss_id" = readr::col_character(),
           "locus" = readr::col_character(),
-          # Not populated (i.e. "-") for genes, read as factor..
+          # Not populated (i.e. "-") for genes, read as factor.
           "length" = readr::col_factor(),
           # Not populated (i.e. "-") for genes, read as factor.
           "coverage" = readr::col_factor(),

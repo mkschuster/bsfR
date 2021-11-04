@@ -142,12 +142,12 @@ rm(exonerate_connection)
 vulgar_tibble <-
   dplyr::mutate(
     .data = vulgar_tibble,
-    query_start = as.integer(x = .data$query_start),
-    query_end = as.integer(x = .data$query_end),
-    query_strand = dplyr::recode(.x = .data$query_strand, "." = "*"),
-    target_start = as.integer(x = .data$target_start),
-    target_end = as.integer(x = .data$target_end),
-    target_strand = dplyr::recode(.x = .data$target_strand, "." = "*")
+    "query_start" = as.integer(x = .data$query_start),
+    "query_end" = as.integer(x = .data$query_end),
+    "query_strand" = dplyr::recode(.x = .data$query_strand, "." = "*"),
+    "target_start" = as.integer(x = .data$target_start),
+    "target_end" = as.integer(x = .data$target_end),
+    "target_strand" = dplyr::recode(.x = .data$target_strand, "." = "*")
   )
 
 # Start and end coordinates require assigning, depending on the strand. While

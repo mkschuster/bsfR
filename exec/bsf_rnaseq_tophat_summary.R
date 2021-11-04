@@ -110,7 +110,7 @@ graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
 # Process all "rnaseq_tophat_*" directories in the current working directory.
 
-message("Processing Tophat2 alignment reports for sample:")
+message("Processing Tophat2 alignment report for sample:")
 sample_tibble <- tibble::tibble(
   # R character vector of directory paths.
   "directory_path" = grep(
@@ -160,6 +160,7 @@ for (i in seq_len(length.out = base::nrow(x = sample_tibble))) {
       ),
       n = 100L
     )
+
   # Parse the second line of "input" reads.
   sample_tibble$input[i] <- as.integer(
     x = sub(
@@ -229,6 +230,7 @@ plot_paths <-
             ))
 
 ggplot_object <- ggplot2::ggplot(data = sample_tibble)
+
 ggplot_object <-
   ggplot_object + ggplot2::geom_point(
     mapping = ggplot2::aes(
@@ -237,6 +239,7 @@ ggplot_object <-
       colour = .data$sample_name
     )
   )
+
 ggplot_object <-
   ggplot_object + ggplot2::labs(
     x = "Reads Number",
@@ -244,6 +247,7 @@ ggplot_object <-
     colour = "Sample",
     title = "TopHat Alignment Summary"
   )
+
 # Reduce the label font size and the legend key size and allow a maximum of 24
 # guide legend rows.
 ggplot_object <-
@@ -252,8 +256,10 @@ ggplot_object <-
     keyheight = ggplot2::rel(x = 0.8),
     nrow = 24L
   ))
+
 ggplot_object <-
   ggplot_object + ggplot2::theme(legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7)))
+
 # Scale the plot width with the number of samples, by adding a quarter of
 # the original width for each 24 samples.
 plot_width <-

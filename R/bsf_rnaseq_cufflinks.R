@@ -122,12 +122,12 @@ bsfrc_read_gene_annotation_tibble <-
         readr::read_tsv(
           file = file_path,
           col_types = readr::cols(
-            gene_id = readr::col_character(),
-            gene_short_name = readr::col_character(),
-            locus = readr::col_character(),
-            transcript_ids = readr::col_character(),
-            ensembl_gene_ids = readr::col_character(),
-            ensembl_transcript_ids = readr::col_character()
+            "gene_id" = readr::col_character(),
+            "gene_short_name" = readr::col_character(),
+            "locus" = readr::col_character(),
+            "transcript_ids" = readr::col_character(),
+            "ensembl_gene_ids" = readr::col_character(),
+            "ensembl_transcript_ids" = readr::col_character()
           )
         )
     } else {

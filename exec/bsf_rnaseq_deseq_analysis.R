@@ -457,7 +457,7 @@ fix_model_matrix <- function(model_matrix_local) {
       )
 
       model_matrix_local <-
-        model_matrix_local[,-which(x = model_all_zero)]
+        model_matrix_local[, -which(x = model_all_zero)]
     } else {
       linear_combinations_list <-
         caret::findLinearCombos(x = model_matrix_local)
@@ -484,7 +484,7 @@ fix_model_matrix <- function(model_matrix_local) {
       )
 
       model_matrix_local <-
-        model_matrix_local[, -linear_combinations_list$remove]
+        model_matrix_local[,-linear_combinations_list$remove]
     }
     rm(model_all_zero)
   }
@@ -769,7 +769,7 @@ plot_fpkm_values <- function(object) {
       ggplot2::geom_density(
         mapping = ggplot2::aes(
           x = log10(x = .data$value),
-          y = ..density..,
+          y = ggplot2::after_stat(x = .data$density),
           colour = .data$name
         ),
         alpha = I(1 / 3),
@@ -957,7 +957,10 @@ plot_rin_scores <- function(object) {
 
       ggplot_object <-
         ggplot_object +
-        ggplot2::geom_density(mapping = ggplot2::aes(x = .data$RIN, y = ..density..))
+        ggplot2::geom_density(mapping = ggplot2::aes(
+          x = .data$RIN,
+          y = ggplot2::after_stat(x = .data$density)
+        ))
 
       ggplot_object <-
         ggplot_object +
@@ -1391,7 +1394,7 @@ plot_pca <- function(object,
   # Perform a PCA on the (count) matrix returned by
   # SummarizedExperiment::assay() for the selected genes.
   pca_object <-
-    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows,]))
+    stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows, ]))
 
   rm(selected_rows)
 
@@ -1452,7 +1455,7 @@ plot_pca <- function(object,
   # component. Establish a label list with principal components and their
   # respective percentage of the total variance.
   label_list <-
-    as.list(sprintf(
+    as.list(x = sprintf(
       fmt = "PC%i (%.3f%%)",
       seq_along(along.with = pca_object$sdev),
       100 * (pca_object$sdev ^ 2 / sum(pca_object$sdev ^ 2))
@@ -1488,17 +1491,17 @@ plot_pca <- function(object,
 
       plotting_frame <-
         base::data.frame(
-          component_1 = factor(levels = paste0(
+          "component_1" = factor(levels = paste0(
             "PC", seq_len(length.out = pca_dimensions)
           )),
-          component_2 = factor(levels = paste0(
+          "component_2" = factor(levels = paste0(
             "PC", seq_len(length.out = pca_dimensions)
           )),
-          x = numeric(),
-          y = numeric(),
+          "x" = numeric(),
+          "y" = numeric(),
           # Also initialise all variables of the column data, but do not
-          # include data (i.e. 0L rows).
-          S4Vectors::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L, ])
+          # include data (i.e., 0L rows).
+          S4Vectors::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L,])
         )
 
       for (column_number in seq_len(length.out = base::ncol(x = pca_pair_matrix))) {
@@ -1511,10 +1514,10 @@ plot_pca <- function(object,
         plotting_frame <- base::rbind(
           plotting_frame,
           base::data.frame(
-            component_1 = pca_label_1,
-            component_2 = pca_label_2,
-            x = pca_frame[, pca_label_1],
-            y = pca_frame[, pca_label_2],
+            "component_1" = pca_label_1,
+            "component_2" = pca_label_2,
+            "x" = pca_frame[, pca_label_1],
+            "y" = pca_frame[, pca_label_2],
             S4Vectors::as.data.frame(x = SummarizedExperiment::colData(x = object))
           )
         )
@@ -1611,8 +1614,8 @@ plot_pca <- function(object,
         ggplot_object <-
           ggplot_object +
           ggplot2::geom_path(mapping = mapping_list,
-                             arrow = arrow(
-                               length = unit(x = 0.08, units = "inches"),
+                             arrow = grid::arrow(
+                               length = grid::unit(x = 0.08, units = "inches"),
                                type = "closed"
                              ))
         rm(mapping_list)
@@ -1621,8 +1624,8 @@ plot_pca <- function(object,
       ggplot_object <-
         ggplot_object +
         ggplot2::facet_grid(
-          rows = ggplot2::vars(component_1),
-          cols = ggplot2::vars(component_2),
+          rows = ggplot2::vars(.data$component_1),
+          cols = ggplot2::vars(.data$component_2),
           labeller = ggplot2::labeller(component_1 = label_function, component_2 = label_function)
         )
 
@@ -1897,15 +1900,17 @@ lrt_reduced_formula_test <-
         rownames = "gene_id")
 
       # Set a "significant" variable to "yes" or "no".
-      deseq_results_lrt_tibble <- dplyr::mutate(
-        .data = deseq_results_lrt_tibble,
-        "significant" = dplyr::if_else(
-          condition = .data$padj <= argument_list$padj_threshold,
-          true = "yes",
-          false = "no",
-          missing = "no"
-        )
-      )
+      deseq_results_lrt_tibble <-
+        dplyr::mutate(.data = deseq_results_lrt_tibble,
+                      "significant" = factor(
+                        x = dplyr::if_else(
+                          condition = .data$padj <= .env$argument_list$padj_threshold,
+                          true = "yes",
+                          false = "no",
+                          missing = "no"
+                        ),
+                        levels = c("no", "yes")
+                      ))
 
       # Join with the annotation tibble.
       deseq_results_lrt_tibble <-
@@ -1920,7 +1925,7 @@ lrt_reduced_formula_test <-
       # Filter only significant genes.
       deseq_results_lrt_tibble <-
         dplyr::filter(.data = deseq_results_lrt_tibble,
-                      .data$padj <= argument_list$padj_threshold)
+                      .data$padj <= .env$argument_list$padj_threshold)
 
       # Write only significant genes.
       readr::write_tsv(x = deseq_results_lrt_tibble,

@@ -489,7 +489,7 @@ while (nrow(
   # Get sample-specific information as a SimpleList of matrix objects.
   genotype_list <- geno(x = vcf_object)
   # Create a new data frame for sample-specific information by expanding the
-  # column information for each sample name..
+  # column information for each sample name.
   sample_frame <- NULL
   for (sample_name in row.names(x = column_data_frame)) {
     for (variable_name in names(x = genotype_list)) {

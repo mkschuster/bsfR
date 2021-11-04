@@ -303,8 +303,8 @@ if (length(x = overlap_granges) > 0L) {
   # Sum the widths of entries for each mapping_status level.
   aggregate_frame <-
     aggregate.data.frame(
-      x = data.frame(width = GenomicRanges::width(x = overlap_granges)),
-      by = list(mapping_status = S4Vectors::mcols(x = overlap_granges)$mapping_status),
+      x = data.frame("width" = GenomicRanges::width(x = overlap_granges)),
+      by = list("mapping_status" = S4Vectors::mcols(x = overlap_granges)$mapping_status),
       FUN = sum
     )
 

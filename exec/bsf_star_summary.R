@@ -665,8 +665,8 @@ if (file.exists(file_path)) {
         file = file_path,
         col_names = TRUE,
         col_types = readr::cols(
-          sample = readr::col_character(),
-          read_group = readr::col_character()
+          "sample" = readr::col_character(),
+          "read_group" = readr::col_character()
         )
       ),
       # Create a smaller tibble for mapping and junction information and

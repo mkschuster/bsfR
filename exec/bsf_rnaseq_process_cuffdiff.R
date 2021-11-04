@@ -1510,7 +1510,7 @@ if (file.exists(frame_path_genes) &&
     message("Aggregating Ensembl annotation by gene_id")
     aggregate_frame <-
       base::aggregate.data.frame(x = ensembl_frame,
-                                 by = list(ensembl_frame$gene_id),
+                                 by = list("gene_id" = ensembl_frame$gene_id),
                                  FUN = paste)
     rm(ensembl_frame)
     # The aggregate frame consists of list objects of character vectors
@@ -1636,9 +1636,9 @@ if ("ensembl_gene_ids" %in% base::names(x = cummeRbund::annotation(object = cumm
   cummeRbund::addFeatures(
     object = cuff_set,
     features = data.frame(
-      gene_id = genes_annotation_frame$gene_id,
-      ensembl_gene_ids = genes_annotation_frame$ensembl_gene_ids,
-      ensembl_transcript_ids = genes_annotation_frame$ensembl_transcript_ids,
+      "gene_id" = genes_annotation_frame$gene_id,
+      "ensembl_gene_ids" = genes_annotation_frame$ensembl_gene_ids,
+      "ensembl_transcript_ids" = genes_annotation_frame$ensembl_transcript_ids,
       stringsAsFactors = FALSE
     ),
     level = "genes"

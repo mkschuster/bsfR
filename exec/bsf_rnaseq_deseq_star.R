@@ -134,16 +134,16 @@ star_summary_tibble <-
       "star_summary_table_sample.tsv"
     ),
     col_types = readr::cols(
-      sample = readr::col_character(),
-      reads_input = readr::col_double(),
-      reads_unique = readr::col_double(),
-      reads_multi = readr::col_double(),
-      junctions_total = readr::col_double(),
-      junctions_sjdb = readr::col_double(),
-      junctions_gtag = readr::col_double(),
-      junctions_gcag = readr::col_double(),
-      junctions_atac = readr::col_double(),
-      junctions_non_canonical = readr::col_double()
+      "sample" = readr::col_character(),
+      "reads_input" = readr::col_double(),
+      "reads_unique" = readr::col_double(),
+      "reads_multi" = readr::col_double(),
+      "junctions_total" = readr::col_double(),
+      "junctions_sjdb" = readr::col_double(),
+      "junctions_gtag" = readr::col_double(),
+      "junctions_gcag" = readr::col_double(),
+      "junctions_atac" = readr::col_double(),
+      "junctions_non_canonical" = readr::col_double()
     )
   )
 
@@ -158,8 +158,8 @@ sample_tibble <-
       "unmapped" = .data$total - .data$unique - .data$multi
     ),
     y = tibble::tibble(
-      "sample" = as.character(x = SummarizedExperiment::colData(x = ranged_summarized_experiment)$sample),
-      "counted" = SummarizedExperiment::colData(x = ranged_summarized_experiment)$total_counts
+      "sample" = as.character(x = SummarizedExperiment::colData(x = .env$ranged_summarized_experiment)$sample),
+      "counted" = SummarizedExperiment::colData(x = .env$ranged_summarized_experiment)$total_counts
     ),
     by = "sample"
   )
@@ -186,11 +186,14 @@ ggplot_object <- ggplot2::ggplot(
 )
 
 ggplot_object <-
-  ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
-    x = .data$sample,
-    y = .data$number,
-    colour = .data$status
-  ))
+  ggplot_object + ggplot2::geom_point(
+    mapping = ggplot2::aes(
+      x = .data$sample,
+      y = .data$number,
+      colour = .data$status
+    ),
+    alpha = I(1 / 3)
+  )
 
 ggplot_object <-
   ggplot_object + ggplot2::labs(
@@ -251,11 +254,14 @@ ggplot_object <- ggplot2::ggplot(
 )
 
 ggplot_object <-
-  ggplot_object + ggplot2::geom_point(mapping = ggplot2::aes(
-    x = .data$sample,
-    y = .data$fraction,
-    colour = .data$status
-  ))
+  ggplot_object + ggplot2::geom_point(
+    mapping = ggplot2::aes(
+      x = .data$sample,
+      y = .data$fraction,
+      colour = .data$status
+    ),
+    alpha = I(1 / 3)
+  )
 
 ggplot_object <-
   ggplot_object + ggplot2::labs(

@@ -1688,8 +1688,8 @@ if (nrow(x = combined_metrics_sample_frame) > 0L) {
 
   message("Plotting the number of non-callable loci per sample")
   plotting_frame <- data.frame(
-    sample_name = combined_metrics_sample_frame$sample_name,
-    constrained_number = combined_metrics_sample_frame$constrained_number
+    "sample_name" = combined_metrics_sample_frame$sample_name,
+    "constrained_number" = combined_metrics_sample_frame$constrained_number
   )
   # Only columns that begin with "^non_callable_number_constrained\." are
   # required, the remainder is the mapping status.
@@ -1772,8 +1772,8 @@ if (nrow(x = combined_metrics_sample_frame) > 0L) {
   # Reorganise the combined_metrics_sample_frame data frame for plotting non-callable
   # target widths.
   plotting_frame <- data.frame(
-    sample_name = combined_metrics_sample_frame$sample_name,
-    constrained_width = combined_metrics_sample_frame$constrained_width
+    "sample_name" = combined_metrics_sample_frame$sample_name,
+    "constrained_width" = combined_metrics_sample_frame$constrained_width
   )
   # Only columns that begin with "^non_callable_width_constrained\." are
   # required, the remainder is the mapping status.

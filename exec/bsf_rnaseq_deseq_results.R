@@ -500,7 +500,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     # Calculate a factor indicating significance.
     "significant" = factor(
       x = dplyr::if_else(
-        condition = .data$padj <= argument_list$padj_threshold,
+        condition = .data$padj <= .env$argument_list$padj_threshold,
         true = "yes",
         false = "no",
         missing = "no"
@@ -548,7 +548,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
 
   # Filter for significant genes.
   readr::write_tsv(
-    x = dplyr::filter(.data = deseq_results_tibble, .data$padj <= argument_list$padj_threshold),
+    x = dplyr::filter(.data = deseq_results_tibble, .data$padj <= .env$argument_list$padj_threshold),
     file = file.path(output_directory,
                      paste(
                        paste(prefix,

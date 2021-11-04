@@ -151,7 +151,7 @@ bsfg_get_genome_list <-
       # This should only retrieve one row of the tibble.
       stop("Could not get a single record for source and target assembly version.")
     }
-    genome_list <- as.list(genome_tibble)
+    genome_list <- as.list(x = genome_tibble)
     rm(genome_tibble)
 
     return(genome_list)
@@ -273,16 +273,16 @@ bsfg_get_assembly_report <- function(genome_list, verbose = FALSE) {
         "ucsc_style_name"
       ),
       col_types = readr::cols(
-        sequence_name = readr::col_character(),
-        sequence_role = readr::col_character(),
-        assigned_molecule = readr::col_character(),
-        assigned_molecule_location_type = readr::col_character(),
-        genbank_accn = readr::col_character(),
-        relationship = readr::col_character(),
-        refseq_accn = readr::col_character(),
-        assembly_unit = readr::col_character(),
-        sequence_length = readr::col_integer(),
-        ucsc_style_name = readr::col_character()
+        "sequence_name" = readr::col_character(),
+        "sequence_role" = readr::col_character(),
+        "assigned_molecule" = readr::col_character(),
+        "assigned_molecule_location_type" = readr::col_character(),
+        "genbank_accn" = readr::col_character(),
+        "relationship" = readr::col_character(),
+        "refseq_accn" = readr::col_character(),
+        "assembly_unit" = readr::col_character(),
+        "sequence_length" = readr::col_integer(),
+        "ucsc_style_name" = readr::col_character()
       ),
       comment = "#"
     )

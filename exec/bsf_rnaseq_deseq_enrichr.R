@@ -182,14 +182,14 @@ load_deseq_result_tibble <- function(contrast_character) {
           nrow(x = deseq_results_tibble))
 
   deseq_results_tibble <-
-    dplyr::filter(.data = deseq_results_tibble, .data$padj <= argument_list$padj_threshold)
+    dplyr::filter(.data = deseq_results_tibble, .data$padj <= .env$argument_list$padj_threshold)
 
   message("Number of genes after applying the padj threshold: ",
           nrow(x = deseq_results_tibble))
 
   deseq_results_tibble <-
     dplyr::filter(.data = deseq_results_tibble,
-                  abs(x = .data$log2FoldChange) >= argument_list$l2fc_threshold)
+                  abs(x = .data$log2FoldChange) >= .env$argument_list$l2fc_threshold)
 
   message("Number of genes after applying the l2fc threshold: ",
           nrow(x = deseq_results_tibble))
@@ -241,15 +241,15 @@ load_enrichr_results <-
           readr::read_tsv(
             file = file_paths[direction_index],
             col_types = readr::cols(
-              Term = readr::col_character(),
-              Overlap = readr::col_character(),
-              P.value = readr::col_double(),
-              Adjusted.P.value = readr::col_double(),
-              Old.P.value = readr::col_double(),
-              Old.Adjusted.P.value = readr::col_double(),
-              Odds.Ratio = readr::col_double(),
-              Combined.Score = readr::col_double(),
-              Genes = readr::col_character()
+              "Term" = readr::col_character(),
+              "Overlap" = readr::col_character(),
+              "P.value" = readr::col_double(),
+              "Adjusted.P.value" = readr::col_double(),
+              "Old.P.value" = readr::col_double(),
+              "Old.Adjusted.P.value" = readr::col_double(),
+              "Odds.Ratio" = readr::col_double(),
+              "Combined.Score" = readr::col_double(),
+              "Genes" = readr::col_character()
             )
           )
       }
@@ -332,15 +332,15 @@ load_enrichr_results <-
               tibble::as_tibble(x = readr::type_convert(
                 df = enrichr_result_list[[edb]],
                 col_types = readr::cols(
-                  Term = readr::col_character(),
-                  Overlap = readr::col_character(),
-                  P.value = readr::col_double(),
-                  Adjusted.P.value = readr::col_double(),
-                  Old.P.value = readr::col_double(),
-                  Old.Adjusted.P.value = readr::col_double(),
-                  Odds.Ratio = readr::col_double(),
-                  Combined.Score = readr::col_double(),
-                  Genes = readr::col_character()
+                  "Term" = readr::col_character(),
+                  "Overlap" = readr::col_character(),
+                  "P.value" = readr::col_double(),
+                  "Adjusted.P.value" = readr::col_double(),
+                  "Old.P.value" = readr::col_double(),
+                  "Old.Adjusted.P.value" = readr::col_double(),
+                  "Odds.Ratio" = readr::col_double(),
+                  "Combined.Score" = readr::col_double(),
+                  "Genes" = readr::col_character()
                 )
               ))
             }
@@ -388,13 +388,13 @@ contrast_tibble <-
 
 # Create a "Contrasts" report section
 nozzle_section_contrasts <-
-  Nozzle.R1::newSection("Contrasts", class = SECTION.CLASS.RESULTS)
+  Nozzle.R1::newSection("Contrasts", class = Nozzle.R1::SECTION.CLASS.RESULTS)
 
 nozzle_section_contrasts <-
   Nozzle.R1::addTo(parent = nozzle_section_contrasts, Nozzle.R1::newTable(table = base::as.data.frame(x = contrast_tibble)))
 
 nozzle_section_enrichr <-
-  Nozzle.R1::newSection("Enrichr Reports", class = SECTION.CLASS.RESULTS)
+  Nozzle.R1::newSection("Enrichr Reports", class = Nozzle.R1::SECTION.CLASS.RESULTS)
 
 for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
   contrast_character <-
@@ -406,7 +406,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
   nozzle_section_contrast <-
     Nozzle.R1::addTo(
       parent = nozzle_section_contrast,
-      newParagraph(
+      Nozzle.R1::newParagraph(
         "Lists of up-regulated (",
         Nozzle.R1::asLink(url = paste(
           paste(prefix_enrichr,
@@ -555,7 +555,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     nozzle_section_contrast <-
       Nozzle.R1::addTo(
         parent = nozzle_section_contrast,
-        newParagraph(
+        Nozzle.R1::newParagraph(
           "Full Enrichr results ",
           Nozzle.R1::asStrong(enrichr_databases[enrichr_index]),
           " for up-regulated (",

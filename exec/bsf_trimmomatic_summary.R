@@ -206,7 +206,8 @@ process_trim_log <- function(file_path, number = -1L) {
   }
 
   update_summary_tibble <-
-    function(summary_tibble, trim_log_character_matrix) {
+    function(summary_tibble,
+             trim_log_character_matrix) {
       # Subset the character matrix into columns 2 (surviving), 3 (frequency_5)
       # and 4 (frequency_3). Increment all matrix elements by 1L to convert
       # 0-based sequence indices to 1-based R vector indices.
@@ -325,21 +326,23 @@ process_trim_log <- function(file_path, number = -1L) {
         n = 5L
       )
 
-    reads_1 <- base::endsWith(x = trim_log_character_matrix[, 1L], "/1")
-    reads_2 <- base::endsWith(x = trim_log_character_matrix[, 1L], "/2")
+    reads_1 <-
+      base::endsWith(x = trim_log_character_matrix[, 1L], "/1")
+    reads_2 <-
+      base::endsWith(x = trim_log_character_matrix[, 1L], "/2")
     # Check for read 1.
     if (any(reads_1)) {
       counter_1 <- counter_1 + length(x = which(x = reads_1))
       summary_tibble_1 <-
         update_summary_tibble(summary_tibble = summary_tibble_1,
-                              trim_log_character_matrix = trim_log_character_matrix[reads_1, ])
+                              trim_log_character_matrix = trim_log_character_matrix[reads_1,])
     }
     # Check for read 2.
     if (any(reads_2)) {
       counter_2 <- counter_2 + length(x = which(x = reads_2))
       summary_tibble_2 <-
         update_summary_tibble(summary_tibble = summary_tibble_2,
-                              trim_log_character_matrix = trim_log_character_matrix[reads_2, ])
+                              trim_log_character_matrix = trim_log_character_matrix[reads_2,])
     }
     # This must be Trimmomatic data in SE mode, which lacks /1 and /2 suffices.
     if (!any(reads_1, reads_2)) {
@@ -348,7 +351,10 @@ process_trim_log <- function(file_path, number = -1L) {
         update_summary_tibble(summary_tibble = summary_tibble_1,
                               trim_log_character_matrix = trim_log_character_matrix)
     }
-    rm(reads_2, reads_1, trim_log_character_matrix, trim_log_lines)
+    rm(reads_2,
+       reads_1,
+       trim_log_character_matrix,
+       trim_log_lines)
 
     # Break after reaching the maximum number of reads to process.
     if (number > 0L) {
@@ -386,7 +392,7 @@ process_trim_log <- function(file_path, number = -1L) {
         "coverage" = cumsum(x = .data$frequency_5) - cumsum(x = .data$frequency_3),
         # Also set the counter, which is a bit of a waste, as it applies to all
         # positions equally.
-        "counter" = counter
+        "counter" = .env$counter
       )
     )
   }
@@ -429,7 +435,7 @@ process_trim_log <- function(file_path, number = -1L) {
   )
 
   ggplot_object <-
-    ggplot_object + ggplot2::facet_grid(cols = ggplot2::vars(read))
+    ggplot_object + ggplot2::facet_grid(cols = ggplot2::vars(.data$read))
 
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
@@ -479,7 +485,7 @@ process_trim_log <- function(file_path, number = -1L) {
   )
 
   ggplot_object <-
-    ggplot_object + ggplot2::facet_grid(cols = ggplot2::vars(read))
+    ggplot_object + ggplot2::facet_grid(cols = ggplot2::vars(.data$read))
 
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
@@ -524,7 +530,7 @@ process_trim_log <- function(file_path, number = -1L) {
     )
 
   ggplot_object <-
-    ggplot_object + ggplot2::facet_grid(cols = ggplot2::vars(read))
+    ggplot_object + ggplot2::facet_grid(cols = ggplot2::vars(.data$read))
 
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
@@ -639,7 +645,7 @@ if (!is.null(x = argument_list$stderr_path)) {
     dplyr::mutate(
       .data = summary_tibble,
       "read_group" = base::gsub(
-        pattern = argument_list$stderr_pattern_read_group,
+        pattern = .env$argument_list$stderr_pattern_read_group,
         replacement = "\\1",
         x = base::basename(path = .data$file_path)
       ),
@@ -724,13 +730,11 @@ if (!is.null(x = argument_list$stderr_path)) {
 
   summary_tibble <-
     dplyr::select(.data = summary_tibble,
-                  c(
-                    .data$read_group,
-                    .data$both,
-                    .data$first,
-                    .data$second,
-                    .data$dropped
-                  ))
+                  .data$read_group,
+                  .data$both,
+                  .data$first,
+                  .data$second,
+                  .data$dropped)
 
   summary_tibble <-
     tidyr::pivot_longer(
