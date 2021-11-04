@@ -174,7 +174,7 @@ if (!is.null(x = argument_list$gene_path)) {
 
   # Finally, filter out all observations with NA values in the gene_id variable.
   plot_annotation_tibble <-
-    dplyr::filter(.data = plot_annotation_tibble,!is.na(x = .data$gene_id))
+    dplyr::filter(.data = plot_annotation_tibble, !is.na(x = .data$gene_id))
 }
 
 # DESeqDataSet ------------------------------------------------------------
@@ -247,13 +247,14 @@ rm(variable_names)
 
 # Create a "Contrasts" report section.
 nozzle_section_contrasts <-
-  Nozzle.R1::newSection("Contrasts", class = SECTION.CLASS.RESULTS)
+  Nozzle.R1::newSection("Contrasts", class = Nozzle.R1::SECTION.CLASS.RESULTS)
+
 nozzle_section_contrasts <-
   Nozzle.R1::addTo(parent = nozzle_section_contrasts, Nozzle.R1::newTable(table = base::as.data.frame(x = contrast_tibble)))
 
 # Create a "Heatmaps" report section.
 nozzle_section_heatmaps <-
-  Nozzle.R1::newSection("Expression Heatmap Plots", class = SECTION.CLASS.RESULTS)
+  Nozzle.R1::newSection("Expression Heatmap Plots", class = Nozzle.R1::SECTION.CLASS.RESULTS)
 
 #' Local function drawing a ComplexHeatmap object.
 #'
@@ -263,6 +264,7 @@ nozzle_section_heatmaps <-
 #'   gene identifier (gene_id) values.
 #' @param contrast_character A \code{character} scalar defining a particular
 #'   contrast.
+#' @param label_character A \code{character} scalar describing a particular contrast.
 #' @param plot_title A \code{character} scalar with the plot title.
 #' @param plot_index A \code{integer} index for systematic file name generation.
 #'
@@ -277,6 +279,7 @@ draw_complex_heatmap <-
            deseq_results_frame,
            top_gene_identifiers,
            contrast_character,
+           label_character,
            plot_title = NULL,
            plot_index = NULL) {
     if (length(x = top_gene_identifiers) > 0L) {
@@ -285,7 +288,7 @@ draw_complex_heatmap <-
       # a log2 scale and calculate z-scores per row to centre the scale. Since
       # base::scale() works on columns, two transpositions are required.
       transformed_matrix <-
-        SummarizedExperiment::assay(x = deseq_transform, i = 1L)[top_gene_identifiers,]
+        SummarizedExperiment::assay(x = deseq_transform, i = 1L)[top_gene_identifiers, ]
 
       # Replace negative transformed count values with 0.0.
       # https://support.bioconductor.org/p/59369/
@@ -387,7 +390,7 @@ draw_complex_heatmap <-
             Nozzle.R1::newFigure(
               file = file_path[2L],
               "Heatmap for contrast ",
-              Nozzle.R1::asStrong(contrast_tibble$Label[contrast_index]),
+              Nozzle.R1::asStrong(label_character),
               fileHighRes = file_path[1L]
             )
           )
@@ -398,7 +401,7 @@ draw_complex_heatmap <-
             Nozzle.R1::newFigure(
               file = file_path[2L],
               "Heatmap for contrast ",
-              Nozzle.R1::asStrong(contrast_tibble$Label[contrast_index]),
+              Nozzle.R1::asStrong(label_character),
               " and gene set ",
               Nozzle.R1::asStrong(plot_title),
               fileHighRes = file_path[1L]
@@ -414,6 +417,7 @@ draw_complex_heatmap <-
 for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   contrast_character <-
     bsfR::bsfrd_get_contrast_character(contrast_tibble = contrast_tibble, index = contrast_index)
+  label_character <- contrast_tibble$Label[contrast_index]
 
   # Annotated Results Tibble ----------------------------------------------
   # Read the annotated results tibble with all genes for this contrast.
@@ -434,7 +438,11 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
 
   # Coerce into a conventional data.frame object and
   # reset the row names from the "gene_id" variable.
-  deseq_results_frame <- base::as.data.frame(x = deseq_results_tibble, row.names = deseq_results_tibble$gene_id)
+  # NOTE: The as.data.frame.tbl_df() function does not use the row.names option.
+  deseq_results_frame <-
+    base::as.data.frame(x = deseq_results_tibble)
+  base::row.names(x = deseq_results_frame) <-
+    deseq_results_tibble$gene_id
   rm(deseq_results_tibble)
 
   # In case a gene_set_tibble is available, use it for filtering.
@@ -454,33 +462,36 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
         nozzle_section = nozzle_section_heatmaps,
         deseq_results_frame = deseq_results_frame,
         top_gene_identifiers = selected_gene_identifiers,
-        contrast_character = contrast_character
+        contrast_character = contrast_character,
+        label_character = label_character
       )
     rm(selected_gene_identifiers)
   } else {
     # A gene_set_tibble exists to select genes from ...
     plot_names <- unique(plot_annotation_tibble$plot_name)
     if (length(plot_names) == 1L && is.na(x = plot_names[1L])) {
-      # .. but plot_names were not set.
+      # ... but plot_names were not set.
       nozzle_section_heatmaps <-
         draw_complex_heatmap(
           nozzle_section = nozzle_section_heatmaps,
           deseq_results_frame = deseq_results_frame,
           top_gene_identifiers = plot_annotation_tibble$gene_id,
-          contrast_character = contrast_character
+          contrast_character = contrast_character,
+          label_character = label_character
         )
     } else {
       # ... and plot_names were set.
       for (plot_index in seq_along(along.with = plot_names)) {
         # Filter for plot_name values.
         selected_gene_identifiers <-
-          dplyr::filter(.data = plot_annotation_tibble, .data$plot_name == plot_names[plot_index])$gene_id
+          dplyr::filter(.data = plot_annotation_tibble, .data$plot_name == .env$plot_names[.env$plot_index])$gene_id
         nozzle_section_heatmaps <-
           draw_complex_heatmap(
             nozzle_section = nozzle_section_heatmaps,
             deseq_results_frame = deseq_results_frame,
             top_gene_identifiers = selected_gene_identifiers,
             contrast_character = contrast_character,
+            label_character = label_character,
             plot_title = plot_names[plot_index],
             plot_index = plot_index
           )
@@ -490,7 +501,8 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
     }
     rm(plot_names)
   }
-  rm(contrast_character,
+  rm(label_character,
+     contrast_character,
      deseq_results_frame)
 }
 rm(contrast_index)

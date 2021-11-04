@@ -203,14 +203,15 @@ if (nrow(x = contrast_tibble) == 0L) {
 
 # Create a "Contrasts" report section.
 nozzle_section_contrasts <-
-  Nozzle.R1::newSection("Contrasts", class = SECTION.CLASS.RESULTS)
+  Nozzle.R1::newSection("Contrasts", class = Nozzle.R1::SECTION.CLASS.RESULTS)
+
 nozzle_section_contrasts <-
   Nozzle.R1::addTo(parent = nozzle_section_contrasts, Nozzle.R1::newTable(table = base::as.data.frame(x = contrast_tibble)))
 
 # Create a "Volcano Plots" report section.
 nozzle_section_list <- list(
-  "padj" = Nozzle.R1::newSection("Volcano Plots (adjusted p-value)", class = SECTION.CLASS.RESULTS),
-  "pvalue" = Nozzle.R1::newSection("Volcano Plots (unadjusted p-value)", class = SECTION.CLASS.RESULTS)
+  "padj" = Nozzle.R1::newSection("Volcano Plots (adjusted p-value)", class = Nozzle.R1::SECTION.CLASS.RESULTS),
+  "pvalue" = Nozzle.R1::newSection("Volcano Plots (unadjusted p-value)", class = Nozzle.R1::SECTION.CLASS.RESULTS)
 )
 
 #' Local function drawing an EnhancedVolcano object.
@@ -218,6 +219,7 @@ nozzle_section_list <- list(
 #' @param nozzle_section_list A named \code{list} of Nozzle Report Section objects.
 #' @param deseq_results_tibble A results \code{tibble}} object.
 #' @param contrast_character A \code{character} scalar defining a particular contrast.
+#' @param label_character A \code{character} scalar describing a particular contrast.
 #' @param gene_labels A \code{character} vector with the gene labels named by "gene_id".
 #' @param plot_index A \code{integer} index for systematic file name generation.
 #' @param plot_title A \code{character} scalar with the plot title.
@@ -230,6 +232,7 @@ draw_enhanced_volcano <-
   function(nozzle_section_list,
            deseq_results_tibble,
            contrast_character,
+           label_character,
            gene_labels = character(),
            plot_index = 0L,
            plot_title = NULL) {
@@ -358,14 +361,14 @@ draw_enhanced_volcano <-
           Nozzle.R1::newFigure(
             file = plot_paths[2L],
             "Volcano plot for contrast ",
-            Nozzle.R1::asStrong(contrast_tibble$Label[contrast_index]),
+            Nozzle.R1::asStrong(label_character),
             fileHighRes = plot_paths[1L]
           )
         } else {
           Nozzle.R1::newFigure(
             file = plot_paths[2L],
             "Volcano plot for contrast ",
-            Nozzle.R1::asStrong(contrast_tibble$Label[contrast_index]),
+            Nozzle.R1::asStrong(label_character),
             " and gene set ",
             Nozzle.R1::asStrong(plot_title),
             fileHighRes = plot_paths[1L]
@@ -387,6 +390,7 @@ draw_enhanced_volcano <-
 for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
   contrast_character <-
     bsfR::bsfrd_get_contrast_character(contrast_tibble = contrast_tibble, index = contrast_index)
+  label_character <- contrast_tibble$Label[contrast_index]
 
   deseq_results_tibble <-
     bsfR::bsfrd_read_result_tibble(
@@ -408,31 +412,20 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     ))
 
   # Replace adjusted p-values or p-values == 0.0.
-  # The correction in EnhanceVolcano does not seem to work, as testing equality
+  # The correction in EnhancedVolcano does not seem to work, as testing equality
   # with double (i.e. x == 0.0) is problematic.
-  #
-  # FIXME: Should this block be kept to just issue the message?
-  # if (any(deseq_results_tibble[, y, drop = TRUE] < .Machine$double.xmin)) {
-  #   message(
-  #     "Adjusting some ",
-  #     y,
-  #     " lower than machine-specific double minimum ",
-  #     .Machine$double.xmin
-  #   )
-  #   deseq_results_tibble[which(x = deseq_results_tibble[, y, drop = TRUE] < .Machine$double.xmin), y] <-
-  #     .Machine$double.xmin
-  # }
+
   deseq_results_tibble <-
     dplyr::mutate(
       .data = deseq_results_tibble,
       "pvalue" = dplyr::if_else(
-        condition = .data$pvalue < .Machine$double.xmin,
-        true = .Machine$double.xmin,
+        condition = .data$pvalue < .env$.Machine$double.xmin,
+        true = .env$.Machine$double.xmin,
         false = .data$pvalue
       ),
       "padj" = dplyr::if_else(
-        condition = .data$padj < .Machine$double.xmin,
-        true = .Machine$double.xmin,
+        condition = .data$padj < .env$.Machine$double.xmin,
+        true = .env$.Machine$double.xmin,
         false = .data$padj
       )
     )
@@ -455,7 +448,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       # Filter for plot_name values.
       filtered_tibble <-
         dplyr::filter(.data = plot_annotation_tibble,
-                      .data$plot_name == plot_names[plot_index])
+                      .data$plot_name == .env$plot_names[.env$plot_index])
       gene_labels <- filtered_tibble$gene_label
       base::names(x = gene_labels) <- filtered_tibble$gene_id
       rm(filtered_tibble)
@@ -465,6 +458,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
           nozzle_section_list = nozzle_section_list,
           deseq_results_tibble = deseq_results_tibble,
           contrast_character = contrast_character,
+          label_character = label_character,
           gene_labels = gene_labels,
           plot_index = plot_index,
           plot_title = plot_names[plot_index]
@@ -474,6 +468,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
     rm(plot_index, plot_names)
   }
   rm(deseq_results_tibble,
+     label_character,
      contrast_character)
 }
 
