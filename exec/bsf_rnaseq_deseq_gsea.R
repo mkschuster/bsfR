@@ -83,7 +83,7 @@ suppressPackageStartupMessages(expr = library(package = "bsfR"))
 suppressPackageStartupMessages(expr = library(package = "DESeq2"))
 
 prefix_gsea <-
-  paste("rnaseq", "deseq", "gsea", argument_list$design_name, sep = "_")
+  paste("rnaseq", "deseq", argument_list$design_name, "gsea", sep = "_")
 
 output_directory <-
   file.path(argument_list$output_directory, prefix_gsea)
