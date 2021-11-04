@@ -90,7 +90,7 @@ prefix_pdsm <- "pdsm"
 
 # Process Picard Alignment Summary Metrics reports.
 
-message("Processing Picard Alignment Summary Metrics reports for sample:")
+message("Processing Picard Alignment Summary Metrics report for sample:")
 combined_metrics_sample <- NULL
 combined_metrics_read_group <- NULL
 
@@ -115,8 +115,9 @@ for (file_name in file_names) {
       x = base::basename(path = file_name)
     )
   message("  ", sample_name)
-  # Since the Illumina2bam tools BamIndexDecoder uses a hash character (#) in the read group component
-  # to separate platform unit and sample name, the Picard reports need special parsing.
+  # Since the Picard AlignmentSummaryMetrics uses a hash character (#) in the
+  # read group component to separate platform unit and sample name, the Picard
+  # reports need special parsing.
   # Find the ## METRICS CLASS line and parse without allowing further comments.
   metrics_lines <- readLines(con = file_name)
   metrics_line <-
@@ -143,10 +144,11 @@ for (file_name in file_names) {
 
   # The Picard Alignment Metrics report has changed format through versions.
   # Columns PF_READS_IMPROPER_PAIRS and PCT_PF_READS_IMPROPER_PAIRS were added at a later stage.
-  if (is.null(x = picard_metrics_total$PF_READS_IMPROPER_PAIRS)) {
+  if (!"PF_READS_IMPROPER_PAIRS" %in% names(x = picard_metrics_total)) {
     picard_metrics_total$PF_READS_IMPROPER_PAIRS <- 0L
   }
-  if (is.null(x = picard_metrics_total$PCT_PF_READS_IMPROPER_PAIRS)) {
+
+  if (!"PCT_PF_READS_IMPROPER_PAIRS" %in% names(x = picard_metrics_total)) {
     picard_metrics_total$PCT_PF_READS_IMPROPER_PAIRS <- 0.0
   }
 
@@ -155,24 +157,16 @@ for (file_name in file_names) {
     picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
                            (picard_metrics_total$SAMPLE != "") &
                            (picard_metrics_total$LIBRARY == "") &
-                           (picard_metrics_total$READ_GROUP == ""), ]
-  if (is.null(x = combined_metrics_sample)) {
-    combined_metrics_sample <- picard_metrics_sample
-  } else {
-    combined_metrics_sample <-
-      rbind(combined_metrics_sample, picard_metrics_sample)
-  }
+                           (picard_metrics_total$READ_GROUP == ""),]
+  combined_metrics_sample <-
+    rbind(combined_metrics_sample, picard_metrics_sample)
   rm(picard_metrics_sample)
 
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP information.
   picard_metrics_read_group <-
-    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""), ]
-  if (is.null(x = combined_metrics_read_group)) {
-    combined_metrics_read_group <- picard_metrics_read_group
-  } else {
-    combined_metrics_read_group <-
-      rbind(combined_metrics_read_group, picard_metrics_read_group)
-  }
+    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
+  combined_metrics_read_group <-
+    rbind(combined_metrics_read_group, picard_metrics_read_group)
   rm(picard_metrics_read_group)
 
   rm(sample_name, picard_metrics_total)
@@ -182,7 +176,7 @@ rm(file_name, file_names)
 if (!is.null(x = combined_metrics_sample)) {
   # Order the data frame by SAMPLE.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
   # Manually convert CATEGORY and SAMPLE columns into factors, which are handy for plotting.
   combined_metrics_sample$CATEGORY <-
     as.factor(x = combined_metrics_sample$CATEGORY)
@@ -206,7 +200,7 @@ if (!is.null(x = combined_metrics_sample)) {
 
   # Order the data frame by READ_GROUP
   combined_metrics_read_group <-
-    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP), ]
+    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP),]
   # Manually convert CATEGORY and READ_GROUP columns into factors, which are handy for plotting.
   combined_metrics_read_group$CATEGORY <-
     as.factor(x = combined_metrics_read_group$CATEGORY)
@@ -806,16 +800,13 @@ for (file_name in file_names) {
 
   # The Picard Duplication Metrics report has changed format through versions.
   # Column SECONDARY_OR_SUPPLEMENTARY_RDS was added at a later stage.
-  if (is.null(x = picard_metrics_sample$SECONDARY_OR_SUPPLEMENTARY_RDS)) {
+  if (!"SECONDARY_OR_SUPPLEMENTARY_RDS" %in% picard_metrics_sample) {
     picard_metrics_sample$SECONDARY_OR_SUPPLEMENTARY_RDS <- 0L
   }
 
-  if (is.null(x = combined_metrics_sample)) {
-    combined_metrics_sample <- picard_metrics_sample
-  } else {
-    combined_metrics_sample <-
-      rbind(combined_metrics_sample, picard_metrics_sample)
-  }
+  combined_metrics_sample <-
+    rbind(combined_metrics_sample, picard_metrics_sample)
+
   rm(sample_name, picard_metrics_sample)
 }
 rm(file_name, file_names)
@@ -823,7 +814,7 @@ rm(file_name, file_names)
 if (!is.null(x = combined_metrics_sample)) {
   # Order the sample frame by SAMPLE.
   combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE), ]
+    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
   # Convert the SAMPLE column into factors, which come more handy for plotting.
   combined_metrics_sample$SAMPLE <-
     as.factor(x = combined_metrics_sample$SAMPLE)
