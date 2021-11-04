@@ -163,7 +163,9 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   }
 
   # Reset the row names from the gene_id variable.
-  deseq_results_frame <- base::as.data.frame(x = deseq_results_tibble, row.names = deseq_results_tibble$gene_id)
+  # NOTE: The as.data.frame.tbl_df() function does not use the row.names option.
+  deseq_results_frame <- base::as.data.frame(x = deseq_results_tibble)
+  base::row.names(x = deseq_results_frame) <- deseq_results_tibble$gene_id
 
   # Filter in a data frame to have access to padj and SE.
   # Importantly, NA values need removing.
