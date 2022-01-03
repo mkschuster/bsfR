@@ -1,7 +1,5 @@
 #
-# Library module of bsfR RNA-seq DESeq2 functions.
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -22,6 +20,14 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
+
+# Description -------------------------------------------------------------
+
+
+# A BSF R library module of RNA-seq DESeq2 functions.
+
+# Functions ---------------------------------------------------------------
+
 
 #' Get a DESeq2 Prefix.
 #'
@@ -144,10 +150,10 @@ bsfrd_get_prefix_volcano <- function(design_name) {
 
 #' Read a DESeq2 Contrast Tibble.
 #'
-#' Read a \code{DESeq2} analysis contrasts \code{tibble} from a tab-separated
+#' Read a \code{DESeq2} analysis contrasts \code{tbl_df} from a tab-separated
 #' value file and automatically sub-set to a particular design.
 #'
-#' Contrast \code{tibble}:
+#' Contrast \code{tbl_df}:
 #' \describe{
 #' \item{Design}{A \code{character} with the design name.}
 #' \item{Numerator}{A \code{character} with the numerator as of \code{DESeq2::resultNames()}.}
@@ -160,10 +166,10 @@ bsfrd_get_prefix_volcano <- function(design_name) {
 #'   path.
 #' @param design_name A \code{character} scalar with the design name.
 #' @param summary A \code{logical} scalar to load a contrast summary rather than
-#'   a contrast \code{tibble}.
+#'   a contrast \code{tbl_df}.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
-#' @return A \code{tibble} with contrast information.
+#' @return A \code{tbl_df} with contrast information.
 #' @export
 #' @importFrom rlang .data .env
 #'
@@ -239,13 +245,13 @@ bsfrd_read_contrast_tibble <-
 #' Get a named \code{list} describing a particular contrast of a \code{DESeq2}
 #' analysis.
 #'
-#' @param contrast_tibble A \code{tibble} with "Numerator" and "Denominator"
+#' @param contrast_tibble A \code{tbl_df} with "Numerator" and "Denominator"
 #'   variables.
-#' @param index An \code{integer} scalar pointing at a particular \code{tibble}
+#' @param index An \code{integer} scalar pointing at a particular \code{tbl_df}
 #'   row.
 #'
 #' @return A named \code{list} of "numerator" and "denominator" \code{character}
-#'   vectors. \code{NA} values in the contrast \code{tibble} are replaced by
+#'   vectors. \code{NA} values in the contrast \code{tbl_df} are replaced by
 #'   empty \code{character} vectors.
 #' @export
 #'
@@ -290,9 +296,9 @@ bsfrd_get_contrast_list <- function(contrast_tibble, index) {
 #' Get a \code{character} scalar describing a particular contrast of a
 #' \code{DESeq2} analysis.
 #'
-#' @param contrast_tibble A \code{tibble} with Numerator and Denominator
+#' @param contrast_tibble A \code{tbl_df} with Numerator and Denominator
 #'   variables.
-#' @param index An \code{integer} scalar pointing at a particular \code{tibble}
+#' @param index An \code{integer} scalar pointing at a particular \code{tbl_df}
 #'   row.
 #'
 #' @return A \code{character} scalar describing a particular contrast.
@@ -325,7 +331,7 @@ bsfrd_get_contrast_character <- function(contrast_tibble, index) {
 
 #' Read a DESeq2 Design Tibble.
 #'
-#' Read a \code{DESeq2} analysis design \code{tibble} from a tab-separated value
+#' Read a \code{DESeq2} analysis design \code{tbl_df} from a tab-separated value
 #' file and automatically sub-set to a particular design.
 #'
 #' Design tibble:
@@ -344,7 +350,7 @@ bsfrd_get_contrast_character <- function(contrast_tibble, index) {
 #' @param design_name A \code{character} scalar with the design name.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
-#' @return A \code{tibble} with design information.
+#' @return A \code{tbl_df} with design information.
 #' @export
 #' @importFrom rlang .data .env
 #'
@@ -391,7 +397,7 @@ bsfrd_read_design_tibble <-
 
 #' Read a DESeq2 Design List.
 #'
-#' Read a \code{DESeq2} analysis design \code{tibble} from a tab-separated value file,
+#' Read a \code{DESeq2} analysis design \code{tbl_df} from a tab-separated value file,
 #' automatically sub-set to a particular design and return as a named \code{list}.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory.
@@ -570,7 +576,7 @@ bsfrd_read_sample_frame <-
     index_logical <-
       purrr::map_lgl(
         .x = stringr::str_split(
-          string = as.character(mcols_dframe$designs),
+          string = as.character(x = mcols_dframe$designs),
           pattern = stringr::fixed(pattern = ",")
         ),
         .f = ~ design_name %in% .
@@ -1015,9 +1021,9 @@ bsfrd_read_deseq_transform <-
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
 #' @param design_name A \code{character} scalar with the design name.
-#' @param contrast_tibble A \code{tibble} with "Numerator" and "Denominator"
+#' @param contrast_tibble A \code{tbl_df} with "Numerator" and "Denominator"
 #'   variables.
-#' @param index An \code{integer} scalar pointing at a particular \code{tibble}
+#' @param index An \code{integer} scalar pointing at a particular \code{tbl_df}
 #'   row.
 #' @param contrast_character A \code{character} scalar specifying the contrast.
 #' @param verbose A \code{logical} scalar to emit messages.
@@ -1069,6 +1075,7 @@ bsfrd_read_deseq_results <-
       contrast_character <-
         bsfrd_get_contrast_character(contrast_tibble = contrast_tibble, index = index)
     }
+
     file_path <-
       file.path(genome_directory,
                 prefix_deseq,
@@ -1103,7 +1110,7 @@ bsfrd_read_deseq_results <-
 
 #' Read a DESeqResults Tibble.
 #'
-#' Read a previously saved \code{DESeq2::DESeqResults} \code{tibble}.
+#' Read a previously saved \code{DESeq2::DESeqResults} \code{tbl_df}.
 #'
 #' Either \code{contrast_tibble} and \code{index} or just a (valid)
 #' \code{contrast_character} option are required. The \code{contrast_character}
@@ -1112,14 +1119,14 @@ bsfrd_read_deseq_results <-
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
 #' @param design_name A \code{character} scalar with the design name.
-#' @param contrast_tibble A \code{tibble} with "Numerator" and "Denominator"
+#' @param contrast_tibble A \code{tbl_df} with "Numerator" and "Denominator"
 #'   variables.
-#' @param index An \code{integer} scalar pointing at a particular \code{tibble}
+#' @param index An \code{integer} scalar pointing at a particular \code{tbl_df}
 #'   row.
 #' @param contrast_character A \code{character} scalar specifying the contrast.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
-#' @return A \code{tibble} of \code{DESeq2::DESeqResults} for a particular contrast.
+#' @return A \code{tbl_df} of \code{DESeq2::DESeqResults} for a particular contrast.
 #' @export
 #'
 #' @examples
@@ -1220,7 +1227,7 @@ bsfrd_read_result_tibble <-
 
 #' Read a Feature Annotation Tibble.
 #'
-#' Read a previously saved feature annotation \code{tibble} from a tab-separated
+#' Read a previously saved feature annotation \code{tbl_df} from a tab-separated
 #' value file or import it from a GTF file.
 #'
 #' Features are extracted from a transcriptome reference GTF file. For the
@@ -1237,7 +1244,7 @@ bsfrd_read_result_tibble <-
 #' @param genome A \code{character} scalar with the genome version or a
 #'   \code{GenomeInfoDb::Seqinfo} object.
 #' @param verbose A \code{logical} scalar to emit messages.
-#' @return A \code{tibble} with feature annotation.
+#' @return A \code{tbl_df} with feature annotation.
 #' @export
 #'
 #' @examples
@@ -1420,18 +1427,18 @@ bsfrd_read_annotation_tibble <-
 
 #' Read a Gene Set Tibble.
 #'
-#' Read a gene set \code{tibble} for gene annotation or selection.
+#' Read a gene set \code{tbl_df} for gene annotation or selection.
 #'
-#' The \code{tibble} should have the following variables:
+#' The \code{tbl_df} should have the following variables:
 #' \describe{
-#' \item{gene_id}{The Ensembl gene identifier from the annotation \code{tibble}.}
+#' \item{gene_id}{The Ensembl gene identifier from the annotation \code{tbl_df}.}
 #' \item{gene_name}{The offical gene symbol.}
 #' \item{gene_label}{The gene label to be plotted instead of the official symbol.}
 #' \item{plot_name}{The sub-plot (i.e. heat map) to apply this label to.}
 #' }
 #'
 #' Missing "gene_id" values are filled in on the basis of "gene_name" values and
-#' the annotation \code{tibble}, which in turn is based on the reference GTF
+#' the annotation \code{tbl_df}, which in turn is based on the reference GTF
 #' file. Missing "gene_label" values are then filled in on the basis of the
 #' "gene_name" variable.
 #'
@@ -1441,7 +1448,7 @@ bsfrd_read_annotation_tibble <-
 #' @param gene_set_path A \code{character} scalar with the gene set file path.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
-#' @return A \code{tibble} with gene set information.
+#' @return A \code{tbl_df} with gene set information.
 #' @export
 #'
 #' @examples

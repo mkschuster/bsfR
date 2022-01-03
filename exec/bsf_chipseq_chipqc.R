@@ -1,9 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to run a ChIPQC on top of a DiffBind analysis.
-#
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility
 # of the Research Center for Molecular Medicine (CeMM) of the
@@ -25,20 +22,28 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# BSF R script to run a ChIPQC on top of a DiffBind analysis.
+
+# Option Parsing ----------------------------------------------------------
+
+
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("-v", "--verbose"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("-q", "--quietly"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -46,19 +51,19 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--comparison"),
+        opt_str = "--comparison",
         dest = "comparison",
         help = "Comparison name",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--factor"),
+        opt_str = "--factor",
         dest = "factor",
         help = "ChIP factor",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--threads"),
+        opt_str = "--threads",
         default = 1L,
         dest = "threads",
         help = "Number of parallel processing threads [1]",
@@ -67,11 +72,14 @@ argument_list <-
     )
   ))
 
-# Start of main script ----------------------------------------------------
+# Library Import ----------------------------------------------------------
 
 
+# CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
+# Bioconductor
 suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
+suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
 suppressPackageStartupMessages(expr = library(package = "ChIPQC"))
 suppressPackageStartupMessages(expr = library(package = "DiffBind"))
 

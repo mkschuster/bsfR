@@ -1,11 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to read Exonerate Verbose Useful Labelled Gapped Alignment Report
-# (VULGAR) lines, convert them into GenomicRanges::GRanges objects and export
-# them via rtracklayer::export() in BED, GFF or GTF format.
-#
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -27,20 +22,30 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# BSF R script to read Exonerate Verbose Useful Labelled Gapped Alignment Report
+# (VULGAR) lines, convert them into GenomicRanges::GRanges objects and export
+# them via rtracklayer::export() in BED, GFF or GTF format.
+
+# Option Parsing ----------------------------------------------------------
+
+
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("--verbose", "-v"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--quiet", "-q"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -48,26 +53,26 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--source-path"),
+        opt_str = "--source-path",
         dest = "source_path",
         help = "Exonerate alignment file path",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--target-path"),
+        opt_str = "--target-path",
         dest = "target_path",
         help = "BED file path",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--target-format"),
+        opt_str = "--target-format",
         default = "bed",
         dest = "target_format",
         help = "Target file format for rtracklayer::export() [bed]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--chunk-size"),
+        opt_str = "--chunk-size",
         default = 1000L,
         dest = "chunk_size",
         help = "Number of lines to process per chunk [1000]",
@@ -76,14 +81,23 @@ argument_list <-
     )
   ))
 
+# Library Import ----------------------------------------------------------
+
+
+# CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
-suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+# CRAN Tidyverse
+suppressPackageStartupMessages(expr = library(package = "dplyr"))
+suppressPackageStartupMessages(expr = library(package = "stringr"))
+suppressPackageStartupMessages(expr = library(package = "tibble"))
+# Bioconductor
+suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
 
 # Use a tibble to capture the following fields of a VULGAR line.
 vulgar_tibble <- NULL
 
-variable_names <-   c(
+variable_names <- c(
   "query_name",
   "query_start",
   "query_end",

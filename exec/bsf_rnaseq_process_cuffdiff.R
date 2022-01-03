@@ -1,13 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to post-processes Cuffdiff output utilising the cummeRbund
-# package. This script creates a cummeRbund SQLite database, writes a set of QC
-# plots in PDF and PNG format, splits the large and unwieldy differential data
-# tables into pairwise comparisons and creates symbolic links to the original
-# Cuffdiff differential tables.
-#
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -29,20 +22,32 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# BSF R script to post-processes Cuffdiff output utilising the cummeRbund
+# package. This script creates a cummeRbund SQLite database, writes a set of QC
+# plots in PDF and PNG format, splits the large and unwieldy differential data
+# tables into pairwise comparisons and creates symbolic links to the original
+# Cuffdiff differential tables.
+
+# Option Parsing ----------------------------------------------------------
+
+
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("--verbose", "-v"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--quiet", "-q"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -50,55 +55,55 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--comparison-name"),
+        opt_str = "--comparison-name",
         dest = "comparison_name",
         help = "Comparison name",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--gtf-assembly"),
+        opt_str = "--gtf-assembly",
         default = NULL,
         dest = "gtf_assembly",
         help = "GTF file specifying an assembled and merged transcriptome",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--gtf-reference"),
+        opt_str = "--gtf-reference",
         default = NULL,
         dest = "gtf_reference",
         help = "GTF file specifying a reference transcriptome",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--genome-version"),
+        opt_str = "--genome-version",
         default = NULL,
         dest = "genome_version",
         help = "Genome version",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--genome-directory"),
+        opt_str = "--genome-directory",
         default = ".",
         dest = "genome_directory",
         help = "Genome directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--output-directory"),
+        opt_str = "--output-directory",
         default = ".",
         dest = "output_directory",
         help = "Output directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--plot-width"),
+        opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--plot-height"),
+        opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
@@ -106,8 +111,6 @@ argument_list <-
       )
     )
   ))
-
-# Validate the argument_list.
 
 if (is.null(x = argument_list$comparison_name)) {
   stop("Missing --comparison_name option")
@@ -125,7 +128,15 @@ if (is.null(x = argument_list$genome_version)) {
   stop("Missing --genome_version option")
 }
 
+# Library Import ----------------------------------------------------------
+
+
+# CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
+# CRAN Tidyverse
+suppressPackageStartupMessages(expr = library(package = "ggplot2"))
+# Bioconductor
+suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
 suppressPackageStartupMessages(expr = library(package = "Biostrings"))
 suppressPackageStartupMessages(expr = library(package = "cummeRbund"))
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
@@ -145,7 +156,7 @@ character_to_csv <- function(x) {
 
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
-# Define CuffDiff and output directory names relative to the
+# Define Cuffdiff and output directory names relative to the
 # working directory.
 
 cuffdiff_directory <-

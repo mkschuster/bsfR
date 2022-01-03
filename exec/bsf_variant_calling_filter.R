@@ -1,14 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to filter snpEff annotated, multi-sample variant calling format
-# (VCF) files. While SNPEFF_IMPACT values "MODIFIER" and "LOW" are always
-# filtered out, the minor allele frequency (MAF) threshold on the basis of the
-# 1000 Genomes calculated allele frequencies (CAF) variable can be configured.
-# Individual samples can be selected from the set, as can be a recurrence
-# threshold for each given variant.
-#
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -30,20 +22,33 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# BSF R script to filter snpEff annotated, multi-sample variant calling format
+# (VCF) files. While SNPEFF_IMPACT values "MODIFIER" and "LOW" are always
+# filtered out, the minor allele frequency (MAF) threshold on the basis of the
+# 1000 Genomes calculated allele frequencies (CAF) variable can be configured.
+# Individual samples can be selected from the set, as can be a recurrence
+# threshold for each given variant.
+
+# Option Parsing ----------------------------------------------------------
+
+
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("--verbose", "-v"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--quiet", "-q"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -51,45 +56,45 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--vcf"),
+        opt_str = "--vcf",
         dest = "vcf_file_path",
         help = "Multi-sample VCF file path",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--genome-assembly"),
+        opt_str = "--genome-assembly",
         dest = "genome_assembly",
         help = "Genome assembly version (e.g. 'b37', 'hg38', 'hg19', ...)",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--set-name"),
+        opt_str = "--set-name",
         dest = "set_name",
         help = "Set name to automatically name output files",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--maf"),
+        opt_str = "--maf",
         default = 0.01,
         dest = "maf",
         help = "Minor allele frequency (MAF) threshold [0.01]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--recurrence"),
+        opt_str = "--recurrence",
         default = 1L,
         dest = "recurrence",
         help = "Variant recurrence threshold [1]",
         type = "integer"
       ),
       optparse::make_option(
-        opt_str = c("--samples"),
+        opt_str = "--samples",
         dest = "samples",
         help = "Comma-separated sample name filter [NULL]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--chunk-size"),
+        opt_str = "--chunk-size",
         default = 10000L,
         dest = "chunk_size",
         help = "Chunk size, i.e. number of VCF lines to process at once [10000]",
@@ -97,8 +102,6 @@ argument_list <-
       )
     )
   ))
-
-# Check for missing options.
 
 if (is.null(x = argument_list$vcf_file_path)) {
   stop("Missing --vcf option")
@@ -119,8 +122,13 @@ if (grepl(pattern = "\\W",
   stop("Only word characters [0-9A-Z_a-z] are allowed for the --set-name option.")
 }
 
+# Library Import ----------------------------------------------------------
+
+
+# CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
-suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+# CRAN Tidyverse
+suppressPackageStartupMessages(expr = library(package = "stringr"))
 
 # Pre-process the sample names to get a character vector.
 selected_sample_names <- character()

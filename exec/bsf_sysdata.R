@@ -1,9 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to create internal data sets stored in the R/sysdata.rda file.
-#
-#
-# Copyright 2013 - 2021 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -25,10 +22,20 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# BSF R script to create internal data sets stored in the R/sysdata.rda file.
+
+# Library Import ----------------------------------------------------------
+
+
+# CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "devtools"))
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
-suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 suppressPackageStartupMessages(expr = library(package = "usethis"))
+# CRAN Tidyverse
+suppressPackageStartupMessages(expr = library(package = "tibble"))
 
 # Genome tibble template --------------------------------------------------
 

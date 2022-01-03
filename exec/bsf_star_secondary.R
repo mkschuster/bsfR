@@ -1,13 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to count STAR aligner secondary alignments per genome tile.
-#
-# The size of the tiles is configurable, results are returned as
-# SummarizedExperiment::RangedSummarizedExperiment objects saved to a
-# star_secondary_ranged_summarized_experiment.R file.
-#
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -29,20 +22,32 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# BSF R script to count STAR aligner secondary alignments per genome tile.
+#
+# The size of the tiles is configurable, results are returned as
+# SummarizedExperiment::RangedSummarizedExperiment objects saved to a
+# star_secondary_ranged_summarized_experiment.R file.
+
+# Option Parsing ----------------------------------------------------------
+
+
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("--verbose", "-v"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--quiet", "-q"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -50,42 +55,42 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--bsgenome"),
+        opt_str = "--bsgenome",
         default = "BSgenome.Hsapiens.UCSC.hg38",
         dest = "bsgenome",
         help = "Bioconductor BSgenome package [BSgenome.Hsapiens.UCSC.hg38]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--directory"),
+        opt_str = "--directory",
         default = ".",
         dest = "directory",
         help = "Directory of star_sample_*.bam files [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--tile-width"),
+        opt_str = "--tile-width",
         default = 1000000L,
         dest = "tile_width",
         help = "Tile width [1,000,000]",
         type = "integer"
       ),
       optparse::make_option(
-        opt_str = c("--threads"),
+        opt_str = "--threads",
         default = 1L,
         dest = "threads",
         help = "Number of parallel processing threads [1]",
         type = "integer"
       ),
       optparse::make_option(
-        opt_str = c("--plot-width"),
+        opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--plot-height"),
+        opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
@@ -94,13 +99,18 @@ argument_list <-
     )
   ))
 
-# Check the input.
 if (is.null(x = argument_list$directory)) {
   stop("Missing --directory option")
 }
 
+# Library Import ----------------------------------------------------------
+
+
+# CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
+# Bioconductor
 suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
+suppressPackageStartupMessages(expr = library(package = "BSgenome"))
 suppressPackageStartupMessages(expr = library(package = "GenomicAlignments"))
 suppressPackageStartupMessages(expr = library(package = "GenomicRanges"))
 suppressPackageStartupMessages(expr = library(package = "Rsamtools"))
@@ -133,14 +143,17 @@ sample_frame <-
 if (nrow(x = sample_frame) == 0L) {
   stop("Could not find any files in the supplied directory.")
 }
+
 sample_frame$bai_path <-
   base::gsub(pattern = "\\.bam$",
              replacement = ".bai",
              x = sample_frame$bam_path)
+
 sample_frame$sample <-
   base::gsub(pattern = "^star_sample_(.*)\\.bam$",
              replacement = "\\1",
              x = sample_frame$bam_path)
+
 bam_file_list <- Rsamtools::BamFileList(
   file = as.character(x = sample_frame$bam_path),
   index = as.character(x = sample_frame$bai_path),

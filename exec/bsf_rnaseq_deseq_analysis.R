@@ -1,17 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to run a DESeq2 analysis.
-#
-# Reads are counted on the basis of a reference (Ensembl) transcriptome supplied
-# as a GTF file and imported via rtracklayer::import() into exon
-# GenomicRanges::GRanges objects. The exon GenomicRanges::GRanges are
-# subsequently converted into a GenomicRanges::GRangesList object by (Ensembl)
-# gene identifiers. A SummarizedExperiment::RangedSummarizedExperiment object is
-# created by the GenomicAlignments::summarizeOverlaps() function. Reads in
-# secondary alignments and reads failing vendor quality filtering are thereby
-# dismissed.
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -32,6 +21,20 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
+
+# Description -------------------------------------------------------------
+
+
+# BSF R script to run a DESeq2 analysis.
+#
+# Reads are counted on the basis of a reference (Ensembl) transcriptome supplied
+# as a GTF file and imported via rtracklayer::import() into exon
+# GenomicRanges::GRanges objects. The exon GenomicRanges::GRanges are
+# subsequently converted into a GenomicRanges::GRangesList object by (Ensembl)
+# gene identifiers. A SummarizedExperiment::RangedSummarizedExperiment object is
+# created by the GenomicAlignments::summarizeOverlaps() function. Reads in
+# secondary alignments and reads failing vendor quality filtering are thereby
+# dismissed.
 #
 # Sample Annotation DataFrame Description ---------------------------------
 #
@@ -78,8 +81,9 @@
 #   "RIN":
 #      A "numeric" vector providing the RNA integrity number (RIN) score per
 #      sample. If available, the RIN score distribution will be plotted.
-#
-#
+
+# Option Parsing ----------------------------------------------------------
+
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
@@ -87,14 +91,14 @@ argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("--verbose", "-v"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--quiet", "-q"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -102,21 +106,21 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--design-name"),
+        opt_str = "--design-name",
         # default = "global",
         dest = "design_name",
         help = "Design name",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--gtf-reference"),
+        opt_str = "--gtf-reference",
         default = NULL,
         dest = "gtf_reference",
         help = "GTF file specifying a reference transcriptome",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--genome-version"),
+        opt_str = "--genome-version",
         default = NULL,
         dest = "genome_version",
         help = "Genome version",
@@ -124,7 +128,7 @@ argument_list <-
       ),
       optparse::make_option(
         # This option is required for Likelihood Ratio Testing (LRT)
-        opt_str = c("--padj-threshold"),
+        opt_str = "--padj-threshold",
         default = 0.1,
         dest = "padj_threshold",
         help = "Adjusted p-value threshold [0.1]",
@@ -132,7 +136,7 @@ argument_list <-
       ),
       optparse::make_option(
         # This option is required for PCA plots
-        opt_str = c("--pca-dimensions"),
+        opt_str = "--pca-dimensions",
         default = 4L,
         dest = "pca_dimensions",
         help = "Principal components to plot [4]",
@@ -140,49 +144,49 @@ argument_list <-
       ),
       optparse::make_option(
         # This option is required for PCA plots
-        opt_str = c("--pca-top-number"),
+        opt_str = "--pca-top-number",
         default = 500L,
         dest = "pca_top_number",
         help = "Number of most variable genes for PCA [500]",
         type = "integer"
       ),
       optparse::make_option(
-        opt_str = c("--threads"),
+        opt_str = "--threads",
         default = 1L,
         dest = "threads",
         help = "Number of parallel processing threads [1]",
         type = "integer"
       ),
       optparse::make_option(
-        opt_str = c("--genome-directory"),
+        opt_str = "--genome-directory",
         default = ".",
         dest = "genome_directory",
         help = "Genome directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--output-directory"),
+        opt_str = "--output-directory",
         default = ".",
         dest = "output_directory",
         help = "Output directory path [.]",
         type = "character"
       ),
       # optparse::make_option(
-      #   opt_str = c("--plot-factor"),
+      #   opt_str = "--plot-factor",
       #   default = 0.5,
       #   dest = "plot_factor",
       #   help = "Plot width increase per 24 samples [0.5]",
       #   type = "numeric"
       # ),
       optparse::make_option(
-        opt_str = c("--plot-width"),
+        opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--plot-height"),
+        opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
@@ -195,19 +199,32 @@ if (is.null(x = argument_list$design_name)) {
   stop("Missing --design-name option")
 }
 
+# Library Import ----------------------------------------------------------
+
+
+# CRAN r-lib
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
+# CRAN Tidyverse
+suppressPackageStartupMessages(expr = library(package = "dplyr"))
+suppressPackageStartupMessages(expr = library(package = "ggplot2"))
+suppressPackageStartupMessages(expr = library(package = "purrr"))
+suppressPackageStartupMessages(expr = library(package = "readr"))
+suppressPackageStartupMessages(expr = library(package = "stringr"))
+suppressPackageStartupMessages(expr = library(package = "tibble"))
+suppressPackageStartupMessages(expr = library(package = "tidyr"))
+# CRAN
+suppressPackageStartupMessages(expr = library(package = "caret"))
+suppressPackageStartupMessages(expr = library(package = "pheatmap"))
+# Bioconductor
 suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
 suppressPackageStartupMessages(expr = library(package = "DESeq2"))
 suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
 suppressPackageStartupMessages(expr = library(package = "GenomicAlignments"))
 suppressPackageStartupMessages(expr = library(package = "RColorBrewer"))
 suppressPackageStartupMessages(expr = library(package = "Rsamtools"))
-suppressPackageStartupMessages(expr = library(package = "caret"))
 suppressPackageStartupMessages(expr = library(package = "genefilter"))
-suppressPackageStartupMessages(expr = library(package = "tidyverse"))
-suppressPackageStartupMessages(expr = library(package = "grid"))
-suppressPackageStartupMessages(expr = library(package = "pheatmap"))
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
-suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
+# BSF
 suppressPackageStartupMessages(expr = library(package = "bsfR"))
 
 # Global Variables --------------------------------------------------------
@@ -1275,7 +1292,7 @@ plot_heatmap <- function(object,
         pheatmap_object <-
           pheatmap::pheatmap(
             mat = dist_matrix,
-            color = grDevices::colorRampPalette(colors = rev(x = RColorBrewer::brewer.pal(
+            color = grDevices::colorRampPalette(colors = base::rev(x = RColorBrewer::brewer.pal(
               n = 9, name = "Blues"
             )))(255),
             clustering_distance_rows = dist_object,
@@ -1290,7 +1307,7 @@ plot_heatmap <- function(object,
         pheatmap_object <-
           pheatmap::pheatmap(
             mat = dist_matrix,
-            color = grDevices::colorRampPalette(colors = rev(x = RColorBrewer::brewer.pal(
+            color = grDevices::colorRampPalette(colors = base::rev(x = RColorBrewer::brewer.pal(
               n = 9, name = "Blues"
             )))(255),
             clustering_distance_rows = dist_object,
@@ -1500,7 +1517,7 @@ plot_pca <- function(object,
           "x" = numeric(),
           "y" = numeric(),
           # Also initialise all variables of the column data, but do not
-          # include data (i.e., 0L rows).
+          # include any data (i.e., 0L rows).
           S4Vectors::as.data.frame(x = SummarizedExperiment::colData(x = object)[0L,])
         )
 
@@ -1613,11 +1630,13 @@ plot_pca <- function(object,
         }
         ggplot_object <-
           ggplot_object +
-          ggplot2::geom_path(mapping = mapping_list,
-                             arrow = grid::arrow(
-                               length = grid::unit(x = 0.08, units = "inches"),
-                               type = "closed"
-                             ))
+          ggplot2::geom_path(
+            mapping = mapping_list,
+            arrow = grid::arrow(
+              length = grid::unit(x = 0.08, units = "inches"),
+              type = "closed"
+            )
+          )
         rm(mapping_list)
       }
 
@@ -1727,7 +1746,7 @@ plot_rin_scores(object = deseq_data_set)
 #' @references prefix
 #' @references global_design_list
 #'
-#' @return A \code{tibble} of LRT summary information.
+#' @return A \code{tbl_df} of LRT summary information.
 #' @noRd
 #'
 #' @examples

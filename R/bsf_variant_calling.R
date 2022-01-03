@@ -1,7 +1,5 @@
 #
-# Library module of bsfR variant calling functions.
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -22,6 +20,14 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
+
+# Description -------------------------------------------------------------
+
+
+# A BSF R library module of variant calling functions.
+
+# Functions ---------------------------------------------------------------
+
 
 #' Get a Variant Calling Prefix.
 #'

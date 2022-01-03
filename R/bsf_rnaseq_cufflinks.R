@@ -1,7 +1,5 @@
 #
-# Library module of bsfR RNA-seq Cufflinks functions.
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -22,6 +20,14 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
+
+# Description -------------------------------------------------------------
+
+
+# A BSF R library module of RNA-seq Cufflinks functions.
+
+# Functions ---------------------------------------------------------------
+
 
 #' Get a Cuffdiff Prefix.
 #'
@@ -72,14 +78,14 @@ bsfrc_get_prefix_process_cuffdiff <- function(comparison_name) {
 
 #' Read a Gene Annotation Tibble.
 #'
-#' Read a comparison-specific gene annotation \code{tibble}.
+#' Read a comparison-specific gene annotation \code{tbl_df}.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
 #' @param comparison_name A \code{character} scalar with the comparison name.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
-#' @return A \code{tibble} with gene annotation information.
+#' @return A \code{tbl_df} with gene annotation information.
 #' @export
 #'
 #' @examples
@@ -141,14 +147,14 @@ bsfrc_read_gene_annotation_tibble <-
 
 #' Read an Isoform Annotation Tibble.
 #'
-#' Read a comparison-specific isoform annotation \code{tibble}.
+#' Read a comparison-specific isoform annotation \code{tbl_df}.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
 #' @param comparison_name A \code{character} scalar with the comparison name.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
-#' @return A \code{tibble} with isoform annotation information.
+#' @return A \code{tbl_df} with isoform annotation information.
 #' @export
 #'
 #' @examples

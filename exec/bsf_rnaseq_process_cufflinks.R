@@ -1,11 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to post-processes Cufflinks output by enriching gene and
-# transcript tables with Ensembl annotation, either downloaded from BioMart or
-# imported from a reference GTF file.
-#
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -27,20 +22,30 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# BSF R script to post-processes Cufflinks output by enriching gene and
+# transcript tables with Ensembl annotation, either downloaded from BioMart or
+# imported from a reference GTF file.
+
+# Option Parsing ----------------------------------------------------------
+
+
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("--verbose", "-v"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--quiet", "-q"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -48,90 +53,90 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--gtf-reference"),
+        opt_str = "--gtf-reference",
         default = NULL,
         dest = "gtf_reference",
         help = "GTF file specifying a reference transcriptome",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--genome-version"),
+        opt_str = "--genome-version",
         default = NULL,
         dest = "genome_version",
         help = "Genome version",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--biomart-instance"),
+        opt_str = "--biomart-instance",
         default = "ENSEMBL_MART_ENSEMBL",
         dest = "biomart_instance",
         help = "BioMart instance [ENSEMBL_MART_ENSEMBL]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--biomart-data-set"),
+        opt_str = "--biomart-data-set",
         dest = "biomart_data_set",
         help = "BioMart data set",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--biomart-host"),
+        opt_str = "--biomart-host",
         dest = "biomart_host",
         default = "www.ensembl.org",
         help = "BioMart host [www.ensembl.org]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--biomart-port"),
+        opt_str = "--biomart-port",
         default = 80L,
         dest = "biomart_port",
         help = "BioMart port [80]",
         type = "integer"
       ),
       optparse::make_option(
-        opt_str = c("--biomart-path"),
+        opt_str = "--biomart-path",
         default = "/biomart/martservice",
         dest = "biomart_path",
         help = "BioMart path [/biomart/martservice]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--pattern-path"),
+        opt_str = "--pattern-path",
         default = "/rnaseq_cufflinks_.*$",
         dest = "pattern_path",
         help = "Cufflinks directory path pattern [/rnaseq_cufflinks_.*$]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--pattern-sample"),
+        opt_str = "--pattern-sample",
         default = ".*/rnaseq_cufflinks_(.*)$",
         dest = "pattern_sample",
         help = "Cufflinks sample name pattern [.*/rnaseq_cufflinks_(.*)$]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--genome-directory"),
+        opt_str = "--genome-directory",
         default = ".",
         dest = "genome_directory",
         help = "Genome directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--output-directory"),
+        opt_str = "--output-directory",
         default = ".",
         dest = "output_directory",
         help = "Output directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--plot-width"),
+        opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--plot-height"),
+        opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
@@ -139,8 +144,6 @@ argument_list <-
       )
     )
   ))
-
-# Validate the argument_list.
 
 if (is.null(x = argument_list$biomart_data_set)) {
   # If a --biomart-data-set was not specified, ...
@@ -150,8 +153,15 @@ if (is.null(x = argument_list$biomart_data_set)) {
   }
 }
 
+# Library Import ----------------------------------------------------------
+
+
+# CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
-suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+# CRAN Tidyverse
+suppressPackageStartupMessages(expr = library(package = "dplyr"))
+suppressPackageStartupMessages(expr = library(package = "readr"))
+suppressPackageStartupMessages(expr = library(package = "tibble"))
 
 # Save plots in the following formats.
 

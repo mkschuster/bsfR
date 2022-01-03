@@ -1,17 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to constrain target enrichment regions to exon regions.
-#
-# All Ensembl "exon" features are imported from a GTF file and reduced into a
-# (non-overlapping) set of transcribed regions of the genome. Optionally, target
-# regions can be imported and overlapped with the transcribed regions above to
-# export the minimal set of transcribed target regions in BED format.
-#
-# Without target regions, the set of transcribed regions is exported as a BED
-# file.
-#
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -33,20 +22,36 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# BSF R script to constrain target enrichment regions to exon regions.
+#
+# All Ensembl "exon" features are imported from a GTF file and reduced into a
+# (non-overlapping) set of transcribed regions of the genome. Optionally, target
+# regions can be imported and overlapped with the transcribed regions above to
+# export the minimal set of transcribed target regions in BED format.
+#
+# Without target regions, the set of transcribed regions is exported as a BED
+# file.
+
+# Option Parsing ----------------------------------------------------------
+
+
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("--verbose", "-v"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--quiet", "-q"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -54,38 +59,38 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--exon-path"),
+        opt_str = "--exon-path",
         dest = "exon_path",
         help = "File path to the Ensembl gene, transcript and exon annotation GTF",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--target-path"),
+        opt_str = "--target-path",
         dest = "target_path",
         help = "File path to the enrichment targets BED",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--output-path"),
+        opt_str = "--output-path",
         dest = "output_path",
         help = "File path for the transcribed target BED",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--genome-version"),
+        opt_str = "--genome-version",
         dest = "genome_version",
         help = "Genome (assembly) version",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--flanks"),
+        opt_str = "--flanks",
         default = 0L,
         dest = "flanks",
         help = "Exon and Target flanking regions [0L]",
         type = "integer"
       ),
       optparse::make_option(
-        opt_str = c("--full-annotation"),
+        opt_str = "--full-annotation",
         action = "store_false",
         default = TRUE,
         dest = "basic",
@@ -95,9 +100,16 @@ argument_list <-
     )
   ))
 
+# Library Import ----------------------------------------------------------
+
+
+# CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
-suppressPackageStartupMessages(expr = library(package = "bsfR"))
+# Bioconductor
+suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
 suppressPackageStartupMessages(expr = library(package = "Biostrings"))
+# BSF
+suppressPackageStartupMessages(expr = library(package = "bsfR"))
 
 summary_list <-
   bsfR::bsfvc_import_constrained_granges(

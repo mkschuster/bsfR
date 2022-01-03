@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility
 # of the Research Center for Molecular Medicine (CeMM) of the
@@ -22,20 +22,27 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+
+# Option Parsing ----------------------------------------------------------
+
+
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("-v", "--verbose"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("-q", "--quietly"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -43,60 +50,60 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--comparison"),
+        opt_str = "--comparison",
         dest = "comparison",
         help = "Comparison name",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--factor"),
+        opt_str = "--factor",
         dest = "factor",
         help = "ChIP factor",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--sample-annotation"),
+        opt_str = "--sample-annotation",
         dest = "sample_annotation",
         help = "Sample annotation sheet",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--black-list"),
+        opt_str = "--black-list",
         default = NULL,
         dest = "black_list",
         help = "BED file specifying a black list",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--genome-version"),
+        opt_str = "--genome-version",
         default = NULL,
         dest = "genome_version",
         help = "Genome version",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--fdr-threshold"),
+        opt_str = "--fdr-threshold",
         default = 0.05,
         dest = "fdr_threshold",
         help = "FDR threshold [0.05]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--threads"),
+        opt_str = "--threads",
         default = 1L,
         dest = "threads",
         help = "Number of parallel processing threads [1]",
         type = "integer"
       ),
       optparse::make_option(
-        opt_str = c("--plot-width"),
+        opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [14.0]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--plot-height"),
+        opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [36.0]",
@@ -105,13 +112,14 @@ argument_list <-
     )
   ))
 
-# Start of main script ----------------------------------------------------
+# Library Import ----------------------------------------------------------
 
 
+# CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
+# Bioconductor
 suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
 suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
-# suppressPackageStartupMessages(expr = library(package = "ChIPQC"))
 suppressPackageStartupMessages(expr = library(package = "DiffBind"))
 suppressPackageStartupMessages(expr = library(package = "GenomeInfoDb"))
 suppressPackageStartupMessages(expr = library(package = "rtracklayer"))
@@ -152,7 +160,7 @@ if (file.exists(file_path) &&
 
   message("Creating a DiffBind DBA object ...")
   diffbind_dba <-
-    dba(sampleSheet = argument_list$sample_annotation)
+    DiffBind::dba(sampleSheet = argument_list$sample_annotation)
 
   # Count via the BiocParallel package that can be controlled more easily.
   # Unfortunately, this does not work because DBA_PARALLEL_BIOC does not seem to

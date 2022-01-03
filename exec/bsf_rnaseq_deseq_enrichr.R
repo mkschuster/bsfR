@@ -1,9 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to annotate DESeq2 results with the Enrichr tool.
-#
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -25,20 +22,28 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# BSF R script to annotate DESeq2 results with the Enrichr tool.
+
+# Option Parsing ----------------------------------------------------------
+
+
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("--verbose", "-v"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--quiet", "-q"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -46,56 +51,56 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--design-name"),
+        opt_str = "--design-name",
         # default = "global",
         dest = "design_name",
         help = "Design name",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--padj-threshold"),
+        opt_str = "--padj-threshold",
         default = 0.1,
         dest = "padj_threshold",
         help = "Threshold for the adjusted p-value [0.1]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--l2fc-threshold"),
+        opt_str = "--l2fc-threshold",
         default = 1.0,
         dest = "l2fc_threshold",
         help = "Threshold for the log2(fold-change) [1.0]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--maximum-terms"),
+        opt_str = "--maximum-terms",
         default = 20L,
         dest = "maximum_terms",
         help = "Maximum number of terms [20]",
         type = "integer"
       ),
       optparse::make_option(
-        opt_str = c("--genome-directory"),
+        opt_str = "--genome-directory",
         default = ".",
         dest = "genome_directory",
         help = "Genome directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--output-directory"),
+        opt_str = "--output-directory",
         default = ".",
         dest = "output_directory",
         help = "Output directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--plot-width"),
+        opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--plot-height"),
+        opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
@@ -104,16 +109,23 @@ argument_list <-
     )
   ))
 
-# Check the input.
-
 if (is.null(x = argument_list$design_name)) {
   stop("Missing --design-name option")
 }
 
-suppressPackageStartupMessages(expr = library(package = "enrichR"))
+# Library Import ----------------------------------------------------------
+
+
+# CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
+# CRAN Tidyverse
+suppressPackageStartupMessages(expr = library(package = "dplyr"))
+suppressPackageStartupMessages(expr = library(package = "ggplot2"))
+suppressPackageStartupMessages(expr = library(package = "readr"))
+suppressPackageStartupMessages(expr = library(package = "tibble"))
+# CRAN
+suppressPackageStartupMessages(expr = library(package = "enrichR"))
 suppressPackageStartupMessages(expr = library(package = "Nozzle.R1"))
-suppressPackageStartupMessages(expr = library(package = "tidyverse"))
 
 # TODO: The list of Enrichr databases should be configurable.
 
@@ -153,7 +165,7 @@ if (!file.exists(output_directory)) {
 #'
 #' @param contrast_character A \code{character} scalar with the contrast.
 #'
-#' @return A \code{tibble} of DESeq2 results.
+#' @return A \code{tbl_df} of DESeq2 results.
 #' @seealso bsfrd_read_result_tibble
 #' @noRd
 #'
@@ -171,22 +183,24 @@ load_deseq_result_tibble <- function(contrast_character) {
     stop("No DESeqResults frame for contrast ", contrast_character)
   }
 
-  # Importantly, NA values need removing.
   message("Number of genes in total: ",
           nrow(x = deseq_results_tibble))
 
+  # Importantly, NA values need removing.
   deseq_results_tibble <-
     dplyr::filter(.data = deseq_results_tibble,!is.na(x = .data$padj))
 
   message("Number of genes after NA removal: ",
           nrow(x = deseq_results_tibble))
 
+  # Filter for the adjusted p-value threshold.
   deseq_results_tibble <-
     dplyr::filter(.data = deseq_results_tibble, .data$padj <= .env$argument_list$padj_threshold)
 
   message("Number of genes after applying the padj threshold: ",
           nrow(x = deseq_results_tibble))
 
+  # Filter for the absolute log2 fold change threshold.
   deseq_results_tibble <-
     dplyr::filter(.data = deseq_results_tibble,
                   abs(x = .data$log2FoldChange) >= .env$argument_list$l2fc_threshold)
@@ -203,9 +217,11 @@ load_deseq_result_tibble <- function(contrast_character) {
 #' @param contrast_character A \code{character} scalar with the contrast.
 #' @param enrichr_database A \code{character} scalar with the Enrichr database.
 #'
-#' @return A named \code{list} of Enrichr result \code{tibble} objects.
-#'   \code{up}: \code{tibble} with results of of up-regulated genes.
-#'   \code{down}: \code{tibble} with results of down-regulated genes.
+#' @return A named \code{list} of Enrichr result \code{tbl_df} objects.
+#' \describe{
+#'   \item{up}{A \code{tbl_df} with results of of up-regulated genes.}
+#'   \item{down}{A \code{tbl_df} with results of down-regulated genes.}
+#' }
 #' @noRd
 #'
 #' @examples

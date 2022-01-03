@@ -1,18 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to merge data frames of each replicate after the Cufflinks
-# RNA-seq analysis stage (bsf_rnaseq_process_cufflinks.R) to come up with
-# consistent tables for genes (rnaseq_cufflinks_isoforms_fpkm_tracking.tsv) and
-# isoforms (rnaseq_cufflinks_isoforms_fpkm_tracking.tsv).
-#
-# Since FPKM values have not been normalised at this stage, a direct comparison
-# between replicates is strictly not possible. Hence, this script is for special
-# purposes only and not part of the standard pipeline. Please see the data
-# frames after the Cuffdiff RNA-seq analysis stage that provide normalised and
-# thus perfectly comaprable data.
-#
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -34,7 +22,51 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# BSF R script to merge data frames of each replicate after the Cufflinks
+# RNA-seq analysis stage (bsf_rnaseq_process_cufflinks.R) to come up with
+# consistent tables for genes (rnaseq_cufflinks_isoforms_fpkm_tracking.tsv) and
+# isoforms (rnaseq_cufflinks_isoforms_fpkm_tracking.tsv).
+#
+# Since FPKM values have not been normalised at this stage, a direct comparison
+# between replicates is strictly not possible. Hence, this script is for special
+# purposes only and not part of the standard pipeline. Please see the data
+# frames after the Cuffdiff RNA-seq analysis stage that provide normalised and
+# thus perfectly comaprable data.
+
+# Option Parsing ----------------------------------------------------------
+
+
 suppressPackageStartupMessages(expr = library(package = "optparse"))
+
+argument_list <-
+  optparse::parse_args(object = optparse::OptionParser(
+    option_list = list(
+      optparse::make_option(
+        opt_str = "--verbose",
+        action = "store_true",
+        default = TRUE,
+        help = "Print extra output [default]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = "--quiet",
+        action = "store_false",
+        default = FALSE,
+        dest = "verbose",
+        help = "Print little output",
+        type = "logical"
+      )
+    )
+  ))
+
+# Library Import ----------------------------------------------------------
+
+
+# CRAN r-lib
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 
 
 #' Process a Cufflinks FPKM tracking table for a particular, named replicate.
@@ -135,32 +167,6 @@ process_cufflinks_table <-
       ))
     }
   }
-
-# Get command line options, if help option encountered print help and exit,
-# otherwise if options not found on command line then set defaults,
-
-argument_list <-
-  optparse::parse_args(object = optparse::OptionParser(
-    option_list = list(
-      optparse::make_option(
-        opt_str = c("--verbose", "-v"),
-        action = "store_true",
-        default = TRUE,
-        help = "Print extra output [default]",
-        type = "logical"
-      ),
-      optparse::make_option(
-        opt_str = c("--quiet", "-q"),
-        action = "store_false",
-        default = FALSE,
-        dest = "verbose",
-        help = "Print little output",
-        type = "logical"
-      )
-    )
-  ))
-
-suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 
 # Process all "rnaseq_cufflinks_*" directories in the current working directory.
 # List all rnaseq_cufflinks directories via their common prefix and

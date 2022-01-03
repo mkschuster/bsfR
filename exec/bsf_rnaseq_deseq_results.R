@@ -1,9 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to extract results of a DESeq2 analysis.
-#
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -25,20 +22,28 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# BSF R script to extract results of a DESeq2 analysis.
+
+# Option Parsing ----------------------------------------------------------
+
+
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("--verbose", "-v"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--quiet", "-q"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -46,56 +51,56 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--design-name"),
+        opt_str = "--design-name",
         # default = "global",
         dest = "design_name",
         help = "design name",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--lfc-threshold"),
+        opt_str = "--lfc-threshold",
         default = 0.0,
         dest = "lfc_threshold",
         help = "Log-fold change threshold [0.0]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--padj-threshold"),
+        opt_str = "--padj-threshold",
         default = 0.1,
         dest = "padj_threshold",
         help = "Adjusted p-value threshold [0.1]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--threads"),
+        opt_str = "--threads",
         default = 1L,
         dest = "threads",
         help = "Number of parallel processing threads",
         type = "integer"
       ),
       optparse::make_option(
-        opt_str = c("--genome-directory"),
+        opt_str = "--genome-directory",
         default = ".",
         dest = "genome_directory",
         help = "Genome directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--output-directory"),
+        opt_str = "--output-directory",
         default = ".",
         dest = "output_directory",
         help = "Output directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--plot-width"),
+        opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--plot-height"),
+        opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
@@ -104,20 +109,28 @@ argument_list <-
     )
   ))
 
-# Check the input.
-
 if (is.null(x = argument_list$design_name)) {
   stop("Missing --design-name option")
 }
 
+# Library Import ----------------------------------------------------------
+
+
+# CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
-suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+# CRAN Tidyverse
+suppressPackageStartupMessages(expr = library(package = "dplyr"))
+suppressPackageStartupMessages(expr = library(package = "ggplot2"))
+suppressPackageStartupMessages(expr = library(package = "readr"))
+suppressPackageStartupMessages(expr = library(package = "tibble"))
+# Bioconductor
 suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
-suppressPackageStartupMessages(expr = library(package = "bsfR"))
 suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
 suppressPackageStartupMessages(expr = library(package = "DESeq2"))
 suppressPackageStartupMessages(expr = library(package = "EnhancedVolcano"))
 suppressPackageStartupMessages(expr = library(package = "IHW"))
+# BSF
+suppressPackageStartupMessages(expr = library(package = "bsfR"))
 
 # Save plots in the following formats.
 

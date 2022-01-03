@@ -1,14 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# This script uses the Bioconductor ChIPpeakAnno package to annotate the
-# consensus peak set, as well as contrast peak sets of a differential binding
-# analysis carried out by the Bioconductor DiffBind package via the
-# bsf_chipseq_diff_bind.R script. The annotation is based on a Biocoductor TxDb
-# object, as well as its corresponding GTF file that provides additional
-# annotation, such as gene symbols and gene biotypes.
-#
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility
 # of the Research Center for Molecular Medicine (CeMM) of the
@@ -30,20 +22,33 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# This script uses the Bioconductor ChIPpeakAnno package to annotate the
+# consensus peak set, as well as contrast peak sets of a differential binding
+# analysis carried out by the Bioconductor DiffBind package via the
+# bsf_chipseq_diff_bind.R script. The annotation is based on a Biocoductor TxDb
+# object, as well as its corresponding GTF file that provides additional
+# annotation, such as gene symbols and gene biotypes.
+
+# Option Parsing ----------------------------------------------------------
+
+
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("-v", "--verbose"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("-q", "--quietly"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -51,60 +56,60 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--comparison"),
+        opt_str = "--comparison",
         dest = "comparison",
         help = "Comparison name",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--factor"),
+        opt_str = "--factor",
         dest = "factor",
         help = "ChIP factor",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--fdr-threshold"),
+        opt_str = "--fdr-threshold",
         default = 0.05,
         dest = "fdr_threshold",
         help = "FDR threshold [0.05]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--gtf-reference"),
+        opt_str = "--gtf-reference",
         default = NULL,
         dest = "gtf_reference",
         help = "Reference transcriptome GTF file path",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--txdb-path"),
+        opt_str = "--txdb-path",
         dest = "txdb_path",
         help = "Reference transcriptome Bioconductor TxDb file path",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--genome-directory"),
+        opt_str = "--genome-directory",
         default = ".",
         dest = "genome_directory",
         help = "Genome directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--output-directory"),
+        opt_str = "--output-directory",
         default = ".",
         dest = "output_directory",
         help = "Output directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--plot-width"),
+        opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--plot-height"),
+        opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
@@ -113,11 +118,16 @@ argument_list <-
     )
   ))
 
-# Start of main script ----------------------------------------------------
+# Library Import ----------------------------------------------------------
 
 
+# CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
-suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+# CRAN Tidyverse
+suppressPackageStartupMessages(expr = library(package = "ggplot2"))
+suppressPackageStartupMessages(expr = library(package = "readr"))
+suppressPackageStartupMessages(expr = library(package = "tibble"))
+# Bioconductor
 suppressPackageStartupMessages(expr = library(package = "AnnotationDbi"))
 suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
 suppressPackageStartupMessages(expr = library(package = "Biostrings"))

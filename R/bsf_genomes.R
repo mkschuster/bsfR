@@ -1,7 +1,5 @@
 #
-# Library module of bsfR GRC to UCSC genome mapping functions.
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -23,13 +21,21 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# A BSF R library module of GRC to UCSC genome mapping functions.
+
+# Functions ---------------------------------------------------------------
+
+
 #' Get a genome information tibble.
 #'
 #' @param resource_directory A \code{character} scalar with the resource (i.e.
 #'   genome and transcriptome) directory path.
 #' @param ensembl_version A \code{character} scalar with the Ensembl version.
 #'
-#' @return A \code{tibble} with genome information.
+#' @return A \code{tbl_df} with genome information.
 #' @export
 #' @importFrom rlang .data .env :=
 #'
@@ -207,14 +213,14 @@ bsfg_create_resource_directory <-
 #' Read an NCBI assembly report from the NCBI FTP site.
 #'
 #' The assembly report provides a conversion table from NCBI-style to UCSC-style
-#' sequence region names and gets imported into a \code{tibble}. Adds in
+#' sequence region names and gets imported into a \code{tbl_df}. Adds in
 #' conversion information for the mitochondrion, which is not part of the
 #' assembly report.
 #'
 #' @param genome_list A \code{list} of genome assembly annotation.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
-#' @return A \code{tibble} with NCBI assembly information.
+#' @return A \code{tbl_df} with NCBI assembly information.
 #' @export
 #'
 #' @examples

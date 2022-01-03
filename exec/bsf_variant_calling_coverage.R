@@ -1,5 +1,30 @@
 #!/usr/bin/env Rscript
 #
+# Copyright 2013 - 2022 Michael K. Schuster
+#
+# Biomedical Sequencing Facility (BSF), part of the genomics core facility of
+# the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
+# Sciences and the Medical University of Vienna (MUW).
+#
+#
+# This file is part of BSF R.
+#
+# BSF R is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# BSF R is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
+
+# Description -------------------------------------------------------------
+
+
 # BSF R script to refine the GATK CallableLoci analysis.
 #
 # The coverage assessment loads (Ensembl) exon information, collates (or
@@ -23,45 +48,24 @@
 #
 # A summary data frame of metrics collected along the procedure.
 #   variant_calling_diagnose_sample_{sample_name}_non_callable_summary.tsv
-#
-#
-# Copyright 2013 - 2020 Michael K. Schuster
-#
-# Biomedical Sequencing Facility (BSF), part of the genomics core facility of
-# the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
-# Sciences and the Medical University of Vienna (MUW).
-#
-#
-# This file is part of BSF R.
-#
-# BSF R is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# BSF R is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
+
+# Option Parsing ----------------------------------------------------------
+
 
 suppressPackageStartupMessages(expr = library(package = "optparse"))
-suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("--verbose", "-v"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--quiet", "-q"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -69,20 +73,20 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--exons"),
+        opt_str = "--exons",
         dest = "exon_path",
         help = "File path to the gene, transcript and exon annotation GTF",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--exon-flanks"),
+        opt_str = "--exon-flanks",
         default = 0L,
         dest = "exon_flanks",
         help = "Exon flanking regions [0]",
         type = "integer"
       ),
       optparse::make_option(
-        opt_str = c("--no-filter"),
+        opt_str = "--no-filter",
         action = "store_true",
         default = FALSE,
         dest = "no_filter",
@@ -90,47 +94,47 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--callable-loci"),
+        opt_str = "--callable-loci",
         dest = "callable_loci_path",
         help = "File path to the GATK CallableLoci BED",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--targets"),
+        opt_str = "--targets",
         dest = "target_path",
         help = "File path to the enrichment targets BED",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--genome-version"),
+        opt_str = "--genome-version",
         default = "hs37d5",
         dest = "genome_version",
         help = "Genome version [hs37d5]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--genome-directory"),
+        opt_str = "--genome-directory",
         default = ".",
         dest = "genome_directory",
         help = "Genome directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--output-directory"),
+        opt_str = "--output-directory",
         default = ".",
         dest = "output_directory",
         help = "Output directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--plot-width"),
+        opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--plot-height"),
+        opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
@@ -139,15 +143,26 @@ argument_list <-
     )
   ))
 
-if (file.size(argument_list$callable_loci_path) > 1e+09) {
+if (base::file.size(argument_list$callable_loci_path) > 1e+09) {
   message("The file specified by the --callable-loci option is too large to process.")
-  print(x = sessioninfo::session_info())
   quit()
 }
 
-suppressPackageStartupMessages(expr = library(package = "bsfR"))
+# Library Import ----------------------------------------------------------
+
+
+# CRAN r-lib
+suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
+# CRAN Tidyverse
+suppressPackageStartupMessages(expr = library(package = "dplyr"))
+suppressPackageStartupMessages(expr = library(package = "readr"))
+suppressPackageStartupMessages(expr = library(package = "tibble"))
+# Bioconductor
+suppressPackageStartupMessages(expr = library(package = "BiocVersion"))
 suppressPackageStartupMessages(expr = library(package = "Biostrings"))
 suppressPackageStartupMessages(expr = library(package = "GenomicRanges"))
+# BSF
+suppressPackageStartupMessages(expr = library(package = "bsfR"))
 
 prefix <- "variant_calling_diagnose_sample"
 

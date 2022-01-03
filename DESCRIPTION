@@ -11,7 +11,6 @@ Encoding: UTF-8
 LazyData: true
 Imports:
     methods,
-    tidyverse,
     rlang,
     ggplot2,
     purrr,
@@ -20,7 +19,6 @@ Imports:
     tidyr,
     stringr,
     readr,
-    forcats,
     S4Vectors,
     GenomeInfoDb,
     IRanges,
@@ -33,6 +31,7 @@ Imports:
 RoxygenNote: 7.1.2
 Depends: R (>= 3.6)
 Collate:
+    'bsf_utilities.R'
     'bsf_genomes.R'
     'bsf_rnaseq_cufflinks.R'
     'bsf_rnaseq_deseq.R'

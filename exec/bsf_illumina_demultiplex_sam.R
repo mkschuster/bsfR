@@ -1,10 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to aggregate and plot Picard tools IlluminaSamDemux and
-# Illumina2bam tools BamIndexDecoder metrics files.
-#
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -26,20 +22,29 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# BSF R script to aggregate and plot Picard tools IlluminaSamDemux and
+# Illumina2bam tools BamIndexDecoder metrics files.
+
+# Option Parsing ----------------------------------------------------------
+
+
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("--verbose", "-v"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--quiet", "-q"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -47,40 +52,40 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--directory-path"),
+        opt_str = "--directory-path",
         dest = "directory_path",
         help = "Directory path of EXPERIMENT_LANE_metrics.tsv files",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--file-pattern"),
+        opt_str = "--file-pattern",
         default = "_metrics.tsv$",
         dest = "file_pattern",
         help = "File pattern to capture EXPERIMENT_LANE_metrics.tsv files",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--file-path"),
+        opt_str = "--file-path",
         dest = "file_path",
         help = "File path of a EXPERIMENT_LANE_metrics.tsv file",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--plot-factor"),
+        opt_str = "--plot-factor",
         default = 0.5,
         dest = "plot_factor",
         help = "Plot width increase per 24 samples [0.5]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--plot-width"),
+        opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--plot-height"),
+        opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
@@ -94,9 +99,14 @@ if (is.null(x = argument_list$directory_path) &
   stop("Missing --directory-path or --file-path option")
 }
 
-message("Loading packages")
+# Library Import ----------------------------------------------------------
+
+
+# CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
-suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+# CRAN Tidyverse
+suppressPackageStartupMessages(expr = library(package = "ggplot2"))
+# BSF
 suppressPackageStartupMessages(expr = library(package = "PicardReports"))
 
 # Save plots in the following formats.
