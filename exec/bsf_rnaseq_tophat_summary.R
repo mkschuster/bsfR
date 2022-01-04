@@ -1,13 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to parse and summarise Tophat2 alignment summary files.
-# The resulting data frame (rnaseq_tophat_alignment_summary.tsv),
-# as well as plots of alignment rates per sample in PDF (rnaseq_tophat_alignment_summary.pdf)
-# and PNG format (rnaseq_tophat_alignment_summary.png) are written into the current working
-# directory.
-#
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -29,20 +22,32 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# BSF R script to parse and summarise Tophat2 alignment summary files.
+# The resulting data frame (rnaseq_tophat_alignment_summary.tsv),
+# as well as plots of alignment rates per sample in PDF (rnaseq_tophat_alignment_summary.pdf)
+# and PNG format (rnaseq_tophat_alignment_summary.png) are written into the current working
+# directory.
+
+# Option Parsing ----------------------------------------------------------
+
+
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("--verbose", "-v"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--quiet", "-q"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -50,49 +55,42 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--pattern-path"),
-        default = "/rnaseq_tophat_.*$",
-        dest = "pattern_path",
-        help = "Tophat2 directory path pattern [/rnaseq_tophat_.*$]",
-        type = "character"
-      ),
-      optparse::make_option(
-        opt_str = c("--pattern-sample"),
-        default = ".*/rnaseq_tophat_(.*)$",
-        dest = "pattern_sample",
-        help = "Tophat2 sample name pattern [.*/rnaseq_tophat_(.*)$]",
-        type = "character"
-      ),
-      optparse::make_option(
-        opt_str = c("--genome-directory"),
+        opt_str = "--genome-directory",
         default = ".",
         dest = "genome_directory",
         help = "Genome directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--output-directory"),
+        opt_str = "--output-directory",
         default = ".",
         dest = "output_directory",
         help = "Output directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--plot-factor"),
+        opt_str = "--directory-pattern",
+        default = "^rnaseq_tophat_(.*)$",
+        dest = "directory_pattern",
+        help = "Tophat2 directory name pattern [^rnaseq_tophat_(.*)$]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = "--plot-factor",
         default = 0.5,
         dest = "plot_factor",
         help = "Plot width increase per 24 samples [0.5]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--plot-width"),
+        opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--plot-height"),
+        opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
@@ -101,49 +99,44 @@ argument_list <-
     )
   ))
 
+# Library Import ----------------------------------------------------------
+
+
+# CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
-suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+# CRAN Tidyverse
+suppressPackageStartupMessages(expr = library(package = "ggplot2"))
+suppressPackageStartupMessages(expr = library(package = "purrr"))
+suppressPackageStartupMessages(expr = library(package = "readr"))
+# BSF
+suppressPackageStartupMessages(expr = library(package = "bsfR"))
 
 # Save plots in the following formats.
 
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
 
-# Process all "rnaseq_tophat_*" directories in the current working directory.
+#' @title Parse a Tophat2 alignment report.
+#'
+#' @description Parses a Tophat2 alignment report.
+#'
+#' @noRd
+#' @param directory_path A \code{character} scalar of the Tophat2 alignment report
+#'   directory path.
+#'
+#' @return: A named \code{list}.
+#' \describe{
+#' \item{input}{A \code{integer} scalar with the number of input reads.}
+#' \item{mapped}{A \code{integer} scalar with the number of mapped reads.}
+#' \item{multiple}{A \code{integer} scalar with the number of multiply mapped reads.}
+#' \item{above}{A \code{integer} scalar with the number of multiply mapped reads above the threshold.}
+#' \item{threshold}{A \code{integer} scalar with the threshold of multi-mapped reads.}
+#' \item{total_rate}{A \code{numeric} scalar with the total mapping rate as percentage.}
+#' \item{error}{A \code{character} scalar with an error message.}
+#' }
+parse_tophat2_report <- function(directory_path) {
+  result_list <- list()
 
-message("Processing Tophat2 alignment report for sample:")
-sample_tibble <- tibble::tibble(
-  # R character vector of directory paths.
-  "directory_path" = grep(
-    pattern = argument_list$pattern_path,
-    x = list.dirs(
-      path = argument_list$genome_directory,
-      full.names = TRUE,
-      recursive = FALSE
-    ),
-    value = TRUE
-  ),
-  # R character vector of sample names.
-  "sample_name" = base::gsub(
-    pattern = argument_list$pattern_sample,
-    replacement = "\\1",
-    x = .data$directory_path
-  ),
-  # R integer vector of the number of input reads.
-  "input" = NA_integer_,
-  # R integer vector of the number of mapped reads.
-  "mapped" = NA_integer_,
-  # R integer vector of the number of multiply mapped reads.
-  "multiple" = NA_integer_,
-  # R integer vector of the number of multiply mapped reads above the threshold.
-  "above" = NA_integer_,
-  # R integer vector of the mapping threshold.
-  "threshold" = NA_integer_
-)
-
-for (i in seq_len(length.out = base::nrow(x = sample_tibble))) {
-  message("  ", sample_tibble$sample_name[i])
-
-  # This is the layout of a Tophat align_summary.txt file.
+  # This is the layout of a Tophat2 alignment summary report file.
   #
   #   [1] "Reads:"
   #   [2] "          Input     :  21791622"
@@ -151,62 +144,95 @@ for (i in seq_len(length.out = base::nrow(x = sample_tibble))) {
   #   [4] "            of these:   2010462 ( 9.3%) have multiple alignments (8356 have >20)"
   #   [5] "98.7% overall read mapping rate."
 
-  align_summary <-
-    readLines(
-      con = file.path(
-        argument_list$genome_directory,
-        sample_tibble$directory_path[i],
-        "align_summary.txt"
-      ),
-      n = 100L
-    )
+  report_lines <- readr::read_lines(
+    file = file.path(
+      directory_path,
+      "align_summary.txt"
+    ),
+    n_max = 100L
+  )
 
-  # Parse the second line of "input" reads.
-  sample_tibble$input[i] <- as.integer(
+  # Find the first line of the alignment report.
+  line_number <-
+    which(grepl(pattern = "Reads:", x = report_lines[line_number]))
+
+  # Skip this sample report in case it does not have exactly one alignment report.
+  if (length(x = line_number) != 1L) {
+    message("    parsing failed!")
+    rm(report_lines, line_number)
+    result_list$error <- "parsing error"
+    return(result_list)
+  }
+
+  line_number <- line_number + 1L
+
+  # Parse the second line of "input" reads as integer.
+  result_list$input <- as.integer(
     x = sub(
       pattern = "[[:space:]]+Input[[:space:]]+:[[:space:]]+([[:digit:]]+)",
       replacement = "\\1",
-      x = align_summary[2L]
+      x = report_lines[line_number]
     )
   )
+  line_number <- line_number + 1L
 
-  # Parse the third line of "mapped" reads.
-  sample_tibble$mapped[i] <- as.integer(
+  # Parse the third line of "mapped" reads as integer.
+  result_list$mapped <- as.integer(
     x = sub(
       pattern = "[[:space:]]+Mapped[[:space:]]+:[[:space:]]+([[:digit:]]+) .*",
       replacement = "\\1",
-      x = align_summary[3L]
+      x = report_lines[line_number]
     )
   )
+  line_number <- line_number + 1L
 
   # Get the number of "multiply" aligned reads from the fourth line.
-  sample_tibble$multiple[i] <- as.integer(
+  result_list$multiple <- as.integer(
     x = sub(
       pattern = ".+:[[:space:]]+([[:digit:]]+) .*",
       replacement = "\\1",
-      x = align_summary[4L]
+      x = report_lines[line_number]
     )
   )
 
-  # Get the number of multiply aligned reads "above" the multiple alignment threshold.
-  sample_tibble$above[i] <- as.integer(
+  # Get the number of multiply aligned reads "above" the multiple alignment
+  # threshold as integer.
+  result_list$above <- as.integer(
     x = sub(
       pattern = ".+alignments \\(([[:digit:]]+) have.+",
       replacement = "\\1",
-      x = align_summary[4L]
+      x = report_lines[line_number]
     )
   )
 
-  # Get the multiple alignment "threshold".
-  sample_tibble$threshold[i] <- as.integer(x = sub(
+  # Get the multiple alignment "threshold" as integer.
+  result_list$threshold <- as.integer(x = sub(
     pattern = ".+ >([[:digit:]]+)\\)",
     replacement = "\\1",
-    x = align_summary[4L]
+    x = report_lines[line_number]
   ))
+  line_number <- line_number + 1L
 
-  rm(align_summary)
+  result_list$total_rate <- as.numeric(
+    x = sub(
+      pattern = "([[:digit:].]+)% overall read mapping rate",
+      replacement = "\\1",
+      x = report_lines[line_number]
+    )
+  )
+
+  rm(line_number, report_lines)
+
+  return(result_list)
 }
-rm(i)
+
+message("Processing Tophat2 alignment reports ...")
+
+sample_tibble <- bsfR::bsfu_summarise_report_directories(
+  directory_path = argument_list$genome_directory,
+  directory_pattern = argument_list$directory_pattern,
+  report_function = parse_tophat2_report
+)
 
 # Write the alignment summary tibble to disk and create plots.
 
@@ -245,7 +271,7 @@ ggplot_object <-
     x = "Reads Number",
     y = "Reads Fraction",
     colour = "Sample",
-    title = "TopHat Alignment Summary"
+    title = "Tophat2 Alignment Summary"
   )
 
 # Reduce the label font size and the legend key size and allow a maximum of 24
@@ -274,12 +300,14 @@ for (plot_path in plot_paths) {
     limitsize = FALSE
   )
 }
+
 rm(
   plot_path,
   plot_width,
   ggplot_object,
   plot_paths,
   sample_tibble,
+  parse_tophat2_report,
   graphics_formats,
   argument_list
 )
