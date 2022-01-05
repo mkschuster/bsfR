@@ -1,9 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to summarise STAR aligner alignment reports.
-#
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -25,20 +22,28 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# BSF R script to summarise STAR aligner alignment reports.
+
+# Option Parsing ----------------------------------------------------------
+
+
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("--verbose", "-v"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--quiet", "-q"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -46,35 +51,35 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--pattern-file"),
+        opt_str = "--pattern-file",
         default = "^star_align_.*_Log\\.final\\.out$",
         dest = "pattern_file",
         help = "STAR alignment report file name pattern [^star_align_.*_Log\\.final\\.out$]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--pattern-sample"),
+        opt_str = "--pattern-sample",
         default = "^star_align_(.*)_Log\\.final\\.out$",
         dest = "pattern_sample",
         help = "STAR alignment report sample name pattern [^star_align_(.*)_Log\\.final\\.out$]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--prefix"),
+        opt_str = "--prefix",
         default = "star_summary",
         dest = "prefix",
         help = "File name prefix",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--plot-width"),
+        opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--plot-height"),
+        opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
@@ -83,8 +88,18 @@ argument_list <-
     )
   ))
 
+# Library Import ----------------------------------------------------------
+
+
+# CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
-suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+# CRAN Tidyverse
+suppressPackageStartupMessages(expr = library(package = "dplyr"))
+suppressPackageStartupMessages(expr = library(package = "ggplot2"))
+suppressPackageStartupMessages(expr = library(package = "readr"))
+suppressPackageStartupMessages(expr = library(package = "stringr"))
+suppressPackageStartupMessages(expr = library(package = "tibble"))
+suppressPackageStartupMessages(expr = library(package = "tidyr"))
 
 # Save plots in the following formats.
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
@@ -114,15 +129,15 @@ message(
 #
 # > stringr::str_split_fixed(string = star_lines, pattern = fixed(pattern = "\t"), n = 2)
 # [,1]                                                [,2]
-# [1,] "                                 Started job on |" "Apr 01 20:49:14"
-# [2,] "                             Started mapping on |" "Apr 01 20:50:12"
-# [3,] "                                    Finished on |" "Apr 01 20:51:57"
-# [4,] "       Mapping speed, Million of reads per hour |" "43.78"
-# [5,] ""                                                  ""
-# [6,] "                          Number of input reads |" "1276962"
-# [7,] "                      Average input read length |" "302"
-# [8,] "                                    UNIQUE READS:" ""
-# [9,] "                   Uniquely mapped reads number |" "1128810"
+# [01,] "                                 Started job on |" "Apr 01 20:49:14"
+# [02,] "                             Started mapping on |" "Apr 01 20:50:12"
+# [03,] "                                    Finished on |" "Apr 01 20:51:57"
+# [04,] "       Mapping speed, Million of reads per hour |" "43.78"
+# [05,] ""                                                  ""
+# [06,] "                          Number of input reads |" "1276962"
+# [07,] "                      Average input read length |" "302"
+# [08,] "                                    UNIQUE READS:" ""
+# [09,] "                   Uniquely mapped reads number |" "1128810"
 # [10,] "                        Uniquely mapped reads % |" "88.40%"
 # [11,] "                          Average mapped length |" "297.00"
 # [12,] "                       Number of splices: Total |" "17699"
@@ -205,20 +220,47 @@ read_group_tibble <-
   dplyr::bind_cols(read_group_tibble, star_tibble)
 rm(star_tibble, variable_names)
 
-# Convert factor to character to integer vectors.
-read_group_tibble <- dplyr::mutate(
-  .data = read_group_tibble,
-  "input_reads" = as.integer(x = .data$input_reads),
-  "uniquely_mapped_reads" = as.integer(x = .data$uniquely_mapped_reads),
-  "number_splice_total" = as.integer(x = .data$number_splice_total),
-  "number_splice_sjdb" = as.integer(x = .data$number_splice_sjdb),
-  "number_splice_gtag" = as.integer(x = .data$number_splice_gtag),
-  "number_splice_gcag" = as.integer(x = .data$number_splice_gcag),
-  "number_splice_atac" = as.integer(x = .data$number_splice_atac),
-  "number_splice_non_canonical" = as.integer(x = .data$number_splice_non_canonical),
-  "multi_mapped_number" = as.integer(x = .data$multi_mapped_number),
-  "chimeric_number" = as.integer(x = .data$chimeric_number)
-)
+# Convert types.
+read_group_tibble <-
+  readr::type_convert(
+    df = read_group_tibble,
+    col_types = readr::cols(
+      "started_job" = readr::col_datetime(),
+      "started_mapping" = readr::col_datetime(),
+      "finished" = readr::col_datetime(),
+      "mapping_speed" = readr::col_double(),
+      # [5,]
+      "input_reads" = readr::col_integer(),
+      "average_length" = readr::col_double(),
+      # [8,] UNIQUE READS
+      "uniquely_mapped_reads" = readr::col_integer(),
+      "uniquely_mapped_percentage" = readr::col_double(),
+      "average_mapped_length" = readr::col_double(),
+      "number_splice_total" = readr::col_integer(),
+      "number_splice_sjdb" = readr::col_integer(),
+      "number_splice_gtag" = readr::col_integer(),
+      "number_splice_gcag" = readr::col_integer(),
+      "number_splice_atac" = readr::col_integer(),
+      "number_splice_non_canonical" = readr::col_integer(),
+      "mismatch_rate" = readr::col_double(),
+      "deletion_rate" = readr::col_double(),
+      "deletion_average_length" = readr::col_double(),
+      "insertion_rate" = readr::col_double(),
+      "insertion_average_length" = readr::col_double(),
+      # [23,] MULTI-MAPPING READS
+      "multi_mapped_number" = readr::col_integer(),
+      "multi_mapped_percentage" = readr::col_double(),
+      "multi_unmapped_number" = readr::col_integer(),
+      "multi_unmapped_percentage" = readr::col_double(),
+      # [28,] UNMAPPED READS
+      "unmapped_mismatched_percentage" = readr::col_double(),
+      "unmapped_short_percentage" = readr::col_double(),
+      "unmapped_other_percentage" = readr::col_double(),
+      # [32,] CHIMERIC READS
+      "chimeric_number" = readr::col_integer(),
+      "chimeric_percentage" = readr::col_double(),
+    )
+  )
 
 message("Writing read group-level summary table")
 readr::write_tsv(
