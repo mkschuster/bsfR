@@ -1,9 +1,6 @@
 #!/usr/bin/env Rscript
 #
-# BSF R script to aggregate Trimmomatic output files.
-#
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -25,20 +22,28 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# BSF R script to aggregate Trimmomatic output files.
+
+# Option Parsing ----------------------------------------------------------
+
+
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("--verbose", "-v"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--quiet", "-q"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -46,59 +51,59 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--file-path"),
+        opt_str = "--file-path",
         dest = "file_path",
         help = "Trimmomatic trim log file path",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--number"),
+        opt_str = "--number",
         help = "Maximum number of Trimmomatic trim log lines, or -1 for unlimited [-1]",
         default = -1L,
         type = "integer"
       ),
       optparse::make_option(
-        opt_str = c("--chunk-size"),
+        opt_str = "--chunk-size",
         default = 10000L,
         dest = "chunk_size",
         help = "Number of lines to process per chunk [10000]",
         type = "integer"
       ),
       optparse::make_option(
-        opt_str = c("--stderr-path"),
+        opt_str = "--stderr-path",
         dest = "stderr_path",
         help = "Trimmomatic STDERR directory path",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--stderr-pattern-file"),
+        opt_str = "--stderr-pattern-file",
         default = "^trimmomatic_read_group_.*\\.err$",
         dest = "stderr_pattern_file",
         help = "Trimmomatic STDERR file pattern [trimmomatic_read_group_*_[0-9]+.err]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--stderr-pattern-read-group"),
+        opt_str = "--stderr-pattern-read-group",
         default = "^trimmomatic_read_group_(.*)_[0-9]+\\.err$",
         dest = "stderr_pattern_read_group",
         help = "Trimmomatic STDERR read group pattern [^trimmomatic_read_group_(.*)_[0-9]+\\.err$]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--summary-path"),
+        opt_str = "--summary-path",
         dest = "summary_path",
         help = "Trimmomatic summary data frame directory path",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--plot-width"),
+        opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--plot-height"),
+        opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
@@ -107,8 +112,19 @@ argument_list <-
     )
   ))
 
+# Library Import ----------------------------------------------------------
+
+
+# CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
-suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+# CRAN Tidyverse
+suppressPackageStartupMessages(expr = library(package = "dplyr"))
+suppressPackageStartupMessages(expr = library(package = "ggplot2"))
+suppressPackageStartupMessages(expr = library(package = "purrr"))
+suppressPackageStartupMessages(expr = library(package = "readr"))
+suppressPackageStartupMessages(expr = library(package = "stringr"))
+suppressPackageStartupMessages(expr = library(package = "tibble"))
+suppressPackageStartupMessages(expr = library(package = "tidyr"))
 
 # Save plots in the following formats.
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
@@ -119,21 +135,23 @@ graphics_maximum_size_png <- 100.0
 #'
 #' @noRd
 #' @param file_path A \code{character} scalar with the file path.
-#' @return A \code{tibble} of parsed components.
+#' @return A named \code{list} of parsed components.
 #' \describe{
-#' \item{input}{Number of input reads.}
-#' \item{both}{Number of first and second reads.}
-#' \item{first}{Number of first reads.}
-#' \item{second}{Number of second reads.}
-#' \item{dropped}{Number of dropped reads.}
-#' \item{file_path}{STDERR file path.}
+#' \item{input}{A \code{character} scalar with the number of input reads.}
+#' \item{both}{A \code{character} scalar with the number of first and second reads.}
+#' \item{first}{A \code{character} scalar with the number of first reads.}
+#' \item{second}{A \code{character} scalar with the number of second reads.}
+#' \item{dropped}{A \code{character} scalar with the number of dropped reads.}
+#' \item{file_path}{A \code{character} scalar with the with the STDERR file path.}
 #' }
 process_stderr <- function(file_path) {
   if (is.null(x = file_path)) {
     stop("Missing file_path argument.")
   }
-  trimmomatic_tibble <- NULL
-  trimmomatic_lines <- base::readLines(con = file_path)
+  trimmomatic_list <- NULL
+
+  trimmomatic_lines <-
+    readr::read_lines(file = file_path, n_max = 1000L)
 
   # Match the relevant line, which looks like:
   # Input Read Pairs: 7999402 Both Surviving: 6629652 (82.88%) Forward Only Surviving: 1271736 (15.90%) Reverse Only Surviving: 18573 (0.23%) Dropped: 79441 (0.99%)
@@ -155,9 +173,9 @@ process_stderr <- function(file_path) {
       as.list(x = trimmomatic_filtered[[1L]][2L:6L])
     names(x = trimmomatic_list) <-
       c("input", "both", "first", "second", "dropped")
+
+    # Append the file path only if successful.
     trimmomatic_list$file_path <- file_path
-    trimmomatic_tibble <- tibble::as_tibble(x = trimmomatic_list)
-    rm(trimmomatic_list)
   }
 
   rm(
@@ -167,7 +185,7 @@ process_stderr <- function(file_path) {
     trimmomatic_lines
   )
 
-  return(trimmomatic_tibble)
+  return(trimmomatic_list)
 }
 
 #' Process trim log files.
@@ -588,19 +606,20 @@ process_summary <- function(directory_path) {
     return(read_group_tibble)
   }
 
-  file_paths <- base::list.files(
-    path = directory_path,
-    pattern = '^trimmomatic_read_group_.*_summary.tsv',
-    full.names = FALSE,
-    recursive = FALSE
-  )
-
   summary_tibble <-
-    purrr::map_dfr(.x = file_paths, .f = process_read_group_tibble)
+    purrr::map_dfr(
+      .x = base::list.files(
+        path = directory_path,
+        pattern = '^trimmomatic_read_group_.*_summary.tsv',
+        full.names = TRUE,
+        recursive = FALSE
+      ),
+      .f = process_read_group_tibble
+    )
 
   readr::write_tsv(x = summary_tibble, file = "trimmomatic_summary.tsv")
 
-  rm(summary_tibble, file_paths, process_read_group_tibble)
+  rm(summary_tibble, process_read_group_tibble)
 }
 
 # Process Trimmomatic trim log files.
@@ -641,6 +660,7 @@ if (!is.null(x = argument_list$stderr_path)) {
       )
     )
 
+  # Prepend the read group name.
   summary_tibble <-
     dplyr::mutate(
       .data = summary_tibble,
