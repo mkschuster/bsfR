@@ -246,7 +246,7 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
       ggplot_object <-
         ggplot_object + ggplot2::labs(
           x = "Adjusted p-value",
-          y = "Log2 fold-change standard error",
+          y = "Log2-fold change standard error",
           colour = "GO Status",
           title = contrast_tibble$Label[contrast_index],
           subtitle = paste("Ontology:", go_names[sub_go])

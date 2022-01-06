@@ -58,10 +58,10 @@ argument_list <-
         type = "character"
       ),
       optparse::make_option(
-        opt_str = "--lfc-threshold",
+        opt_str = "--l2fc-threshold",
         default = 0.0,
-        dest = "lfc_threshold",
-        help = "Log-fold change threshold [0.0]",
+        dest = "l2fc_threshold",
+        help = "Log2-fold change threshold [0.0]",
         type = "numeric"
       ),
       optparse::make_option(
@@ -244,9 +244,9 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       DESeq2::results(
         object = deseq_data_set,
         contrast = contrast_list,
-        lfcThreshold = argument_list$lfc_threshold,
+        lfcThreshold = argument_list$l2fc_threshold,
         alpha = argument_list$padj_threshold,
-        filterFun = ihw,
+        filterFun = IHW::ihw,
         parallel = TRUE
       )
 

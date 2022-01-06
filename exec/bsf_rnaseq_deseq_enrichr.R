@@ -200,7 +200,7 @@ load_deseq_result_tibble <- function(contrast_character) {
   message("Number of genes after applying the padj threshold: ",
           nrow(x = deseq_results_tibble))
 
-  # Filter for the absolute log2 fold change threshold.
+  # Filter for the absolute log2-fold change threshold.
   deseq_results_tibble <-
     dplyr::filter(.data = deseq_results_tibble,
                   abs(x = .data$log2FoldChange) >= .env$argument_list$l2fc_threshold)
