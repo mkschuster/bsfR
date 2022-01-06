@@ -1,20 +1,6 @@
 #!/usr/bin/env Rscript
 #
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
-#SBATCH --distribution=block
-#SBATCH --mem=2048
-#SBATCH --time=12:00:00
-#SBATCH --partition=shortq
-#SBATCH --export=NONE
-#SBATCH --get-user-env=L
-#SBATCH --error=.bsf_rnaseq_deseq_summary_%j.err
-#SBATCH --output=.bsf_rnaseq_deseq_summary_%j.out
-#
-# BSF R script to collate DESeq2 analysis summary tables.
-#
-#
-# Copyright 2013 - 2020 Michael K. Schuster
+# Copyright 2013 - 2022 Michael K. Schuster
 #
 # Biomedical Sequencing Facility (BSF), part of the genomics core facility of
 # the Research Center for Molecular Medicine (CeMM) of the Austrian Academy of
@@ -36,20 +22,28 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BSF R.  If not, see <http://www.gnu.org/licenses/>.
 
+# Description -------------------------------------------------------------
+
+
+# BSF R script to collate DESeq2 analysis summary tables.
+
+# Option Parsing ----------------------------------------------------------
+
+
 suppressPackageStartupMessages(expr = library(package = "optparse"))
 
 argument_list <-
   optparse::parse_args(object = optparse::OptionParser(
     option_list = list(
       optparse::make_option(
-        opt_str = c("--verbose", "-v"),
+        opt_str = "--verbose",
         action = "store_true",
         default = TRUE,
         help = "Print extra output [default]",
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--quiet", "-q"),
+        opt_str = "--quiet",
         action = "store_false",
         default = FALSE,
         dest = "verbose",
@@ -57,28 +51,28 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = c("--genome-directory"),
+        opt_str = "--genome-directory",
         default = ".",
         dest = "genome_directory",
         help = "Genome directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--output-directory"),
+        opt_str = "--output-directory",
         default = ".",
         dest = "output_directory",
         help = "Output directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = c("--plot-width"),
+        opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
         type = "numeric"
       ),
       optparse::make_option(
-        opt_str = c("--plot-height"),
+        opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
@@ -87,8 +81,17 @@ argument_list <-
     )
   ))
 
+# Library Import ----------------------------------------------------------
+
+
+# CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
-suppressPackageStartupMessages(expr = library(package = "tidyverse"))
+# CRAN Tidyverse
+suppressPackageStartupMessages(expr = library(package = "dplyr"))
+suppressPackageStartupMessages(expr = library(package = "purrr"))
+suppressPackageStartupMessages(expr = library(package = "readr"))
+suppressPackageStartupMessages(expr = library(package = "tidyr"))
+# BSF
 suppressPackageStartupMessages(expr = library(package = "bsfR"))
 
 # For the moment, no other prefix-based directory gets created under the output
@@ -104,11 +107,14 @@ if (!file.exists(output_directory)) {
 # Parse rnaseq_deseq_[design]_contrasts_summary.tsv files -----------------
 
 
-summary_tibble <- NULL
-# Get a list of all rnaseq_deseq_.*_contrasts_summary.tsv files recursively,
+# Get a list of all rnaseq_deseq_(.*)_contrasts_summary.tsv files recursively,
 # extract directory names, base names and finally match design names.
-design_names <-
-  base::gsub(
+#
+# FIXME: Rather than matching the design names from the directory names,
+# the original (BSF Python) design list could be used. This table would also
+# allow excluding any unwanted designs.
+summary_tibble <- purrr::map_dfr(
+  .x = base::gsub(
     pattern = "^rnaseq_deseq_(.*?)$",
     replacement = "\\1",
     x = base::basename(path = base::dirname(
@@ -119,31 +125,25 @@ design_names <-
         recursive = TRUE
       )
     ))
+  ),
+  .f = ~ bsfR::bsfrd_read_contrast_tibble(
+    genome_directory = argument_list$genome_directory,
+    design_name = .x,
+    summary = TRUE,
+    verbose = argument_list$verbose
   )
-
-for (design_name in design_names) {
-  summary_tibble <-
-    dplyr::bind_rows(
-      summary_tibble,
-      bsfR::bsfrd_read_contrast_tibble(
-        genome_directory = argument_list$genome_directory,
-        design_name = design_name,
-        summary = TRUE,
-        verbose = argument_list$verbose
-      )
-    )
-}
-rm(design_name, design_names)
+)
 
 # Drop the "Exclude" variable.
-summary_tibble <- dplyr::select(.data = summary_tibble, -.data$Exclude)
+summary_tibble <-
+  dplyr::select(.data = summary_tibble,-.data$Exclude)
 
 # Replace NA and "" values in the Numerator and Denominator with character "1".
 summary_tibble <-
   dplyr::mutate_at(
     .tbl = summary_tibble,
     .vars = c("Numerator", "Denominator"),
-    .funs = list( ~ replace(., is.na(x = .) | . == "", "1"))
+    .funs = list(~ replace(., is.na(x = .) | . == "", "1"))
   )
 
 # Summarise by Numerator and Denominator ----------------------------------
@@ -152,9 +152,11 @@ summary_tibble <-
 # Check for unique keys.
 key_tibble <-
   dplyr::select(.data = summary_tibble, .data$Design, .data$Numerator, .data$Denominator)
+
 duplicated_tibble <-
   summary_tibble[duplicated(x = key_tibble) |
-                   duplicated(x = key_tibble, fromLast = TRUE),]
+                   duplicated(x = key_tibble, fromLast = TRUE), ]
+
 if (nrow(x = duplicated_tibble)) {
   print(x = "Duplicated Design, Numerator and Denominator rows:")
   print(x = duplicated_tibble)
@@ -165,7 +167,7 @@ rm(duplicated_tibble, key_tibble)
 # then spread "Significant" values on the "Design" key.
 readr::write_tsv(
   x = tidyr::pivot_wider(
-    data = dplyr::select(.data = summary_tibble, -.data$Label),
+    data = dplyr::select(.data = summary_tibble,-.data$Label),
     names_from = .data$Design,
     values_from = .data$Significant
   ),
@@ -177,10 +179,13 @@ readr::write_tsv(
 
 
 # Check for unique keys.
-key_tibble <- dplyr::select(.data = summary_tibble, .data$Design, .data$Label)
+key_tibble <-
+  dplyr::select(.data = summary_tibble, .data$Design, .data$Label)
+
 duplicated_tibble <-
   summary_tibble[duplicated(x = key_tibble) |
-                   duplicated(x = key_tibble, fromLast = TRUE),]
+                   duplicated(x = key_tibble, fromLast = TRUE), ]
+
 if (nrow(x = duplicated_tibble)) {
   print(x = "Duplicated Design and Label rows:")
   print(x = duplicated_tibble)
@@ -191,7 +196,7 @@ rm(duplicated_tibble, key_tibble)
 # then spread "Significant" values on the "Design" key.
 readr::write_tsv(
   x = tidyr::pivot_wider(
-    data = dplyr::select(.data = summary_tibble, -.data$Numerator, -.data$Denominator),
+    data = dplyr::select(.data = summary_tibble,-.data$Numerator,-.data$Denominator),
     names_from = .data$Design,
     values_from = .data$Significant
   ),
@@ -199,7 +204,10 @@ readr::write_tsv(
   col_names = TRUE
 )
 
-rm(summary_tibble, output_directory, argument_list)
+rm(summary_tibble,
+   read_contrast_tibble,
+   output_directory,
+   argument_list)
 
 message("All done")
 
