@@ -640,10 +640,17 @@ bsfrd_read_sample_frame <-
             factor(x = as.character(x = mcols_dframe[, factor_name, drop = TRUE]),
                    levels = factor_list[[i]])
           # Check for NA values in case a factor level was missing.
-          if (any(is.na(x = mcols_dframe[, factor_name, drop = TRUE]))) {
-            stop("Missing values after assigning factor levels for factor name ",
-                 factor_name)
+          unassigned_logical <-
+            is.na(x = mcols_dframe[, factor_name, drop = TRUE])
+          if (any(unassigned_logical)) {
+            stop(
+              "Missing values after assigning factor levels for factor name ",
+              factor_name,
+              " and samples ",
+              paste(mcols_dframe[unassigned_logical, "sample", drop = TRUE], collapse = ", ")
+            )
           }
+          rm(unassigned_logical)
         } else {
           stop(
             "Factor name ",
