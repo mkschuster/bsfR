@@ -434,7 +434,7 @@ for (biotype in c("genes", "isoforms")) {
 }
 rm(biotype)
 
-for (i in seq_len(length.out = nrow(x = sample_tibble))) {
+for (i in seq_len(length.out = base::nrow(x = sample_tibble))) {
   message("  ", sample_tibble$sample_name[i])
 
   # Construct sample-specific prefixes for Cufflinks and Tophat directories.

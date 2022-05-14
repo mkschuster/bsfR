@@ -170,14 +170,14 @@ for (file_name in file_names) {
                            (picard_metrics_total$LIBRARY == "") &
                            (picard_metrics_total$READ_GROUP == ""),]
   combined_metrics_sample <-
-    rbind(combined_metrics_sample, picard_metrics_sample)
+    base::rbind(combined_metrics_sample, picard_metrics_sample)
   rm(picard_metrics_sample)
 
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP information.
   picard_metrics_read_group <-
     picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
   combined_metrics_read_group <-
-    rbind(combined_metrics_read_group, picard_metrics_read_group)
+    base::rbind(combined_metrics_read_group, picard_metrics_read_group)
   rm(picard_metrics_read_group)
 
   rm(sample_name, picard_metrics_total)
@@ -816,7 +816,7 @@ for (file_name in file_names) {
   }
 
   combined_metrics_sample <-
-    rbind(combined_metrics_sample, picard_metrics_sample)
+    base::rbind(combined_metrics_sample, picard_metrics_sample)
 
   rm(sample_name, picard_metrics_sample)
 }

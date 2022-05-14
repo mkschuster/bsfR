@@ -181,7 +181,7 @@ genes_tibble <-
 # If the tibble exists, test for NA values in the gene_id variable.
 missing_tibble <-
   dplyr::filter(.data = genes_tibble, is.na(x = .data$gene_id))
-if (nrow(x = missing_tibble) > 0L) {
+if (base::nrow(x = missing_tibble) > 0L) {
   print(x = "The following gene_name values could not be resolved into gene_id values:")
   print(x = missing_tibble)
 }
@@ -191,7 +191,7 @@ rm(missing_tibble)
 genes_tibble <-
   dplyr::filter(.data = genes_tibble,!is.na(x = .data$gene_id))
 
-for (i in seq_len(length.out = nrow(x = genes_tibble))) {
+for (i in seq_len(length.out = base::nrow(x = genes_tibble))) {
   for (graphics_format in graphics_formats) {
     # Create a (transformed) counts plot.
     file_path <-

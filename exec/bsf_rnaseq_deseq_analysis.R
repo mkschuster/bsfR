@@ -1400,11 +1400,11 @@ plot_pca <- function(object,
 
   message("Creating ", suffix, " PCA plots:")
 
-  # Calculate the variance for each gene.
+  # Calculate the variance for each row (i.e., gene).
   row_variance <-
     genefilter::rowVars(x = SummarizedExperiment::assay(x = object, i = 1L))
 
-  # Select the top number of genes by variance.
+  # Order by decreasing variance and select the top number of rows (i.e., genes).
   selected_rows <-
     order(row_variance, decreasing = TRUE)[seq_len(length.out = min(argument_list$pca_top_number, length(x = row_variance)))]
 
@@ -1805,7 +1805,7 @@ lrt_reduced_formula_test <-
         "full_formula" = global_design_list$full_formula,
         "reduced_name" = attr(x = reduced_formula_character, which = "reduced_name"),
         "reduced_formula" = reduced_formula_character,
-        "significant" = base::nrow(deseq_results_lrt_frame)
+        "significant" = base::nrow(x = deseq_results_lrt_frame)
       )
 
       rm(deseq_results_lrt_frame)

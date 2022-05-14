@@ -190,7 +190,7 @@ contrast_tibble <-
     summary = FALSE,
     verbose = argument_list$verbose
   )
-if (nrow(x = contrast_tibble) == 0L) {
+if (base::nrow(x = contrast_tibble) == 0L) {
   stop("No contrast remaining after selection for design name.")
 }
 
@@ -203,7 +203,7 @@ contrast_tibble <-
     SignificantDown = 0L
   )
 
-for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
+for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   contrast_list <-
     bsfR::bsfrd_get_contrast_list(contrast_tibble = contrast_tibble, index = contrast_index)
 

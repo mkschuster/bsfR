@@ -184,29 +184,33 @@ load_deseq_result_tibble <- function(contrast_character) {
   }
 
   message("Number of genes in total: ",
-          nrow(x = deseq_results_tibble))
+          base::nrow(x = deseq_results_tibble))
 
   # Importantly, NA values need removing.
   deseq_results_tibble <-
-    dplyr::filter(.data = deseq_results_tibble,!is.na(x = .data$padj))
+    dplyr::filter(.data = deseq_results_tibble, !is.na(x = .data$padj))
 
   message("Number of genes after NA removal: ",
-          nrow(x = deseq_results_tibble))
+          base::nrow(x = deseq_results_tibble))
 
   # Filter for the adjusted p-value threshold.
   deseq_results_tibble <-
     dplyr::filter(.data = deseq_results_tibble, .data$padj <= .env$argument_list$padj_threshold)
 
-  message("Number of genes after applying the padj threshold: ",
-          nrow(x = deseq_results_tibble))
+  message(
+    "Number of genes after applying the padj threshold: ",
+    base::nrow(x = deseq_results_tibble)
+  )
 
   # Filter for the absolute log2-fold change threshold.
   deseq_results_tibble <-
     dplyr::filter(.data = deseq_results_tibble,
                   abs(x = .data$log2FoldChange) >= .env$argument_list$l2fc_threshold)
 
-  message("Number of genes after applying the l2fc threshold: ",
-          nrow(x = deseq_results_tibble))
+  message(
+    "Number of genes after applying the l2fc threshold: ",
+    base::nrow(x = deseq_results_tibble)
+  )
 
   return(deseq_results_tibble)
 }
@@ -315,9 +319,9 @@ load_enrichr_results <-
 
         if ("gene_name" %in% base::names(x = enrichr_tibble)) {
           enrichr_tibble <-
-            dplyr::filter(.data = enrichr_tibble,!is.na(x = .data$gene_name))
+            dplyr::filter(.data = enrichr_tibble, !is.na(x = .data$gene_name))
 
-          if (nrow(x = enrichr_tibble) > 0L) {
+          if (base::nrow(x = enrichr_tibble) > 0L) {
             enrichr_result_list <-
               enrichR::enrichr(genes = enrichr_tibble$gene_name,
                                databases = enrichr_databases)
@@ -329,7 +333,7 @@ load_enrichr_results <-
         for (edb in enrichr_databases) {
           enrichr_result_tibble <-
             if (is.null(x = enrichr_result_list) ||
-                nrow(x = enrichr_result_list[[edb]]) == 0L) {
+                base::nrow(x = enrichr_result_list[[edb]]) == 0L) {
               # Initialise an empty Enrichr results tibble if no genes were filtered.
               tibble::tibble(
                 Term = character(),
@@ -412,7 +416,7 @@ nozzle_section_contrasts <-
 nozzle_section_enrichr <-
   Nozzle.R1::newSection("Enrichr Reports", class = Nozzle.R1::SECTION.CLASS.RESULTS)
 
-for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
+for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   contrast_character <-
     bsfR::bsfrd_get_contrast_character(contrast_tibble = contrast_tibble, index = contrast_index)
 
@@ -453,23 +457,26 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
                            enrichr_database = enrichr_databases[enrichr_index])
 
     result_tibble_up <- result_list$up
-    if (nrow(x = result_tibble_up) > 0L) {
+    if (base::nrow(x = result_tibble_up) > 0L) {
       result_tibble_up <-
         result_tibble_up[order(result_tibble_up$Combined.Score, decreasing = TRUE), , drop = FALSE]
       result_tibble_up <-
-        result_tibble_up[seq_len(length.out = min(nrow(x = result_tibble_up), argument_list$maximum_terms)), , drop = FALSE]
+        result_tibble_up[seq_len(length.out = min(
+          base::nrow(x = result_tibble_up),
+          argument_list$maximum_terms
+        )), , drop = FALSE]
       result_tibble_up$Direction <- "up"
     } else {
       result_tibble_up$Direction <- character(length = 0L)
     }
 
     result_tibble_down <- result_list$down
-    if (nrow(x = result_tibble_down) > 0L) {
+    if (base::nrow(x = result_tibble_down) > 0L) {
       result_tibble_down <-
         result_tibble_down[order(result_tibble_down$Combined.Score, decreasing = TRUE), , drop = FALSE]
       result_tibble_down <-
         result_tibble_down[seq_len(length.out = min(
-          nrow(x = result_tibble_down),
+          base::nrow(x = result_tibble_down),
           argument_list$maximum_terms
         )), , drop = FALSE]
       result_tibble_down$Direction <- "down"
@@ -481,7 +488,7 @@ for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
       dplyr::bind_rows(result_tibble_up, result_tibble_down)
     rm(result_tibble_up, result_tibble_down)
 
-    if (nrow(x = result_tibble) == 0L) {
+    if (base::nrow(x = result_tibble) == 0L) {
       rm(result_tibble, result_list)
       next()
     }

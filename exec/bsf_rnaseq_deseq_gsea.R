@@ -194,7 +194,7 @@ contrast_tibble <-
     verbose = argument_list$verbose
   )
 
-for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
+for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   contrast_character <-
     bsfR::bsfrd_get_contrast_character(contrast_tibble = contrast_tibble, index = contrast_index)
 

@@ -140,7 +140,7 @@ sample_frame <-
       full.names = TRUE
     )
   )
-if (nrow(x = sample_frame) == 0L) {
+if (base::nrow(x = sample_frame) == 0L) {
   stop("Could not find any files in the supplied directory.")
 }
 

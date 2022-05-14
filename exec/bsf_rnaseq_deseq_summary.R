@@ -157,7 +157,7 @@ duplicated_tibble <-
   summary_tibble[duplicated(x = key_tibble) |
                    duplicated(x = key_tibble, fromLast = TRUE), ]
 
-if (nrow(x = duplicated_tibble)) {
+if (base::nrow(x = duplicated_tibble)) {
   print(x = "Duplicated Design, Numerator and Denominator rows:")
   print(x = duplicated_tibble)
 }
@@ -186,7 +186,7 @@ duplicated_tibble <-
   summary_tibble[duplicated(x = key_tibble) |
                    duplicated(x = key_tibble, fromLast = TRUE), ]
 
-if (nrow(x = duplicated_tibble)) {
+if (base::nrow(x = duplicated_tibble)) {
   print(x = "Duplicated Design and Label rows:")
   print(x = duplicated_tibble)
 }

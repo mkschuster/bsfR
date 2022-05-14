@@ -213,7 +213,7 @@ ggplot_object <-
 # Scale the plot width with the number of samples, by adding a quarter of
 # the original width for each 24 samples.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = base::nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   ggplot2::ggsave(
     filename = file.path(
@@ -294,7 +294,7 @@ ggplot_object <-
 # Scale the plot width with the number of samples, by adding a quarter of
 # the original width for each 24 samples.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = base::nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   ggplot2::ggsave(
     filename = file.path(
@@ -376,7 +376,7 @@ ggplot_object <-
 # Scale the plot width with the number of samples, by adding a quarter of
 # the original width for each 24 samples.
 plot_width <-
-  argument_list$plot_width + (ceiling(x = nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+  argument_list$plot_width + (ceiling(x = base::nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
 for (graphics_format in graphics_formats) {
   ggplot2::ggsave(
     filename = file.path(

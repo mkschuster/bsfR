@@ -134,18 +134,19 @@ message("Number of metrics files: ", length(x = metrics_files))
 for (i in seq_along(along.with = metrics_files)) {
   message("Processing Picard report: ", metrics_files[i])
   picard_report <-
-    PicardMetricsFromFilePath(file_path = file.path(argument_list$directory_path, metrics_files[i]))
+    PicardReports::PicardMetricsFromFilePath(file_path = file.path(argument_list$directory_path, metrics_files[i]))
 
   # PicardBarcodeMetrics reports
 
   if (is(object = picard_report, class2 = "PicardBarcodeMetrics")) {
     # Increase the plot width per 24 samples.
     plot_width <-
-      argument_list$plot_width + (ceiling(x = nrow(x = metrics(object = picard_report)) / 24L) - 1L) * argument_list$plot_width * argument_list$plot_factor
+      argument_list$plot_width + (ceiling(x = base::nrow(x = PicardReports::metrics(object = picard_report)) / 24L) - 1L) * argument_list$plot_width * argument_list$plot_factor
 
     # Plot cluster *fractions* by sample.
 
-    ggplot_object <- plot_fractions(object = picard_report)
+    ggplot_object <-
+      PicardReports::plot_fractions(object = picard_report)
     for (graphics_format in graphics_formats) {
       ggplot2::ggsave(
         filename = file.path(
@@ -173,7 +174,8 @@ for (i in seq_along(along.with = metrics_files)) {
 
     # Plot cluster *numbers* by sample.
 
-    ggplot_object <- plot_numbers(object = picard_report)
+    ggplot_object <-
+      PicardReports::plot_numbers(object = picard_report)
     for (graphics_format in graphics_formats) {
       ggplot2::ggsave(
         filename = file.path(
@@ -210,8 +212,8 @@ for (i in seq_along(along.with = metrics_files)) {
     )
 
     plot_object <-
-      plot_cluster_numbers(object = picard_report,
-                           name = file_prefix)
+      PicardReports::plot_cluster_numbers(object = picard_report,
+                                          name = file_prefix)
 
     for (graphics_format in graphics_formats) {
       ggplot2::ggsave(

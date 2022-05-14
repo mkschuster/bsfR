@@ -196,7 +196,7 @@ if (!is.null(x = argument_list$gene_path)) {
   # If the tibble exists, test for NA values.
   missing_tibble <-
     dplyr::filter(.data = plot_annotation_tibble, is.na(x = .data$gene_id))
-  if (nrow(x = missing_tibble) > 0L) {
+  if (base::nrow(x = missing_tibble) > 0L) {
     print(x = "The following genes_name values could not be resolved into gene_id values:")
     print(x = missing_tibble)
   }
@@ -212,7 +212,7 @@ contrast_tibble <-
     design_name = argument_list$design_name,
     verbose = argument_list$verbose
   )
-if (nrow(x = contrast_tibble) == 0L) {
+if (base::nrow(x = contrast_tibble) == 0L) {
   stop("No contrast remaining after selection for design name.")
 }
 
@@ -402,7 +402,7 @@ draw_enhanced_volcano <-
     return(nozzle_section_list)
   }
 
-for (contrast_index in seq_len(length.out = nrow(x = contrast_tibble))) {
+for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   contrast_character <-
     bsfR::bsfrd_get_contrast_character(contrast_tibble = contrast_tibble, index = contrast_index)
   label_character <- contrast_tibble$Label[contrast_index]
