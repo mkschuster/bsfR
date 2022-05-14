@@ -312,7 +312,7 @@ draw_complex_heatmap <-
         scale = TRUE
       ))
 
-      # After centring, rows with identical values are set to 0.0 and for scaling
+      # After centering, rows with identical values are set to 0.0 and for scaling
       # divided by a standard deviation of 0.0 leading to NaN values.
       # Replace those with a z-score of 0.0 for plotting.
       scaled_matrix[is.nan(x = scaled_matrix)] <- 0.0
