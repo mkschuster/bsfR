@@ -249,185 +249,6 @@ if (!file.exists(output_directory)) {
              recursive = FALSE)
 }
 
-# Initialise a RangedSummarizedExperiment object --------------------------
-
-
-#' Initialise a RangedSummarizedExperiment Object.
-#'
-#' Initialise or load a \code{SummarizedExperiment::RangedSummarizedExperiment}
-#' object.
-#'
-#' @param design_list A named \code{list} of design information.
-#' @references argument_list
-#' @references output_directory
-#' @references prefix
-#'
-#' @return A \code{SummarizedExperiment::RangedSummarizedExperiment} object.
-#'
-#' @examples
-#' \dontrun{
-#' ranged_summarized_experiment <-
-#'   initialise_ranged_summarized_experiment(design_list = design_list)
-#' }
-#' @noRd
-initialise_ranged_summarized_experiment <- function(design_list) {
-  # Load a pre-existing SummarizedExperiment::RangedSummarizedExperiment object
-  # or create it by counting BAM files.
-  ranged_summarized_experiment <- NULL
-
-  file_path <-
-    file.path(output_directory,
-              paste0(prefix, "_ranged_summarized_experiment.rds"))
-  if (file.exists(file_path) &&
-      file.info(file_path)$size > 0L) {
-    message("Loading a RangedSummarizedExperiment object")
-    ranged_summarized_experiment <- base::readRDS(file = file_path)
-  } else {
-    sample_dframe <-
-      bsfR::bsfrd_read_sample_frame(
-        genome_directory = argument_list$genome_directory,
-        design_name = argument_list$design_name,
-        factor_levels = design_list$factor_levels,
-        verbose = argument_list$verbose
-      )
-
-    message("Reading reference GTF exon features")
-    # The DESeq2 and RNA-seq vignettes suggest using TxDB objects, but for the moment,
-    # we need extra annotation provided by Ensembl GTF files.
-    exon_granges <-
-      rtracklayer::import(
-        con = argument_list$gtf_reference,
-        format = "gtf",
-        genome = argument_list$genome_version,
-        feature.type = "exon"
-      )
-    # Convert (i.e. split) the GenomicRanges::GRanges object into a
-    # GenomicRanges::GRangesList object by gene identifiers.
-    gene_granges_list <-
-      GenomicRanges::split(x = exon_granges,
-                           f = S4Vectors::mcols(x = exon_granges)$gene_id)
-
-    # Process per library_type and sequencing_type and merge the
-    # SummarizedExperiment::RangedSummarizedExperiment objects.
-
-    for (library_type in levels(x = sample_dframe$library_type)) {
-      for (sequencing_type in levels(x = sample_dframe$sequencing_type)) {
-        message(
-          "Processing library_type: ",
-          library_type,
-          " sequencing_type: ",
-          sequencing_type
-        )
-        sub_sample_dframe <-
-          sample_dframe[(sample_dframe$library_type == library_type) &
-                          (sample_dframe$sequencing_type == sequencing_type), , drop = FALSE]
-
-        if (S4Vectors::nrow(x = sub_sample_dframe) == 0L) {
-          rm(sub_sample_dframe)
-          next()
-        }
-
-        # Create a BamFileList object and set the samples as names.
-        message("Creating a BamFileList object")
-        bam_file_list <- Rsamtools::BamFileList(
-          file = as.character(x = sub_sample_dframe$bam_path),
-          index = as.character(x = sub_sample_dframe$bai_path),
-          yieldSize = 2000000L,
-          asMates = (sequencing_type == "PE")
-        )
-        # If a "run" variable is defined, technical replicates need collapsing
-        # and the "sample" variable has duplicate values. Hence, use "run"
-        # instead of "sample" for naming.
-        if ("run" %in% S4Vectors::colnames(x = sub_sample_dframe)) {
-          names(x = bam_file_list) <-
-            as.character(x = sub_sample_dframe$run)
-        } else {
-          names(x = bam_file_list) <-
-            as.character(x = sub_sample_dframe$sample)
-        }
-
-        message("Creating a RangedSummarizedExperiment object")
-        sub_ranged_summarized_experiment <-
-          GenomicAlignments::summarizeOverlaps(
-            features = gene_granges_list,
-            reads = bam_file_list,
-            mode = "Union",
-            ignore.strand = (library_type == "unstranded"),
-            # Exclude reads that represent secondary alignments or fail the vendor quality filter.
-            param = Rsamtools::ScanBamParam(
-              flag = Rsamtools::scanBamFlag(
-                isSecondaryAlignment = FALSE,
-                isNotPassingQualityControls = FALSE
-              )
-            ),
-            # Invert the strand for protocols that sequence the second strand.
-            preprocess.reads = if (library_type == "second")
-              GenomicAlignments::invertStrand
-          )
-        SummarizedExperiment::colData(x = sub_ranged_summarized_experiment) <-
-          sub_sample_dframe
-        # Combine SummarizedExperiment::RangedSummarizedExperiment objects with
-        # the same GenomicRanges::GRanges, but different samples via
-        # SummarizedExperiment::cbind().
-        if (is.null(x = ranged_summarized_experiment)) {
-          ranged_summarized_experiment <- sub_ranged_summarized_experiment
-        } else {
-          ranged_summarized_experiment <-
-            SummarizedExperiment::cbind(ranged_summarized_experiment,
-                                        sub_ranged_summarized_experiment)
-        }
-        rm(sub_ranged_summarized_experiment,
-           sub_sample_dframe,
-           bam_file_list)
-      }
-      rm(sequencing_type)
-    }
-    rm(library_type)
-
-    # Collapse technical replicates if variable "run" is defined.
-    sample_dframe <-
-      SummarizedExperiment::colData(x = ranged_summarized_experiment)
-
-    if ("run" %in% S4Vectors::colnames(x = sample_dframe)) {
-      message("Collapsing technical replicates.")
-      # To avoid mismatching column and row names between assay matrices and the
-      # column data annotation, variables "sample" and "run" should be used. So
-      # set the original samples as runs and rename the collapsed_sample
-      # variable into the sample variable.
-      ranged_summarized_experiment <- DESeq2::collapseReplicates(
-        object = ranged_summarized_experiment,
-        groupby = sample_dframe$sample,
-        run = sample_dframe$run,
-        renameCols = TRUE
-      )
-    }
-    rm(sample_dframe)
-
-    # Calculate colSums() of SummarizedExperiment::assays()$counts and add as
-    # total_count into the SummarizedExperiment::colData() S4Vectors::DataFrame.
-    sample_dframe <-
-      SummarizedExperiment::colData(x = ranged_summarized_experiment)
-
-    sample_dframe$total_counts <-
-      base::colSums(
-        x = SummarizedExperiment::assays(x = ranged_summarized_experiment)$counts,
-        na.rm = TRUE
-      )
-
-    SummarizedExperiment::colData(x = ranged_summarized_experiment) <-
-      sample_dframe
-
-    rm(gene_granges_list,
-       exon_granges,
-       sample_dframe)
-
-    base::saveRDS(object = ranged_summarized_experiment, file = file_path)
-  }
-  rm(file_path)
-
-  return(ranged_summarized_experiment)
-}
-
 # Initialise a DESeqDataSet object ----------------------------------------
 
 
@@ -443,7 +264,7 @@ initialise_ranged_summarized_experiment <- function(design_list) {
 #' @examples
 #' \dontrun{
 #' model_matrix
-#'   <- fix_model_matrix(model_matrix = model_matrix)
+#'   <- fix_model_matrix(model_matrix_local = model_matrix)
 #' }
 #' @noRd
 fix_model_matrix <- function(model_matrix_local) {
@@ -588,12 +409,17 @@ initialise_deseq_data_set <- function(design_list) {
     deseq_data_set <- base::readRDS(file = file_path)
   } else {
     ranged_summarized_experiment <-
-      initialise_ranged_summarized_experiment(design_list = design_list)
+      bsfR::bsfrd_initialise_rse(
+        genome_directory = argument_list$genome_directory,
+        design_list = design_list,
+        gtf_path = argument_list$gtf_reference,
+        genome_version = argument_list$genome_version,
+        verbose = argument_list$verbose)
 
-    # Create a model matrix based on the model formula and column (sample annotation) data
-    # and check whether it is full rank.
+    # Create a model matrix based on the model formula and column (sample
+    # annotation) data and check whether it is full rank.
     model_matrix <- stats::model.matrix.default(
-      object = as.formula(object = design_list$full_formula),
+      object = stats::as.formula(object = design_list$full_formula),
       data = SummarizedExperiment::colData(x = ranged_summarized_experiment)
     )
 
@@ -632,7 +458,7 @@ initialise_deseq_data_set <- function(design_list) {
       message("Creating a DESeqDataSet object with a model formula")
       deseq_data_set <-
         DESeq2::DESeqDataSet(se = ranged_summarized_experiment,
-                             design = as.formula(object = design_list$full_formula))
+                             design = stats::as.formula(object = design_list$full_formula))
 
       # Start DESeq2 Wald testing.
       #
@@ -1818,7 +1644,7 @@ lrt_reduced_formula_test <-
       # DESeq LRT requires either two model formulas or two model matrices.
       # Create a reduced model matrix and check whether it is full rank.
       formula_full <-
-        as.formula(object = global_design_list$full_formula)
+        stats::as.formula(object = global_design_list$full_formula)
 
       result_list_full <-
         check_model_matrix(
@@ -1829,7 +1655,7 @@ lrt_reduced_formula_test <-
         )
 
       formula_reduced <-
-        as.formula(object = reduced_formula_character)
+        stats::as.formula(object = reduced_formula_character)
 
       model_matrix_reduced <-
         stats::model.matrix.default(object = formula_reduced,
@@ -2196,8 +2022,7 @@ rm(
   initialise_deseq_transform,
   initialise_deseq_data_set,
   check_model_matrix,
-  fix_model_matrix,
-  initialise_ranged_summarized_experiment
+  fix_model_matrix
 )
 
 message("All done")

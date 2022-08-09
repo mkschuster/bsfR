@@ -134,9 +134,9 @@ if (!file.exists(output_directory)) {
 # Read the RangedSummarizedExperiment object to get the total counts.
 
 ranged_summarized_experiment <-
-  bsfR::bsfrd_read_summarized_experiment(
+  bsfR::bsfrd_initialise_rse(
     genome_directory = argument_list$genome_directory,
-    design_name = argument_list$design_name,
+    design_list = list("design" = argument_list$design_name),
     verbose = argument_list$verbose
   )
 

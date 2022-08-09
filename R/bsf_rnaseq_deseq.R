@@ -82,7 +82,8 @@ bsfrd_get_prefix_enrichr <- function(design_name) {
 #'
 #' @param design_name A \code{character} scalar with the design name.
 #'
-#' @return A \code{character} scalar with the \code{DESeq2} Gene Ontology prefix.
+#' @return A \code{character} scalar with the \code{DESeq2} Gene Ontology
+#'   prefix.
 #' @export
 #'
 #' @examples
@@ -156,8 +157,10 @@ bsfrd_get_prefix_volcano <- function(design_name) {
 #' Contrast \code{tbl_df}:
 #' \describe{
 #' \item{Design}{A \code{character} with the design name.}
-#' \item{Numerator}{A \code{character} with the numerator as of \code{DESeq2::resultNames()}.}
-#' \item{Denominator}{A \code{character} with the denominator as of \code{DESeq2::resultNames()}.}
+#' \item{Numerator}{A \code{character} with the numerator as of
+#' \code{DESeq2::resultNames()}.}
+#' \item{Denominator}{A \code{character} with the denominator as of
+#' \code{DESeq2::resultNames()}.}
 #' \item{Label}{A \code{character} with a human-readable label.}
 #' \item{Exclude}{A \code{logical} to exclude the design from reporting.}
 #' }
@@ -165,8 +168,8 @@ bsfrd_get_prefix_volcano <- function(design_name) {
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
 #' @param design_name A \code{character} scalar with the design name.
-#' @param summary A \code{logical} scalar to load a contrast summary rather than
-#'   a contrast \code{tbl_df}.
+#' @param summary A \code{logical} scalar to load a contrast summary rather
+#'   than a contrast \code{tbl_df}.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A \code{tbl_df} with contrast information.
@@ -336,13 +339,15 @@ bsfrd_get_contrast_character <- function(contrast_tibble, index) {
 #'
 #' Design tibble:
 #' \describe{
-#' \item{design}{A \code{character} with the design name.}
-#' \item{exclude}{A \code{logical} to exclude the design from reporting.}
-#' \item{full_formula}{A \code{character} with the full model formula.}
-#' \item{reduced_formulas}{A \code{character} with a comma-separated list of reduced model formulas.}
-#' \item{factor_levels}{A \code{character} with semicolon-separated factors and their levels.
+#' \item{design}{A \code{character} vector with design names.}
+#' \item{exclude}{A \code{logical} vector to exclude designs from reporting.}
+#' \item{full_formula}{A \code{character} vector with full model formulas.}
+#' \item{reduced_formulas}{A \code{character} vector with comma-separated
+#' reduced model formulas.}
+#' \item{factor_levels}{A \code{character} vector with semicolon-separated
+#' factors and their levels.
 #' e.g. factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"}
-#' \item{plot_aes}{A \code{character} with \code{ggplot2} aesthetics.}
+#' \item{plot_aes}{A \code{character} vector with \code{ggplot2} aesthetics.}
 #' }
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
@@ -397,8 +402,9 @@ bsfrd_read_design_tibble <-
 
 #' Read a DESeq2 Design List.
 #'
-#' Read a \code{DESeq2} analysis design \code{tbl_df} from a tab-separated value file,
-#' automatically sub-set to a particular design and return as a named \code{list}.
+#' Read a \code{DESeq2} analysis design \code{tbl_df} from a tab-separated value
+#' file, automatically sub-set to a particular design and return as a named
+#' \code{list}.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory.
 #'   path.
@@ -407,13 +413,15 @@ bsfrd_read_design_tibble <-
 #'
 #' @return A named \code{list} with design information.
 #' \describe{
-#' \item{design}{A \code{character} with the design name.}
-#' \item{exclude}{A \code{logical} to exclude the design from reporting.}
-#' \item{full_formula}{A \code{character} with the full model formula.}
-#' \item{reduced_formulas}{A \code{character} with a comma-separated list of reduced model formulas.}
-#' \item{factor_levels}{A \code{character} with semicolon-separated factors and their levels.
+#' \item{design}{A \code{character} scalar with the design name.}
+#' \item{exclude}{A \code{logical} scalar to exclude the design from reporting.}
+#' \item{full_formula}{A \code{character} scalar with the full model formula.}
+#' \item{reduced_formulas}{A \code{character} scalar with comma-separated
+#' reduced model formulas.}
+#' \item{factor_levels}{A \code{character} scalar with semicolon-separated
+#' factors and their levels.
 #' e.g. factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"}
-#' \item{plot_aes}{A \code{character} with \code{ggplot2} aesthetics.}
+#' \item{plot_aes}{A \code{character} scalar with \code{ggplot2} aesthetics.}
 #' }
 #' @export
 #'
@@ -460,25 +468,106 @@ bsfrd_read_design_list <-
 #' }
 .bsfrd_process_factor_specification <-
   function(factor_specification) {
-    # Split the second component of factor_specification, the factor levels, on ",".
+    # Split the second component of factor_specification, the factor levels, on
+    # ",".
     factor_levels <-
       stringr::str_split(string = factor_specification[2L],
                          pattern = stringr::fixed(pattern = ","))[[1L]]
 
-    # Set the first component of factor_specification, the factor name, as attribute.
+    # Set the first component of factor_specification, the factor name, as
+    # attribute.
     attr(x = factor_levels, which = "factor_name") <-
       factor_specification[1L]
 
     return(factor_levels)
   }
 
+#' Apply a Factor Specification to a Sample DataFrame.
+#'
+#' @param mcols_dframe A \code{S4Vectors::DataFrame}.
+#' @param factor_levels A \code{character} scalar with a factor level
+#' specification (e.g., "factor_1:level_1,level_2;factor_2:level_A,level_B").
+#'
+#' @return A \code{S4Vectors::DataFrame}.
+#' @noRd
+#'
+#' @examples
+#' \dontrun{
+#'   sample_dframe <-
+#'     .bsfrd_apply_factor_specification(
+#'       mcols_dframe = mcold_dframe,
+#'       factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"
+#'     )
+#' }
+.bsfrd_apply_factor_specification <-
+  function(mcols_dframe, factor_levels = NULL) {
+    if (is.null(x = factor_levels)) {
+      return(mcols_dframe)
+    }
+
+    # The "factor_levels" variable of the design DataFrame specifies the order
+    # of factor levels.
+    #
+    # factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"
+    #
+    # Turn the factor_levels character scalar into a list of character vectors
+    # by splitting factor specifications by ";" then factor names and levels by
+    # ":" characters. Set the factor names  as "factor_name" attribute of the
+    # character vectors of factor levels list components.
+
+    factor_list <- purrr::map(
+      .x = stringr::str_split(
+        string = stringr::str_split(
+          string = factor_levels[1L],
+          pattern = stringr::fixed(pattern = ";")
+        )[[1L]],
+        pattern = stringr::fixed(pattern = ":")
+      ),
+      .f = .bsfrd_process_factor_specification
+    )
+
+    # Apply the factor levels to each factor on the specification list.
+
+    for (i in seq_along(along.with = factor_list)) {
+      factor_name <- attr(x = factor_list[[i]], which = "factor_name")
+      if (!is.na(x = factor_name) && factor_name != "") {
+        if (factor_name %in% S4Vectors::colnames(x = mcols_dframe)) {
+          mcols_dframe[, factor_name] <-
+            factor(x = as.character(x = mcols_dframe[, factor_name, drop = TRUE]),
+                   levels = factor_list[[i]])
+          # Check for NA values in case a factor level was missing.
+          unassigned_logical <-
+            is.na(x = mcols_dframe[, factor_name, drop = TRUE])
+          if (any(unassigned_logical)) {
+            stop(
+              "Missing values after assigning factor levels for factor name ",
+              factor_name,
+              " and samples ",
+              paste(mcols_dframe[unassigned_logical, "sample", drop = TRUE], collapse = ", ")
+            )
+          }
+          rm(unassigned_logical)
+        } else {
+          stop(
+            "Factor name ",
+            factor_name,
+            " does not resemble a variable of the sample annotation DataFrame."
+          )
+        }
+      }
+      rm(factor_name)
+    }
+    rm(i, factor_list)
+
+    return(mcols_dframe)
+  }
+
 #' Read a DESeq2 Sample Annotation DataFrame.
 #'
 #' Read a \code{DESeq2} analysis sample annotation \code{S4Vectors::DataFrame}
 #' from a tab-separated value file, select only those samples that match the
-#' \code{design_name} and re-level \code{factor} vectors according to the
-#' \code{factor_level} specification or the design \code{list}, automatically
-#' loaded via \code{bsfR::bsfrd_read_design_list()}.
+#' \code{design_list$design} and re-level \code{factor} vectors according to the
+#' \code{design_list$factor_level} specification.
 #'
 #' Sample DataFrame:
 #' \describe{
@@ -507,9 +596,13 @@ bsfrd_read_design_list <-
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
-#' @param design_name A \code{character} scalar with the design name.
-#' @param factor_levels A \code{character} vector with a packed string to assign
-#'   factor levels. If \code{NULL} will be read via \code{bsfR::bsfrd_read_design_list()}.
+#' @param design_list A named \code{list} with design information.
+#' \describe{
+#' \item{design}{A \code{character} scalar with the design name.}
+#' \item{factor_levels}{A \code{character} scalar with semicolon-separated
+#' factors and their levels.
+#' e.g. factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"}
+#' }
 #' @param verbose A \code{logical} scalar to emit messages.
 #' @return A \code{S4Vectors::DataFrame} with sample annotation.
 #' @export
@@ -517,34 +610,21 @@ bsfrd_read_design_list <-
 #' @examples
 #' \dontrun{
 #'  sample_dframe <-
-#'    bsfrd_read_sample_frame(
+#'    bsfrd_read_sample_dframe(
 #'      genome_directory = genome_directory,
-#'      design_name = design_name,
-#'      factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B",
+#'      design_list = list(
+#'        design = "global",
+#'        factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"
+#'      ),
 #'      verbose = TRUE
 #'    )
 #' }
-bsfrd_read_sample_frame <-
+bsfrd_read_sample_dframe <-
   function(genome_directory,
-           design_name,
-           factor_levels = NULL,
+           design_list,
            verbose = FALSE) {
     prefix_deseq <-
-      bsfrd_get_prefix_deseq(design_name = design_name)
-
-    # If factor_levels is not defined, it can be read from the design_list.
-    if (is.null(x = factor_levels)) {
-      design_list <-
-        bsfR::bsfrd_read_design_list(
-          genome_directory = genome_directory,
-          design_name = design_name,
-          verbose = verbose
-        )
-
-      factor_levels <- design_list$factor_levels
-
-      rm(design_list)
-    }
+      bsfrd_get_prefix_deseq(design_name = design_list$design)
 
     # Read the BSF Python sample TSV file as a data.frame and convert into a
     # S4Vectors::DataFrame. Import strings as factors and cast to character
@@ -579,7 +659,7 @@ bsfrd_read_sample_frame <-
           string = as.character(x = mcols_dframe$designs),
           pattern = stringr::fixed(pattern = ",")
         ),
-        .f = ~ design_name %in% .
+        .f = ~ design_list$design %in% .
       )
 
     mcols_dframe <- mcols_dframe[index_logical, , drop = FALSE]
@@ -592,91 +672,66 @@ bsfrd_read_sample_frame <-
 
     # The sequencing_type and library_type variables are required to set options
     # for the GenomicAlignments::summarizeOverlaps() read counting function.
-
-    if (!"sequencing_type" %in% S4Vectors::colnames(x = mcols_dframe)) {
-      stop("A sequencing_type variable is missing from the sample annotation DataFrame.")
-    }
+    # Check that they only contain allowed levels and then re-level.
 
     if (!"library_type" %in% S4Vectors::colnames(x = mcols_dframe)) {
       stop("A library_type variable is missing from the sample annotation DataFrame.")
     }
 
-    # Re-level the library_type and sequencing_type variables.
+    library_type_levels <- c("unstranded", "first", "second")
+
+    if (!all(mcols_dframe$library_type %in% library_type_levels)) {
+      stop("The library_type variable contains values other than unstranded, first or second.")
+    }
+
     mcols_dframe$library_type <-
       factor(x = mcols_dframe$library_type,
-             levels = c("unstranded", "first", "second"))
+             levels = library_type_levels)
+
+    rm(library_type_levels)
+
+    if (!"sequencing_type" %in% S4Vectors::colnames(x = mcols_dframe)) {
+      stop("A sequencing_type variable is missing from the sample annotation DataFrame.")
+    }
+
+    sequencing_type_levels <- c("SE", "PE")
+
+    if (!all(mcols_dframe$sequencing_type %in% sequencing_type_levels)) {
+      stop("The sequencing_type variable contains values other than PE, or SE.")
+    }
 
     mcols_dframe$sequencing_type <-
       factor(x = mcols_dframe$sequencing_type,
-             levels = c("SE", "PE"))
+             levels = sequencing_type_levels)
 
-    # The "factor_levels" variable of the design DataFrame specifies the order
-    # of factor levels.
-    #
-    # factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"
-    #
-    # Turn the factor_levels character scalar into a list of character vectors
-    # by splitting factor specifications by ";" then factor names and levels by
-    # ":" characters. Set the factor names  as "factor_name" attribute of the
-    # character vectors of factor levels list components.
-    factor_list <- purrr::map(
-      .x = stringr::str_split(
-        string = stringr::str_split(
-          string = factor_levels[1L],
-          pattern = stringr::fixed(pattern = ";")
-        )[[1L]],
-        pattern = stringr::fixed(pattern = ":")
-      ),
-      .f = .bsfrd_process_factor_specification
-    )
+    rm(sequencing_type_levels)
 
-    # Apply the factor levels to each factor.
-    design_variables <- S4Vectors::colnames(x = mcols_dframe)
-    for (i in seq_along(along.with = factor_list)) {
-      factor_name <- attr(x = factor_list[[i]], which = "factor_name")
-      if (!is.na(x = factor_name) && factor_name != "") {
-        if (factor_name %in% design_variables) {
-          mcols_dframe[, factor_name] <-
-            factor(x = as.character(x = mcols_dframe[, factor_name, drop = TRUE]),
-                   levels = factor_list[[i]])
-          # Check for NA values in case a factor level was missing.
-          unassigned_logical <-
-            is.na(x = mcols_dframe[, factor_name, drop = TRUE])
-          if (any(unassigned_logical)) {
-            stop(
-              "Missing values after assigning factor levels for factor name ",
-              factor_name,
-              " and samples ",
-              paste(mcols_dframe[unassigned_logical, "sample", drop = TRUE], collapse = ", ")
-            )
-          }
-          rm(unassigned_logical)
-        } else {
-          stop(
-            "Factor name ",
-            factor_name,
-            " does not resemble a variable of the design DataFrame."
-          )
-        }
-      }
-      rm(factor_name)
+    if (!is.null(x = design_list$factor_levels)) {
+      mcols_dframe <-
+        .bsfrd_apply_factor_specification(mcols_dframe = mcols_dframe,
+                                          factor_levels = design_list$factor_levels)
     }
-    rm(i, design_variables, factor_list)
 
     # Drop any unused levels from the sample DataFrame before returning it.
-    return(droplevels(x = mcols_dframe))
+    return(S4Vectors::droplevels(x = mcols_dframe))
   }
 
-#' Read a RangedSummarizedExperiment Object.
+#' Read or initialise a RangedSummarizedExperiment Object.
 #'
 #' Read a pre-calculated \code{SummarizedExperiment::RangedSummarizedExperiment}
 #' object or initialise it from a sample annotation sheet loaded via
-#' \code{bsfR::bsfrd_read_sample_frame()}, the \code{gtf_path} and
+#' \code{bsfR::bsfrd_read_sample_dframe()}, the \code{gtf_path} and
 #' \code{genome_version}.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
-#' @param design_name A \code{character} scalar with the design name.
+#' @param design_list A named \code{list} with design information.
+#' \describe{
+#' \item{design}{A \code{character} scalar with the design name.}
+#' \item{factor_levels}{A \code{character} scalar with semicolon-separated
+#' factors and their levels.
+#' e.g. factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"}
+#' }
 #' @param gtf_path A \code{character} scalar with the reference transcriptome
 #'   GTF file path. Only required, if the
 #'   \code{SummarizedExperiment::RangedSummarizedExperiment} object needs
@@ -693,25 +748,28 @@ bsfrd_read_sample_frame <-
 #'
 #' @examples
 #' \dontrun{
-#'  bsfrd_read_summarized_experiment <-
-#'    bsfrd_read_summarized_experiment(
+#'  ranged_summarized_experiment <-
+#'    bsfrd_initialise_rse(
 #'      genome_directory = genome_directory,
-#'      design_name = "global",
+#'      design_list = list(
+#'        design = "global",
+#'        factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"
+#'      ),
 #'      gtf_path = "Homo_sapiens.e100.gtf.gz",
 #'      genome_version = "hg38",
 #'      verbose = FALSE
 #'    )
 #' }
-bsfrd_read_summarized_experiment <-
+bsfrd_initialise_rse <-
   function(genome_directory,
-           design_name,
+           design_list,
            gtf_path = NULL,
            genome_version = NULL,
            verbose = FALSE) {
     ranged_summarized_experiment <- NULL
 
     prefix_deseq <-
-      bsfrd_get_prefix_deseq(design_name = design_name)
+      bsfrd_get_prefix_deseq(design_name = design_list$design)
 
     file_path <-
       file.path(
@@ -732,10 +790,9 @@ bsfrd_read_summarized_experiment <-
       # Get a S4Vectors::DataFrame with sample annotation.
 
       sample_dframe <-
-        bsfR::bsfrd_read_sample_frame(
+        bsfR::bsfrd_read_sample_dframe(
           genome_directory = genome_directory,
-          design_name = design_name,
-          factor_levels = NULL,
+          design_list = design_list,
           verbose = verbose
         )
 
@@ -768,9 +825,9 @@ bsfrd_read_summarized_experiment <-
         for (sequencing_type in levels(x = sample_dframe$sequencing_type)) {
           if (verbose) {
             message(
-              "Processing library_type: ",
+              "Processing library_type ",
               library_type,
-              " sequencing_type: ",
+              " and sequencing_type: ",
               sequencing_type
             )
           }
@@ -819,7 +876,8 @@ bsfrd_read_summarized_experiment <-
               reads = bam_file_list,
               mode = "Union",
               ignore.strand = (library_type == "unstranded"),
-              # Exclude reads that represent secondary alignments or fail the vendor quality filter.
+              # Exclude reads that represent secondary alignments or fail the
+              # vendor quality filter.
               param = Rsamtools::ScanBamParam(
                 flag = Rsamtools::scanBamFlag(
                   isSecondaryAlignment = FALSE,
@@ -954,7 +1012,8 @@ bsfrd_read_deseq_data_set <-
 
 #' Read a DESeqTransform Object.
 #'
-#' Read a previously saved "blind" or "model" \code{DESeq2::DESeqTransform} object.
+#' Read a previously saved "blind" or "model" \code{DESeq2::DESeqTransform}
+#' object.
 #'
 #' @param genome_directory A \code{character} scalar with the genome directory
 #'   path.
@@ -1133,7 +1192,8 @@ bsfrd_read_deseq_results <-
 #' @param contrast_character A \code{character} scalar specifying the contrast.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
-#' @return A \code{tbl_df} of \code{DESeq2::DESeqResults} for a particular contrast.
+#' @return A \code{tbl_df} of \code{DESeq2::DESeqResults} for a particular
+#'   contrast.
 #' @export
 #'
 #' @examples
@@ -1213,7 +1273,8 @@ bsfrd_read_result_tibble <-
             "baseMean" = readr::col_double(),
             "log2FoldChange" = readr::col_double(),
             "lfcSE" = readr::col_double(),
-            # "stat" = readr::col_double(), # No longer available after lfcShrink().
+            # The "stat" variable is no longer available after lfcShrink().
+            # "stat" = readr::col_double(),
             "pvalue" = readr::col_double(),
             "padj" = readr::col_double(),
             "significant" = readr::col_character(),
@@ -1403,7 +1464,9 @@ bsfrd_read_annotation_tibble <-
       gtf_variables <-
         variable_names %in% S4Vectors::colnames(x = S4Vectors::mcols(x = granges_object))
 
-      # NOTE: For the moment, do not exclude any (additional) variables, just select all of them.
+      # NOTE: For the moment, do not exclude any (additional) variables, just
+      # select all of them.
+
       mcols_dframe <-
         S4Vectors::mcols(x = granges_object)
       # S4Vectors::mcols(x = granges_object)[, variable_names[gtf_variables], drop = FALSE]
@@ -1644,7 +1707,8 @@ bsfrd_read_gene_set_tibble <-
   # Split the character vector with multiple plot specifications on ";"
   # characters into single plot specifications. Split each plot specification
   # into two-component character vectors with geometric [1L] and aesthetic [2L]
-  # information. The resulting list contains a single component named by the geometric.
+  # information. The resulting list contains a single component named by the
+  # geometric.
   single_geom_aes_list <- purrr::map(
     .x = stringr::str_split(
       string = stringr::str_split(
