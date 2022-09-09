@@ -33,9 +33,9 @@
 #'
 #' Get a design-specific \code{DESeq2} analysis prefix.
 #'
-#' @param design_name A \code{character} scalar with the design name.
+#' @param design_name A \code{character} scalar with a design name.
 #'
-#' @return A \code{character} scalar with the \code{DESeq2} analysis prefix.
+#' @return A \code{character} scalar with a \code{DESeq2} analysis prefix.
 #' @export
 #'
 #' @examples
@@ -56,9 +56,9 @@ bsfrd_get_prefix_deseq <- function(design_name) {
 #'
 #' Get a design-specific \code{DESeq2} analysis Enrichr prefix.
 #'
-#' @param design_name A \code{character} scalar with the design name.
+#' @param design_name A \code{character} scalar with a design name.
 #'
-#' @return A \code{character} scalar with the \code{DESeq2} Enrichr prefix.
+#' @return A \code{character} scalar with a \code{DESeq2} Enrichr prefix.
 #' @export
 #'
 #' @examples
@@ -80,9 +80,9 @@ bsfrd_get_prefix_enrichr <- function(design_name) {
 #'
 #' Get a design-specific \code{DESeq2} analysis Gene Ontology prefix.
 #'
-#' @param design_name A \code{character} scalar with the design name.
+#' @param design_name A \code{character} scalar with a design name.
 #'
-#' @return A \code{character} scalar with the \code{DESeq2} Gene Ontology
+#' @return A \code{character} scalar with a \code{DESeq2} Gene Ontology
 #'   prefix.
 #' @export
 #'
@@ -105,9 +105,9 @@ bsfrd_get_prefix_go <- function(design_name) {
 #'
 #' Get a design-specific \code{DESeq2} analysis heat map prefix.
 #'
-#' @param design_name A \code{character} scalar with the design name.
+#' @param design_name A \code{character} scalar with a design name.
 #'
-#' @return A \code{character} scalar with the \code{DESeq2} heat map prefix.
+#' @return A \code{character} scalar with a \code{DESeq2} heat map prefix.
 #' @export
 #'
 #' @examples
@@ -129,9 +129,9 @@ bsfrd_get_prefix_heatmap <- function(design_name) {
 #'
 #' Get a design-specific \code{DESeq2} analysis volcano prefix.
 #'
-#' @param design_name A \code{character} scalar with the design name.
+#' @param design_name A \code{character} scalar with a design name.
 #'
-#' @return A \code{character} scalar with the \code{DESeq2} volcano prefix.
+#' @return A \code{character} scalar with a \code{DESeq2} volcano prefix.
 #' @export
 #'
 #' @examples
@@ -156,18 +156,18 @@ bsfrd_get_prefix_volcano <- function(design_name) {
 #'
 #' Contrast \code{tbl_df}:
 #' \describe{
-#' \item{Design}{A \code{character} with the design name.}
-#' \item{Numerator}{A \code{character} with the numerator as of
+#' \item{Design}{A \code{character} with a design name.}
+#' \item{Numerator}{A \code{character} with a numerator as of
 #' \code{DESeq2::resultNames()}.}
-#' \item{Denominator}{A \code{character} with the denominator as of
+#' \item{Denominator}{A \code{character} with a denominator as of
 #' \code{DESeq2::resultNames()}.}
 #' \item{Label}{A \code{character} with a human-readable label.}
-#' \item{Exclude}{A \code{logical} to exclude the design from reporting.}
+#' \item{Exclude}{A \code{logical} to exclude a design from reporting.}
 #' }
 #'
-#' @param genome_directory A \code{character} scalar with the genome directory
+#' @param genome_directory A \code{character} scalar with a genome directory
 #'   path.
-#' @param design_name A \code{character} scalar with the design name.
+#' @param design_name A \code{character} scalar with a design name.
 #' @param summary A \code{logical} scalar to load a contrast summary rather
 #'   than a contrast \code{tbl_df}.
 #' @param verbose A \code{logical} scalar to emit messages.
@@ -348,11 +348,13 @@ bsfrd_get_contrast_character <- function(contrast_tibble, index) {
 #' factors and their levels.
 #' e.g. factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"}
 #' \item{plot_aes}{A \code{character} vector with \code{ggplot2} aesthetics.}
+#' \item{mapq_threshold}{A \code{integer} scalar with a mapping quality
+#' (MAPQ) threshold.}
 #' }
 #'
-#' @param genome_directory A \code{character} scalar with the genome directory
+#' @param genome_directory A \code{character} scalar with a genome directory
 #'   path.
-#' @param design_name A \code{character} scalar with the design name.
+#' @param design_name A \code{character} scalar with a design name.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A \code{tbl_df} with design information.
@@ -391,7 +393,8 @@ bsfrd_read_design_tibble <-
         "full_formula" = readr::col_character(),
         "reduced_formulas" = readr::col_character(),
         "factor_levels" = readr::col_character(),
-        "plot_aes" = readr::col_character()
+        "plot_aes" = readr::col_character(),
+        "mapq_threshold" = readr::col_integer()
       )
     )
 
@@ -406,22 +409,24 @@ bsfrd_read_design_tibble <-
 #' file, automatically sub-set to a particular design and return as a named
 #' \code{list}.
 #'
-#' @param genome_directory A \code{character} scalar with the genome directory.
+#' @param genome_directory A \code{character} scalar with a genome directory.
 #'   path.
-#' @param design_name A \code{character} scalar with the design name.
+#' @param design_name A \code{character} scalar with a design name.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A named \code{list} with design information.
 #' \describe{
-#' \item{design}{A \code{character} scalar with the design name.}
-#' \item{exclude}{A \code{logical} scalar to exclude the design from reporting.}
-#' \item{full_formula}{A \code{character} scalar with the full model formula.}
+#' \item{design}{A \code{character} scalar with a design name.}
+#' \item{exclude}{A \code{logical} scalar to exclude a design from reporting.}
+#' \item{full_formula}{A \code{character} scalar with a full model formula.}
 #' \item{reduced_formulas}{A \code{character} scalar with comma-separated
 #' reduced model formulas.}
 #' \item{factor_levels}{A \code{character} scalar with semicolon-separated
 #' factors and their levels.
 #' e.g. factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"}
 #' \item{plot_aes}{A \code{character} scalar with \code{ggplot2} aesthetics.}
+#' \item{mapq_threshold}{A \code{integer} scalar with a mapping quality
+#' (MAPQ) threshold.}
 #' }
 #' @export
 #'
@@ -453,10 +458,10 @@ bsfrd_read_design_list <-
 #' and setting a "factor_name" attribute.
 #'
 #' @param factor_specification A \code{character} vector of exactly two
-#'   components, the factor name [1L] and comma-separated factor levels [2L].
+#'   components, a factor name [1L] and comma-separated factor levels [2L].
 #'
 #' @return A \code{character} vector with factor levels and an attribute
-#'   "factor" specifying the factor name.
+#'   "factor" specifying a factor name.
 #' @noRd
 #'
 #' @examples
@@ -569,7 +574,7 @@ bsfrd_read_design_list <-
 #' \code{design_list$design} and re-level \code{factor} vectors according to the
 #' \code{design_list$factor_level} specification.
 #'
-#' Sample DataFrame:
+#' The Sample DataFrame holds the following variables:
 #' \describe{
 #' \item{bam_path}{A \code{character} vector of BAM file paths.}
 #' \item{bai_path}{A \code{character} vector of BAI file paths.}
@@ -590,15 +595,15 @@ bsfrd_read_design_list <-
 #' counting as read pairs or not.}
 #' \item{total_counts}{An \code{integer} vector with total counts per sample.
 #' Calculated automatically based on the colSums() of the counts() function.}
-#' \item{RIN}{A \code{numeric} vector providing the RNA integrity number (RIN)
-#' score per sample. If available, the RIN score distribution will be plotted.}
+#' \item{RIN}{A \code{numeric} vector providing an RNA integrity number (RIN)
+#' score per sample. If available, a RIN score distribution will be plotted.}
 #' }
 #'
-#' @param genome_directory A \code{character} scalar with the genome directory
+#' @param genome_directory A \code{character} scalar with a genome directory
 #'   path.
 #' @param design_list A named \code{list} with design information.
 #' \describe{
-#' \item{design}{A \code{character} scalar with the design name.}
+#' \item{design}{A \code{character} scalar with a design name.}
 #' \item{factor_levels}{A \code{character} scalar with semicolon-separated
 #' factors and their levels.
 #' e.g. factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"}
@@ -681,7 +686,9 @@ bsfrd_read_sample_dframe <-
     library_type_levels <- c("unstranded", "first", "second")
 
     if (!all(mcols_dframe$library_type %in% library_type_levels)) {
-      stop("The library_type variable contains values other than unstranded, first or second.")
+      stop(
+        "The library_type variable contains values other than 'unstranded', 'first' or 'second'."
+      )
     }
 
     mcols_dframe$library_type <-
@@ -697,7 +704,7 @@ bsfrd_read_sample_dframe <-
     sequencing_type_levels <- c("SE", "PE")
 
     if (!all(mcols_dframe$sequencing_type %in% sequencing_type_levels)) {
-      stop("The sequencing_type variable contains values other than PE, or SE.")
+      stop("The sequencing_type variable contains values other than 'PE', or 'SE'.")
     }
 
     mcols_dframe$sequencing_type <-
@@ -720,23 +727,25 @@ bsfrd_read_sample_dframe <-
 #'
 #' Read a pre-calculated \code{SummarizedExperiment::RangedSummarizedExperiment}
 #' object or initialise it from a sample annotation sheet loaded via
-#' \code{bsfR::bsfrd_read_sample_dframe()}, the \code{gtf_path} and
+#' \code{bsfR::bsfrd_read_sample_dframe()}, a \code{gtf_path} and
 #' \code{genome_version}.
 #'
-#' @param genome_directory A \code{character} scalar with the genome directory
+#' @param genome_directory A \code{character} scalar with a genome directory
 #'   path.
 #' @param design_list A named \code{list} with design information.
 #' \describe{
-#' \item{design}{A \code{character} scalar with the design name.}
+#' \item{design}{A \code{character} scalar with a design name.}
 #' \item{factor_levels}{A \code{character} scalar with semicolon-separated
 #' factors and their levels.
 #' e.g. factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"}
+#' \item{mapq_threshold}{A \code{integer} scalar with a mapping quality
+#' (MAPQ) threshold.}
 #' }
-#' @param gtf_path A \code{character} scalar with the reference transcriptome
+#' @param gtf_path A \code{character} scalar with a reference transcriptome
 #'   GTF file path. Only required, if the
 #'   \code{SummarizedExperiment::RangedSummarizedExperiment} object needs
 #'   initialising.
-#' @param genome_version A \code{character} scalar with the genome version of
+#' @param genome_version A \code{character} scalar with a genome version of
 #'   the reference GTF file. Only required, if the
 #'   \code{SummarizedExperiment::RangedSummarizedExperiment} object needs
 #'   initialising.
@@ -787,6 +796,25 @@ bsfrd_initialise_rse <-
       ranged_summarized_experiment <-
         base::readRDS(file = file_path)
     } else {
+      # Check for the "mapq_threshold" variable in the design list.
+
+      if ("mapq_threshold" %in% names(x = design_list)) {
+        if (!is.integer(x = design_list$mapq_threshold)) {
+          warning(
+            "The 'mapq_threshold' variable of the design table ",
+            "does not contain an integer value so that alignments ",
+            "will not be filtered by mapping quality."
+          )
+          design_list$mapq_threshold <- NA_integer_
+        }
+      } else {
+        warning(
+          "The design table does not contain a 'mapq_threshold' variable ",
+          "so that alignments will not be filtered by mapping quality."
+        )
+        design_list$mapq_threshold <- NA_integer_
+      }
+
       # Get a S4Vectors::DataFrame with sample annotation.
 
       sample_dframe <-
@@ -882,7 +910,8 @@ bsfrd_initialise_rse <-
                 flag = Rsamtools::scanBamFlag(
                   isSecondaryAlignment = FALSE,
                   isNotPassingQualityControls = FALSE
-                )
+                ),
+                mapqFilter = design_list$mapq_threshold
               ),
               # Invert the strand for protocols that sequence the second strand.
               preprocess.reads = if (library_type == "second")
@@ -967,9 +996,9 @@ bsfrd_initialise_rse <-
 #'
 #' Read a pre-calculated \code{DESeq2::DESeqDataSet} object.
 #'
-#' @param genome_directory A \code{character} scalar with the genome directory
+#' @param genome_directory A \code{character} scalar with a genome directory
 #'   path.
-#' @param design_name A \code{character} scalar with the design name.
+#' @param design_name A \code{character} scalar with a design name.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A \code{DESeq2::DESeqDataSet} object or \code{NULL}.
@@ -1015,9 +1044,9 @@ bsfrd_read_deseq_data_set <-
 #' Read a previously saved "blind" or "model" \code{DESeq2::DESeqTransform}
 #' object.
 #'
-#' @param genome_directory A \code{character} scalar with the genome directory
+#' @param genome_directory A \code{character} scalar with a genome directory
 #'   path.
-#' @param design_name A \code{character} scalar with the design name.
+#' @param design_name A \code{character} scalar with a design name.
 #' @param model A \code{logical} scalar to retrieve a model aware (\code{TRUE})
 #'   or a blind (\code{FALSE}) \code{DESeq2::DESeqTransform} object.
 #' @param verbose A \code{logical} scalar to emit messages.
@@ -1084,14 +1113,14 @@ bsfrd_read_deseq_transform <-
 #' \code{contrast_character} option are required. The \code{contrast_character}
 #' takes precedence.
 #'
-#' @param genome_directory A \code{character} scalar with the genome directory
+#' @param genome_directory A \code{character} scalar with a genome directory
 #'   path.
-#' @param design_name A \code{character} scalar with the design name.
+#' @param design_name A \code{character} scalar with a design name.
 #' @param contrast_tibble A \code{tbl_df} with "Numerator" and "Denominator"
 #'   variables.
 #' @param index An \code{integer} scalar pointing at a particular \code{tbl_df}
 #'   row.
-#' @param contrast_character A \code{character} scalar specifying the contrast.
+#' @param contrast_character A \code{character} scalar specifying a contrast.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A \code{DESeq2::DESeqResults} object for a particular contrast or
@@ -1132,7 +1161,8 @@ bsfrd_read_deseq_results <-
     if (is.null(x = contrast_character)) {
       if (is.null(x = contrast_tibble) || is.null(x = index)) {
         warning(
-          "Either a contrast_tibble and index or a (valid) contrast_character option are required."
+          "Either a 'contrast_tibble' and 'index' or a (valid) ",
+          "'contrast_character' option are required."
         )
 
         return(NULL)
@@ -1182,14 +1212,14 @@ bsfrd_read_deseq_results <-
 #' \code{contrast_character} option are required. The \code{contrast_character}
 #' takes precedence.
 #'
-#' @param genome_directory A \code{character} scalar with the genome directory
+#' @param genome_directory A \code{character} scalar with a genome directory
 #'   path.
-#' @param design_name A \code{character} scalar with the design name.
+#' @param design_name A \code{character} scalar with a design name.
 #' @param contrast_tibble A \code{tbl_df} with "Numerator" and "Denominator"
 #'   variables.
 #' @param index An \code{integer} scalar pointing at a particular \code{tbl_df}
 #'   row.
-#' @param contrast_character A \code{character} scalar specifying the contrast.
+#' @param contrast_character A \code{character} scalar specifying a contrast.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A \code{tbl_df} of \code{DESeq2::DESeqResults} for a particular
@@ -1230,7 +1260,8 @@ bsfrd_read_result_tibble <-
     if (is.null(x = contrast_character)) {
       if (is.null(x = contrast_tibble) || is.null(x = index)) {
         warning(
-          "Either a contrast_tibble and index or a (valid) contrast_character option are required."
+          "Either a 'contrast_tibble' and 'index' or a (valid) ",
+          "'contrast_character' option are required."
         )
 
         return(NULL)
@@ -1302,14 +1333,14 @@ bsfrd_read_result_tibble <-
 #' moment, Ensembl-specific files with "gene", "transcript" and "exon" features
 #' are supported.
 #'
-#' @param genome_directory A \code{character} scalar with the genome directory
+#' @param genome_directory A \code{character} scalar with a genome directory
 #'   path.
-#' @param design_name A \code{character} scalar with the design name.
+#' @param design_name A \code{character} scalar with a design name.
 #' @param feature_types A \code{character} vector of GTF feature types to be
 #'   imported. Defaults to "genes".
-#' @param gtf_file_path A \code{character} scalar with the reference GTF file
+#' @param gtf_file_path A \code{character} scalar with a reference GTF file
 #'   path.
-#' @param genome A \code{character} scalar with the genome version or a
+#' @param genome A \code{character} scalar with a genome version or a
 #'   \code{GenomeInfoDb::Seqinfo} object.
 #' @param verbose A \code{logical} scalar to emit messages.
 #' @return A \code{tbl_df} with feature annotation.
@@ -1512,10 +1543,10 @@ bsfrd_read_annotation_tibble <-
 #' file. Missing "gene_label" values are then filled in on the basis of the
 #' "gene_name" variable.
 #'
-#' @param genome_directory A \code{character} scalar with the genome directory
+#' @param genome_directory A \code{character} scalar with a genome directory
 #'   path.
-#' @param design_name A \code{character} scalar with the design name.
-#' @param gene_set_path A \code{character} scalar with the gene set file path.
+#' @param design_name A \code{character} scalar with a design name.
+#' @param gene_set_path A \code{character} scalar with a gene set file path.
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A \code{tbl_df} with gene set information.
@@ -1596,8 +1627,8 @@ bsfrd_read_gene_set_tibble <-
 #' Convert Aesthetic and Variable Specifications.
 #'
 #' Split a \code{character} vector of multiple aesthetic and variable pairs
-#' separated by "=" characters. Convert into a named \code{list} with the
-#' variables as components and the aesthetics as names.
+#' separated by "=" characters. Convert into a named \code{list} with
+#' variables as components and aesthetics as names.
 #'
 #' @param aes_var_character A \code{character} vector of multiple aesthetic and
 #'   variable pairs separated by "=" characters.

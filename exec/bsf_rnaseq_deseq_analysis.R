@@ -39,49 +39,18 @@
 # Sample Annotation DataFrame Description ---------------------------------
 #
 #
-# The rnaseq_deseq_PREFIX_samples.tsv sample annotation DataFrame supports the
-# following variables.
+# See the bsfrd_read_sample_dframe() function for variable names.
 #
-#   "bam_path":
-#      A "character" vector of BAM file paths.
+# Design Annotation Tibble Description ------------------------------------
 #
-#   "bai_path":
-#      A "character" vector of BAI file paths.
 #
-#   "sample":
-#      A "character" vector of sample names.
+# See the bsfrd_read_design_tibble() function for variable names.
 #
-#   "run":
-#     A "character" vector of original sample names.
-#     Optional. If present, indicates that technical replicates should be
-#     collapsed according to information in the "sample" variable. The "run"
-#     variable provides the original sample name before collapsing technical
-#     replicates.
+# Contrast Annotation Tibble Description ----------------------------------
 #
-#   "designs":
-#      A "character" vector of comma-separated values of designs,
-#      a particular sample should be part of.
 #
-#   "library_type":
-#      A "factor" vector with levels "unstranded", "first" and "second" to
-#      indicate the strand-orientation of the RNA-seq protocol and whether the first
-#      or second strand gets sequenced. Illumina TruSeq stranded mRNA sequences
-#      the second strand so that reads need inverting before counting
-#      strand-specifically.
+# See the bsfrd_read_contrast_tibble() function for variable names.
 #
-#   "sequencing_type":
-#      A "factor" vector with levels "SE" and "PE" indicating single-end or
-#      paired-end sequencing, respectively and thus counting as read pairs or
-#      not.
-#
-#   "total_counts":
-#      An "integer" vector with total counts per sample. Calculated
-#      automatically based on the colSums() of the counts() function.
-#
-#   "RIN":
-#      A "numeric" vector providing the RNA integrity number (RIN) score per
-#      sample. If available, the RIN score distribution will be plotted.
-
 # Option Parsing ----------------------------------------------------------
 
 
