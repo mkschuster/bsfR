@@ -63,6 +63,7 @@ bsfg_genome_tibble <- tibble::add_row(
   "taxon" = 9606L,
   "assembly_version_ncbi" = "b37",
   "assembly_version_ucsc" = "hg19",
+  # "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.1_GRCh37/GCA_000001405.1_GRCh37_assembly_report.txt",
   "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.13_GRCh37/GCF_000001405.13_GRCh37_assembly_report.txt",
   "bsgenome_ncbi" = "BSgenome.Hsapiens.1000genomes.hs37d5",
   "bsgenome_ucsc" = "BSgenome.Hsapiens.UCSC.hg19"
@@ -79,6 +80,7 @@ bsfg_genome_tibble <- tibble::add_row(
   "taxon" = 9606L,
   "assembly_version_ncbi" = "GRCh37",
   "assembly_version_ucsc" = "hg19",
+  # "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.1_GRCh37/GCA_000001405.1_GRCh37_assembly_report.txt",
   "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.13_GRCh37/GCF_000001405.13_GRCh37_assembly_report.txt",
   "bsgenome_ncbi" = NA_character_,
   "bsgenome_ucsc" = "BSgenome.Hsapiens.UCSC.hg19"
@@ -95,6 +97,8 @@ bsfg_genome_tibble <- tibble::add_row(
   "taxon" = 9606L,
   "assembly_version_ncbi" = "GRCh38",
   "assembly_version_ucsc" = "hg38",
+  # "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/GCA_000001405.15_GRCh38_assembly_report+ucsc_names.txt",
+  # "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/GCA_000001405.15_GRCh38_assembly_report.txt",
   "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.26_GRCh38/GCF_000001405.26_GRCh38_assembly_report.txt",
   "bsgenome_ncbi" = "BSgenome.Hsapiens.NCBI.GRCh38",
   "bsgenome_ucsc" = "BSgenome.Hsapiens.UCSC.hg38"
@@ -111,6 +115,7 @@ bsfg_genome_tibble <- tibble::add_row(
   "taxon" = 10090L,
   "assembly_version_ncbi" = "GRCm38",
   "assembly_version_ucsc" = "mm10",
+  # "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/635/GCA_000001635.2_GRCm38/GCA_000001635.2_GRCm38_assembly_report.txt",
   "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/635/GCF_000001635.20_GRCm38/GCF_000001635.20_GRCm38_assembly_report.txt",
   "bsgenome_ncbi" = NA_character_,
   "bsgenome_ucsc" = "BSgenome.Mmusculus.UCSC.mm10"
@@ -127,12 +132,11 @@ bsfg_genome_tibble <- tibble::add_row(
   "taxon" = 10090L,
   "assembly_version_ncbi" = "GRCm39",
   "assembly_version_ucsc" = "mm39",
-  # The RefSeq assembly report does not contain "UCSC-style-name" values.
-# "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/635/GCF_000001635.27_GRCm39/GCF_000001635.27_GRCm39_assembly_report.txt",
-  "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/635/GCA_000001635.9_GRCm39/GCA_000001635.9_GRCm39_assembly_report.txt",
+  # "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/635/GCA_000001635.9_GRCm39/GCA_000001635.9_GRCm39_assembly_report.txt",
+  "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/635/GCF_000001635.27_GRCm39/GCF_000001635.27_GRCm39_assembly_report.txt",
   "bsgenome_ncbi" = NA_character_,
   "bsgenome_ucsc" = NA_character_,
-# The Bioconductor BSgenome is not available, yet.
+  # The Bioconductor BSgenome is not available, yet.
   # "bsgenome_ucsc" = "BSgenome.Mmusculus.UCSC.mm39"
 )
 
@@ -147,9 +151,44 @@ bsfg_genome_tibble <- tibble::add_row(
   "taxon" = 9031L,
   "assembly_version_ncbi" = "Gallus_gallus-5.0",
   "assembly_version_ucsc" = "galGal5",
+  # "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/002/315/GCA_000002315.3_Gallus_gallus-5.0/GCA_000002315.3_Gallus_gallus-5.0_assembly_report.txt",
   "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/002/315/GCF_000002315.4_Gallus_gallus-5.0/GCF_000002315.4_Gallus_gallus-5.0_assembly_report.txt",
   "bsgenome_ncbi" = NA_character_,
   "bsgenome_ucsc" = "BSgenome.Ggallus.UCSC.galGal5"
+)
+
+# Rattus norvegicus rn6 Rnor_6.0 ----------------------------------------
+
+
+bsfg_genome_tibble <- tibble::add_row(
+  .data = bsfg_genome_tibble,
+  "scientific_name" = "Rattus norvegicus",
+  "genus" = "Rattus",
+  "species" = "norvegicus",
+  "taxon" = 10116L,
+  "assembly_version_ncbi" = "Rnor_6.0",
+  "assembly_version_ucsc" = "rn6",
+  # "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/895/GCA_000001895.4_Rnor_6.0/GCA_000001895.4_Rnor_6.0_assembly_report.txt",
+  "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/895/GCF_000001895.5_Rnor_6.0/GCF_000001895.5_Rnor_6.0_assembly_report.txt",
+  "bsgenome_ncbi" = NA_character_,
+  "bsgenome_ucsc" = NA_character_
+)
+
+# Rattus norvegicus rn7 mRatBN7.2 ---------------------------------------
+
+
+bsfg_genome_tibble <- tibble::add_row(
+  .data = bsfg_genome_tibble,
+  "scientific_name" = "Rattus norvegicus",
+  "genus" = "Rattus",
+  "species" = "norvegicus",
+  "taxon" = 10116L,
+  "assembly_version_ncbi" = "mRatBN7.2",
+  "assembly_version_ucsc" = "rn7",
+  # "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/015/227/675/GCA_015227675.2_mRatBN7.2/GCA_015227675.2_mRatBN7.2_assembly_report.txt",
+  "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/015/227/675/GCF_015227675.2_mRatBN7.2/GCF_015227675.2_mRatBN7.2_assembly_report.txt",
+  "bsgenome_ncbi" = NA_character_,
+  "bsgenome_ucsc" = NA_character_
 )
 
 # Sarcophilus harrisii sarHar1 --------------------------------------------
@@ -163,6 +202,7 @@ bsfg_genome_tibble <- tibble::add_row(
   "taxon" = 9305L,
   "assembly_version_ncbi" = "DEVIL7.0",
   "assembly_version_ucsc" = "sarHar1",
+  # "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/189/315/GCA_000189315.1_Devil_ref_v7.0/GCA_000189315.1_Devil_ref_v7.0_assembly_report.txt",
   "assembly_report_url" = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/189/315/GCF_000189315.1_Devil_ref_v7.0/GCF_000189315.1_Devil_ref_v7.0_assembly_report.txt",
   "bsgenome_ncbi" = NA_character_,
   "bsgenome_ucsc" = NA_character_
@@ -170,7 +210,9 @@ bsfg_genome_tibble <- tibble::add_row(
 
 # Install the bsfg_genome_tibble as package-internal data set.
 
-usethis::use_data(bsfg_genome_tibble, internal = TRUE, overwrite = TRUE)
+usethis::use_data(bsfg_genome_tibble,
+                  internal = TRUE,
+                  overwrite = TRUE)
 
 rm(bsfg_genome_tibble)
 
