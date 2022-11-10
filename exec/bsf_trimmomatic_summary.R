@@ -446,7 +446,7 @@ process_trim_log <- function(file_path, number = -1L) {
   ggplot_object <- ggplot2::ggplot(
     data = tidyr::pivot_longer(
       data = summary_tibble,
-      cols = c(.data$coverage_5, .data$coverage_3, .data$coverage),
+      cols = c("coverage_5", "coverage_3", "coverage"),
       names_to = "type",
       values_to = "reads"
     )
@@ -496,7 +496,7 @@ process_trim_log <- function(file_path, number = -1L) {
   ggplot_object <- ggplot2::ggplot(
     data = tidyr::pivot_longer(
       data = summary_tibble,
-      cols = c(.data$frequency_5, .data$frequency_3),
+      cols = c("frequency_5", "frequency_3"),
       names_to = "type",
       values_to = "reads"
     )
@@ -543,9 +543,7 @@ process_trim_log <- function(file_path, number = -1L) {
   # Select measure variable "surviving" and variables "position" and "read" and
   # plot faceted by column on the "read" factor.
   ggplot_object <-
-    ggplot2::ggplot(
-      data = dplyr::select(.data = summary_tibble, .data$position, .data$read, .data$surviving)
-    )
+    ggplot2::ggplot(data = dplyr::select(.data = summary_tibble, "position", "read", "surviving"))
 
   ggplot_object <-
     ggplot_object + ggplot2::facet_grid(cols = ggplot2::vars(.data$read))
@@ -686,13 +684,11 @@ if (!is.null(x = argument_list$stderr_path)) {
     ggplot2::ggplot(
       data = tidyr::pivot_longer(
         data = summary_tibble,
-        cols = c(
-          .data$input,
-          .data$both,
-          .data$first,
-          .data$second,
-          .data$dropped
-        ),
+        cols = c("input",
+                 "both",
+                 "first",
+                 "second",
+                 "dropped"),
         names_to = "state",
         values_to = "numbers"
       )
@@ -744,22 +740,22 @@ if (!is.null(x = argument_list$stderr_path)) {
   # Calculate fractions on the basis of "input" reads.
   summary_tibble <-
     dplyr::mutate(.data = summary_tibble, dplyr::across(
-      .cols = c(.data$both, .data$first, .data$second, .data$dropped),
+      .cols = c("both", "first", "second", "dropped"),
       .fns = ~ .x / .data$input
     ))
 
   summary_tibble <-
     dplyr::select(.data = summary_tibble,
-                  .data$read_group,
-                  .data$both,
-                  .data$first,
-                  .data$second,
-                  .data$dropped)
+                  "read_group",
+                  "both",
+                  "first",
+                  "second",
+                  "dropped")
 
   summary_tibble <-
     tidyr::pivot_longer(
       data = summary_tibble,
-      cols = c(.data$both, .data$first, .data$second, .data$dropped),
+      cols = c("both", "first", "second", "dropped"),
       names_to = "state",
       values_to = "fractions"
     )

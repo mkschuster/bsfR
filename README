@@ -18,6 +18,17 @@ References
 [3] http://www.cemm.oeaw.ac.at/
 [4] http://www.oeaw.ac.at/english/home.html
 
+Additional Packages
+
+In addition to the packages listed in the package DESCRIPTION,
+the following are required for the exec scripts.
+
+* caret
+* ggpubr
+* ggrepel
+* pheatmap
+* rjson
+* Nozzle.R1
 
 Licence
 

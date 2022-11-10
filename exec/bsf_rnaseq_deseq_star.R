@@ -188,13 +188,11 @@ rm(star_summary_tibble,
 ggplot_object <- ggplot2::ggplot(
   data = tidyr::pivot_longer(
     data = sample_tibble,
-    cols = c(
-      .data$total,
-      .data$unique,
-      .data$multi,
-      .data$unmapped,
-      .data$counted
-    ),
+    cols = c("total",
+             "unique",
+             "multi",
+             "unmapped",
+             "counted"),
     names_to = "status",
     values_to = "number"
   )
@@ -259,10 +257,10 @@ ggplot_object <- ggplot2::ggplot(
       "unmapped" = .data$unmapped / .data$total,
       "counted" = .data$counted / .data$total
     ),
-    cols = c(.data$unique,
-             .data$multi,
-             .data$unmapped,
-             .data$counted),
+    cols = c("unique",
+             "multi",
+             "unmapped",
+             "counted"),
     names_to = "status",
     values_to = "fraction"
   )

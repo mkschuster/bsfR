@@ -118,6 +118,7 @@ read_group_tibble <- tibble::tibble(
     x = base::basename(path = .data$file_name)
   )
 )
+
 message(
   "Processing STAR alignment reports for number of read groups: ",
   base::nrow(x = read_group_tibble)
@@ -225,9 +226,10 @@ read_group_tibble <-
   readr::type_convert(
     df = read_group_tibble,
     col_types = readr::cols(
-      "started_job" = readr::col_datetime(),
-      "started_mapping" = readr::col_datetime(),
-      "finished" = readr::col_datetime(),
+      # The following three dates lack the year, so are not terribly useful.
+      "started_job" = readr::col_character(),
+      "started_mapping" = readr::col_character(),
+      "finished" = readr::col_character(),
       "mapping_speed" = readr::col_double(),
       # [5,]
       "input_reads" = readr::col_integer(),
@@ -288,11 +290,12 @@ ggplot_object <- ggplot2::ggplot(
       "multi" = .data$multi_mapped_number,
       "unmapped" = .data$input_reads - .data$uniquely_mapped_reads - .data$multi_mapped_number
     ),
-    cols = c(.data$unmapped, .data$multi, .data$unique),
+    cols = c("unmapped", "multi", "unique"),
     names_to = "status",
     values_to = "mapped"
   )
 )
+
 ggplot_object <-
   ggplot_object + ggplot2::geom_point(
     mapping = ggplot2::aes(
@@ -303,6 +306,7 @@ ggplot_object <-
     ),
     alpha = I(1 / 3)
   )
+
 ggplot_object <-
   ggplot_object + ggplot2::labs(
     x = "Reads Number",
@@ -311,6 +315,7 @@ ggplot_object <-
     shape = "Mapping Status",
     title = "STAR Alignment Summary per Read Group"
   )
+
 # Reduce the label font size and the legend key size and allow a maximum of 24
 # guide legend rows.
 ggplot_object <-
@@ -319,13 +324,16 @@ ggplot_object <-
     keyheight = ggplot2::rel(x = 0.8),
     nrow = 24L
   ))
+
 ggplot_object <-
   ggplot_object + ggplot2::theme(legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7)))
+
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
 # Because read group names are quite long, extend already for the first column.
 plot_width <-
   argument_list$plot_width + (ceiling(x = base::nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.75
+
 for (graphics_format in graphics_formats) {
   if (graphics_format == "png" &&
       plot_width > graphics_maximum_size_png) {
@@ -335,6 +343,7 @@ for (graphics_format in graphics_formats) {
             graphics_maximum_size_png)
     next
   }
+
   ggplot2::ggsave(
     filename = paste(
       paste(argument_list$prefix,
@@ -367,11 +376,12 @@ ggplot_object <- ggplot2::ggplot(
       "unmapped" =
         .data$input_reads - .data$uniquely_mapped_reads - .data$multi_mapped_number
     ),
-    cols = c(.data$unmapped, .data$multi, .data$unique),
+    cols = c("unmapped", "multi", "unique"),
     names_to = "status",
     values_to = "number"
   )
 )
+
 ggplot_object <-
   ggplot_object + ggplot2::geom_col(
     mapping = ggplot2::aes(
@@ -381,11 +391,13 @@ ggplot_object <-
     ),
     alpha = I(1 / 3)
   )
+
 ggplot_object <-
   ggplot_object + ggplot2::labs(x = "Read Group",
                                 y = "Reads Number",
                                 fill = "Mapping Status",
                                 title = "STAR Aligner Mapped Numbers per Read Group")
+
 # Reduce the label font size and the legend key size and allow a maximum of 24
 # guide legend rows.
 ggplot_object <-
@@ -394,6 +406,7 @@ ggplot_object <-
     keyheight = ggplot2::rel(x = 0.8),
     nrow = 24L
   ))
+
 ggplot_object <-
   ggplot_object + ggplot2::theme(
     axis.text.x = ggplot2::element_text(
@@ -404,10 +417,12 @@ ggplot_object <-
     ),
     legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
   )
+
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
 plot_width <-
   argument_list$plot_width + (ceiling(x = base::nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+
 for (graphics_format in graphics_formats) {
   if (graphics_format == "png" &&
       plot_width > graphics_maximum_size_png) {
@@ -417,6 +432,7 @@ for (graphics_format in graphics_formats) {
             graphics_maximum_size_png)
     next
   }
+
   ggplot2::ggsave(
     filename = paste(
       paste(argument_list$prefix,
@@ -451,11 +467,12 @@ ggplot_object <- ggplot2::ggplot(
         .data$input_reads - .data$uniquely_mapped_reads - .data$multi_mapped_number
       ) / .data$input_reads
     ),
-    cols = c(.data$unmapped, .data$multi, .data$unique),
+    cols = c("unmapped", "multi", "unique"),
     names_to = "status",
     values_to = "fraction"
   )
 )
+
 ggplot_object <-
   ggplot_object + ggplot2::geom_col(
     mapping = ggplot2::aes(
@@ -465,11 +482,13 @@ ggplot_object <-
     ),
     alpha = I(1 / 3)
   )
+
 ggplot_object <-
   ggplot_object + ggplot2::labs(x = "Read Group",
                                 y = "Reads Fraction",
                                 fill = "Mapping Status",
                                 title = "STAR Aligner Mapped Fractions per Read Group")
+
 # Reduce the label font size and the legend key size and allow a maximum of 24
 # guide legend rows.
 ggplot_object <-
@@ -478,6 +497,7 @@ ggplot_object <-
     keyheight = ggplot2::rel(x = 0.8),
     nrow = 24L
   ))
+
 ggplot_object <-
   ggplot_object + ggplot2::theme(
     axis.text.x = ggplot2::element_text(
@@ -488,10 +508,12 @@ ggplot_object <-
     ),
     legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
   )
+
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
 plot_width <-
   argument_list$plot_width + (ceiling(x = base::nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+
 for (graphics_format in graphics_formats) {
   if (graphics_format == "png" &&
       plot_width > graphics_maximum_size_png) {
@@ -501,6 +523,7 @@ for (graphics_format in graphics_formats) {
             graphics_maximum_size_png)
     next
   }
+
   ggplot2::ggsave(
     filename = paste(
       paste(
@@ -530,17 +553,18 @@ ggplot_object <- ggplot2::ggplot(
   data = tidyr::pivot_longer(
     data = dplyr::select(
       .data = read_group_tibble,
-      "read_group" = .data$read_group_name,
-      "gtag" = .data$number_splice_gtag,
-      "gcag" = .data$number_splice_gcag,
-      "atac" = .data$number_splice_atac,
-      "non_canonical" = .data$number_splice_non_canonical
+      "read_group" = "read_group_name",
+      "gtag" = "number_splice_gtag",
+      "gcag" = "number_splice_gcag",
+      "atac" = "number_splice_atac",
+      "non_canonical" = "number_splice_non_canonical"
     ),
-    cols = c(.data$non_canonical, .data$atac, .data$gcag, .data$gtag),
+    cols = c("non_canonical", "atac", "gcag", "gtag"),
     names_to = "splice_junction",
     values_to = "number"
   )
 )
+
 ggplot_object <-
   ggplot_object + ggplot2::geom_col(
     mapping = ggplot2::aes(
@@ -550,11 +574,13 @@ ggplot_object <-
     ),
     alpha = I(1 / 3)
   )
+
 ggplot_object <-
   ggplot_object + ggplot2::labs(x = "Read Group",
                                 y = "Splice Junction Number",
                                 fill = "Splice Junction",
                                 title = "STAR Aligner Splice Junction Numbers per Read Group")
+
 # Reduce the label font size and the legend key size and allow a maximum of 24
 # guide legend rows.
 ggplot_object <-
@@ -563,6 +589,7 @@ ggplot_object <-
     keyheight = ggplot2::rel(x = 0.8),
     nrow = 24L
   ))
+
 ggplot_object <-
   ggplot_object + ggplot2::theme(
     axis.text.x = ggplot2::element_text(
@@ -573,10 +600,12 @@ ggplot_object <-
     ),
     legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
   )
+
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 read groups.
 plot_width <-
   argument_list$plot_width + (ceiling(x = base::nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+
 for (graphics_format in graphics_formats) {
   if (graphics_format == "png" &&
       plot_width > graphics_maximum_size_png) {
@@ -586,6 +615,7 @@ for (graphics_format in graphics_formats) {
             graphics_maximum_size_png)
     next
   }
+
   ggplot2::ggsave(
     filename = paste(
       paste(
@@ -621,11 +651,12 @@ ggplot_object <- ggplot2::ggplot(
       "atac" = .data$number_splice_atac / .data$number_splice_total,
       "non_canonical" = .data$number_splice_non_canonical / .data$number_splice_total
     ),
-    cols = c(.data$non_canonical, .data$atac, .data$gcag, .data$gtag),
+    cols = c("non_canonical", "atac", "gcag", "gtag"),
     names_to = "junction",
     values_to = "fraction"
   )
 )
+
 ggplot_object <-
   ggplot_object + ggplot2::geom_col(
     mapping = ggplot2::aes(
@@ -635,11 +666,13 @@ ggplot_object <-
     ),
     alpha = I(1 / 3)
   )
+
 ggplot_object <-
   ggplot_object + ggplot2::labs(x = "Read Group",
                                 y = "Splice Junction Fraction",
                                 fill = "Splice Junction",
                                 title = "STAR Aligner Splice Junction Fractions per Read Group")
+
 # Reduce the label font size and the legend key size and allow a maximum of 24
 # guide legend rows.
 ggplot_object <-
@@ -648,6 +681,7 @@ ggplot_object <-
     keyheight = ggplot2::rel(x = 0.8),
     nrow = 24L
   ))
+
 ggplot_object <-
   ggplot_object + ggplot2::theme(
     axis.text.x = ggplot2::element_text(
@@ -658,10 +692,12 @@ ggplot_object <-
     ),
     legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
   )
+
 # Scale the plot width with the number of read groups, by adding a quarter of
 # the original width for each 24 samples.
 plot_width <-
   argument_list$plot_width + (ceiling(x = base::nrow(x = read_group_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+
 for (graphics_format in graphics_formats) {
   if (graphics_format == "png" &&
       plot_width > graphics_maximum_size_png) {
@@ -671,6 +707,7 @@ for (graphics_format in graphics_formats) {
             graphics_maximum_size_png)
     next
   }
+
   ggplot2::ggsave(
     filename = paste(
       paste(
@@ -715,36 +752,38 @@ if (file.exists(file_path)) {
       # include the read group for merging.
       y = dplyr::select(
         .data = read_group_tibble,
-        "read_group" = .data$read_group_name,
-        "reads_input" = .data$input_reads,
-        "reads_unique" = .data$uniquely_mapped_reads,
-        "reads_multi" = .data$multi_mapped_number,
-        "junctions_total" = .data$number_splice_total,
-        "junctions_sjdb" = .data$number_splice_sjdb,
-        "junctions_gtag" = .data$number_splice_gtag,
-        "junctions_gcag" = .data$number_splice_gcag,
-        "junctions_atac" = .data$number_splice_atac,
-        "junctions_non_canonical" = .data$number_splice_non_canonical,
+        "read_group" = "read_group_name",
+        "reads_input" = "input_reads",
+        "reads_unique" = "uniquely_mapped_reads",
+        "reads_multi" = "multi_mapped_number",
+        "junctions_total" = "number_splice_total",
+        "junctions_sjdb" = "number_splice_sjdb",
+        "junctions_gtag" = "number_splice_gtag",
+        "junctions_gcag" = "number_splice_gcag",
+        "junctions_atac" = "number_splice_atac",
+        "junctions_non_canonical" = "number_splice_non_canonical",
       ),
       by = "read_group"
     )
+
   sample_tibble <-
     dplyr::group_by(.data = sample_tibble, .data$sample)
-  sample_tibble <- dplyr::summarise_at(
-    .tbl = sample_tibble,
-    .vars = c(
-      "reads_input",
-      "reads_unique",
-      "reads_multi",
-      "junctions_total",
-      "junctions_sjdb",
-      "junctions_gtag",
-      "junctions_gcag",
-      "junctions_atac",
-      "junctions_non_canonical"
-    ),
-    .funs = ~ sum(.)
-  )
+
+  sample_tibble <-
+    dplyr::summarise(.data = sample_tibble, dplyr::across(
+      .cols = c(
+        "reads_input",
+        "reads_unique",
+        "reads_multi",
+        "junctions_total",
+        "junctions_sjdb",
+        "junctions_gtag",
+        "junctions_gcag",
+        "junctions_atac",
+        "junctions_non_canonical"
+      ),
+      .fns = ~ sum(.x)
+    ))
 
   # Write the sample-level tibble with mapping and junction information to disk.
   message("Writing sample-level summary table")
@@ -774,17 +813,18 @@ if (file.exists(file_path)) {
     data = tidyr::pivot_longer(
       data = dplyr::select(
         .data = sample_tibble,
-        "sample" = .data$sample,
-        "input" = .data$reads_input,
-        "multi" = .data$reads_multi,
-        "unique" = .data$reads_unique,
-        "unmapped" = .data$reads_unmapped
+        "sample" = "sample",
+        "input" = "reads_input",
+        "multi" = "reads_multi",
+        "unique" = "reads_unique",
+        "unmapped" = "reads_unmapped"
       ),
-      cols = c(.data$unmapped, .data$multi, .data$unique),
+      cols = c("unmapped", "multi", "unique"),
       names_to = "status",
       values_to = "mapped"
     )
   )
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -795,6 +835,7 @@ if (file.exists(file_path)) {
       ),
       alpha = I(1 / 3)
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Reads Number",
@@ -803,6 +844,7 @@ if (file.exists(file_path)) {
       shape = "Mapping Status",
       title = "STAR Alignment Summary per Sample"
     )
+
   # Reduce the label font size and the legend key size and allow a maximum of 24
   # guide legend rows.
   ggplot_object <-
@@ -813,12 +855,15 @@ if (file.exists(file_path)) {
         nrow = 24L
       )
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::theme(legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7)))
+
   # Scale the plot width with the number of read groups, by adding a quarter of
   # the original width for each 24 read groups.
   plot_width <-
     argument_list$plot_width + (ceiling(x = base::nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.33
+
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width > graphics_maximum_size_png) {
@@ -828,6 +873,7 @@ if (file.exists(file_path)) {
               graphics_maximum_size_png)
       next
     }
+
     ggplot2::ggsave(
       filename = paste(
         paste(argument_list$prefix,
@@ -854,16 +900,17 @@ if (file.exists(file_path)) {
     data = tidyr::pivot_longer(
       data = dplyr::select(
         .data = sample_tibble,
-        "sample" = .data$sample,
-        "unmapped" = .data$reads_unmapped,
-        "multi" = .data$reads_multi,
-        "unique" = .data$reads_unique
+        "sample" = "sample",
+        "unmapped" = "reads_unmapped",
+        "multi" = "reads_multi",
+        "unique" = "reads_unique"
       ),
-      cols = c(.data$unmapped, .data$multi, .data$unique),
+      cols = c("unmapped", "multi", "unique"),
       names_to = "status",
       values_to = "number"
     )
   )
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_col(
       mapping = ggplot2::aes(
@@ -873,6 +920,7 @@ if (file.exists(file_path)) {
       ),
       alpha = I(1 / 3)
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
@@ -880,6 +928,7 @@ if (file.exists(file_path)) {
       fill = "Mapping Status",
       title = "STAR Aligner Mapped Numbers per Sample"
     )
+
   # Reduce the label font size and the legend key size and allow a maximum of 24
   # guide legend rows.
   ggplot_object <-
@@ -890,6 +939,7 @@ if (file.exists(file_path)) {
         nrow = 24L
       )
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
@@ -900,10 +950,12 @@ if (file.exists(file_path)) {
       ),
       legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
     )
+
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
     argument_list$plot_width + (ceiling(x = base::nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width > graphics_maximum_size_png) {
@@ -913,6 +965,7 @@ if (file.exists(file_path)) {
               graphics_maximum_size_png)
       next
     }
+
     ggplot2::ggsave(
       filename = paste(
         paste(argument_list$prefix,
@@ -945,11 +998,12 @@ if (file.exists(file_path)) {
         "multi" = .data$reads_multi / .data$reads_input,
         "unique" = .data$reads_unique / .data$reads_input
       ),
-      cols = c(.data$unmapped, .data$multi, .data$unique),
+      cols = c("unmapped", "multi", "unique"),
       names_to = "status",
       values_to = "fraction"
     )
   )
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_col(
       mapping = ggplot2::aes(
@@ -959,6 +1013,7 @@ if (file.exists(file_path)) {
       ),
       alpha = I(1 / 3)
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
@@ -966,6 +1021,7 @@ if (file.exists(file_path)) {
       fill = "Mapping Status",
       title = "STAR Aligner Mapped Fractions per Sample"
     )
+
   # Reduce the label font size and the legend key size and allow a maximum of 24
   # guide legend rows.
   ggplot_object <-
@@ -976,6 +1032,7 @@ if (file.exists(file_path)) {
         nrow = 24L
       )
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
@@ -986,10 +1043,12 @@ if (file.exists(file_path)) {
       ),
       legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
     )
+
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
     argument_list$plot_width + (ceiling(x = base::nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width > graphics_maximum_size_png) {
@@ -999,6 +1058,7 @@ if (file.exists(file_path)) {
               graphics_maximum_size_png)
       next
     }
+
     ggplot2::ggsave(
       filename = paste(
         paste(argument_list$prefix,
@@ -1026,17 +1086,18 @@ if (file.exists(file_path)) {
     data = tidyr::pivot_longer(
       data = dplyr::select(
         .data = sample_tibble,
-        "sample" = .data$sample,
-        "gtag" = .data$junctions_gtag,
-        "gcag" = .data$junctions_gcag,
-        "atac" = .data$junctions_atac,
-        "non_canonical" = .data$junctions_non_canonical
+        "sample" = "sample",
+        "gtag" = "junctions_gtag",
+        "gcag" = "junctions_gcag",
+        "atac" = "junctions_atac",
+        "non_canonical" = "junctions_non_canonical"
       ),
-      cols = c(.data$non_canonical, .data$atac, .data$gcag, .data$gtag),
+      cols = c("non_canonical", "atac", "gcag", "gtag"),
       names_to = "junction",
       values_to = "number"
     )
   )
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_col(
       mapping = ggplot2::aes(
@@ -1046,6 +1107,7 @@ if (file.exists(file_path)) {
       ),
       alpha = I(1 / 3)
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
@@ -1053,6 +1115,7 @@ if (file.exists(file_path)) {
       fill = "Splice Junction",
       title = "STAR Aligner Splice Junction Numbers per Sample"
     )
+
   # Reduce the label font size and the legend key size and allow a maximum of 24
   # guide legend rows.
   ggplot_object <-
@@ -1063,6 +1126,7 @@ if (file.exists(file_path)) {
         nrow = 24L
       )
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
@@ -1073,10 +1137,12 @@ if (file.exists(file_path)) {
       ),
       legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
     )
+
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
     argument_list$plot_width + (ceiling(x = base::nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width > graphics_maximum_size_png) {
@@ -1086,6 +1152,7 @@ if (file.exists(file_path)) {
               graphics_maximum_size_png)
       next
     }
+
     ggplot2::ggsave(
       filename = paste(
         paste(argument_list$prefix,
@@ -1119,11 +1186,12 @@ if (file.exists(file_path)) {
         "atac" = .data$junctions_atac / .data$junctions_total,
         "non_canonical" = .data$junctions_non_canonical / .data$junctions_total
       ),
-      cols = c(.data$non_canonical, .data$atac, .data$gcag, .data$gtag),
+      cols = c("non_canonical", "atac", "gcag", "gtag"),
       names_to = "junction",
       values_to = "fraction"
     )
   )
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_col(
       mapping = ggplot2::aes(
@@ -1133,6 +1201,7 @@ if (file.exists(file_path)) {
       ),
       alpha = I(1 / 3)
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
@@ -1140,6 +1209,7 @@ if (file.exists(file_path)) {
       fill = "Splice Junction",
       title = "STAR Aligner Splice Junction Fractions per Sample"
     )
+
   # Reduce the label font size and the legend key size and allow a maximum of 24
   # guide legend rows.
   ggplot_object <-
@@ -1150,6 +1220,7 @@ if (file.exists(file_path)) {
         nrow = 24L
       )
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
@@ -1160,10 +1231,12 @@ if (file.exists(file_path)) {
       ),
       legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7))
     )
+
   # Scale the plot width with the number of samples, by adding a quarter of
   # the original width for each 24 samples.
   plot_width <-
     argument_list$plot_width + (ceiling(x = base::nrow(x = sample_tibble) / 24L) - 1L) * argument_list$plot_width * 0.25
+
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width > graphics_maximum_size_png) {
@@ -1173,6 +1246,7 @@ if (file.exists(file_path)) {
               graphics_maximum_size_png)
       next
     }
+
     ggplot2::ggsave(
       filename = paste(
         paste(

@@ -114,6 +114,7 @@ file_names <-
     ),
     recursive = TRUE
   )
+
 for (file_name in file_names) {
   sample_name <-
     base::gsub(
@@ -125,6 +126,7 @@ for (file_name in file_names) {
       replacement = "\\1",
       x = base::basename(path = file_name)
     )
+
   message("  ", sample_name)
   # Since the Picard AlignmentSummaryMetrics uses a hash character (#) in the
   # read group component to separate platform unit and sample name, the Picard
@@ -169,15 +171,19 @@ for (file_name in file_names) {
                            (picard_metrics_total$SAMPLE != "") &
                            (picard_metrics_total$LIBRARY == "") &
                            (picard_metrics_total$READ_GROUP == ""),]
+
   combined_metrics_sample <-
     base::rbind(combined_metrics_sample, picard_metrics_sample)
+
   rm(picard_metrics_sample)
 
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP information.
   picard_metrics_read_group <-
     picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
+
   combined_metrics_read_group <-
     base::rbind(combined_metrics_read_group, picard_metrics_read_group)
+
   rm(picard_metrics_read_group)
 
   rm(sample_name, picard_metrics_total)
@@ -188,11 +194,14 @@ if (!is.null(x = combined_metrics_sample)) {
   # Order the data frame by SAMPLE.
   combined_metrics_sample <-
     combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
+
   # Manually convert CATEGORY and SAMPLE columns into factors, which are handy for plotting.
   combined_metrics_sample$CATEGORY <-
     as.factor(x = combined_metrics_sample$CATEGORY)
+
   combined_metrics_sample$SAMPLE <-
     as.factor(x = combined_metrics_sample$SAMPLE)
+
   # Add an additional LABEL factor column defined as a concatenation of SAMPLE and CATEGORY.
   combined_metrics_sample$LABEL <-
     as.factor(x = paste(
@@ -201,6 +210,7 @@ if (!is.null(x = combined_metrics_sample)) {
       sep =
         "_"
     ))
+
   utils::write.table(
     x = combined_metrics_sample,
     file = paste(prefix_summary, prefix_pasm, "metrics_sample.tsv", sep = "_"),
@@ -212,11 +222,14 @@ if (!is.null(x = combined_metrics_sample)) {
   # Order the data frame by READ_GROUP
   combined_metrics_read_group <-
     combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP),]
+
   # Manually convert CATEGORY and READ_GROUP columns into factors, which are handy for plotting.
   combined_metrics_read_group$CATEGORY <-
     as.factor(x = combined_metrics_read_group$CATEGORY)
+
   combined_metrics_read_group$READ_GROUP <-
     as.factor(x = combined_metrics_read_group$READ_GROUP)
+
   # Add an additional LABEL factor column defined as a concatenation of READ_GROUP and CATEGORY.
   combined_metrics_read_group$LABEL <-
     as.factor(
@@ -227,6 +240,7 @@ if (!is.null(x = combined_metrics_sample)) {
           "_"
       )
     )
+
   utils::write.table(
     x = combined_metrics_read_group,
     file = paste(prefix_summary, prefix_pasm, "metrics_read_group.tsv", sep = "_"),
@@ -241,6 +255,7 @@ if (!is.null(x = combined_metrics_sample)) {
   message("Plotting the absolute number versus the fraction per sample")
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED", "PF_READS"), drop = FALSE])
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -251,6 +266,7 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       alpha = I(1 / 3)
     )
+
   ggplot_object <- ggplot_object + ggplot2::labs(
     x = "Reads Number",
     y = "Reads Fraction",
@@ -258,6 +274,7 @@ if (!is.null(x = combined_metrics_sample)) {
     shape = "Category",
     title = "Alignment Summary per Sample"
   )
+
   # Reduce the label font size and the legend key size and allow a maximum of 24
   # guide legend rows.
   ggplot_object <-
@@ -268,11 +285,14 @@ if (!is.null(x = combined_metrics_sample)) {
         nrow = 24L
       )
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::theme(legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7)))
+
   # Adjust the plot width according to batches of 24 samples or read groups.
   plot_width <-
     argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample$SAMPLE) / 24L) - 1L) * argument_list$plot_width * 0.33
+
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width > graphics_maximum_size_png) {
@@ -282,6 +302,7 @@ if (!is.null(x = combined_metrics_sample)) {
               graphics_maximum_size_png)
       next
     }
+
     ggplot2::ggsave(
       filename = paste(
         paste(prefix_summary,
@@ -306,6 +327,7 @@ if (!is.null(x = combined_metrics_sample)) {
   message("Plotting the absolute number versus the fraction per read group")
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PF_READS_ALIGNED", "PF_READS"), drop = FALSE])
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -316,6 +338,7 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       alpha = I(1 / 3)
     )
+
   ggplot_object <- ggplot_object + ggplot2::labs(
     x = "Reads Number",
     y = "Reads Fraction",
@@ -323,6 +346,7 @@ if (!is.null(x = combined_metrics_sample)) {
     shape = "Category",
     title = "Alignment Summary per Read Group"
   )
+
   # Reduce the label font size and the legend key size and allow a maximum of 24
   # guide legend rows.
   ggplot_object <-
@@ -333,11 +357,14 @@ if (!is.null(x = combined_metrics_sample)) {
         nrow = 24L
       )
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::theme(legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7)))
+
   # Adjust the plot width according to batches of 24 samples or read groups.
   plot_width <-
     argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_read_group$READ_GROUP) / 24L) - 1L) * argument_list$plot_width * 0.75
+
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width > graphics_maximum_size_png) {
@@ -347,6 +374,7 @@ if (!is.null(x = combined_metrics_sample)) {
               graphics_maximum_size_png)
       next
     }
+
     ggplot2::ggsave(
       filename = paste(
         paste(
@@ -370,6 +398,7 @@ if (!is.null(x = combined_metrics_sample)) {
   # Adjust the plot width according to batches of 24 samples or read groups.
   plot_width_sample <-
     argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample$SAMPLE) / 24L) - 1L) * argument_list$plot_width * 0.25
+
   plot_width_read_group <-
     argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_read_group$READ_GROUP) / 24L) - 1L) * argument_list$plot_width * 0.25
 
@@ -379,6 +408,7 @@ if (!is.null(x = combined_metrics_sample)) {
   message("Plotting the absolute number of aligned pass-filter reads per sample")
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED"), drop = FALSE])
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -388,12 +418,14 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       alpha = I(1 / 3)
     )
+
   ggplot_object <- ggplot_object + ggplot2::labs(
     x = "Sample",
     y = "Reads Number",
     colour = "Category",
     title = "Aligned Pass-Filter Reads per Sample"
   )
+
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
@@ -403,6 +435,7 @@ if (!is.null(x = combined_metrics_sample)) {
         angle = 90.0
       )
     )
+
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width_sample > graphics_maximum_size_png) {
@@ -414,6 +447,7 @@ if (!is.null(x = combined_metrics_sample)) {
       )
       next
     }
+
     ggplot2::ggsave(
       filename = paste(
         paste(prefix_summary,
@@ -438,6 +472,7 @@ if (!is.null(x = combined_metrics_sample)) {
   message("Plotting the absolute number of aligned pass-filter reads per read group")
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PF_READS_ALIGNED"), drop = FALSE])
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -447,12 +482,14 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       alpha = I(1 / 3)
     )
+
   ggplot_object <- ggplot_object + ggplot2::labs(
     x = "Read Group",
     y = "Reads Number",
     colour = "Category",
     title = "Aligned Pass-Filter Reads per Read Group"
   )
+
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
@@ -462,6 +499,7 @@ if (!is.null(x = combined_metrics_sample)) {
         angle = 90.0
       )
     )
+
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width_read_group > graphics_maximum_size_png) {
@@ -473,6 +511,7 @@ if (!is.null(x = combined_metrics_sample)) {
       )
       next
     }
+
     ggplot2::ggsave(
       filename = paste(
         paste(
@@ -499,6 +538,7 @@ if (!is.null(x = combined_metrics_sample)) {
   message("Plotting the percentage of aligned pass-filter reads per sample")
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PCT_PF_READS_ALIGNED"), drop = FALSE])
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -508,6 +548,7 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       alpha = I(1 / 3)
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
@@ -515,6 +556,7 @@ if (!is.null(x = combined_metrics_sample)) {
       colour = "Category",
       title = "Aligned Pass-Filter Reads per Sample"
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
@@ -524,6 +566,7 @@ if (!is.null(x = combined_metrics_sample)) {
         angle = 90.0
       )
     )
+
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width_sample > graphics_maximum_size_png) {
@@ -535,6 +578,7 @@ if (!is.null(x = combined_metrics_sample)) {
       )
       next
     }
+
     ggplot2::ggsave(
       filename = paste(
         paste(prefix_summary,
@@ -559,6 +603,7 @@ if (!is.null(x = combined_metrics_sample)) {
   message("Plotting the percentage of aligned pass-filter reads per read group")
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PCT_PF_READS_ALIGNED"), drop = FALSE])
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -568,6 +613,7 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       alpha = I(1 / 3)
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Read Group",
@@ -575,6 +621,7 @@ if (!is.null(x = combined_metrics_sample)) {
       colour = "Category",
       title = "Aligned Pass-Filter Reads per Read Group"
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
@@ -584,6 +631,7 @@ if (!is.null(x = combined_metrics_sample)) {
         angle = 90.0
       )
     )
+
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width_read_group > graphics_maximum_size_png) {
@@ -595,6 +643,7 @@ if (!is.null(x = combined_metrics_sample)) {
       )
       next
     }
+
     ggplot2::ggsave(
       filename = paste(
         paste(
@@ -621,6 +670,7 @@ if (!is.null(x = combined_metrics_sample)) {
   message("Plotting the strand balance of aligned pass-filter reads per sample")
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "STRAND_BALANCE"), drop = FALSE])
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -630,6 +680,7 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       alpha = I(1 / 3)
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
@@ -637,6 +688,7 @@ if (!is.null(x = combined_metrics_sample)) {
       colour = "Category",
       title = "Strand Balance of Aligned Pass-Filter Reads per Sample"
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
@@ -646,6 +698,7 @@ if (!is.null(x = combined_metrics_sample)) {
         angle = 90.0
       )
     )
+
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width_sample > graphics_maximum_size_png) {
@@ -657,6 +710,7 @@ if (!is.null(x = combined_metrics_sample)) {
       )
       next
     }
+
     ggplot2::ggsave(
       filename = paste(
         paste(
@@ -683,6 +737,7 @@ if (!is.null(x = combined_metrics_sample)) {
   message("Plotting the strand balance of aligned pass-filter reads per read group")
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "STRAND_BALANCE"), drop = FALSE])
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -692,6 +747,7 @@ if (!is.null(x = combined_metrics_sample)) {
       ),
       alpha = I(1 / 3)
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Read Group",
@@ -699,6 +755,7 @@ if (!is.null(x = combined_metrics_sample)) {
       colour = "Category",
       title = "Strand Balance of Aligned Pass-Filter Reads per Read Group"
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
@@ -708,6 +765,7 @@ if (!is.null(x = combined_metrics_sample)) {
         angle = 90.0
       )
     )
+
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width_read_group > graphics_maximum_size_png) {
@@ -719,6 +777,7 @@ if (!is.null(x = combined_metrics_sample)) {
       )
       next
     }
+
     ggplot2::ggsave(
       filename = paste(
         paste(
@@ -760,6 +819,7 @@ file_names <-
     ),
     recursive = TRUE
   )
+
 for (file_name in file_names) {
   sample_name <-
     base::gsub(
@@ -780,6 +840,7 @@ for (file_name in file_names) {
     which(x = grepl(pattern = "## METRICS CLASS", x = metrics_lines))
   histogram_line <-
     which(x = grepl(pattern = "## HISTOGRAM", x = metrics_lines))
+
   if (length(x = histogram_line)) {
     # Set the number of rows to read excluding 3 more lines,
     # the "## HISTOGRAM" line, the blank line and the header line.
@@ -789,6 +850,7 @@ for (file_name in file_names) {
     number_read <- -1L
     number_skip <- metrics_line[1L]
   }
+
   picard_metrics_sample <-
     utils::read.table(
       file = file_name,
@@ -800,6 +862,7 @@ for (file_name in file_names) {
       comment.char = "",
       stringsAsFactors = FALSE
     )
+
   rm(number_read,
      number_skip,
      histogram_line,
@@ -826,16 +889,21 @@ if (!is.null(x = combined_metrics_sample)) {
   # Order the sample frame by SAMPLE.
   combined_metrics_sample <-
     combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
+
   # Convert the SAMPLE column into factors, which come more handy for plotting.
   combined_metrics_sample$SAMPLE <-
     as.factor(x = combined_metrics_sample$SAMPLE)
+
   # Add additional percentages into the table.
   combined_metrics_sample$PERCENT_UNPAIRED_READ_DUPLICATION <-
     combined_metrics_sample$UNPAIRED_READ_DUPLICATES / combined_metrics_sample$UNPAIRED_READS_EXAMINED
+
   combined_metrics_sample$PERCENT_READ_PAIR_DUPLICATION <-
     combined_metrics_sample$READ_PAIR_DUPLICATES / combined_metrics_sample$READ_PAIRS_EXAMINED
+
   combined_metrics_sample$PERCENT_READ_PAIR_OPTICAL_DUPLICATION <-
     combined_metrics_sample$READ_PAIR_OPTICAL_DUPLICATES / combined_metrics_sample$READ_PAIRS_EXAMINED
+
   utils::write.table(
     x = combined_metrics_sample,
     file = paste(prefix_summary, prefix_pdsm, "metrics_sample.tsv", sep = "_"),
@@ -854,15 +922,19 @@ if (!is.null(x = combined_metrics_sample)) {
   message("Plotting the percent duplication per sample")
   ggplot_object <-
     ggplot2::ggplot(data = combined_metrics_sample)
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(x = .data$SAMPLE, y = .data$PERCENT_DUPLICATION),
       alpha = I(1 / 3)
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::labs(x = "Sample", y = "Duplication Fraction", title = "Duplication Fraction per Sample")
+
   ggplot_object <-
     ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(nrow = 24L))
+
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
@@ -872,6 +944,7 @@ if (!is.null(x = combined_metrics_sample)) {
         angle = 90.0
       )
     )
+
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
         plot_width > graphics_maximum_size_png) {
@@ -881,6 +954,7 @@ if (!is.null(x = combined_metrics_sample)) {
               graphics_maximum_size_png)
       next
     }
+
     ggplot2::ggsave(
       filename = paste(
         paste(prefix_summary,
@@ -911,15 +985,16 @@ if (!is.null(x = combined_metrics_sample)) {
     data = tidyr::pivot_longer(
       data = combined_metrics_sample,
       cols = c(
-        .data$PERCENT_UNPAIRED_READ_DUPLICATION,
-        .data$PERCENT_READ_PAIR_DUPLICATION,
-        .data$PERCENT_READ_PAIR_OPTICAL_DUPLICATION,
-        .data$PERCENT_DUPLICATION
+        "PERCENT_UNPAIRED_READ_DUPLICATION",
+        "PERCENT_READ_PAIR_DUPLICATION",
+        "PERCENT_READ_PAIR_OPTICAL_DUPLICATION",
+        "PERCENT_DUPLICATION"
       ),
       names_to = "DUPLICATION",
       values_to = "fraction"
     )
   )
+
   ggplot_object <-
     ggplot_object + ggplot2::geom_point(
       mapping = ggplot2::aes(
@@ -927,8 +1002,10 @@ if (!is.null(x = combined_metrics_sample)) {
         y = .data$fraction,
         colour = .data$DUPLICATION
       ),
-      alpha = I(1 / 3)
+      alpha = I(1 / 3),
+      na.rm = TRUE
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::labs(
       x = "Sample",
@@ -936,6 +1013,7 @@ if (!is.null(x = combined_metrics_sample)) {
       colour = "Duplication",
       title = "Duplication Levels per Sample"
     )
+
   ggplot_object <-
     ggplot_object + ggplot2::theme(
       axis.text.x = ggplot2::element_text(
@@ -945,6 +1023,7 @@ if (!is.null(x = combined_metrics_sample)) {
         angle = 90.0
       )
     )
+
   for (graphics_format in graphics_formats) {
     ggplot2::ggsave(
       filename = paste(

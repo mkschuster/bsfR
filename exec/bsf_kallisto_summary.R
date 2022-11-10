@@ -175,13 +175,13 @@ ggplot_object <-
     data = tidyr::pivot_longer(
       data = dplyr::select(
         .data = sample_tibble,
-        "sample" = .data$sample_name,
-        "unmapped" = .data$n_unmapped,
-        "multi" = .data$n_pseudoaligned,
-        "unique" = .data$n_unique,
-        "processed" = .data$n_processed
+        "sample" = "sample_name",
+        "unmapped" = "n_unmapped",
+        "multi" = "n_pseudoaligned",
+        "unique" = "n_unique",
+        "processed" = "n_processed"
       ),
-      cols = c(.data$unmapped, .data$multi, .data$unique),
+      cols = c("unmapped", "multi", "unique"),
       names_to = "status",
       values_to = "number"
     )
@@ -244,12 +244,12 @@ ggplot_object <-
     data = tidyr::pivot_longer(
       data = dplyr::select(
         .data = sample_tibble,
-        "sample" = .data$sample_name,
-        "unmapped" = .data$n_unmapped,
-        "multi" = .data$n_pseudoaligned,
-        "unique" = .data$n_unique
+        "sample" = "sample_name",
+        "unmapped" = "n_unmapped",
+        "multi" = "n_pseudoaligned",
+        "unique" = "n_unique"
       ),
-      cols = c(.data$unmapped, .data$multi, .data$unique),
+      cols = c("unmapped", "multi", "unique"),
       names_to = "status",
       values_to = "number"
     )
@@ -331,7 +331,7 @@ ggplot_object <-
         "multi" = .data$n_pseudoaligned / .data$n_processed,
         "unique" = .data$n_unique / .data$n_processed
       ),
-      cols = c(.data$unmapped, .data$multi, .data$unique),
+      cols = c("unmapped", "multi", "unique"),
       names_to = "status",
       values_to = "fraction"
     )

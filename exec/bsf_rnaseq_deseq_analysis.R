@@ -383,7 +383,8 @@ initialise_deseq_data_set <- function(design_list) {
         design_list = design_list,
         gtf_path = argument_list$gtf_reference,
         genome_version = argument_list$genome_version,
-        verbose = argument_list$verbose)
+        verbose = argument_list$verbose
+      )
 
     # Create a model matrix based on the model formula and column (sample
     # annotation) data and check whether it is full rank.
@@ -426,8 +427,10 @@ initialise_deseq_data_set <- function(design_list) {
       # The design formula *is* full rank, so set it as "design" option directly.
       message("Creating a DESeqDataSet object with a model formula")
       deseq_data_set <-
-        DESeq2::DESeqDataSet(se = ranged_summarized_experiment,
-                             design = stats::as.formula(object = design_list$full_formula))
+        DESeq2::DESeqDataSet(
+          se = ranged_summarized_experiment,
+          design = stats::as.formula(object = design_list$full_formula)
+        )
 
       # Start DESeq2 Wald testing.
       #

@@ -154,7 +154,7 @@ if (argument_list$verbose) {
 
 count_tibble <-
   dplyr::right_join(
-    x = dplyr::select(.data = annotation_tibble, .data$gene_name, .data$gene_id),
+    x = dplyr::select(.data = annotation_tibble, "gene_name", "gene_id"),
     y = tibble::as_tibble(
       x = DESeq2::counts(object = deseq_data_set, normalized = TRUE),
       rownames = "gene_id"
@@ -166,11 +166,9 @@ count_tibble <-
 # respectively, to match the GCT file format.
 
 count_tibble <-
-  dplyr::rename(
-    .data = count_tibble,
-    "NAME" = .data$gene_name,
-    "Description" = .data$gene_id
-  )
+  dplyr::rename(.data = count_tibble,
+                "NAME" = "gene_name",
+                "Description" = "gene_id")
 
 # Append the tibble to the header, but make sure the header line gets also exported.
 
@@ -221,7 +219,7 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   }
 
   readr::write_tsv(
-    x = dplyr::select(.data = deseq_results_tibble, .data$gene_name, .data$log2FoldChange),
+    x = dplyr::select(.data = deseq_results_tibble, "gene_name", "log2FoldChange"),
     file = file.path(output_directory, paste(
       paste(prefix_gsea, contrast_character, sep = "_"), "rnk", sep = "."
     )),

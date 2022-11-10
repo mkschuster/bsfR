@@ -172,13 +172,10 @@ for (file_name in file_names) {
     picard_metrics_sample_frame$SECONDARY_OR_SUPPLEMENTARY_RDS <- 0L
   }
 
-  if (is.null(x = combined_metrics_sample_frame)) {
-    combined_metrics_sample_frame <- picard_metrics_sample_frame
-  } else {
-    combined_metrics_sample_frame <-
-      rbind(combined_metrics_sample_frame,
-            picard_metrics_sample_frame)
-  }
+  combined_metrics_sample_frame <-
+    base::rbind(combined_metrics_sample_frame,
+                picard_metrics_sample_frame)
+
   rm(picard_metrics_sample_frame)
 }
 rm(file_name, file_names)
@@ -260,10 +257,10 @@ if (!is.null(x = combined_metrics_sample_frame)) {
     data = tidyr::pivot_longer(
       data = combined_metrics_sample_frame,
       cols = c(
-        .data$PERCENT_UNPAIRED_READ_DUPLICATION,
-        .data$PERCENT_READ_PAIR_DUPLICATION,
-        .data$PERCENT_READ_PAIR_OPTICAL_DUPLICATION,
-        .data$PERCENT_DUPLICATION
+        "PERCENT_UNPAIRED_READ_DUPLICATION",
+        "PERCENT_READ_PAIR_DUPLICATION",
+        "PERCENT_READ_PAIR_OPTICAL_DUPLICATION",
+        "PERCENT_DUPLICATION"
       ),
       names_to = "DUPLICATION",
       values_to = "fraction"
@@ -376,26 +373,22 @@ for (file_name in file_names) {
                                  (picard_metrics_total_frame$SAMPLE != "") &
                                  (picard_metrics_total_frame$LIBRARY == "") &
                                  (picard_metrics_total_frame$READ_GROUP == ""), ]
-  if (is.null(x = combined_metrics_sample_frame)) {
-    combined_metrics_sample_frame <- picard_metrics_sample_frame
-  } else {
-    combined_metrics_sample_frame <-
-      rbind(combined_metrics_sample_frame,
-            picard_metrics_sample_frame)
-  }
+
+  combined_metrics_sample_frame <-
+    base::rbind(combined_metrics_sample_frame,
+                picard_metrics_sample_frame)
+
   rm(picard_metrics_sample_frame)
 
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP
   # information.
   picard_metrics_read_group <-
     picard_metrics_total_frame[(picard_metrics_total_frame$READ_GROUP != ""), ]
-  if (is.null(x = combined_metrics_read_group_frame)) {
-    combined_metrics_read_group_frame <- picard_metrics_read_group
-  } else {
-    combined_metrics_read_group_frame <-
-      rbind(combined_metrics_read_group_frame,
-            picard_metrics_read_group)
-  }
+
+  combined_metrics_read_group_frame <-
+    base::rbind(combined_metrics_read_group_frame,
+                picard_metrics_read_group)
+
   rm(picard_metrics_read_group)
 
   rm(sample_name, picard_metrics_total_frame)
@@ -850,26 +843,22 @@ for (file_name in file_names) {
                                  (picard_metrics_total_frame$SAMPLE != "") &
                                  (picard_metrics_total_frame$LIBRARY == "") &
                                  (picard_metrics_total_frame$READ_GROUP == ""), ]
-  if (is.null(x = combined_metrics_sample_frame)) {
-    combined_metrics_sample_frame <- picard_metrics_sample_frame
-  } else {
-    combined_metrics_sample_frame <-
-      rbind(combined_metrics_sample_frame,
-            picard_metrics_sample_frame)
-  }
+
+  combined_metrics_sample_frame <-
+    base::rbind(combined_metrics_sample_frame,
+                picard_metrics_sample_frame)
+
   rm(picard_metrics_sample_frame)
 
   # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP
   # information.
   picard_metrics_read_group <-
     picard_metrics_total_frame[(picard_metrics_total_frame$READ_GROUP != ""), ]
-  if (is.null(x = combined_metrics_read_group_frame)) {
-    combined_metrics_read_group_frame <- picard_metrics_read_group
-  } else {
-    combined_metrics_read_group_frame <-
-      rbind(combined_metrics_read_group_frame,
-            picard_metrics_read_group)
-  }
+
+  combined_metrics_read_group_frame <-
+    base::rbind(combined_metrics_read_group_frame,
+                picard_metrics_read_group)
+
   rm(picard_metrics_read_group)
 
   rm(sample_name, picard_metrics_total_frame)
@@ -1128,11 +1117,11 @@ if (!is.null(x = combined_metrics_sample_frame)) {
     data = tidyr::pivot_longer(
       data = combined_metrics_sample_frame,
       cols = c(
-        .data$PCT_EXC_DUPE,
-        .data$PCT_EXC_MAPQ,
-        .data$PCT_EXC_BASEQ,
-        .data$PCT_EXC_OVERLAP,
-        .data$PCT_EXC_OFF_TARGET
+        "PCT_EXC_DUPE",
+        "PCT_EXC_MAPQ",
+        "PCT_EXC_BASEQ",
+        "PCT_EXC_OVERLAP",
+        "PCT_EXC_OFF_TARGET"
       ),
       names_to = "EXCLUDED",
       values_to = "fraction"
@@ -1193,11 +1182,11 @@ if (!is.null(x = combined_metrics_sample_frame)) {
     data = tidyr::pivot_longer(
       data = combined_metrics_read_group_frame,
       cols = c(
-        .data$PCT_EXC_DUPE,
-        .data$PCT_EXC_MAPQ,
-        .data$PCT_EXC_BASEQ,
-        .data$PCT_EXC_OVERLAP,
-        .data$PCT_EXC_OFF_TARGET
+        "PCT_EXC_DUPE",
+        "PCT_EXC_MAPQ",
+        "PCT_EXC_BASEQ",
+        "PCT_EXC_OVERLAP",
+        "PCT_EXC_OFF_TARGET"
       ),
       names_to = "EXCLUDED",
       values_to = "fraction"
@@ -1270,14 +1259,14 @@ if (!is.null(x = combined_metrics_sample_frame)) {
     data = tidyr::pivot_longer(
       data = combined_metrics_sample_frame,
       cols = c(
-        .data$PCT_TARGET_BASES_1X,
-        .data$PCT_TARGET_BASES_2X,
-        .data$PCT_TARGET_BASES_10X,
-        .data$PCT_TARGET_BASES_20X,
-        .data$PCT_TARGET_BASES_30X,
-        .data$PCT_TARGET_BASES_40X,
-        .data$PCT_TARGET_BASES_50X,
-        .data$PCT_TARGET_BASES_100X
+        "PCT_TARGET_BASES_1X",
+        "PCT_TARGET_BASES_2X",
+        "PCT_TARGET_BASES_10X",
+        "PCT_TARGET_BASES_20X",
+        "PCT_TARGET_BASES_30X",
+        "PCT_TARGET_BASES_40X",
+        "PCT_TARGET_BASES_50X",
+        "PCT_TARGET_BASES_100X"
       ),
       names_to = "COVERAGE",
       values_to = "fraction"
@@ -1340,14 +1329,14 @@ if (!is.null(x = combined_metrics_sample_frame)) {
     data = tidyr::pivot_longer(
       data = combined_metrics_read_group_frame,
       cols = c(
-        .data$PCT_TARGET_BASES_1X,
-        .data$PCT_TARGET_BASES_2X,
-        .data$PCT_TARGET_BASES_10X,
-        .data$PCT_TARGET_BASES_20X,
-        .data$PCT_TARGET_BASES_30X,
-        .data$PCT_TARGET_BASES_40X,
-        .data$PCT_TARGET_BASES_50X,
-        .data$PCT_TARGET_BASES_100X
+        "PCT_TARGET_BASES_1X",
+        "PCT_TARGET_BASES_2X",
+        "PCT_TARGET_BASES_10X",
+        "PCT_TARGET_BASES_20X",
+        "PCT_TARGET_BASES_30X",
+        "PCT_TARGET_BASES_40X",
+        "PCT_TARGET_BASES_50X",
+        "PCT_TARGET_BASES_100X"
       ),
       names_to = "COVERAGE",
       values_to = "fraction"
@@ -1556,41 +1545,41 @@ combined_metrics_sample_frame <- data.frame(
 combined_metrics_sample_frame$file_name <-
   base::row.names(x = combined_metrics_sample_frame)
 combined_metrics_sample_frame$exon_path <-
-  character(length = nrow(x = combined_metrics_sample_frame))
+  character(length = base::nrow(x = combined_metrics_sample_frame))
 combined_metrics_sample_frame$exon_number_raw <-
-  integer(length = nrow(x = combined_metrics_sample_frame))
+  integer(length = base::nrow(x = combined_metrics_sample_frame))
 combined_metrics_sample_frame$exon_width_raw <-
-  integer(length = nrow(x = combined_metrics_sample_frame))
+  integer(length = base::nrow(x = combined_metrics_sample_frame))
 combined_metrics_sample_frame$exon_number <-
-  integer(length = nrow(x = combined_metrics_sample_frame))
+  integer(length = base::nrow(x = combined_metrics_sample_frame))
 combined_metrics_sample_frame$exon_width <-
-  integer(length = nrow(x = combined_metrics_sample_frame))
+  integer(length = base::nrow(x = combined_metrics_sample_frame))
 combined_metrics_sample_frame$exon_width_flank <-
-  integer(length = nrow(x = combined_metrics_sample_frame))
+  integer(length = base::nrow(x = combined_metrics_sample_frame))
 combined_metrics_sample_frame$transcribed_number <-
-  integer(length = nrow(x = combined_metrics_sample_frame))
+  integer(length = base::nrow(x = combined_metrics_sample_frame))
 combined_metrics_sample_frame$transcribed_width <-
-  integer(length = nrow(x = combined_metrics_sample_frame))
+  integer(length = base::nrow(x = combined_metrics_sample_frame))
 combined_metrics_sample_frame$target_path <-
-  character(length = nrow(x = combined_metrics_sample_frame))
+  character(length = base::nrow(x = combined_metrics_sample_frame))
 combined_metrics_sample_frame$target_number_raw <-
-  integer(length = nrow(x = combined_metrics_sample_frame))
+  integer(length = base::nrow(x = combined_metrics_sample_frame))
 combined_metrics_sample_frame$target_width_raw <-
-  integer(length = nrow(x = combined_metrics_sample_frame))
+  integer(length = base::nrow(x = combined_metrics_sample_frame))
 combined_metrics_sample_frame$target_width_flank <-
-  integer(length = nrow(x = combined_metrics_sample_frame))
+  integer(length = base::nrow(x = combined_metrics_sample_frame))
 combined_metrics_sample_frame$constrained_number <-
-  integer(length = nrow(x = combined_metrics_sample_frame))
+  integer(length = base::nrow(x = combined_metrics_sample_frame))
 combined_metrics_sample_frame$constrained_width <-
-  integer(length = nrow(x = combined_metrics_sample_frame))
+  integer(length = base::nrow(x = combined_metrics_sample_frame))
 combined_metrics_sample_frame$callable_loci_path <-
-  character(length = nrow(x = combined_metrics_sample_frame))
+  character(length = base::nrow(x = combined_metrics_sample_frame))
 combined_metrics_sample_frame$sample_name <-
-  character(length = nrow(x = combined_metrics_sample_frame))
+  character(length = base::nrow(x = combined_metrics_sample_frame))
 combined_metrics_sample_frame$non_callable_number_raw <-
-  integer(length = nrow(x = combined_metrics_sample_frame))
+  integer(length = base::nrow(x = combined_metrics_sample_frame))
 combined_metrics_sample_frame$non_callable_width_raw <-
-  integer(length = nrow(x = combined_metrics_sample_frame))
+  integer(length = base::nrow(x = combined_metrics_sample_frame))
 for (level in c(
   "REF_N",
   # "PASS" according to documentation, but should be "CALLABLE" in practice.
@@ -1600,13 +1589,13 @@ for (level in c(
   "POOR_MAPPING_QUALITY"
 )) {
   combined_metrics_sample_frame[, paste("non_callable_number_constrained", level, sep = ".")] <-
-    integer(length = nrow(x = combined_metrics_sample_frame))
+    integer(length = base::nrow(x = combined_metrics_sample_frame))
   combined_metrics_sample_frame[, paste("non_callable_width_constrained", level, sep = ".")] <-
-    integer(length = nrow(x = combined_metrics_sample_frame))
+    integer(length = base::nrow(x = combined_metrics_sample_frame))
 }
 rm(level)
 
-for (i in seq_len(length.out = nrow(x = combined_metrics_sample_frame))) {
+for (i in seq_len(length.out = base::nrow(x = combined_metrics_sample_frame))) {
   sample_name <-
     base::gsub(pattern = "^variant_calling_diagnose_sample_(.*?)_non_callable_summary.tsv$",
                replacement = "\\1",
@@ -1671,7 +1660,7 @@ for (i in seq_len(length.out = nrow(x = combined_metrics_sample_frame))) {
 }
 rm(i)
 
-if (nrow(x = combined_metrics_sample_frame) > 0L) {
+if (base::nrow(x = combined_metrics_sample_frame) > 0L) {
   # Sort the data frame by sample_name.
   combined_metrics_sample_frame <-
     combined_metrics_sample_frame[order(combined_metrics_sample_frame$sample_name), ]
@@ -1721,7 +1710,7 @@ if (nrow(x = combined_metrics_sample_frame) > 0L) {
   # as identifiers.
   plotting_frame <- tidyr::pivot_longer(
     data = plotting_frame,
-    cols = -c(.data$sample_name, .data$constrained_number),
+    cols = -c("sample_name", "constrained_number"),
     names_to = "mapping_status",
     values_to = "number"
   )
@@ -1805,7 +1794,7 @@ if (nrow(x = combined_metrics_sample_frame) > 0L) {
   # as identifiers.
   plotting_frame <- tidyr::pivot_longer(
     data = plotting_frame,
-    cols = -c(.data$sample_name, .data$constrained_width),
+    cols = -c("sample_name", "constrained_width"),
     names_to = "mapping_status",
     values_to = "width"
   )
