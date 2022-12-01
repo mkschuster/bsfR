@@ -319,8 +319,8 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
               ))
   base::names(x = plot_paths) <- base::names(x = graphics_formats)
 
-  if (all(file.exists(plot_paths) &&
-          file.info(plot_paths)$size > 0L)) {
+  if (all(file.exists(plot_paths)) &&
+      all(file.info(plot_paths)$size > 0L)) {
     message("Skipping IHW weights plots for ", contrast_character)
   } else {
     message("Creating IHW weights plots for ", contrast_character)
@@ -365,8 +365,8 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
               ))
   base::names(x = plot_paths) <- base::names(x = graphics_formats)
 
-  if (all(file.exists(plot_paths) &&
-          file.info(plot_paths)$size > 0L)) {
+  if (all(file.exists(plot_paths)) &&
+      all(file.info(plot_paths)$size > 0L)) {
     message("Skipping IHW decision boundaries plots for ",
             contrast_character)
   } else {
@@ -412,8 +412,8 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
               ))
   base::names(x = plot_paths) <- base::names(x = graphics_formats)
 
-  if (all(file.exists(plot_paths) &&
-          file.info(plot_paths)$size > 0L)) {
+  if (all(file.exists(plot_paths)) &&
+      all(file.info(plot_paths)$size > 0L)) {
     message("Skipping IHW p-values plots for ",
             contrast_character)
   } else {
@@ -472,8 +472,8 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
               ))
   base::names(x = plot_paths) <- base::names(x = graphics_formats)
 
-  if (all(file.exists(plot_paths) &&
-          file.info(plot_paths)$size > 0L)) {
+  if (all(file.exists(plot_paths)) &&
+      all(file.info(plot_paths)$size > 0L)) {
     message("Skipping MA plots for ",
             contrast_character)
   } else {
@@ -590,15 +590,16 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
                           ))
   base::names(x = plot_paths) <- base::names(x = graphics_formats)
 
-  if (all(file.exists(plot_paths) &&
-          file.info(plot_paths)$size > 0L)) {
+  if (all(file.exists(plot_paths)) &&
+      all(file.info(plot_paths)$size > 0L)) {
     message("Skipping EnhancedVolcano plots for ", contrast_character)
   } else {
     message("Creating EnhancedVolcano plots for ", contrast_character)
 
     # EnhancedVolcano needs the annotation from above, but also coercing the
     # tibble into a data.frame.
-    deseq_results_frame <- base::as.data.frame(x = deseq_results_tibble)
+    deseq_results_frame <-
+      base::as.data.frame(x = deseq_results_tibble)
 
     ggplot_object <- EnhancedVolcano::EnhancedVolcano(
       toptable = deseq_results_frame,

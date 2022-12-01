@@ -566,8 +566,8 @@ plot_fpkm_values <- function(object) {
                             sep = "."
                           ))
 
-  if (all(file.exists(plot_paths) &&
-          file.info(plot_paths)$size > 0L)) {
+  if (all(file.exists(plot_paths)) &&
+      all(file.info(plot_paths)$size > 0L)) {
     message("Skipping a FPKM density plot")
   } else {
     message("Create a FPKM density plot")
@@ -648,8 +648,8 @@ plot_cooks_distances <- function(object) {
       sep = "."
     ))
 
-  if (all(file.exists(plot_paths) &&
-          file.info(plot_paths)$size > 0L)) {
+  if (all(file.exists(plot_paths)) &&
+      all(file.info(plot_paths)$size > 0L)) {
     message("Skipping a Cook's distances box plot")
   } else {
     message("Creating a Cook's distances box plot")
@@ -739,8 +739,8 @@ plot_rin_scores <- function(object) {
                             graphics_formats,
                             sep = "."
                           ))
-  if (all(file.exists(plot_paths) &&
-          file.info(plot_paths)$size > 0L)) {
+  if (all(file.exists(plot_paths)) &&
+      all(file.info(plot_paths)$size > 0L)) {
     message("Skipping a RIN score density plot")
   } else {
     if ("RIN" %in% S4Vectors::colnames(x = SummarizedExperiment::colData(x = object))) {
@@ -869,8 +869,8 @@ plot_mds <- function(object,
                                 sep = "."
                               ))
 
-      if (all(file.exists(plot_paths) &&
-              file.info(plot_paths)$size > 0L)) {
+      if (all(file.exists(plot_paths)) &&
+          all(file.info(plot_paths)$size > 0L)) {
         message("  Skipping MDS plot: ", aes_character)
       } else {
         message("  Creating MDS plot: ", aes_character)
