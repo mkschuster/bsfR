@@ -276,7 +276,7 @@ bsfrd_get_contrast_list <- function(contrast_tibble, index) {
                        pattern = stringr::fixed(pattern = ","))[[1L]]
 
   character_list <-
-    list("numerator" = if (length(x = numerator_character == 1L) &&
+    list("numerator" = if (length(x = numerator_character) == 1L &&
                            is.na(x = numerator_character)) {
       character()
     } else {
@@ -323,7 +323,7 @@ bsfrd_get_contrast_character <- function(contrast_tibble, index) {
     paste(contrast_list$numerator, collapse = "_"),
     "against",
     if (length(x = contrast_list$denominator) == 0L ||
-        is.na(contrast_list$denominator)) {
+        all(is.na(x = contrast_list$denominator))) {
       "intercept"
     } else {
       paste(contrast_list$denominator, collapse = "_")
