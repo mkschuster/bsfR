@@ -147,7 +147,8 @@ bsfg_get_genome_list <-
            ensembl_version,
            ncbi_version,
            ucsc_version) {
-    # The dplyr::filter() function automatically discards cases that evaluate to NA.
+    # The dplyr::filter() function automatically discards cases that evaluate to
+    # NA.
     genome_tibble <- dplyr::filter(
       .data = bsfR::bsfg_get_genome_tibble(resource_directory = resource_directory, ensembl_version = ensembl_version),
       .data$assembly_version_ncbi %in% .env$ncbi_version &
@@ -166,7 +167,8 @@ bsfg_get_genome_list <-
 #' Create NCBI and UCSC "genome" or "transcriptome" resource directories.
 #'
 #' @param genome_list A \code{list} of genome assembly annotation.
-#' @param biological_type A \code{character} scalar of "genome" or "transcriptome".
+#' @param biological_type A \code{character} scalar of "genome" or
+#'   "transcriptome".
 #' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @export
@@ -222,6 +224,7 @@ bsfg_create_resource_directory <-
 #'
 #' @return A \code{tbl_df} with NCBI assembly information.
 #' @export
+#' @seealso [GenomeInfoDb::getChromInfoFromNCBI()]
 #'
 #' @examples
 #' \dontrun{
@@ -349,7 +352,8 @@ bsfg_get_ensembl_transcriptome <-
       verbose = verbose
     )
 
-    # Source name (e.g. Homo_sapiens.GRCh38.87.gff3.gz or Homo_sapiens.GRCh38.87.gtf.gz)
+    # Source name (e.g. Homo_sapiens.GRCh38.87.gff3.gz or
+    # Homo_sapiens.GRCh38.87.gtf.gz)
     file_name <- paste(
       genome_list$species_prefix,
       genome_list$assembly_version_ncbi,
@@ -392,15 +396,223 @@ bsfg_get_ensembl_transcriptome <-
     return(file_path)
   }
 
+#' Convert sequence levels from NCBI to UCSC.
+#'
+#' @param ncbi_granges A \code{GenomicRanges::GRanges} object with NCBI sequence
+#'   levels.
+#' @param ucsc_seqinfo A \code{GenomeInfoDb::Seqinfo} object with UCSC sequence
+#'   levels.
+#' @param assembly_report_tibble A \code{tbl_df} with NCBI assembly information.
+#' @param verbose A \code{logical} scalar to emit messages.
+#'
+#' @return A \code{GenomicRanges::GRanges} object with UCSC sequence levels.
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#'  ucsc_granges <-
+#'    bsfR::bsfg_convert_seqlevels_ncbi_to_ucsc(
+#'      ncbi_granges = ncbi_granges,
+#'      ucsc_seqinfo = ucsc_seqinfo,
+#'      verbose = FALSE
+#'    )
+#' }
+bsfg_convert_seqlevels_ncbi_to_ucsc <-
+  function(ncbi_granges,
+           ucsc_seqinfo,
+           assembly_report_tibble,
+           verbose = FALSE) {
+    # Convenience vector to avoid multiple GenomeInfoDb::seqlevels() calls.
+    ncbi_levels <-
+      GenomeInfoDb::seqlevels(x = GenomicRanges::seqinfo(x = ncbi_granges))
+
+    ucsc_levels <-
+      GenomeInfoDb::seqlevels(x = ucsc_seqinfo)
+
+    # A vector of UCSC levels and NCBI names, initialised with NCBI levels.
+    ucsc_ncbi_levels <- ncbi_levels
+    names(x = ucsc_ncbi_levels) <- ncbi_levels
+
+    if (verbose) {
+      print(x = paste("NCBI levels:", length(ncbi_levels)))
+      print(x = ncbi_levels)
+      print(x = paste("UCSC levels:", length(ucsc_levels)))
+      print(x = ucsc_levels)
+      print(x = paste("UCSC-NCBI levels:", length(x = ucsc_ncbi_levels)))
+      print(x = ucsc_ncbi_levels)
+    }
+
+    # 1. Match NCBI GRanges sequence levels to the assembly report sequence_name
+    # variable.
+    match_integer <-
+      base::match(x = ncbi_levels, table = assembly_report_tibble$sequence_name)
+    # Assign only those UCSC names for which NCBI names could be mapped.
+    match_logical <- !is.na(x = match_integer)
+    ucsc_ncbi_levels[match_logical] <-
+      assembly_report_tibble$ucsc_style_name[match_integer[match_logical]]
+
+    # 2. Match NCBI GRanges sequence levels to the assembly report GenBank
+    # accession variable.
+    match_integer <-
+      base::match(x = ncbi_levels, table = assembly_report_tibble$genbank_accn)
+    # Assign only those UCSC names for which NCBI names could be mapped.
+    match_logical <- !is.na(x = match_integer)
+    ucsc_ncbi_levels[match_logical] <-
+      assembly_report_tibble[match_integer[match_logical], "ucsc_style_name", drop = TRUE]
+
+    rm(match_logical)
+
+    if (verbose) {
+      print(x = paste("UCSC-NCBI levels:", length(ucsc_ncbi_levels)))
+      print(x = ucsc_ncbi_levels)
+    }
+
+    # Match to the UCSC GenomeInfoDb::Seqinfo sequence levels.
+
+    match_integer <-
+      base::match(x = ucsc_levels, table = ucsc_ncbi_levels)
+
+    if (verbose) {
+      message("Map NCBI to UCSC sequence levels")
+
+      print(x = paste("Match integer vector:", length(x = match_integer)))
+      print(x = match_integer)
+
+      match_character <-
+        ucsc_levels
+      names(x = match_character) <-
+        names(x = ucsc_ncbi_levels[match_integer])
+
+      print(x = paste("Match character vector:", length(x = match_character)))
+      print(x = match_character)
+
+      rm(match_character)
+    }
+
+    GenomicRanges::seqinfo(x = ncbi_granges, new2old = match_integer) <-
+      ucsc_seqinfo
+
+    rm(match_integer,
+       ncbi_levels,
+       ucsc_levels,
+       ucsc_ncbi_levels)
+
+    return(ncbi_granges)
+  }
+
+#' Convert sequence levels from UCSC to NCBI.
+#'
+#' @param ucsc_granges A \code{GenomicRanges::GRanges} object with UCSC sequence
+#'   levels.
+#' @param ncbi_seqinfo A \code{GenomeInfoDb::Seqinfo} object with NCBI sequence
+#'   levels.
+#' @param assembly_report_tibble A \code{tbl_df} with NCBI assembly information.
+#' @param verbose A \code{logical} scalar to emit messages.
+#'
+#' @return A \code{GenomicRanges::GRanges} object with NCBI sequence levels.
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#'  ncbi_granges <-
+#'    bsfR::bsfg_convert_seqlevels_ucsc_to_ncbi(
+#'      ucsc_granges = ucsc_granges,
+#'      ncbi_seqinfo = ncbi_seqinfo,
+#'      verbose = FALSE
+#'    )
+#' }
+bsfg_convert_seqlevels_ucsc_to_ncbi <-
+  function(ucsc_granges,
+           ncbi_seqinfo,
+           assembly_report_tibble,
+           verbose = FALSE) {
+    # Convenience vector to avoid multiple GenomeInfoDb::seqlevels() calls.
+    ucsc_levels <-
+      GenomeInfoDb::seqlevels(x = GenomicRanges::seqinfo(x = ucsc_granges))
+
+    ncbi_levels <-
+      GenomeInfoDb::seqlevels(x = ncbi_seqinfo)
+
+    # A vector of UCSC levels and NCBI names, initialised with NCBI levels.
+    ncbi_ucsc_levels <- ucsc_levels
+    names(x = ncbi_ucsc_levels) <- ucsc_levels
+
+    if (verbose) {
+      print(x = paste("UCSC levels:", length(ucsc_levels)))
+      print(x = ucsc_levels)
+      print(x = paste("NCBI levels:", length(ncbi_levels)))
+      print(x = ncbi_levels)
+      print(x = paste("NCBI-UCSC levels:", length(x = ncbi_ucsc_levels)))
+      print(x = ncbi_ucsc_levels)
+    }
+
+    # Match UCSC GRanges sequence levels to the assembly report ucsc_style_name
+    # variable.
+    match_integer <-
+      base::match(x = ucsc_levels, table = assembly_report_tibble$ucsc_style_name)
+
+    # Since NCBI assemblies can use either sequence names or GenBank accession
+    # numbers, two more steps are required.
+
+    # 1. Match to the NCBI sequence name.
+    match_logical <-
+      assembly_report_tibble[match_integer, "sequence_name", drop = TRUE] %in% ncbi_levels
+    ncbi_ucsc_levels[match_logical] <-
+      assembly_report_tibble[match_integer, "sequence_name", drop = TRUE][match_logical]
+
+    # 2. Match to the NCBI accession number.
+    match_logical <-
+      assembly_report_tibble[match_integer, "genbank_accn", drop = TRUE] %in% ncbi_levels
+    ncbi_ucsc_levels[match_logical] <-
+      assembly_report_tibble[match_integer, "genbank_accn", drop = TRUE][match_logical]
+
+    rm(match_logical)
+
+    if (verbose) {
+      print(x = paste("NCBI-UCSC levels:", length(x = ncbi_ucsc_levels)))
+      print(x = ncbi_ucsc_levels)
+    }
+
+    # Map to the NCBI GenomeInfoDb::Seqinfo object.
+
+    match_integer <-
+      base::match(x = ncbi_levels, table = ncbi_ucsc_levels)
+
+    if (verbose) {
+      message("Map UCSC to NCBI sequence levels")
+
+      print(x = paste("Match integer vector:", length(x = match_integer)))
+      print(x = match_integer)
+
+      match_character <-
+        ncbi_levels
+      names(x = match_character) <-
+        names(x = ncbi_ucsc_levels[match_integer])
+
+      print(x = paste("Match character vector:", length(x = match_character)))
+      print(x = match_character)
+
+      rm(match_character)
+    }
+
+    GenomicRanges::seqinfo(x = ucsc_granges, new2old = match_integer) <-
+      ncbi_seqinfo
+
+    rm(match_integer, ncbi_ucsc_levels)
+
+    return(ucsc_granges)
+  }
+
 #' Convert sequence levels between NCBI and UCSC.
 #'
-#' Either a NCBI or UCSC \code{GenomicRanges::GRanges} object needs specifying. Based on the
-#' preselected genome list the corresponding NCBI assembly report will be loaded.
-#' The mapping procedure is complicated by the fact that UCSC-style names map to
-#' either NCBI sequence names (e.g. 1, 2, HSCHR1_CTG1_UNLOCALIZED, ...) or NCBI
-#' GenBank accession numbers (e.g. CM000663.2, CM000664.2, KI270706.1, ...).
-#' Therefore, mapping orientation-specific maps need building depending on the
-#' NCBI names that are used.
+#' Either a NCBI or UCSC \code{GenomicRanges::GRanges} object needs specifying.
+#' Based on the preselected genome list the corresponding NCBI assembly report
+#' will be loaded. The mapping procedure is complicated by the fact that
+#' UCSC-style names map to either NCBI sequence names (e.g. 1, 2, ..., X, Y, MT,
+#' HSCHR1_CTG1_UNLOCALIZED, ...) or NCBI GenBank accession numbers (e.g.
+#' CM000663.2, CM000664.2, KI270706.1, ...). Therefore, mapping
+#' orientation-specific maps need building depending on the NCBI names that are
+#' used.
 #'
 #' @param genome_list A \code{list} of genome assembly annotation.
 #' @param source_granges A \code{GenomicRanges::GRanges} object.
@@ -428,15 +640,21 @@ bsfg_convert_seqlevels <-
     ncbi_seqinfo <- NULL
     ucsc_seqinfo <- NULL
 
-    # Is the source GenomicRanges::GRanges object associated with a GenomeInfoDb::Seqinfo object?
+    # Is the source GenomicRanges::GRanges object associated with a
+    # GenomeInfoDb::Seqinfo object?
+
     source_seqinfo <- GenomicRanges::seqinfo(x = source_granges)
+
     if (!is.null(x = source_seqinfo)) {
       # Get a GenomeInfoDb::Seqinfo object for NCBI.
+
       if (!is.na(x = genome_list$bsgenome_ncbi)) {
         ncbi_seqinfo <-
           rtracklayer::SeqinfoForBSGenome(genome = genome_list$bsgenome_ncbi)
       }
+
       # Get a GenomeInfoDb::Seqinfo object for UCSC.
+
       if (!is.na(x = genome_list$bsgenome_ucsc)) {
         ucsc_seqinfo <-
           rtracklayer::SeqinfoForBSGenome(genome = genome_list$bsgenome_ucsc)
@@ -446,6 +664,7 @@ bsfg_convert_seqlevels <-
         ncbi_granges <- source_granges
         ncbi_seqinfo <- source_seqinfo
       }
+
       if (GenomeInfoDb::genome(x = source_seqinfo)[1L] == GenomeInfoDb::genome(x = ucsc_seqinfo)[1L]) {
         ucsc_granges <- source_granges
         ucsc_seqinfo <- source_seqinfo
@@ -455,6 +674,7 @@ bsfg_convert_seqlevels <-
     if (is.null(x = ncbi_seqinfo)) {
       stop("Could not retrieve a NCBI Seqinfo object.")
     }
+
     if (verbose) {
       print(x = paste(
         "NCBI sequence levels:",
@@ -466,6 +686,7 @@ bsfg_convert_seqlevels <-
     if (is.null(x = ucsc_seqinfo)) {
       stop("Could not retrieve a UCSC Seqinfo object.")
     }
+
     if (verbose) {
       print(x = paste(
         "UCSC sequence levels:",
@@ -479,176 +700,24 @@ bsfg_convert_seqlevels <-
 
     if (!is.null(x = ucsc_granges)) {
       # Map from UCSC to NCBI sequence levels.
-      #
-      # Create a vector of UCSC sequence levels named by NCBI sequence levels.
-      # Initialise the vector with as many NA values as the NCBI
-      # GenomeInfoDb::Seqinfo object has seqlevels. Then map to NCBI assembly
-      # report sequence names and to NCBI assembly report GenBank accession
-      # numbers.
-
-      ucsc_levels <-
-        base::rep(NA_character_, times = length(x = GenomeInfoDb::seqlevels(x = ncbi_seqinfo)))
-      names(x = ucsc_levels) <-
-        GenomeInfoDb::seqlevels(x = ncbi_seqinfo)
-
-      ucsc_names <-
-        assembly_report_tibble$ucsc_style_name
-
-      # Test for NCBI sequence names.
-      # (e.g. 1, 2, HSCHR1_CTG1_UNLOCALIZED, ...)
-      names(x = ucsc_names) <-
-        assembly_report_tibble$sequence_name
-      ucsc_map <-
-        ucsc_names[names(x = ucsc_levels)]
-
-      # Merge only those sequence names into the UCSC seqlevels that could be
-      # resolved.
-      ucsc_levels[!is.na(x = ucsc_map)] <-
-        ucsc_map[!is.na(x = ucsc_map)]
-
-      # Test for NCBI GenBank accession numbers.
-      # (e.g. CM000663.2, CM000664.2, KI270706.1, ...)
-      names(x = ucsc_names) <-
-        assembly_report_tibble$genbank_accn
-      ucsc_map <-
-        ucsc_names[names(x = ucsc_levels)]
-
-      # Merge only those GenBank accessions into the UCSC seqlevels that could
-      # be resolved.
-      ucsc_levels[!is.na(x = ucsc_map)] <-
-        ucsc_map[!is.na(x = ucsc_map)]
-
-      # Replace the remaining UCSC NA values with their NCBI names.
-      ucsc_levels[is.na(x = ucsc_levels)] <-
-        names(x = ucsc_levels[is.na(x = ucsc_levels)])
-
-      rm(ucsc_map, ucsc_names)
-      if (verbose) {
-        print(x = paste(
-          "UCSC sequence levels with NCBI names:",
-          length(x = ucsc_levels)
-        ))
-        print(x = ucsc_levels)
-      }
-
-      match_integer <-
-        base::match(x = ucsc_levels,
-                    table = GenomeInfoDb::seqlevels(x = ucsc_granges))
-      if (verbose) {
-        message("Map UCSC to NCBI sequence levels")
-        # Print the integer match vector.
-        print(x = paste("Match integer vector:", length(x = match_integer)))
-        print(x = match_integer)
-        # Create a character match vector.
-        match_character <-
-          ucsc_levels
-        names(x = match_character) <-
-          GenomeInfoDb::seqlevels(x = ucsc_granges)[match_integer]
-        print(x = paste("Match character vector:", length(x = match_character)))
-        print(x = match_character)
-        rm(match_character)
-      }
-      target_granges <- ucsc_granges
-      GenomicRanges::seqinfo(x = target_granges, new2old = match_integer) <-
-        ncbi_seqinfo
-      rm(match_integer, ucsc_levels)
+      target_granges <- bsfR::bsfg_convert_seqlevels_ucsc_to_ncbi(
+        ucsc_granges = ucsc_granges,
+        ncbi_seqinfo = ncbi_seqinfo,
+        assembly_report_tibble = assembly_report_tibble,
+        verbose = verbose
+      )
     }
 
     if (!is.null(x = ncbi_granges)) {
       # Map from NCBI to UCSC sequence levels.
-      #
-      # Create a vector of NCBI sequence levels named by the UCSC
-      # GenomeInfoDb::Seqinfo object. Initialise the vector with as many NA
-      # values as the UCSC GenomeInfoDb::Seqinfo object has seqlevels. Then map
-      # to NCBI assembly report sequence names and to NCBI assembly report
-      # GenBank accession numbers.
-
-      ncbi_levels <-
-        base::rep(NA_character_, times = length(x = GenomeInfoDb::seqlevels(x = ucsc_seqinfo)))
-      names(x = ncbi_levels) <-
-        GenomeInfoDb::seqlevels(x = ucsc_seqinfo)
-      # if (verbose) {
-      #   print(x = paste("NCBI levels:", length(x = ncbi_levels)))
-      #   print(x = ncbi_levels)
-      # }
-
-      # Test for NCBI assembly report sequence names.
-      # (e.g. 1, 2, HSCHR1_CTG1_UNLOCALIZED, ...)
-      ncbi_names <-
-        assembly_report_tibble$sequence_name
-      names(x = ncbi_names) <-
-        assembly_report_tibble$ucsc_style_name
-      ncbi_map <-
-        ncbi_names[names(x = ncbi_levels)]
-      # if (verbose) {
-      #   print(x = paste("NCBI map sequence names:", length(ncbi_map)))
-      #   print(x = ncbi_map)
-      # }
-
-      # Merge only those NCBI sequence names that match to NCBI
-      # GenomicRanges::GRanges.
-      ncbi_levels[ncbi_map %in% GenomeInfoDb::seqlevels(x = ncbi_granges)] <-
-        ncbi_map[ncbi_map %in% GenomeInfoDb::seqlevels(x = ncbi_granges)]
-      # if (verbose) {
-      #   print(x = paste("NCBI levels:", length(x = ncbi_levels)))
-      #   print(x = ncbi_levels)
-      # }
-
-      # Test for NCBI assembly report GenBank accession numbers.
-      # (e.g. CM000663.2, CM000664.2, KI270706.1, ...)
-      ncbi_names <-
-        assembly_report_tibble$genbank_accn
-      names(x = ncbi_names) <-
-        assembly_report_tibble$ucsc_style_name
-      ncbi_map <-
-        ncbi_names[names(x = ncbi_levels)]
-      # if (verbose) {
-      #   print(x = paste("NCBI map GenBank accessions:", length(x = ncbi_map)))
-      #   print(x = ncbi_map)
-      # }
-
-      # Merge only those NCBI GenBank accession that match to NCBI
-      # GenomicRanges::GRanges.
-      ncbi_levels[ncbi_map %in% GenomeInfoDb::seqlevels(x = ncbi_granges)] <-
-        ncbi_map[ncbi_map %in% GenomeInfoDb::seqlevels(x = ncbi_granges)]
-      # if (verbose) {
-      #   print(x = paste("NCBI levels:", length(x = ncbi_levels)))
-      #   print(x = ncbi_levels)
-      # }
-
-      # Replace the remaining NCBI NA values with their UCSC names.
-      ncbi_levels[is.na(x = ncbi_levels)] <-
-        names(x = ncbi_levels[is.na(x = ncbi_levels)])
-      rm(ncbi_map, ncbi_names)
-
-      if (verbose) {
-        print(x = paste(
-          "NCBI sequence levels with UCSC names:",
-          length(x = ncbi_levels)
-        ))
-        print(x = ncbi_levels)
-      }
-
-      match_integer <-
-        base::match(x = ncbi_levels,
-                    table = GenomeInfoDb::seqlevels(x = ncbi_granges))
-      if (verbose) {
-        message("Map NCBI to UCSC sequence levels")
-        print(x = paste("Match integer vector:", length(x = match_integer)))
-        print(x = match_integer)
-        match_character <-
-          ncbi_levels
-        names(x = match_character) <-
-          GenomeInfoDb::seqlevels(x = ncbi_granges)[match_integer]
-        print(x = paste("Match character vector:", length(x = match_character)))
-        print(x = match_character)
-        rm(match_character)
-      }
-      target_granges <- ncbi_granges
-      GenomicRanges::seqinfo(x = target_granges, new2old = match_integer) <-
-        ucsc_seqinfo
-      rm(match_integer)
+      target_granges <- bsfR::bsfg_convert_seqlevels_ncbi_to_ucsc(
+        ncbi_granges = ncbi_granges,
+        ucsc_seqinfo = ucsc_seqinfo,
+        assembly_report_tibble = assembly_report_tibble,
+        verbose = verbose
+      )
     }
+
     rm(assembly_report_tibble,
        ncbi_granges,
        ncbi_seqinfo,

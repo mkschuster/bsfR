@@ -1,7 +1,7 @@
 Package: bsfR
 Type: Package
 Title: BSF R package
-Version: 2023.1.31
+Version: 2023.5.4
 # Author: Michael Schuster
 # Maintainer: Michael Schuster <MSchuster@cemm.oeaw.ac.at>
 Authors@R: c(person(given = "Michael", family = "Schuster", email = "MSchuster@cemm.oeaw.ac.at", role = c("aut", "cre"), comment = c("ORCID" = "0000-0003-2975-8969")))
@@ -11,11 +11,9 @@ Encoding: UTF-8
 Imports:
     methods,
     rlang,
-    ggplot2,
     purrr,
     tibble,
     dplyr,
-    tidyr,
     stringr,
     readr,
     S4Vectors,
@@ -27,7 +25,7 @@ Imports:
     rtracklayer,
     DESeq2,
     Rsamtools
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 Depends: R (>= 3.6)
 Collate:
     'bsf_utilities.R'
