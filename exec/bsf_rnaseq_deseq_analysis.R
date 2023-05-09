@@ -375,7 +375,8 @@ initialise_deseq_data_set <- function(design_list) {
   if (file.exists(file_path) &&
       file.info(file_path)$size > 0L) {
     message("Loading a DESeqDataSet object")
-    deseq_data_set <- base::readRDS(file = file_path)
+    deseq_data_set <-
+      readr::read_rds(file = file_path)
   } else {
     ranged_summarized_experiment <-
       bsfR::bsfrd_initialise_rse(
@@ -472,7 +473,9 @@ initialise_deseq_data_set <- function(design_list) {
         )
     }
 
-    base::saveRDS(object = deseq_data_set, file = file_path)
+    readr::write_rds(x = deseq_data_set,
+                     file = file_path,
+                     compress = "gz")
 
     rm(result_list, ranged_summarized_experiment)
   }
@@ -520,7 +523,8 @@ initialise_deseq_transform <-
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
       message("Loading a ", suffix, " DESeqTransform object")
-      deseq_transform <- base::readRDS(file = file_path)
+      deseq_transform <-
+        readr::read_rds(file = file_path)
     } else {
       message("Creating a ", suffix, " DESeqTransform object")
       # Run variance stabilizing transformation (VST) to get homoscedastic data
@@ -528,7 +532,9 @@ initialise_deseq_transform <-
       deseq_transform <-
         DESeq2::varianceStabilizingTransformation(object = deseq_data_set, blind = blind)
 
-      base::saveRDS(object = deseq_transform, file = file_path)
+      readr::write_rds(x = deseq_transform,
+                       file = file_path,
+                       compress = "gz")
     }
     rm(file_path, suffix)
 
@@ -754,21 +760,27 @@ plot_rin_scores <- function(object) {
 
       ggplot_object <-
         ggplot_object +
-        ggplot2::geom_vline(xintercept = 1.0,
-                            colour = "red",
-                            linetype = 2L)
+        ggplot2::geom_vline(
+          xintercept = 1.0,
+          colour = "red",
+          linetype = 2L
+        )
 
       ggplot_object <-
         ggplot_object +
-        ggplot2::geom_vline(xintercept = 4.0,
-                            colour = "yellow",
-                            linetype = 2L)
+        ggplot2::geom_vline(
+          xintercept = 4.0,
+          colour = "yellow",
+          linetype = 2L
+        )
 
       ggplot_object <-
         ggplot_object +
-        ggplot2::geom_vline(xintercept = 7.0,
-                            colour = "green",
-                            linetype = 2L)
+        ggplot2::geom_vline(
+          xintercept = 7.0,
+          colour = "green",
+          linetype = 2L
+        )
 
       ggplot_object <-
         ggplot_object +

@@ -794,7 +794,7 @@ bsfrd_initialise_rse <-
       }
 
       ranged_summarized_experiment <-
-        base::readRDS(file = file_path)
+        readr::read_rds(file = file_path)
     } else {
       # Check for the "mapq_threshold" variable in the design list.
 
@@ -985,7 +985,9 @@ bsfrd_initialise_rse <-
          exon_granges,
          sample_dframe)
 
-      base::saveRDS(object = ranged_summarized_experiment, file = file_path)
+      readr::write_rds(x = ranged_summarized_experiment,
+                       file = file_path,
+                       compress = "gz")
     }
     rm(file_path, prefix_deseq)
 
@@ -1029,7 +1031,8 @@ bsfrd_read_deseq_data_set <-
       if (verbose) {
         message("Loading a DESeqDataSet object ...")
       }
-      deseq_data_set <- base::readRDS(file = file_path)
+      deseq_data_set <-
+        readr::read_rds(file = file_path)
     } else {
       warning("Require a pre-calculated DESeqDataSet object in file: ",
               file_path)
@@ -1094,7 +1097,8 @@ bsfrd_read_deseq_transform <-
         message("Loading a ", suffix, " DESeqTransform object ...")
       }
 
-      deseq_transform <- base::readRDS(file = file_path)
+      deseq_transform <-
+        readr::read_rds(file = file_path)
     } else {
       warning("Require a pre-calculated DESeqTransform object in file: ",
               file_path)
@@ -1194,7 +1198,8 @@ bsfrd_read_deseq_results <-
                 contrast_character)
       }
 
-      deseq_results <- base::readRDS(file = file_path)
+      deseq_results <-
+        readr::read_rds(file = file_path)
     } else {
       warning("Missing DESeq2::DESeqResults object for contrast: ",
               contrast_character)

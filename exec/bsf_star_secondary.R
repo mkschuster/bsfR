@@ -108,6 +108,8 @@ if (is.null(x = argument_list$directory)) {
 
 # CRAN r-lib
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
+# CRAN Tidyverse
+suppressPackageStartupMessages(expr = library(package = "readr"))
 # Bioconductor
 suppressPackageStartupMessages(expr = library(package = "BiocParallel"))
 suppressPackageStartupMessages(expr = library(package = "BSgenome"))
@@ -191,7 +193,9 @@ SummarizedExperiment::colData(x = ranged_summarized_experiment) <-
 
 message("Saving the RangedSummarizedExperiment object")
 file_path <- "star_secondary_ranged_summarized_experiment.rds"
-base::saveRDS(object = ranged_summarized_experiment, file = file_path)
+readr::write_rds(x = ranged_summarized_experiment,
+                 file = file_path,
+                 compress = "gz")
 
 rm(
   ranged_summarized_experiment,

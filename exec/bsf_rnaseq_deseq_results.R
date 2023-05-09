@@ -229,7 +229,8 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   if (file.exists(file_path) &&
       file.info(file_path)$size > 0L) {
     message("Reading DESeqResults for ", contrast_character)
-    deseq_results <- base::readRDS(file = file_path)
+    deseq_results <-
+      readr::read_rds(file = file_path)
   } else {
     # Create DESeqResults -------------------------------------------------
 
@@ -275,7 +276,9 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
     # Serialise the shrunken DESeqResults object to disk.
     # It still contains the IHW::ihwResult object as meta data.
 
-    base::saveRDS(object = deseq_results, file = file_path)
+    readr::write_rds(x = deseq_results,
+                     file = file_path,
+                     compress = "gz")
 
     rm(deseq_results_raw)
   }
