@@ -75,21 +75,21 @@ argument_list <-
         default = 0.5,
         dest = "plot_factor",
         help = "Plot width increase per 24 samples [0.5]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
-        type = "numeric"
+        type = "double"
       )
     )
   ))

@@ -80,21 +80,21 @@ argument_list <-
         default = 0.5,
         dest = "plot_factor",
         help = "Plot width increase per 24 samples [0.5]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
-        type = "numeric"
+        type = "double"
       )
     )
   ))
@@ -130,7 +130,7 @@ graphics_formats <- c("pdf" = "pdf", "png" = "png")
 #' \item{multiple}{A \code{integer} scalar with the number of multiply mapped reads.}
 #' \item{above}{A \code{integer} scalar with the number of multiply mapped reads above the threshold.}
 #' \item{threshold}{A \code{integer} scalar with the threshold of multi-mapped reads.}
-#' \item{total_rate}{A \code{numeric} scalar with the total mapping rate as percentage.}
+#' \item{total_rate}{A \code{double} scalar with the total mapping rate as percentage.}
 #' \item{error}{A \code{character} scalar with an error message.}
 #' }
 parse_tophat2_report <- function(directory_path) {
@@ -213,7 +213,7 @@ parse_tophat2_report <- function(directory_path) {
   ))
   line_number <- line_number + 1L
 
-  result_list$total_rate <- as.numeric(
+  result_list$total_rate <- as.double(
     x = sub(
       pattern = "([[:digit:].]+)% overall read mapping rate",
       replacement = "\\1",

@@ -62,21 +62,21 @@ argument_list <-
         default = 1.0,
         dest = "l2fc_threshold",
         help = "Threshold for the log2(fold-change) [1.0]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--p-threshold",
         default = 1e-05,
         dest = "p_threshold",
         help = "Threshold for the unadjusted p-value [1e-05]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--padj-threshold",
         default = 0.1,
         dest = "padj_threshold",
         help = "Threshold for the adjusted p-value [0.1]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--gene-path",
@@ -115,21 +115,21 @@ argument_list <-
         default = 72,
         dest = "plot_dpi",
         help = "Plot resolution in dpi [72]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
-        type = "numeric"
+        type = "double"
       )
     )
   ))
@@ -281,8 +281,8 @@ draw_enhanced_volcano <-
       }
 
       ggplot_object <- EnhancedVolcano::EnhancedVolcano(
-        # Without base::as.data.frame(), the log2FoldChange variable is reported to
-        # be not numeric, when in fact it is.
+        # Without base::as.data.frame(), the log2FoldChange variable is reported
+        # to be not double, when in fact it is.
         toptable = deseq_results_frame,
         lab = deseq_results_frame$gene_name,
         x = x,
@@ -294,8 +294,9 @@ draw_enhanced_volcano <-
             max(deseq_results_frame[, x], na.rm = TRUE)
           )
         } else {
-          # Split the x-limits argument into a character matrix and convert into a numeric vector.
-          as.numeric(x = stringr::str_split_fixed(
+          # Split the x-limits argument into a character matrix and convert into
+          # a double vector.
+          as.double(x = stringr::str_split_fixed(
             string = argument_list$x_limits,
             pattern = ",",
             n = 2L
@@ -306,8 +307,8 @@ draw_enhanced_volcano <-
           c(0, max(-log10(deseq_results_frame[, y]), na.rm = TRUE) + 5)
         } else {
           # Split the y-limits argument into a character matrix and convert into
-          # a numeric vector.
-          as.numeric(x = stringr::str_split_fixed(
+          # a double vector.
+          as.double(x = stringr::str_split_fixed(
             string = argument_list$y_limits,
             pattern = ",",
             n = 2L

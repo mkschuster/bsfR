@@ -62,14 +62,14 @@ argument_list <-
         default = 0.1,
         dest = "padj_threshold",
         help = "Threshold for the adjusted p-value [0.1]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--l2fc-threshold",
         default = 1.0,
         dest = "l2fc_threshold",
         help = "Threshold for the log2(fold-change) [1.0]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--maximum-terms",
@@ -97,14 +97,14 @@ argument_list <-
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
-        type = "numeric"
+        type = "double"
       )
     )
   ))

@@ -68,7 +68,7 @@ argument_list <-
         default = 0.1,
         dest = "padj_threshold",
         help = "Threshold for the adjusted p-value [0.1]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--genome-directory",
@@ -89,14 +89,14 @@ argument_list <-
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
-        type = "numeric"
+        type = "double"
       )
     )
   ))
@@ -196,9 +196,9 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
       levels = c("Used", "Not annotated", "Filtered")
     )
 
-  # topGO needs a named numeric vector of adjusted p-values.
-  all_genes_numeric <- deseq_go_frame$padj
-  base::names(x = all_genes_numeric) <- deseq_go_frame$gene_id
+  # topGO needs a named double vector of adjusted p-values.
+  all_genes_double <- deseq_go_frame$padj
+  base::names(x = all_genes_double) <- deseq_go_frame$gene_id
 
   for (sub_go in c("BP", "CC", "MF")) {
     message("Create a topGOdata object for ontology ", sub_go)
@@ -207,7 +207,7 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
         Class = "topGOdata",
         # Options of the initialize() method of the topGOdata class.
         ontology = sub_go,
-        allGenes = all_genes_numeric,
+        allGenes = all_genes_double,
         geneSelectionFun = gene_selection_function,
         description = contrast_tibble$Label[contrast_index],
         # expressionMatrix = ,
@@ -311,7 +311,7 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   }
   rm(
     sub_go,
-    all_genes_numeric,
+    all_genes_double,
     deseq_go_frame,
     deseq_results_frame,
     deseq_results_tibble,

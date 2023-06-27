@@ -72,7 +72,7 @@ argument_list <-
         default = 0.05,
         dest = "fdr_threshold",
         help = "FDR threshold [0.05]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--gtf-reference",
@@ -106,14 +106,14 @@ argument_list <-
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
-        type = "numeric"
+        type = "double"
       )
     )
   ))
@@ -231,7 +231,7 @@ plot_paths <- file.path(output_directory,
 ggplot_object <-
   ggplot2::ggplot(data = tibble::tibble(
     name = dimnames(x = chromosome_region_list$percentage)$subjectHits,
-    percentage = as.numeric(x = chromosome_region_list$percentage)
+    percentage = as.double(x = chromosome_region_list$percentage)
   ))
 
 ggplot_object <-
@@ -349,9 +349,9 @@ merged_frame <-
                          by.y = "gene_id")
 rm(annotated_frame)
 
-# Order by the numeric "peak" variable.
+# Order by the double "peak" variable.
 merged_frame <-
-  merged_frame[base::order(as.numeric(x = merged_frame$peak)),]
+  merged_frame[base::order(as.double(x = merged_frame$peak)),]
 
 utils::write.table(
   x = merged_frame,
@@ -474,9 +474,9 @@ process_per_contrast <-
     merged_frame$rank_fdr <-
       base::rank(x = merged_frame$FDR, ties.method = c("min"))
 
-    # Order by the numeric "peak" variable.
+    # Order by the double "peak" variable.
     merged_frame <-
-      merged_frame[base::order(as.numeric(x = merged_frame$peak)),]
+      merged_frame[base::order(as.double(x = merged_frame$peak)),]
 
     utils::write.table(
       x = merged_frame,
@@ -544,7 +544,7 @@ process_per_contrast <-
       ggplot_object <-
         ggplot2::ggplot(data = tibble::tibble(
           name = dimnames(x = chromosome_region_list$percentage)$subjectHits,
-          percentage = as.numeric(x = chromosome_region_list$percentage)
+          percentage = as.double(x = chromosome_region_list$percentage)
         ))
 
       ggplot_object <-

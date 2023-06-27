@@ -105,14 +105,14 @@ argument_list <-
         default = 14.0,
         dest = "plot_width",
         help = "Plot width in inches [14.0]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--plot-height",
         default = 36.0,
         dest = "plot_height",
         help = "Plot height in inches [36.0]",
-        type = "numeric"
+        type = "double"
       )
     )
   ))
@@ -235,7 +235,7 @@ if (is.null(argument_list$variables)) {
   # Unfortunately, the DESeqDataSet design() accessor provides no meaningful
   # formula, if the design was not full rank. In those cases the formula is set
   # to ~1 and the Wald testing is based on a model matrix. To get the design
-  # variables, load the initial design tibble and call the all.vars()
+  # variables, load the initial design tibble and call the base::all.vars()
   # function on the formula object.
   design_list <-
     bsfR::bsfrd_read_design_list(
@@ -247,7 +247,7 @@ if (is.null(argument_list$variables)) {
     stop("No design remaining after selection for design name.")
   }
   variable_names <-
-    all.vars(expr = as.formula(object = design_list$full_formula))
+    base::all.vars(expr = stats::as.formula(object = design_list$full_formula))
   rm(design_list)
 } else {
   variable_names <-
