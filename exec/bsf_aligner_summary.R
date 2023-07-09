@@ -62,14 +62,14 @@ argument_list <-
         default = 7.0,
         dest = "plot_width",
         help = "Plot width in inches [7.0]",
-        type = "numeric"
+        type = "double"
       ),
       optparse::make_option(
         opt_str = "--plot-height",
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
-        type = "numeric"
+        type = "double"
       )
     )
   ))
@@ -128,6 +128,7 @@ for (file_name in file_names) {
     )
 
   message("  ", sample_name)
+
   # Since the Picard AlignmentSummaryMetrics uses a hash character (#) in the
   # read group component to separate platform unit and sample name, the Picard
   # reports need special parsing.
@@ -135,6 +136,7 @@ for (file_name in file_names) {
   metrics_lines <- readLines(con = file_name)
   metrics_line <-
     which(x = grepl(pattern = "## METRICS CLASS", x = metrics_lines))
+
   picard_metrics_total <-
     utils::read.table(
       file = file_name,
@@ -146,17 +148,22 @@ for (file_name in file_names) {
       stringsAsFactors = FALSE
     )
   rm(metrics_line, metrics_lines)
+
   # To support numeric sample names the utils::read.table(stringsAsFactors = FALSE) is turned off.
   # Convert SAMPLE, LIBRARY and READ_GROUP into character vectors.
+
   picard_metrics_total$SAMPLE <-
     as.character(x = picard_metrics_total$SAMPLE)
+
   picard_metrics_total$LIBRARY <-
     as.character(x = picard_metrics_total$LIBRARY)
+
   picard_metrics_total$READ_GROUP <-
     as.character(x = picard_metrics_total$READ_GROUP)
 
   # The Picard Alignment Metrics report has changed format through versions.
   # Columns PF_READS_IMPROPER_PAIRS and PCT_PF_READS_IMPROPER_PAIRS were added at a later stage.
+
   if (!"PF_READS_IMPROPER_PAIRS" %in% names(x = picard_metrics_total)) {
     picard_metrics_total$PF_READS_IMPROPER_PAIRS <- 0L
   }
@@ -202,6 +209,17 @@ if (!is.null(x = combined_metrics_sample)) {
   combined_metrics_sample$SAMPLE <-
     as.factor(x = combined_metrics_sample$SAMPLE)
 
+  # Manually convert PF_READS and PF_READS_ALIGNED into integer vectors.
+  combined_metrics_sample$PF_READS <-
+    as.integer(x = combined_metrics_sample$PF_READS)
+
+  combined_metrics_sample$PF_READS_ALIGNED <-
+    as.integer(x = combined_metrics_sample$PF_READS_ALIGNED)
+
+  # Manually convert PCT_PF_READS_ALIGNED into a double vector.
+  # combined_metrics_sample$PCT_PF_READS_ALIGNED <-
+  #   as.double(x = combined_metrics_sample$PCT_PF_READS_ALIGNED)
+
   # Add an additional LABEL factor column defined as a concatenation of SAMPLE and CATEGORY.
   combined_metrics_sample$LABEL <-
     as.factor(x = paste(
@@ -229,6 +247,17 @@ if (!is.null(x = combined_metrics_sample)) {
 
   combined_metrics_read_group$READ_GROUP <-
     as.factor(x = combined_metrics_read_group$READ_GROUP)
+
+  # Manually convert PF_READS and PF_READS_ALIGNED into integer vectors.
+  combined_metrics_read_group$PF_READS <-
+    as.integer(x = combined_metrics_read_group$PF_READS)
+
+  combined_metrics_read_group$PF_READS_ALIGNED <-
+    as.integer(x = combined_metrics_read_group$PF_READS_ALIGNED)
+
+  # Manually convert PCT_PF_READS_ALIGNED into a double vector.
+  # combined_metrics_read_group$PCT_PF_READS_ALIGNED <-
+  #   as.double(x = combined_metrics_read_group$PCT_PF_READS_ALIGNED)
 
   # Add an additional LABEL factor column defined as a concatenation of READ_GROUP and CATEGORY.
   combined_metrics_read_group$LABEL <-
