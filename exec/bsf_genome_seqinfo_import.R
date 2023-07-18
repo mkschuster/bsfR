@@ -145,7 +145,21 @@ if (is.null(x = argument_list$faidx_path)) {
     )
 
     # Trim remaining white space around "," characters.
-    circular_character <- stringr::str_trim(string = circular_character)
+    circular_character <-
+      stringr::str_trim(string = circular_character)
+
+    # Check whether all circular sequence region names were resolved.
+    if (length(x = circular_character) > 0L) {
+      circular_logical <-
+        circular_character %in% GenomeInfoDb::seqnames(x = seqinfo_object)
+      if (!all(circular_logical)) {
+        stop(
+          "Some circular sequence names could not be assigned: ",
+          paste(circular_character[!circular_logical], collapse = " ")
+        )
+      }
+      rm(circular_logical)
+    }
 
     # Since the %in% operator returns TRUE for circular sequences and FALSE for
     # all other sequences, the resulting logical vector can be assigned
