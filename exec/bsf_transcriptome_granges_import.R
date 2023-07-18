@@ -97,6 +97,22 @@ argument_list <-
         type = "character"
       ),
       optparse::make_option(
+        opt_str = "--complete-hierarchy",
+        action = "store_true",
+        default = TRUE,
+        dest = "complete_hierarchy",
+        help = "Complete the exon, transcript, gene feature hierarchy [TRUE]",
+        type = "logical"
+      ),
+      optparse::make_option(
+        opt_str = "--incomplete-hierarchy",
+        action = "store_false",
+        default = FALSE,
+        dest = "complete_hierarchy",
+        help = "Leave only exon features [FALSE]",
+        type = "logical"
+      ),
+      optparse::make_option(
         opt_str = "--output-directory",
         default = ".",
         dest = "output_directory",
@@ -183,7 +199,9 @@ if (!is.null(argument_list$drop_variables)) {
   rm(drop_variables_character)
 }
 
-if (TRUE) {
+if (argument_list$complete_hierarchy) {
+  # Complete the exon -> transcript -> gene hierarchy, by adding missing
+  # transcript or gene features.
   mcols_dframe <- S4Vectors::mcols(x = granges_object)
   if ("type" %in% S4Vectors::colnames(x = mcols_dframe)) {
     # Check if the GTF file has only "exon" features. If so, create also
@@ -231,6 +249,62 @@ if (TRUE) {
   rm(mcols_dframe)
 }
 
+# Add names to the GenomicRanges::GRanges object.
+
+mcols_dframe <- S4Vectors::mcols(x = granges_object)
+if ("type" %in% S4Vectors::colnames(x = mcols_dframe)) {
+  row_names <- base::names(x = granges_object)
+
+  if (is.null(x = row_names)) {
+    row_names <- S4Vectors::rownames(x = mcols_dframe)
+  }
+
+  if (is.null(x = row_names)) {
+    row_names <-
+      as.character(x = base::seq_len(length.out = base::length(x = granges_object)))
+  }
+
+  # Since exon features are not unique, because the same exon can be part of
+  # more than one transcript, row names can not be assigned in a simple loop
+  # over feature types.
+  if ("gene" %in% mcols_dframe$type &&
+      "gene_id" %in% S4Vectors::colnames(x = mcols_dframe)) {
+    row_index <- mcols_dframe$type == "gene"
+    row_names[row_index] <-
+      mcols_dframe[row_index, "gene_id", drop = TRUE]
+    rm(row_index)
+  }
+
+  if ("transcript" %in% mcols_dframe$type &&
+      "transcript_id" %in% S4Vectors::colnames(x = mcols_dframe)) {
+    row_index <- mcols_dframe$type == "transcript"
+    row_names[row_index] <-
+      mcols_dframe[row_index, "transcript_id", drop = TRUE]
+    rm (row_index)
+
+    if ("exon" %in% mcols_dframe$type &&
+        "exon_id" %in% S4Vectors::colnames(x = mcols_dframe)) {
+      row_index <- mcols_dframe$type == "exon"
+      row_names[row_index] <-
+        paste(mcols_dframe[row_index, "transcript_id", drop = TRUE],
+              mcols_dframe[row_index, "exon_id", drop = TRUE],
+              sep = "_")
+      rm(row_index)
+    }
+  }
+
+  # Assign to the DataFrame object.
+  S4Vectors::rownames(x = mcols_dframe) <- row_names
+
+  # Assign to the GRanges object.
+  S4Vectors::mcols(x = granges_object) <- mcols_dframe
+
+  base::names(x = granges_object) <- row_names
+
+  rm(row_names)
+}
+rm(mcols_dframe)
+
 readr::write_rds(
   x = granges_object,
   file = file.path(argument_list$output_directory,
@@ -243,11 +317,15 @@ readr::write_rds(
 )
 
 # Re-export the merged GenomicRanges::GRanges objects in GTF format.
-# The rtracklayer::export() function checks for a single genome.
+# Since the rtracklayer::export() function checks for a single genome, multiple
+# ones need collapsing.
 merged_seqinfo_object <- GenomicRanges::seqinfo(x = granges_object)
+
 GenomeInfoDb::genome(x = merged_seqinfo_object) <-
-  paste(unique(x = GenomeInfoDb::genome(x = merged_seqinfo_object)), collapse = "_")
+  paste(base::unique(x = GenomeInfoDb::genome(x = merged_seqinfo_object)), collapse = "_")
+
 GenomicRanges::seqinfo(x = granges_object) <- merged_seqinfo_object
+
 rm(merged_seqinfo_object)
 
 rtracklayer::export(object = granges_object,
