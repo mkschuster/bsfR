@@ -108,7 +108,7 @@ argument_list <-
   ))
 
 if (is.null(x = argument_list$output_path)) {
-  stop("Missing --output_path option")
+  stop("Missing --output-path option")
 }
 
 # Library Import ----------------------------------------------------------
