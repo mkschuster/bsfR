@@ -25,7 +25,8 @@
 # Description -------------------------------------------------------------
 
 
-# BSF R script to plot (transformed) counts of individual genes of a DESeq2 analysis.
+# BSF R script to plot (transformed) counts of individual genes of a DESeq2
+# analysis.
 
 # Option Parsing ----------------------------------------------------------
 
@@ -119,9 +120,11 @@ argument_list <-
 if (is.null(x = argument_list$groups)) {
   stop("Missing --groups option")
 }
+
 if (is.null(x = argument_list$gene_path)) {
   stop("Missing --gene-path option")
 }
+
 if (is.null(x = argument_list$design_name)) {
   stop("Missing --design-name option")
 }
@@ -181,6 +184,7 @@ genes_tibble <-
 # If the tibble exists, test for NA values in the gene_id variable.
 missing_tibble <-
   dplyr::filter(.data = genes_tibble, is.na(x = .data$gene_id))
+
 if (base::nrow(x = missing_tibble) > 0L) {
   print(x = "The following gene_name values could not be resolved into gene_id values:")
   print(x = missing_tibble)
@@ -189,7 +193,7 @@ rm(missing_tibble)
 
 # Finally, filter out all observations with NA values in the gene_id variable.
 genes_tibble <-
-  dplyr::filter(.data = genes_tibble,!is.na(x = .data$gene_id))
+  dplyr::filter(.data = genes_tibble, !is.na(x = .data$gene_id))
 
 for (i in seq_len(length.out = base::nrow(x = genes_tibble))) {
   for (graphics_format in graphics_formats) {
@@ -209,15 +213,24 @@ for (i in seq_len(length.out = base::nrow(x = genes_tibble))) {
                 ))
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
-      message("Skipping plot",
-              genes_tibble$gene_id[i],
-              genes_tibble$gene_name[i],
-              sep = " ")
+      message(
+        paste(
+          "Skipping plot",
+          genes_tibble$gene_id[i],
+          genes_tibble$gene_name[i],
+          sep = " "
+        )
+      )
     } else {
-      message("Creating plot",
-              genes_tibble$gene_id[i],
-              genes_tibble$gene_name[i],
-              sep = " ")
+      message(
+        paste(
+          "Creating plot",
+          genes_tibble$gene_id[i],
+          genes_tibble$gene_name[i],
+          sep = " "
+        )
+      )
+
       count_frame <- DESeq2::plotCounts(
         dds = deseq_data_set,
         gene = genes_tibble$gene_id[i],
@@ -235,6 +248,7 @@ for (i in seq_len(length.out = base::nrow(x = genes_tibble))) {
         ),
         returnData = TRUE
       )
+
       # Create a new covariates variable pasting all values selected by the --groups option.
       count_frame$covariates <-
         factor(x = apply(
@@ -247,12 +261,15 @@ for (i in seq_len(length.out = base::nrow(x = genes_tibble))) {
           FUN = paste,
           collapse = ":"
         ))
+
       ggplot_object <- ggplot2::ggplot(data = count_frame)
+
       ggplot_object <-
         ggplot_object + ggplot2::geom_point(
           mapping = ggplot2::aes(x = .data$covariates, y = .data$count),
           alpha = I(1 / 3)
         )
+
       ggplot_object <-
         ggplot_object + ggplot2::labs(
           x = "Covariates",
@@ -269,6 +286,7 @@ for (i in seq_len(length.out = base::nrow(x = genes_tibble))) {
             sep = " "
           )
         )
+
       ggplot_object <-
         ggplot_object + ggplot2::theme(
           axis.text.x = ggplot2::element_text(
@@ -278,6 +296,7 @@ for (i in seq_len(length.out = base::nrow(x = genes_tibble))) {
             angle = 90.0
           )
         )
+
       ggplot2::ggsave(
         filename = file_path,
         plot = ggplot_object,

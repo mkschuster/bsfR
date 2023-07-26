@@ -105,13 +105,11 @@ if (!file.exists(output_directory)) {
              recursive = FALSE)
 }
 
-# Load a pre-calculated annotation tibble.
-annotation_tibble <- bsfR::bsfrd_read_annotation_tibble(
+# Load a pre-calculated feature annotation S4Vectors::DataFrame.
+feature_dframe <- bsfR::bsfrd_initialise_feature_dframe(
   genome_directory = argument_list$genome_directory,
   design_name = argument_list$design_name,
   feature_types = "gene",
-  gtf_file_path = argument_list$gtf_reference,
-  genome = argument_list$genome_version,
   verbose = argument_list$verbose
 )
 
@@ -148,40 +146,36 @@ if (argument_list$verbose) {
   message("Exporting GCT normalised counts table ...")
 }
 
-# Extract the "gene_name" (gene symbol) and "gene_id" (Ensembl gene identifier)
-# variables form the annotation tibble and left join to the normalised count
-# matrix.
+# Export the raw counts from the DESeqDataSet object.
 
-count_tibble <-
-  dplyr::right_join(
-    x = dplyr::select(.data = annotation_tibble, "gene_name", "gene_id"),
-    y = tibble::as_tibble(
-      x = DESeq2::counts(object = deseq_data_set, normalized = TRUE),
-      rownames = "gene_id"
-    ),
-    by = "gene_id"
-  )
+counts_frame <-
+  as.data.frame(x = S4Vectors::combineCols(x = feature_dframe[, c("gene_name", "gene_id"), drop = FALSE],
+                                           methods::as(
+                                             object = DESeq2::counts(object = deseq_data_set, normalized = TRUE),
+                                             Class = "DataFrame"
+                                           )))
 
 # Rename the "gene_name" and "gene_id" variables to "NAME" and "Description",
 # respectively, to match the GCT file format.
 
-count_tibble <-
-  dplyr::rename(.data = count_tibble,
-                "NAME" = "gene_name",
-                "Description" = "gene_id")
+counts_frame <-
+  S4Vectors::rename(x = counts_frame,
+                    c("gene_name" = "NAME", "gene_id" = "Description"))
 
-# Append the tibble to the header, but make sure the header line gets also exported.
+# Append the tibble to the header, but make sure the header line gets also
+# exported.
 
 readr::write_tsv(
-  x = count_tibble,
+  x = counts_frame,
   file = file_path,
   append = TRUE,
   col_names = TRUE
 )
-rm(count_tibble,
+
+rm(counts_frame,
    file_path,
    deseq_data_set,
-   annotation_tibble)
+   feature_dframe)
 
 # Read a contrast tibble with variables "Design", "Numerator", "Denominator" and "Label".
 contrast_tibble <-

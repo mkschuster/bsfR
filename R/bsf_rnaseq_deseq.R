@@ -348,8 +348,12 @@ bsfrd_get_contrast_character <- function(contrast_tibble, index) {
 #' factors and their levels.
 #' e.g. factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"}
 #' \item{plot_aes}{A \code{character} vector with \code{ggplot2} aesthetics.}
-#' \item{mapq_threshold}{A \code{integer} scalar with a mapping quality
+#' \item{mapq_threshold}{A \code{integer} vector with a mapping quality
 #' (MAPQ) threshold.}
+#' \item{padj_threshold}{A \code{double} vector with an adjusted p-value
+#' threshold.}
+#' \item{l2fc_threshold}{A \code{double} vector with a log2-fold change
+#' threshold.}
 #' }
 #'
 #' @param genome_directory A \code{character} scalar with a genome directory
@@ -394,7 +398,9 @@ bsfrd_read_design_tibble <-
         "reduced_formulas" = readr::col_character(),
         "factor_levels" = readr::col_character(),
         "plot_aes" = readr::col_character(),
-        "mapq_threshold" = readr::col_integer()
+        "mapq_threshold" = readr::col_integer(),
+        "padj_threshold" = readr::col_double(),
+        "l2fc_threshold" = readr::col_double()
       )
     )
 
@@ -427,6 +433,10 @@ bsfrd_read_design_tibble <-
 #' \item{plot_aes}{A \code{character} scalar with \code{ggplot2} aesthetics.}
 #' \item{mapq_threshold}{A \code{integer} scalar with a mapping quality
 #' (MAPQ) threshold.}
+#' \item{padj_threshold}{A \code{double} scalar with an adjusted p-value
+#' threshold.}
+#' \item{l2fc_threshold}{A \code{double} scalar with a log2-fold change
+#' threshold.}
 #' }
 #' @export
 #'
@@ -567,14 +577,15 @@ bsfrd_read_design_list <-
     return(mcols_dframe)
   }
 
-#' Read a DESeq2 Sample Annotation DataFrame.
+#' Read a Sample Annotation DataFrame.
 #'
-#' Read a \code{DESeq2} analysis sample annotation \code{S4Vectors::DataFrame}
-#' from a tab-separated value file, select only those samples that match the
-#' \code{design_list$design} and re-level \code{factor} vectors according to the
+#' Read sample annotation \code{S4Vectors::DataFrame} from a tab-separated value
+#' file, select only those samples that match the \code{design_list$design} and
+#' re-level \code{factor} vectors according to the
 #' \code{design_list$factor_level} specification.
 #'
-#' The Sample DataFrame holds the following variables:
+#' The Sample Annotation \code{S4Vectors::DataFrame} is equivalent to the
+#' \code{SummarizedExperiment::colData()} and holds the following variables:
 #' \describe{
 #' \item{bam_path}{A \code{character} vector of BAM file paths.}
 #' \item{bai_path}{A \code{character} vector of BAI file paths.}
@@ -593,9 +604,12 @@ bsfrd_read_design_list <-
 #' \item{sequencing_type}{A \code{factor} vector with levels "SE" and "PE"
 #' indicating single-end or paired-end sequencing, respectively and thus
 #' counting as read pairs or not.}
+#' \item{UMIs}{A \code{logical} vector indicating whether unique molecular
+#' indices (UMIs) are present and reads marked as duplicates should be ignored
+#' in the counting procedure.}
 #' \item{total_counts}{An \code{integer} vector with total counts per sample.
 #' Calculated automatically based on the colSums() of the counts() function.}
-#' \item{RIN}{A \code{numeric} vector providing an RNA integrity number (RIN)
+#' \item{RIN}{A \code{double} vector providing an RNA integrity number (RIN)
 #' score per sample. If available, a RIN score distribution will be plotted.}
 #' }
 #'
@@ -713,6 +727,21 @@ bsfrd_read_sample_dframe <-
 
     rm(sequencing_type_levels)
 
+    # If the UMIs variable exist, convert it into a logical vector,
+    # else default to FALSE to keep counting duplicate reads without UMIs.
+    if ("UMIs" %in% names(x = mcols_dframe)) {
+      umi_levels <- c("FALSE", "TRUE")
+      if (!all(mcols_dframe$UMIs %in% umi_levels)) {
+        stop("The UMIs variable contains values other than 'FALSE', or 'TRUE'.")
+      }
+      rm(umi_levels)
+      mcols_dframe$UMIs <- as.logical(x = mcols_dframe$UMIs)
+    } else {
+      mcols_dframe$UMIs <- FALSE
+    }
+
+    # Apply factor levels if they were specified in the "factor_levels" variable
+    # of the design tibble.
     if (!is.null(x = design_list$factor_levels)) {
       mcols_dframe <-
         .bsfrd_apply_factor_specification(mcols_dframe = mcols_dframe,
@@ -723,12 +752,156 @@ bsfrd_read_sample_dframe <-
     return(S4Vectors::droplevels(x = mcols_dframe))
   }
 
+#' Initialise a Feature Annotation DataFrame.
+#'
+#' Read a previously saved feature annotation \code{S4Vectors::DataFrame}
+#' or construct it from a \code{GenomicRanges::GRanges}
+#' object.
+#'
+#' Features are extracted from a \code{GenomicRanges::GRanges} object.
+#'
+#' The Feature Annotation \code{S4Vectors::DataFrame} is equivalent to the
+#' \code{SummarizedExperiment::rowData()}.
+#'
+#' @param genome_directory A \code{character} scalar with a genome directory
+#'   path.
+#' @param design_name A \code{character} scalar with a design name.
+#' @param feature_types A \code{character} vector of GTF feature types to be
+#'   imported. Defaults to "genes".
+#' @param feature_granges A \code{GenomicRanges::GRanges} object specifying
+#'   feature annotation (e.g., the reference transcriptome). Only required, if
+#'   the \code{S4Vectors::DataFrame} object needs initialising.
+#' @param verbose A \code{logical} scalar to emit messages.
+#' @return A \code{S4Vectors::DataFrame} with feature annotation.
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#'  feature_dframe <-
+#'    bsfR::bsfrd_initialise_feature_dframe(
+#'      genome_directory = genome_directory,
+#'      design_name = design_name,
+#'      feature_types = "gene",
+#'      feature_granges = feature_granges,
+#'      verbose = TRUE
+#'    )
+#' }
+bsfrd_initialise_feature_dframe <-
+  function(genome_directory,
+           design_name,
+           feature_types = "gene",
+           feature_granges = NULL,
+           verbose = FALSE) {
+    stopifnot(all(feature_types %in% c("gene", "transcript", "exon")))
+
+    prefix_deseq <-
+      bsfrd_get_prefix_deseq(design_name = design_name)
+
+    # Load a pre-existing feature annotation DataFrame or create it from the
+    # feature GRanges object.
+    feature_dframe <- NULL
+
+    file_paths <-
+      file.path(genome_directory,
+                prefix_deseq,
+                paste(paste(
+                  prefix_deseq, "features", paste(sort(feature_types), collapse = "_"), sep = "_"
+                ),
+                c("rds", "tsv"),
+                sep = "."))
+    base::names(x = file_paths) <- c("RDS", "TSV")
+
+    if (file.exists(file_paths["RDS"]) &&
+        file.info(file_paths["RDS"])$size > 0L) {
+      if (verbose) {
+        message("Loading a feature S4Vectors::DataFrame ...")
+      }
+
+      feature_dframe <- readr::read_rds(file = file_paths["RDS"])
+    } else {
+      if (is.null(x = feature_granges)) {
+        stop("Missing feature_granges option")
+      }
+
+      # Filter the initial feature GRanges object by (GTF) feature types.
+      granges_object <-
+        feature_granges[S4Vectors::mcols(x = feature_granges)$type %in% feature_types]
+
+      if (verbose) {
+        message("Creating a feature S4Vectors::DataFrame ...")
+      }
+
+      feature_dframe <-
+        S4Vectors::mcols(x = granges_object)
+
+      # Identify all variables which values are all NA.
+
+      excluded_variables <- character()
+      for (variable_name in S4Vectors::colnames(x = feature_dframe)) {
+        if (all(is.na(x = feature_dframe[, variable_name, drop = TRUE]))) {
+          excluded_variables <- c(excluded_variables, variable_name)
+        }
+      }
+
+      # For the feature type "gene", remove also the "type", "score" and "phase"
+      # GTF standard variables.
+
+      if (length(x = feature_types) == 1L &&
+          feature_types[1L] == "gene") {
+        excluded_variables <-
+          c(excluded_variables, "type", "score", "phase")
+      }
+
+      if (verbose) {
+        message("Excluded feature variables: ",
+                paste(excluded_variables, collapse = " "))
+      }
+
+      # Subset the metadata S4Vectors::DataFrame to remove empty variables
+      # from all GRanges metadata variables.
+
+      feature_dframe <-
+        S4Vectors::subset(
+          x = feature_dframe,
+          select = base::setdiff(x = S4Vectors::colnames(x = feature_dframe),
+                                 y = excluded_variables)
+        )
+      rm(excluded_variables)
+
+      # Add the location as an Ensembl-like location, lacking the coordinate
+      # system name and version.
+
+      feature_dframe$location <-
+        as.character(x = granges_object)
+
+      # Serialise the S4Vectors::DataFrame to disk.
+      readr::write_rds(x = feature_dframe,
+                       file = file_paths["RDS"],
+                       compress = "gz")
+
+      # Write a data.frame as TSV file to disk.
+      readr::write_tsv(
+        x = S4Vectors::as.data.frame(x = feature_dframe),
+        file = file_paths["TSV"]
+      )
+
+      rm(granges_object)
+    }
+    rm(file_paths)
+
+    return(feature_dframe)
+  }
+
 #' Read or initialise a RangedSummarizedExperiment Object.
 #'
 #' Read a pre-calculated \code{SummarizedExperiment::RangedSummarizedExperiment}
 #' object or initialise it from a sample annotation sheet loaded via
-#' \code{bsfR::bsfrd_read_sample_dframe()}, a \code{gtf_path} and
-#' \code{genome_version}.
+#' \code{bsfR::bsfrd_read_sample_dframe()} and a \code{GenomicRanges::GRanges}
+#' object specifying features (i.e., the reference transcriptome). The
+#' \code{GenomicRanges::GRanges} object must have a "type" variable annotating
+#' "exon" features that also have "gene_id" annotation for splitting into a
+#' \code{GenomicRanges::GRangesList} object. For the moment, Ensembl-specific
+#' GTF files with "gene", "transcript" and "exon" features are supported.
 #'
 #' @param genome_directory A \code{character} scalar with a genome directory
 #'   path.
@@ -741,12 +914,8 @@ bsfrd_read_sample_dframe <-
 #' \item{mapq_threshold}{A \code{integer} scalar with a mapping quality
 #' (MAPQ) threshold.}
 #' }
-#' @param gtf_path A \code{character} scalar with a reference transcriptome
-#'   GTF file path. Only required, if the
-#'   \code{SummarizedExperiment::RangedSummarizedExperiment} object needs
-#'   initialising.
-#' @param genome_version A \code{character} scalar with a genome version of
-#'   the reference GTF file. Only required, if the
+#' @param transcriptome_granges A \code{GenomicRanges::GRanges} object
+#'   specifying the reference transcriptome. Only required, if the
 #'   \code{SummarizedExperiment::RangedSummarizedExperiment} object needs
 #'   initialising.
 #' @param verbose A \code{logical} scalar to emit messages.
@@ -764,16 +933,14 @@ bsfrd_read_sample_dframe <-
 #'        design = "global",
 #'        factor_levels = "factor_1:level_1,level_2;factor_2:level_A,level_B"
 #'      ),
-#'      gtf_path = "Homo_sapiens.e100.gtf.gz",
-#'      genome_version = "hg38",
+#'      transcriptome_granges = transcriptome_granges,
 #'      verbose = FALSE
 #'    )
 #' }
 bsfrd_initialise_rse <-
   function(genome_directory,
            design_list,
-           gtf_path = NULL,
-           genome_version = NULL,
+           transcriptome_granges = NULL,
            verbose = FALSE) {
     ranged_summarized_experiment <- NULL
 
@@ -796,6 +963,10 @@ bsfrd_initialise_rse <-
       ranged_summarized_experiment <-
         readr::read_rds(file = file_path)
     } else {
+      if (is.null(x = transcriptome_granges)) {
+        stop("Missing transcriptome_granges option")
+      }
+
       # Check for the "mapq_threshold" variable in the design list.
 
       if ("mapq_threshold" %in% names(x = design_list)) {
@@ -825,19 +996,14 @@ bsfrd_initialise_rse <-
         )
 
       if (verbose) {
-        message("Reading reference GTF exon features ...")
+        message("Creating a GRangesList with exon features ...")
       }
 
       # The DESeq2 and RNA-seq vignettes suggest using TxDB objects, but for the
       # moment, we need extra annotation provided by Ensembl GTF files.
 
       exon_granges <-
-        rtracklayer::import(
-          con = gtf_path,
-          format = "gtf",
-          genome = genome_version,
-          feature.type = "exon"
-        )
+        transcriptome_granges[S4Vectors::mcols(x = transcriptome_granges)$type == "exon"]
 
       # Convert (i.e. split) the GenomicRanges::GRanges object into a
       # GenomicRanges::GRangesList object by gene identifiers.
@@ -846,100 +1012,113 @@ bsfrd_initialise_rse <-
         GenomicRanges::split(x = exon_granges,
                              f = S4Vectors::mcols(x = exon_granges)$gene_id)
 
+      rm(exon_granges)
+
       # Process per library_type and sequencing_type and merge the
       # SummarizedExperiment::RangedSummarizedExperiment objects.
 
       for (library_type in levels(x = sample_dframe$library_type)) {
         for (sequencing_type in levels(x = sample_dframe$sequencing_type)) {
-          if (verbose) {
-            message(
-              "Processing library_type ",
-              library_type,
-              " and sequencing_type: ",
-              sequencing_type
+          for (umis in c(FALSE, TRUE)) {
+            if (verbose) {
+              message(
+                "Processing library_type ",
+                library_type,
+                " sequencing_type ",
+                sequencing_type,
+                " and UMIs ",
+                umis
+              )
+            }
+
+            sub_sample_dframe <-
+              sample_dframe[(sample_dframe$library_type == library_type) &
+                              (sample_dframe$sequencing_type == sequencing_type) &
+                              (sample_dframe$UMIs == umis), , drop = FALSE]
+
+            if (S4Vectors::nrow(x = sub_sample_dframe) == 0L) {
+              rm(sub_sample_dframe)
+              next()
+            }
+
+            # Create a BamFileList object and set the samples as names.
+
+            if (verbose) {
+              message("Creating a BamFileList object ...")
+            }
+
+            bam_file_list <- Rsamtools::BamFileList(
+              file = as.character(x = sub_sample_dframe$bam_path),
+              index = as.character(x = sub_sample_dframe$bai_path),
+              yieldSize = 2000000L,
+              asMates = (sequencing_type == "PE")
             )
-          }
 
-          sub_sample_dframe <-
-            sample_dframe[(sample_dframe$library_type == library_type) &
-                            (sample_dframe$sequencing_type == sequencing_type), , drop = FALSE]
+            # If a "run" variable is defined, technical replicates need collapsing
+            # and the "sample" variable has duplicate values. Hence, use "run"
+            # instead of "sample" for naming.
 
-          if (S4Vectors::nrow(x = sub_sample_dframe) == 0L) {
-            rm(sub_sample_dframe)
-            next()
-          }
+            if ("run" %in% S4Vectors::colnames(x = sub_sample_dframe)) {
+              names(x = bam_file_list) <-
+                as.character(x = sub_sample_dframe$run)
+            } else {
+              names(x = bam_file_list) <-
+                as.character(x = sub_sample_dframe$sample)
+            }
 
-          # Create a BamFileList object and set the samples as names.
+            if (verbose) {
+              message("Creating a RangedSummarizedExperiment object ...")
+            }
 
-          if (verbose) {
-            message("Creating a BamFileList object ...")
-          }
-
-          bam_file_list <- Rsamtools::BamFileList(
-            file = as.character(x = sub_sample_dframe$bam_path),
-            index = as.character(x = sub_sample_dframe$bai_path),
-            yieldSize = 2000000L,
-            asMates = (sequencing_type == "PE")
-          )
-
-          # If a "run" variable is defined, technical replicates need collapsing
-          # and the "sample" variable has duplicate values. Hence, use "run"
-          # instead of "sample" for naming.
-
-          if ("run" %in% S4Vectors::colnames(x = sub_sample_dframe)) {
-            names(x = bam_file_list) <-
-              as.character(x = sub_sample_dframe$run)
-          } else {
-            names(x = bam_file_list) <-
-              as.character(x = sub_sample_dframe$sample)
-          }
-
-          if (verbose) {
-            message("Creating a RangedSummarizedExperiment object ...")
-          }
-
-          sub_ranged_summarized_experiment <-
-            GenomicAlignments::summarizeOverlaps(
-              features = gene_granges_list,
-              reads = bam_file_list,
-              mode = "Union",
-              ignore.strand = (library_type == "unstranded"),
-              # Exclude reads that represent secondary alignments or fail the
-              # vendor quality filter.
-              param = Rsamtools::ScanBamParam(
-                flag = Rsamtools::scanBamFlag(
-                  isSecondaryAlignment = FALSE,
-                  isNotPassingQualityControls = FALSE
+            sub_ranged_summarized_experiment <-
+              GenomicAlignments::summarizeOverlaps(
+                features = gene_granges_list,
+                reads = bam_file_list,
+                mode = "Union",
+                ignore.strand = (library_type == "unstranded"),
+                # Exclude reads that represent secondary alignments or fail the
+                # vendor quality filter.
+                param = Rsamtools::ScanBamParam(
+                  flag = Rsamtools::scanBamFlag(
+                    isSecondaryAlignment = FALSE,
+                    isNotPassingQualityControls = FALSE,
+                    isDuplicate = if (umis)
+                      FALSE
+                    else
+                      NA
+                  ),
+                  mapqFilter = design_list$mapq_threshold
                 ),
-                mapqFilter = design_list$mapq_threshold
-              ),
-              # Invert the strand for protocols that sequence the second strand.
-              preprocess.reads = if (library_type == "second")
-                GenomicAlignments::invertStrand
-            )
+                # Invert the strand for protocols that sequence the second
+                # strand.
+                preprocess.reads = if (library_type == "second")
+                  GenomicAlignments::invertStrand
+              )
 
-          SummarizedExperiment::colData(x = sub_ranged_summarized_experiment) <-
-            sub_sample_dframe
+            SummarizedExperiment::colData(x = sub_ranged_summarized_experiment) <-
+              sub_sample_dframe
 
-          # Combine SummarizedExperiment::RangedSummarizedExperiment objects
-          # with the same GenomicRanges::GRanges, but different samples via
-          # SummarizedExperiment::cbind().
+            # Combine SummarizedExperiment::RangedSummarizedExperiment objects
+            # with the same GenomicRanges::GRanges, but different samples via
+            # SummarizedExperiment::cbind().
 
-          if (is.null(x = ranged_summarized_experiment)) {
-            ranged_summarized_experiment <- sub_ranged_summarized_experiment
-          } else {
-            ranged_summarized_experiment <-
-              SummarizedExperiment::cbind(ranged_summarized_experiment,
-                                          sub_ranged_summarized_experiment)
+            if (is.null(x = ranged_summarized_experiment)) {
+              ranged_summarized_experiment <- sub_ranged_summarized_experiment
+            } else {
+              ranged_summarized_experiment <-
+                SummarizedExperiment::cbind(ranged_summarized_experiment,
+                                            sub_ranged_summarized_experiment)
+            }
+
+            rm(sub_ranged_summarized_experiment,
+               sub_sample_dframe,
+               bam_file_list)
           }
-
-          rm(sub_ranged_summarized_experiment,
-             sub_sample_dframe,
-             bam_file_list)
+          rm(umis)
         }
         rm(sequencing_type)
       }
-      rm(library_type)
+      rm(library_type, gene_granges_list)
 
       # Collapse technical replicates if variable "run" is defined.
 
@@ -981,10 +1160,9 @@ bsfrd_initialise_rse <-
       SummarizedExperiment::colData(x = ranged_summarized_experiment) <-
         sample_dframe
 
-      rm(gene_granges_list,
-         exon_granges,
-         sample_dframe)
+      rm(sample_dframe)
 
+      # Serialise the RangedSummarizedExperiment object.
       readr::write_rds(x = ranged_summarized_experiment,
                        file = file_path,
                        compress = "gz")
@@ -1285,7 +1463,7 @@ bsfrd_read_result_tibble <-
                         contrast_character,
                         "genes",
                         sep = "_"),
-                  "tsv",
+                  "rds",
                   sep = "."
                 ))
 
@@ -1297,29 +1475,7 @@ bsfrd_read_result_tibble <-
       }
 
       deseq_results_tibble <-
-        readr::read_tsv(
-          file = file_path,
-          col_types = readr::cols(
-            "gene_id" = readr::col_character(),
-            "gene_version" = readr::col_double(),
-            "gene_name" = readr::col_character(),
-            "gene_biotype" = readr::col_character(),
-            "gene_source" = readr::col_character(),
-            "location" = readr::col_character(),
-            "baseMean" = readr::col_double(),
-            "log2FoldChange" = readr::col_double(),
-            "lfcSE" = readr::col_double(),
-            # The "stat" variable is no longer available after lfcShrink().
-            # "stat" = readr::col_double(),
-            "pvalue" = readr::col_double(),
-            "padj" = readr::col_double(),
-            "significant" = readr::col_character(),
-            "rank_log2_fold_change" = readr::col_double(),
-            "rank_base_mean" = readr::col_double(),
-            "rank_padj" = readr::col_double(),
-            "max_rank" = readr::col_double()
-          )
-        )
+        readr::read_rds(file = file_path)
     } else {
       warning("Missing DESeqResults tibble for contrast: ",
               contrast_character)
@@ -1327,208 +1483,6 @@ bsfrd_read_result_tibble <-
     rm(file_path, prefix_deseq)
 
     return(deseq_results_tibble)
-  }
-
-#' Read a Feature Annotation Tibble.
-#'
-#' Read a previously saved feature annotation \code{tbl_df} from a tab-separated
-#' value file or import it from a GTF file.
-#'
-#' Features are extracted from a transcriptome reference GTF file. For the
-#' moment, Ensembl-specific files with "gene", "transcript" and "exon" features
-#' are supported.
-#'
-#' @param genome_directory A \code{character} scalar with a genome directory
-#'   path.
-#' @param design_name A \code{character} scalar with a design name.
-#' @param feature_types A \code{character} vector of GTF feature types to be
-#'   imported. Defaults to "genes".
-#' @param gtf_file_path A \code{character} scalar with a reference GTF file
-#'   path.
-#' @param genome A \code{character} scalar with a genome version or a
-#'   \code{GenomeInfoDb::Seqinfo} object.
-#' @param verbose A \code{logical} scalar to emit messages.
-#' @return A \code{tbl_df} with feature annotation.
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#'  annotation_tibble <-
-#'    bsfR::bsfrd_read_annotation_tibble(
-#'      genome_directory = genome_directory,
-#'      design_name = design_name,
-#'      feature_types = "gene",
-#'      gtf_file_path = gtf_file_path,
-#'      genome = "hg38",
-#'      verbose = TRUE
-#'    )
-#' }
-bsfrd_read_annotation_tibble <-
-  function(genome_directory,
-           design_name,
-           feature_types = "gene",
-           gtf_file_path = NULL,
-           genome = NA,
-           verbose = FALSE) {
-    stopifnot(all(feature_types %in% c("gene", "transcript", "exon")))
-
-    prefix_deseq <-
-      bsfrd_get_prefix_deseq(design_name = design_name)
-
-    # Load pre-existing gene annotation tibble or create it from the reference
-    # GTF file.
-    annotation_tibble <- NULL
-
-    file_path <-
-      file.path(genome_directory,
-                prefix_deseq,
-                paste(
-                  paste(prefix_deseq, "annotation", paste(sort(feature_types), collapse = "_"), sep = "_"),
-                  "tsv",
-                  sep = "."
-                ))
-    if (file.exists(file_path) &&
-        file.info(file_path)$size > 0L) {
-      if (verbose) {
-        message("Loading an annotation tibble ...")
-      }
-
-      col_types <- readr::cols()
-
-      if (any(c("gene", "transcript", "exon") %in% feature_types)) {
-        col_types$cols <-
-          c(
-            col_types$cols,
-            readr::cols(
-              "gene_id" = readr::col_character(),
-              "gene_version" = readr::col_character(),
-              "gene_name" = readr::col_character(),
-              "gene_biotype" = readr::col_character(),
-              "gene_source" = readr::col_character()
-            )$cols
-          )
-      }
-
-      if (any(c("transcript", "exon") %in% feature_types)) {
-        col_types$cols <-
-          c(
-            col_types$cols,
-            readr::cols(
-              "transcript_id" = readr::col_character(),
-              "transcript_version" = readr::col_character(),
-              "transcript_name" = readr::col_character(),
-              "transcript_biotype" = readr::col_character(),
-              "transcript_source" = readr::col_character()
-            )$cols
-          )
-      }
-
-      if ("exon" %in% feature_types) {
-        col_types$cols <-
-          c(
-            col_types$cols,
-            readr::cols(
-              "exon_id" = readr::col_character(),
-              "exon_version" = readr::col_character(),
-              "exon_number" = readr::col_character()
-            )$cols
-          )
-      }
-
-      annotation_tibble <-
-        readr::read_tsv(file = file_path,
-                        col_names = TRUE,
-                        col_types = col_types)
-
-      rm(col_types)
-    } else {
-      if (verbose) {
-        message("Reading reference GTF features ...")
-      }
-
-      if (is.null(x = gtf_file_path)) {
-        stop("Missing gtf_file_path option")
-      }
-
-      granges_object <-
-        rtracklayer::import(
-          con = gtf_file_path,
-          format = "gtf",
-          genome = genome,
-          feature.type = feature_types
-        )
-
-      if (verbose) {
-        message("Creating an annotation tibble ...")
-      }
-
-      variable_names <- NULL
-
-      if (any(c("gene", "transcript", "exon") %in% feature_types)) {
-        variable_names <-
-          c(
-            variable_names,
-            "gene_id",
-            "gene_version",
-            "gene_name",
-            "gene_biotype",
-            "gene_source"
-          )
-      }
-
-      if (any(c("transcript", "exon") %in% feature_types)) {
-        variable_names <-
-          c(
-            variable_names,
-            "transcript_id",
-            "transcript_version",
-            "transcript_name",
-            "transcript_biotype",
-            "transcript_source"
-          )
-      }
-
-      if ("exon" %in% feature_types) {
-        variable_names <-
-          c(variable_names,
-            "exon_id",
-            "exon_version",
-            "exon_number")
-      }
-
-      # Select those variable names that are defined in the GTF file.
-      gtf_variables <-
-        variable_names %in% S4Vectors::colnames(x = S4Vectors::mcols(x = granges_object))
-
-      # NOTE: For the moment, do not exclude any (additional) variables, just
-      # select all of them.
-
-      mcols_dframe <-
-        S4Vectors::mcols(x = granges_object)
-      # S4Vectors::mcols(x = granges_object)[, variable_names[gtf_variables], drop = FALSE]
-
-      # Add all standard variables not defined in the S4Vectors::DataFrame.
-      for (variable_name in variable_names[!gtf_variables]) {
-        mcols_dframe[, variable_name] <-
-          character(length = S4Vectors::nrow(x = mcols_dframe))
-      }
-      rm(variable_name, gtf_variables, variable_names)
-
-      # Add the location as an Ensembl-like location, lacking the coordinate
-      # system name and version.
-      mcols_dframe$location <-
-        as.character(x = granges_object)
-
-      annotation_tibble <-
-        tibble::as_tibble(x = S4Vectors::as.data.frame(x = mcols_dframe))
-
-      readr::write_tsv(x = annotation_tibble, file = file_path)
-
-      rm(mcols_dframe, granges_object)
-    }
-    rm(file_path)
-
-    return(annotation_tibble)
   }
 
 #' Read a Gene Set Tibble.
@@ -1596,19 +1550,23 @@ bsfrd_read_gene_set_tibble <-
               gene_set_tibble$gene_id == "")
 
     if (length(x = missing_indices) > 0L) {
-      # Read the central transcriptome annotation tibble.
-      annotation_tibble <-
-        bsfrd_read_annotation_tibble(genome_directory = genome_directory, design_name = design_name)
+      # Load a pre-calculated feature annotation S4Vectors::DataFrame.
+      feature_dframe <- bsfR::bsfrd_initialise_feature_dframe(
+        genome_directory = genome_directory,
+        design_name = design_name,
+        feature_types = "gene",
+        verbose = verbose
+      )
 
       # Populate empty "gene_id" observations of the gene_set_tibble by mapping
       # the corresponding "gene_name" observations to "gene_name" observations
-      # of the annotation_tibble.
+      # of the feature_dframe.
 
       gene_set_tibble$gene_id[missing_indices] <-
-        annotation_tibble$gene_id[match(x = gene_set_tibble$gene_name[missing_indices],
-                                        table = annotation_tibble$gene_name)]
+        feature_dframe$gene_id[match(x = gene_set_tibble$gene_name[missing_indices],
+                                     table = feature_dframe$gene_name)]
 
-      rm(annotation_tibble)
+      rm(feature_dframe)
     }
 
     rm(missing_indices)

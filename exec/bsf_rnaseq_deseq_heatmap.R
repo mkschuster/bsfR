@@ -335,10 +335,21 @@ draw_complex_heatmap <-
       )
       rm(scaled_matrix, transformed_matrix)
 
+      annotation_variables <- c("significant", "effective")
+
+      # Ensembl uses "gene_biotype", Gencode uses "gene_type". Sigh!
+      if ("gene_biotype" %in% base::names(x = deseq_results_frame)) {
+        annotation_variables <- c("gene_biotype", annotation_variables)
+      }
+
+      if ("gene_type" %in% base::names(x = deseq_results_frame)) {
+        annotation_variables <- c("gene_type", annotation_variables)
+      }
+
       # Add column annotation.
       complex_heatmap <-
         complex_heatmap + ComplexHeatmap::HeatmapAnnotation(
-          df = deseq_results_frame[top_gene_identifiers, c("gene_biotype", "significant"), drop = FALSE],
+          df = deseq_results_frame[top_gene_identifiers, annotation_variables, drop = FALSE],
           which = "row",
           text = ComplexHeatmap::anno_text(
             # The filtering here is based on row names of the data frame and only works
@@ -349,6 +360,8 @@ draw_complex_heatmap <-
             just = "left"
           )
         )
+
+      rm(annotation_variables)
 
       file_path <-
         paste(if (is.null(x = plot_index)) {
@@ -468,7 +481,7 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
           n = argument_list$maximum_number
         )]
       } else {
-        deseq_results_frame$gene_id[deseq_results_frame$significant == "yes"]
+        deseq_results_frame$gene_id[deseq_results_frame$significant == TRUE]
       }
     nozzle_section_heatmaps <-
       draw_complex_heatmap(

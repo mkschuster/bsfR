@@ -319,6 +319,7 @@ draw_enhanced_volcano <-
         } else {
           argument_list$p_threshold
         },
+        FCcutoff = argument_list$l2fc_threshold,
         xlab = if (plot_padj) {
           bquote(expr = ~ Log[2] ~ "fold change")
         } else {
@@ -417,7 +418,7 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
       verbose = argument_list$verbose
     )
 
-  # Filter genes with NA values in either log2FoldChange, pvalue pr padj, which
+  # Filter genes with NA values in either log2FoldChange, pvalue or padj, which
   # are a consequence of Cook's distance filtering in the DESeq2::results()
   # function.
   deseq_results_tibble <-

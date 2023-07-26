@@ -58,20 +58,6 @@ argument_list <-
         type = "character"
       ),
       optparse::make_option(
-        opt_str = "--l2fc-threshold",
-        default = 0.0,
-        dest = "l2fc_threshold",
-        help = "Log2-fold change threshold [0.0]",
-        type = "double"
-      ),
-      optparse::make_option(
-        opt_str = "--padj-threshold",
-        default = 0.1,
-        dest = "padj_threshold",
-        help = "Adjusted p-value threshold [0.1]",
-        type = "double"
-      ),
-      optparse::make_option(
         opt_str = "--threads",
         default = 1L,
         dest = "threads",
@@ -156,13 +142,23 @@ if (!file.exists(output_directory)) {
              recursive = FALSE)
 }
 
-# Plot Annotation ---------------------------------------------------------
+# Design List -------------------------------------------------------------
 
 
-# Load a pre-calculated annotation tibble.
-annotation_tibble <- bsfR::bsfrd_read_annotation_tibble(
+design_list <- bsfR::bsfrd_read_design_list(
   genome_directory = argument_list$genome_directory,
   design_name = argument_list$design_name,
+  verbose = argument_list$verbose
+)
+
+# Feature Annotation ------------------------------------------------------
+
+
+# Load a pre-calculated feature annotation S4Vectors::DataFrame.
+feature_dframe <- bsfR::bsfrd_initialise_feature_dframe(
+  genome_directory = argument_list$genome_directory,
+  design_name = argument_list$design_name,
+  feature_types = "gene",
   verbose = argument_list$verbose
 )
 
@@ -194,13 +190,13 @@ if (base::nrow(x = contrast_tibble) == 0L) {
   stop("No contrast remaining after selection for design name.")
 }
 
-# Add new variables for the summary.
+# Add new variables to the summary.
 contrast_tibble <-
   tibble::add_column(
     .data = contrast_tibble,
-    Significant = 0L,
-    SignificantUp = 0L,
-    SignificantDown = 0L
+    "Significant" = 0L,
+    "SignificantUp" = 0L,
+    "SignificantDown" = 0L
   )
 
 for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
@@ -229,6 +225,7 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   if (file.exists(file_path) &&
       file.info(file_path)$size > 0L) {
     message("Reading DESeqResults for ", contrast_character)
+
     deseq_results <-
       readr::read_rds(file = file_path)
   } else {
@@ -238,6 +235,10 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
     # Use independent hypothesis weighting from Bioconductor package IHW. The
     # IHW::hw.DESeqResults function sets the padj variable in the DESeqResults
     # object, while the IHW::ihwResult object is still available as meta data.
+    #
+    # Always use the default value 0.0 for lfcThreshold to test for the
+    # log2-fold changes being 0.0 with the default altHypothesis greaterAbs.
+    #
     # If option "tidy" is TRUE, a classical data.frame is returned.
 
     message("Creating DESeqResults for ", contrast_character)
@@ -245,8 +246,7 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
       DESeq2::results(
         object = deseq_data_set,
         contrast = contrast_list,
-        lfcThreshold = argument_list$l2fc_threshold,
-        alpha = argument_list$padj_threshold,
+        alpha = design_list$padj_threshold,
         filterFun = IHW::ihw,
         parallel = TRUE
       )
@@ -287,18 +287,18 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   # Record the number of significant genes in the summary tibble regardless.
 
   contrast_tibble$Significant[contrast_index] <-
-    sum(deseq_results$padj <= argument_list$padj_threshold, na.rm = TRUE)
+    sum(deseq_results$padj <= design_list$padj_threshold, na.rm = TRUE)
 
   contrast_tibble$SignificantUp[contrast_index] <-
     sum(
-      deseq_results$padj <= argument_list$padj_threshold &
+      deseq_results$padj <= design_list$padj_threshold &
         deseq_results$log2FoldChange > 0.0,
       na.rm = TRUE
     )
 
   contrast_tibble$SignificantDown[contrast_index] <-
     sum(
-      deseq_results$padj <= argument_list$padj_threshold &
+      deseq_results$padj <= design_list$padj_threshold &
         deseq_results$log2FoldChange < 0.0,
       na.rm = TRUE
     )
@@ -505,28 +505,34 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   # Annotated DESeqResults Tibble -----------------------------------------
 
 
-  # Coerce the DESeqResults into a tibble and add lots of useful variables.
+  # Combine columns of the feature annotation DataFrame with the DESeqResults
+  # DataFrame and coerce both into a Tibble.
 
   deseq_results_tibble <-
-    tibble::as_tibble(x = S4Vectors::as.data.frame(x = deseq_results))
+    tibble::as_tibble(x = S4Vectors::as.data.frame(x = S4Vectors::combineCols(x = feature_dframe, deseq_results)))
+
+  # Add lots of useful variables.
 
   deseq_results_tibble <- dplyr::mutate(
     .data = deseq_results_tibble,
-    "gene_id" = S4Vectors::rownames(x = deseq_results),
-    # Calculate a factor indicating significance.
-    "significant" = factor(
-      x = dplyr::if_else(
-        condition = .data$padj <= .env$argument_list$padj_threshold,
-        true = "yes",
-        false = "no",
-        missing = "no"
-      ),
-      levels = c("no", "yes")
+    # Calculate a logical indicating significance.
+    "significant" = dplyr::if_else(
+      condition = .data$padj <= .env$design_list$padj_threshold,
+      true = TRUE,
+      false = FALSE,
+      missing = FALSE
+    ),
+    # Calculate a logical indicating effectiveness.
+    "effective" = dplyr::if_else(
+      condition = base::abs(x = .data$log2FoldChange) >= .env$design_list$l2fc_threshold,
+      true = TRUE,
+      false = FALSE,
+      missing = FALSE
     ),
     # Calculate ranks for ...
     # (1) the effect size (log2FoldChange), ...
     "rank_log2_fold_change" = base::rank(
-      x = -abs(x = .data$log2FoldChange),
+      x = -base::abs(x = .data$log2FoldChange),
       ties.method = c("min")
     ),
     # (2) the absolute level (baseMean) and ...
@@ -542,10 +548,21 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
     )
   )
 
-  # Left join with the reference transcriptome annotation tibble.
-  deseq_results_tibble <- dplyr::right_join(x = annotation_tibble,
-                                            y = deseq_results_tibble,
-                                            by = "gene_id")
+  # The annotated results Tibble may contain a variable set of feature
+  # annotation variables. Consequently, the readr::read_tsv() column types are
+  # no longer predictable, so that the annotated results tibble is also
+  # serialised to disk.
+  readr::write_rds(x = deseq_results_tibble,
+                   file = file.path(output_directory,
+                                    paste(
+                                      paste(prefix,
+                                            "contrast",
+                                            contrast_character,
+                                            "genes",
+                                            sep = "_"),
+                                      "rds",
+                                      sep = "."
+                                    )))
 
   readr::write_tsv(x = deseq_results_tibble,
                    file = file.path(output_directory,
@@ -562,9 +579,11 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   # Significant DESeqResults Tibble -------------------------------------
 
 
-  # Filter for significant genes.
+  # Filter for significant genes, which also removes observations with NA
+  # values.
   readr::write_tsv(
-    x = dplyr::filter(.data = deseq_results_tibble, .data$padj <= .env$argument_list$padj_threshold),
+    x = dplyr::filter(.data = deseq_results_tibble,
+                      .data$padj <= .env$design_list$padj_threshold),
     file = file.path(output_directory,
                      paste(
                        paste(prefix,
@@ -577,6 +596,28 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
                      ))
   )
 
+
+  # Effective DESeqResults Tibble ---------------------------------------
+
+
+  # Filter for effective genes, which also removes observations with NA
+  # values.
+  readr::write_tsv(
+    x = dplyr::filter(
+      .data = deseq_results_tibble,
+      base::abs(x = .data$log2FoldChange) >= .env$design_list$l2fc_threshold
+    ),
+    file = file.path(output_directory,
+                     paste(
+                       paste(prefix,
+                             "contrast",
+                             contrast_character,
+                             "effective",
+                             sep = "_"),
+                       "tsv",
+                       sep = "."
+                     ))
+  )
 
   # Enhanced Volcano Plot -----------------------------------------------
 
@@ -599,10 +640,11 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   } else {
     message("Creating EnhancedVolcano plots for ", contrast_character)
 
-    # EnhancedVolcano needs the annotation from above, but also coercing the
-    # tibble into a data.frame.
+    # EnhancedVolcano needs the annotated tibble from above, but filtered for NA
+    # values in the padj variable and coerced into a data.frame.
     deseq_results_frame <-
-      base::as.data.frame(x = deseq_results_tibble)
+      base::as.data.frame(x = dplyr::filter(.data = deseq_results_tibble,
+                                            !rlang::are_na(x = .data$padj)))
 
     ggplot_object <- EnhancedVolcano::EnhancedVolcano(
       toptable = deseq_results_frame,
@@ -613,7 +655,8 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
       ylab = bquote(expr = ~ -Log[10] ~ adjusted ~ italic(P)),
       subtitle = ggplot2::waiver(),
       caption = ggplot2::waiver(),
-      pCutoff = argument_list$padj_threshold,
+      pCutoff = design_list$padj_threshold,
+      FCcutoff = design_list$l2fc_threshold,
       legendLabels = c(
         "NS",
         expression(log[2] ~ FC),
@@ -654,7 +697,8 @@ readr::write_tsv(x = contrast_tibble,
 rm(
   contrast_tibble,
   deseq_data_set,
-  annotation_tibble,
+  feature_dframe,
+  design_list,
   output_directory,
   prefix,
   graphics_formats,

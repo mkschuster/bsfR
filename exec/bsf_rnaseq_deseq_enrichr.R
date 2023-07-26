@@ -58,20 +58,6 @@ argument_list <-
         type = "character"
       ),
       optparse::make_option(
-        opt_str = "--padj-threshold",
-        default = 0.1,
-        dest = "padj_threshold",
-        help = "Threshold for the adjusted p-value [0.1]",
-        type = "double"
-      ),
-      optparse::make_option(
-        opt_str = "--l2fc-threshold",
-        default = 1.0,
-        dest = "l2fc_threshold",
-        help = "Threshold for the log2(fold-change) [1.0]",
-        type = "double"
-      ),
-      optparse::make_option(
         opt_str = "--maximum-terms",
         default = 20L,
         dest = "maximum_terms",
@@ -161,65 +147,74 @@ if (!file.exists(output_directory)) {
              recursive = FALSE)
 }
 
+# Design List -------------------------------------------------------------
+
+
+design_list <- bsfR::bsfrd_read_design_list(
+  genome_directory = argument_list$genome_directory,
+  design_name = argument_list$design_name,
+  verbose = argument_list$verbose
+)
+
 #' Load a DESeq2 results tibble for a specific contrast.
 #'
 #' @param contrast_character A \code{character} scalar with the contrast.
+#' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A \code{tbl_df} of DESeq2 results.
 #' @seealso bsfrd_read_result_tibble
 #' @noRd
 #'
 #' @examples
-load_deseq_result_tibble <- function(contrast_character) {
-  deseq_results_tibble <-
-    bsfR::bsfrd_read_result_tibble(
-      genome_directory = argument_list$genome_directory,
-      design_name = argument_list$design_name,
-      contrast_character = contrast_character,
-      verbose = argument_list$verbose
-    )
+load_deseq_result_tibble <-
+  function(contrast_character,
+           verbose = FALSE) {
+    deseq_results_tibble <-
+      bsfR::bsfrd_read_result_tibble(
+        genome_directory = argument_list$genome_directory,
+        design_name = argument_list$design_name,
+        contrast_character = contrast_character,
+        verbose = verbose
+      )
 
-  if (is.null(x = deseq_results_tibble)) {
-    stop("No DESeqResults frame for contrast ", contrast_character)
+    if (is.null(x = deseq_results_tibble)) {
+      stop("No DESeqResults frame for contrast ", contrast_character)
+    }
+
+    # Filter for padj and l2fc criteria.
+
+    if (verbose) {
+      message("Total number of genes: ",
+              base::nrow(x = deseq_results_tibble))
+    }
+
+    # Filter for the adjusted p-value and the absolute log2-fold change.
+    # NOTE: The dplyr::filter() function automatically removes rows with NA
+    # values in the padj variable.
+
+    deseq_results_tibble <-
+      dplyr::filter(
+        .data = deseq_results_tibble,
+        .data$padj <= .env$design_list$padj_threshold,
+        abs(x = .data$log2FoldChange) >= .env$design_list$l2fc_threshold
+      )
+
+    if (verbose) {
+      message(
+        "Number of genes after applying filter criteria: ",
+        base::nrow(x = deseq_results_tibble)
+      )
+    }
+
+    return(deseq_results_tibble)
   }
-
-  message("Number of genes in total: ",
-          base::nrow(x = deseq_results_tibble))
-
-  # Importantly, NA values need removing.
-  deseq_results_tibble <-
-    dplyr::filter(.data = deseq_results_tibble, !is.na(x = .data$padj))
-
-  message("Number of genes after NA removal: ",
-          base::nrow(x = deseq_results_tibble))
-
-  # Filter for the adjusted p-value threshold.
-  deseq_results_tibble <-
-    dplyr::filter(.data = deseq_results_tibble, .data$padj <= .env$argument_list$padj_threshold)
-
-  message(
-    "Number of genes after applying the padj threshold: ",
-    base::nrow(x = deseq_results_tibble)
-  )
-
-  # Filter for the absolute log2-fold change threshold.
-  deseq_results_tibble <-
-    dplyr::filter(.data = deseq_results_tibble,
-                  abs(x = .data$log2FoldChange) >= .env$argument_list$l2fc_threshold)
-
-  message(
-    "Number of genes after applying the l2fc threshold: ",
-    base::nrow(x = deseq_results_tibble)
-  )
-
-  return(deseq_results_tibble)
-}
 
 
 #' Load an Enrichr result tibble for a specific contrast and database.
 #'
 #' @param contrast_character A \code{character} scalar with the contrast.
 #' @param enrichr_database A \code{character} scalar with the Enrichr database.
+#' @param verbose A \code{logical} scalar to emit messages.
 #'
 #' @return A named \code{list} of Enrichr result \code{tbl_df} objects.
 #' \describe{
@@ -230,7 +225,9 @@ load_deseq_result_tibble <- function(contrast_character) {
 #'
 #' @examples
 load_enrichr_results <-
-  function(contrast_character, enrichr_database) {
+  function(contrast_character,
+           enrichr_database,
+           verbose = FALSE) {
     result_list <- list()
     directions <- c("up", "down")
 
@@ -250,12 +247,14 @@ load_enrichr_results <-
     if (all(file.exists(file_paths)) &&
         all(file.info(file_paths)$size > 0L)) {
       for (direction_index in seq_along(along.with = directions)) {
-        message("Loading: ",
-                contrast_character,
-                " ",
-                enrichr_database,
-                " ",
-                directions[direction_index])
+        if (verbose) {
+          message("Loading: ",
+                  contrast_character,
+                  " ",
+                  enrichr_database,
+                  " ",
+                  directions[direction_index])
+        }
 
         result_list[[directions[direction_index]]] <-
           readr::read_tsv(
@@ -275,22 +274,27 @@ load_enrichr_results <-
       }
       rm(direction_index)
     } else {
-      message("Loading: ",
-              contrast_character,
-              " ",
-              enrichr_database)
+      if (verbose) {
+        message("Loading: ",
+                contrast_character,
+                " ",
+                enrichr_database)
+      }
 
       deseq_results_tibble <-
-        load_deseq_result_tibble(contrast_character = contrast_character)
+        load_deseq_result_tibble(contrast_character = contrast_character,
+                                 verbose = verbose)
 
       for (direction_index in seq_along(along.with = directions)) {
         # Split the results into up- and down-regulated genes.
-        message("Processing: ",
-                contrast_character,
-                " ",
-                enrichr_database,
-                " ",
-                directions[direction_index])
+        if (verbose) {
+          message("Processing: ",
+                  contrast_character,
+                  " ",
+                  enrichr_database,
+                  " ",
+                  directions[direction_index])
+        }
 
         enrichr_tibble <-
           if (directions[direction_index] == "up") {
@@ -453,18 +457,23 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
 
   for (enrichr_index in seq_len(length.out = length(x = enrichr_databases))) {
     result_list <-
-      load_enrichr_results(contrast_character = contrast_character,
-                           enrichr_database = enrichr_databases[enrichr_index])
+      load_enrichr_results(
+        contrast_character = contrast_character,
+        enrichr_database = enrichr_databases[enrichr_index],
+        verbose = argument_list$verbose
+      )
 
     result_tibble_up <- result_list$up
     if (base::nrow(x = result_tibble_up) > 0L) {
       result_tibble_up <-
         result_tibble_up[order(result_tibble_up$Combined.Score, decreasing = TRUE), , drop = FALSE]
+
       result_tibble_up <-
         result_tibble_up[seq_len(length.out = min(
           base::nrow(x = result_tibble_up),
           argument_list$maximum_terms
         )), , drop = FALSE]
+
       result_tibble_up$Direction <- "up"
     } else {
       result_tibble_up$Direction <- character(length = 0L)
@@ -474,11 +483,13 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
     if (base::nrow(x = result_tibble_down) > 0L) {
       result_tibble_down <-
         result_tibble_down[order(result_tibble_down$Combined.Score, decreasing = TRUE), , drop = FALSE]
+
       result_tibble_down <-
         result_tibble_down[seq_len(length.out = min(
           base::nrow(x = result_tibble_down),
           argument_list$maximum_terms
         )), , drop = FALSE]
+
       result_tibble_down$Direction <- "down"
     } else {
       result_tibble_down$Direction <- character(length = 0L)
@@ -486,6 +497,7 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
 
     result_tibble <-
       dplyr::bind_rows(result_tibble_up, result_tibble_down)
+
     rm(result_tibble_up, result_tibble_down)
 
     if (base::nrow(x = result_tibble) == 0L) {
@@ -645,6 +657,7 @@ rm(
   contrast_tibble,
   enrichr_databases,
   output_directory,
+  design_list,
   load_enrichr_results,
   load_deseq_result_tibble,
   prefix_enrichr,

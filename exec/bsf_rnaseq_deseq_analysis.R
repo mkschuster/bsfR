@@ -82,26 +82,11 @@ argument_list <-
         type = "character"
       ),
       optparse::make_option(
-        opt_str = "--gtf-reference",
+        opt_str = "--transcriptome-path",
         default = NULL,
-        dest = "gtf_reference",
-        help = "GTF file specifying a reference transcriptome",
+        dest = "transcriptome_path",
+        help = "RDS file path specifying a reference transcriptome GRanges object",
         type = "character"
-      ),
-      optparse::make_option(
-        opt_str = "--genome-version",
-        default = NULL,
-        dest = "genome_version",
-        help = "Genome version",
-        type = "character"
-      ),
-      optparse::make_option(
-        # This option is required for Likelihood Ratio Testing (LRT)
-        opt_str = "--padj-threshold",
-        default = 0.1,
-        dest = "padj_threshold",
-        help = "Adjusted p-value threshold [0.1]",
-        type = "double"
       ),
       optparse::make_option(
         # This option is required for PCA plots
@@ -354,6 +339,9 @@ check_model_matrix <- function(model_matrix) {
 #' Initialise or load a \code{DESeq2::DESeqDataSet} object.
 #'
 #' @param design_list A named \code{list} of design information.
+#' @param transcriptome_granges A \code{GenomicRanges::GRanges} object
+#'   specifying the reference transcriptome. Only required, if the
+#'   \code{DESeq2::DESeqDataSet} object needs initialising.
 #' @references argument_list
 #' @references output_directory
 #' @references prefix
@@ -366,123 +354,125 @@ check_model_matrix <- function(model_matrix) {
 #'   initialise_deseq_data_set(design_list = design_list)
 #' }
 #' @noRd
-initialise_deseq_data_set <- function(design_list) {
-  deseq_data_set <- NULL
+initialise_deseq_data_set <-
+  function(design_list, transcriptome_granges = NULL) {
+    deseq_data_set <- NULL
 
-  file_path <-
-    file.path(output_directory,
-              paste0(prefix, "_deseq_data_set.rds"))
-  if (file.exists(file_path) &&
-      file.info(file_path)$size > 0L) {
-    message("Loading a DESeqDataSet object")
-    deseq_data_set <-
-      readr::read_rds(file = file_path)
-  } else {
-    ranged_summarized_experiment <-
-      bsfR::bsfrd_initialise_rse(
-        genome_directory = argument_list$genome_directory,
-        design_list = design_list,
-        gtf_path = argument_list$gtf_reference,
-        genome_version = argument_list$genome_version,
-        verbose = argument_list$verbose
-      )
+    file_path <-
+      file.path(output_directory,
+                paste0(prefix, "_deseq_data_set.rds"))
 
-    # Create a model matrix based on the model formula and column (sample
-    # annotation) data and check whether it is full rank.
-    model_matrix <- stats::model.matrix.default(
-      object = stats::as.formula(object = design_list$full_formula),
-      data = SummarizedExperiment::colData(x = ranged_summarized_experiment)
-    )
-
-    result_list <-
-      check_model_matrix(model_matrix = model_matrix)
-
-    if (argument_list$verbose) {
-      message("Writing initial model matrix")
-      utils::write.table(
-        x = base::as.data.frame(x = model_matrix),
-        file = file.path(
-          output_directory,
-          paste0(prefix, "_model_matrix_full_initial.tsv")
-        ),
-        sep = "\t",
-        row.names = TRUE,
-        col.names = TRUE
-      )
-
-      message("Writing modified model matrix")
-      utils::write.table(
-        x = base::as.data.frame(x = result_list$model_matrix),
-        file = file.path(
-          output_directory,
-          paste0(prefix, "_model_matrix_full_modified.tsv")
-        ),
-        sep = "\t",
-        row.names = TRUE,
-        col.names = TRUE
-      )
-    }
-    rm(model_matrix)
-
-    if (result_list$formula_full_rank) {
-      # The design formula *is* full rank, so set it as "design" option directly.
-      message("Creating a DESeqDataSet object with a model formula")
+    if (file.exists(file_path) &&
+        file.info(file_path)$size > 0L) {
+      message("Loading a DESeqDataSet object")
       deseq_data_set <-
-        DESeq2::DESeqDataSet(
-          se = ranged_summarized_experiment,
-          design = stats::as.formula(object = design_list$full_formula)
-        )
-
-      # Start DESeq2 Wald testing.
-      #
-      # Set betaPrior = FALSE for consistent result names for designs,
-      # regardless of interaction terms. DESeq2 seems to set betaPrior = FALSE
-      # upon interaction terms, automatically.
-      #
-      # See: https://support.bioconductor.org/p/84366/
-      #
-      # betaPrior also has to be FALSE in case a user-supplied full model matrix is specified.
-      message("Started DESeq Wald testing with a model formula")
-      deseq_data_set <-
-        DESeq2::DESeq(
-          object = deseq_data_set,
-          test = "Wald",
-          betaPrior = FALSE,
-          parallel = TRUE
-        )
-      attr(x = deseq_data_set, which = "full_rank") <- TRUE
+        readr::read_rds(file = file_path)
     } else {
-      # The original design formula was not full rank. Unfortunately, to
-      # initialise the DESeqDataSet, a model matrix can apparently not be used
-      # directly. Thus, use the simplest possible design (i.e. ~ 1) for
-      # initialisation and perform Wald testing with the full model matrix.
-      message("Creating a DESeqDataSet object with design formula ~ 1")
-      deseq_data_set <-
-        DESeq2::DESeqDataSet(se = ranged_summarized_experiment,
-                             design = ~ 1)
-      attr(x = deseq_data_set, which = "full_rank") <- FALSE
-
-      message("Started DESeq Wald testing with a model matrix")
-      deseq_data_set <-
-        DESeq2::DESeq(
-          object = deseq_data_set,
-          test = "Wald",
-          betaPrior = FALSE,
-          full = result_list$model_matrix,
-          parallel = TRUE
+      ranged_summarized_experiment <-
+        bsfR::bsfrd_initialise_rse(
+          genome_directory = argument_list$genome_directory,
+          design_list = design_list,
+          transcriptome_granges = transcriptome_granges,
+          verbose = argument_list$verbose
         )
+
+      # Create a model matrix based on the model formula and column (sample
+      # annotation) data and check whether it is full rank.
+      model_matrix <- stats::model.matrix.default(
+        object = stats::as.formula(object = design_list$full_formula),
+        data = SummarizedExperiment::colData(x = ranged_summarized_experiment)
+      )
+
+      result_list <-
+        check_model_matrix(model_matrix = model_matrix)
+
+      if (argument_list$verbose) {
+        message("Writing initial model matrix")
+        utils::write.table(
+          x = base::as.data.frame(x = model_matrix),
+          file = file.path(
+            output_directory,
+            paste0(prefix, "_model_matrix_full_initial.tsv")
+          ),
+          sep = "\t",
+          row.names = TRUE,
+          col.names = TRUE
+        )
+
+        message("Writing modified model matrix")
+        utils::write.table(
+          x = base::as.data.frame(x = result_list$model_matrix),
+          file = file.path(
+            output_directory,
+            paste0(prefix, "_model_matrix_full_modified.tsv")
+          ),
+          sep = "\t",
+          row.names = TRUE,
+          col.names = TRUE
+        )
+      }
+      rm(model_matrix)
+
+      if (result_list$formula_full_rank) {
+        # The design formula *is* full rank, so set it as "design" option directly.
+        message("Creating a DESeqDataSet object with a model formula")
+        deseq_data_set <-
+          DESeq2::DESeqDataSet(
+            se = ranged_summarized_experiment,
+            design = stats::as.formula(object = design_list$full_formula)
+          )
+
+        # Start DESeq2 Wald testing.
+        #
+        # Set betaPrior = FALSE for consistent result names for designs,
+        # regardless of interaction terms. DESeq2 seems to set betaPrior = FALSE
+        # upon interaction terms, automatically.
+        #
+        # See: https://support.bioconductor.org/p/84366/
+        #
+        # betaPrior also has to be FALSE in case a user-supplied full model matrix
+        # is specified.
+        message("Started DESeq Wald testing with a model formula")
+        deseq_data_set <-
+          DESeq2::DESeq(
+            object = deseq_data_set,
+            test = "Wald",
+            betaPrior = FALSE,
+            parallel = TRUE
+          )
+        attr(x = deseq_data_set, which = "full_rank") <- TRUE
+      } else {
+        # The original design formula was not full rank. Unfortunately, to
+        # initialise the DESeqDataSet, a model matrix can apparently not be used
+        # directly. Thus, use the simplest possible design (i.e. ~ 1) for
+        # initialisation and perform Wald testing with the full model matrix.
+        message("Creating a DESeqDataSet object with design formula ~ 1")
+        deseq_data_set <-
+          DESeq2::DESeqDataSet(se = ranged_summarized_experiment,
+                               design = ~ 1)
+        attr(x = deseq_data_set, which = "full_rank") <- FALSE
+
+        message("Started DESeq Wald testing with a model matrix")
+        deseq_data_set <-
+          DESeq2::DESeq(
+            object = deseq_data_set,
+            test = "Wald",
+            betaPrior = FALSE,
+            full = result_list$model_matrix,
+            parallel = TRUE
+          )
+      }
+
+      readr::write_rds(x = deseq_data_set,
+                       file = file_path,
+                       compress = "gz")
+
+      rm(result_list, ranged_summarized_experiment)
     }
+    rm(file_path)
 
-    readr::write_rds(x = deseq_data_set,
-                     file = file_path,
-                     compress = "gz")
-
-    rm(result_list, ranged_summarized_experiment)
+    return(deseq_data_set)
   }
-  rm(file_path)
-
-  return(deseq_data_set)
-}
 
 # Initialise a DESeqTransform object --------------------------------------
 
@@ -520,6 +510,7 @@ initialise_deseq_transform <-
                   "rds",
                   sep = "."
                 ))
+
     if (file.exists(file_path) &&
         file.info(file_path)$size > 0L) {
       message("Loading a ", suffix, " DESeqTransform object")
@@ -745,6 +736,7 @@ plot_rin_scores <- function(object) {
                             graphics_formats,
                             sep = "."
                           ))
+
   if (all(file.exists(plot_paths)) &&
       all(file.info(plot_paths)$size > 0L)) {
     message("Skipping a RIN score density plot")
@@ -1513,23 +1505,31 @@ message("Processing design '", argument_list$design_name, "'")
 # Set the number of parallel threads in the MulticoreParam instance.
 BiocParallel::register(BPPARAM = BiocParallel::MulticoreParam(workers = argument_list$threads))
 
+# Read the serialised GenomicRanges::GRanges object specifying the reference
+# transcriptome.
+
+transcriptome_granges <-
+  readr::read_rds(file = argument_list$transcriptome_path)
+
 global_design_list <- bsfR::bsfrd_read_design_list(
   genome_directory = argument_list$genome_directory,
   design_name = argument_list$design_name,
   verbose = argument_list$verbose
 )
 
-annotation_tibble <- bsfR::bsfrd_read_annotation_tibble(
+feature_dframe <- bsfR::bsfrd_initialise_feature_dframe(
   genome_directory = argument_list$genome_directory,
   design_name = argument_list$design_name,
   feature_types = "gene",
-  gtf_file_path = argument_list$gtf_reference,
-  genome = argument_list$genome_version,
+  feature_granges = transcriptome_granges,
   verbose = argument_list$verbose
 )
 
 deseq_data_set <-
-  initialise_deseq_data_set(design_list = global_design_list)
+  initialise_deseq_data_set(design_list = global_design_list,
+                            transcriptome_granges = transcriptome_granges)
+
+rm(transcriptome_granges)
 
 # TODO: Write the matrix of gene versus model coefficients as a data.frame to
 # disk.
@@ -1551,26 +1551,36 @@ plot_rin_scores(object = deseq_data_set)
 #'
 #' @param reduced_formula_character A \code{character} scalar of a reduced
 #'   formula with a "reduced_name" attribute.
-#' @references global_design_list
 #' @references output_directory
 #' @references prefix
 #' @references global_design_list
 #'
-#' @return A \code{tbl_df} of LRT summary information.
+#' @return A \code{list} of LRT summary information.
 #' @noRd
 #'
 #' @examples
 lrt_reduced_formula_test <-
   function(reduced_formula_character) {
-    lrt_tibble <- NULL
+    lrt_list <- NULL
 
     # Skip NA or empty character vectors.
     if (is.na(x = reduced_formula_character) ||
         !base::nzchar(x = reduced_formula_character)) {
       # Return NULL instead of a tibble, which can still be processed by
-      # purrr::map_dfr().
-      return(lrt_tibble)
+      # dpylr::bind_rows().
+      return(lrt_list)
     }
+
+    file_path_lrt <-
+      file.path(output_directory,
+                paste(paste(
+                  prefix,
+                  "lrt",
+                  attr(x = reduced_formula_character, which = "reduced_name"),
+                  sep = "_"
+                ),
+                "rds",
+                sep = "."))
 
     file_path_all <-
       file.path(output_directory,
@@ -1610,7 +1620,7 @@ lrt_reduced_formula_test <-
                           header = TRUE,
                           sep = "\t")
 
-      lrt_tibble <- tibble::tibble(
+      lrt_list <- base::list(
         "design" = global_design_list$design,
         "full_formula" = global_design_list$full_formula,
         "reduced_name" = attr(x = reduced_formula_character, which = "reduced_name"),
@@ -1711,56 +1721,60 @@ lrt_reduced_formula_test <-
         formula_reduced,
         formula_full
       )
-      # print(x = paste("DESeqDataSet LRT result names for", attr(x = reduced_formula_character, which = "reduced_name")))
+
+      # print(x = paste("DESeqDataSet LRT result names for",
+      #                 attr(x = reduced_formula_character, which = "reduced_name")))
       # print(x = DESeq2::resultsNames(object = deseq_data_set_lrt))
 
-      # Convert the DESeqResults object that extends the S4Vectors::DataFrame
-      # with additional meta data annotation into a tibble.
+      deseq_results_lrt <-
+        DESeq2::results(
+          object = deseq_data_set_lrt,
+          alpha = global_design_list$padj_threshold,
+          parallel = TRUE
+        )
+
+      # Serialise the DESeqResults to disk.
+      readr::write_rds(x = deseq_results_lrt, file = file_path_lrt)
+
+      # Convert the DESeqResults object, which extends the S4Vectors::DataFrame
+      # class with additional meta data annotation into a tibble.
       deseq_results_lrt_tibble <-
-        tibble::as_tibble(x = S4Vectors::as.data.frame(
-          x = DESeq2::results(
-            object = deseq_data_set_lrt,
-            format = "DataFrame",
-            # If tidy is TRUE, a classical data.frame is returned.
-            tidy = FALSE,
-            parallel = TRUE
+        tibble::as_tibble(x = S4Vectors::as.data.frame(x = S4Vectors::combineCols(x = feature_dframe,
+                                                                                  deseq_results_lrt)))
+
+      deseq_results_lrt_tibble <-
+        dplyr::mutate(
+          .data = deseq_results_lrt_tibble,
+          # Calculate a logical indicating significance.
+          "significant" = dplyr::if_else(
+            condition = .data$padj <= .env$global_design_list$padj_threshold,
+            true = TRUE,
+            false = FALSE,
+            missing = FALSE
+          ),
+          # Calculate a logical indicating effectiveness.
+          "effective" = dplyr::if_else(
+            condition = base::abs(x = .data$log2FoldChange) >= .env$global_design_list$l2fc_threshold,
+            true = TRUE,
+            false = FALSE,
+            missing = FALSE
           )
-        ),
-        rownames = "gene_id")
-
-      # Set a "significant" variable to "yes" or "no".
-      deseq_results_lrt_tibble <-
-        dplyr::mutate(.data = deseq_results_lrt_tibble,
-                      "significant" = factor(
-                        x = dplyr::if_else(
-                          condition = .data$padj <= .env$argument_list$padj_threshold,
-                          true = "yes",
-                          false = "no",
-                          missing = "no"
-                        ),
-                        levels = c("no", "yes")
-                      ))
-
-      # Join with the annotation tibble.
-      deseq_results_lrt_tibble <-
-        dplyr::right_join(x = annotation_tibble,
-                          y = deseq_results_lrt_tibble,
-                          by = "gene_id")
+        )
 
       # Write all genes.
       readr::write_tsv(x = deseq_results_lrt_tibble,
                        file = file_path_all)
 
-      # Filter only significant genes.
-      deseq_results_lrt_tibble <-
-        dplyr::filter(.data = deseq_results_lrt_tibble,
-                      .data$padj <= .env$argument_list$padj_threshold)
-
       # Write only significant genes.
-      readr::write_tsv(x = deseq_results_lrt_tibble,
-                       file = file_path_significant)
+      readr::write_tsv(
+        x = dplyr::filter(
+          .data = deseq_results_lrt_tibble,
+          .data$padj <= .env$global_design_list$padj_threshold
+        ),
+        file = file_path_significant
+      )
 
-      lrt_tibble <- tibble::tibble(
+      lrt_list <- base::list(
         "design" = global_design_list$design,
         "full_formula" = global_design_list$full_formula,
         "reduced_name" = attr(x = reduced_formula_character, which = "reduced_name"),
@@ -1769,11 +1783,12 @@ lrt_reduced_formula_test <-
       )
 
       rm(deseq_results_lrt_tibble,
+         deseq_results_lrt,
          deseq_data_set_lrt)
     }
-    rm(file_path_all, file_path_significant)
+    rm(file_path_lrt, file_path_all, file_path_significant)
 
-    return(lrt_tibble)
+    return(lrt_list)
   }
 
 #' Convert a Reduced Formula Character Vector into a Scalar.
@@ -1801,10 +1816,11 @@ lrt_reduced_formula_scalar <-
 # reduced formulas for LRT (e.g., "name_1:~genotype + gender;name_2:~1"). Split
 # reduced formulas on ";" characters, then select the formula [2L] and assign
 # the name [1L] as "reduced_name" attribute. Finally run LRT tests on the
-# reduced formulas and combine the resulting LRT tibbles into a LRT summary tibble.
+# reduced formulas and combine the resulting LRT tibbles into a LRT summary
+# tibble.
 
 lrt_summary_tibble <-
-  purrr::map_dfr(
+  dplyr::bind_rows(purrr::map(
     .x = purrr::map(
       .x = stringr::str_split(
         string = stringr::str_split(
@@ -1816,7 +1832,7 @@ lrt_summary_tibble <-
       .f = lrt_reduced_formula_scalar
     ),
     .f = lrt_reduced_formula_test
-  )
+  ))
 
 # Write the LRT summary tibble to disk.
 utils::write.table(
@@ -1850,6 +1866,7 @@ rm(lrt_summary_tibble)
 # geom_point:colour=test_a,shape=test_b;geom_line:colour=test_c,group=test_d
 #
 # Convert into a list of list objects with variables and aesthetics as names.
+
 plot_list <-
   bsfR::bsfrd_plots_character_to_list(plots_character = global_design_list$plot_aes)
 
@@ -1861,17 +1878,15 @@ print(x = DESeq2::resultsNames(object = deseq_data_set))
 
 # Export RAW counts -------------------------------------------------------
 
-
 # Export the raw counts from the DESeqDataSet object.
 readr::write_tsv(
-  x = dplyr::right_join(
-    x = annotation_tibble,
-    y = tibble::as_tibble(
-      x = DESeq2::counts(object = deseq_data_set, normalized = FALSE),
-      rownames = "gene_id"
-    ),
-    by = "gene_id"
-  ),
+  x = S4Vectors::as.data.frame(x = S4Vectors::combineCols(
+    x = feature_dframe,
+    methods::as(
+      object = DESeq2::counts(object = deseq_data_set, normalized = FALSE),
+      Class = "DataFrame"
+    )
+  )),
   file = file.path(output_directory,
                    paste(
                      paste(prefix,
@@ -1887,14 +1902,16 @@ readr::write_tsv(
 
 
 # Export the normalised counts from the DESeq2::DESeqDataSet object.
+
 readr::write_tsv(
-  x = dplyr::right_join(
-    x = annotation_tibble,
-    y = tibble::as_tibble(
-      x = DESeq2::counts(object = deseq_data_set, normalized = TRUE),
-      rownames = "gene_id"
-    ),
-    by = "gene_id"
+  x = S4Vectors::as.data.frame(
+    x = S4Vectors::combineCols(
+      x = SummarizedExperiment::rowData(x = deseq_data_set),
+      methods::as(
+        object = DESeq2::counts(object = deseq_data_set, normalized = TRUE),
+        Class = "DataFrame"
+      )
+    )
   ),
   file = file.path(output_directory,
                    paste(
@@ -1910,17 +1927,15 @@ readr::write_tsv(
 # Export FPKM values ------------------------------------------------------
 
 
-# Retrieve and plot FPKM values.
-fpkm_matrix <- DESeq2::fpkm(object = deseq_data_set)
-plot_fpkm_values(object = fpkm_matrix)
-
 # Export FPKM values from the DESeq2::DESeqDataSet object.
 readr::write_tsv(
-  x = dplyr::right_join(
-    x = annotation_tibble,
-    y = tibble::as_tibble(x = fpkm_matrix, rownames = "gene_id"),
-    by = "gene_id"
-  ),
+  x = S4Vectors::as.data.frame(x = S4Vectors::combineCols(
+    x = feature_dframe,
+    methods::as(
+      object = DESeq2::fpkm(object = deseq_data_set),
+      Class = "DataFrame"
+    )
+  )),
   file = file.path(output_directory,
                    paste(
                      paste(prefix,
@@ -1931,7 +1946,8 @@ readr::write_tsv(
                    ))
 )
 
-rm(fpkm_matrix)
+# Plot FPKM values.
+plot_fpkm_values(object = DESeq2::fpkm(object = deseq_data_set))
 
 # DESeqTransform ----------------------------------------------------------
 # MDS Plot ----------------------------------------------------------------
@@ -1961,16 +1977,16 @@ for (blind in c(FALSE, TRUE)) {
                plot_list = plot_list,
                blind = blind)
 
-  # Export the vst counts from the DESeq2::DESeqTransform object
+  # Export the vst counts from the DESeq2::DESeqTransform object.
+
   readr::write_tsv(
-    x = dplyr::right_join(
-      x = annotation_tibble,
-      y = tibble::as_tibble(
-        x = SummarizedExperiment::assay(x = deseq_transform, i = 1L),
-        rownames = "gene_id"
-      ),
-      by = "gene_id"
-    ),
+    x = S4Vectors::as.data.frame(x = S4Vectors::combineCols(
+      x = feature_dframe,
+      methods::as(
+        object = SummarizedExperiment::assay(x = deseq_transform, i = 1L),
+        Class = "DataFrame"
+      )
+    )),
     file = file.path(output_directory,
                      paste(
                        paste(prefix,
@@ -1988,7 +2004,7 @@ for (blind in c(FALSE, TRUE)) {
 rm(blind, plot_list)
 
 rm(
-  annotation_tibble,
+  feature_dframe,
   deseq_data_set,
   global_design_list,
   output_directory,
