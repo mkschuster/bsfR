@@ -108,6 +108,13 @@ argument_list <-
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
         type = "double"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-limit-png"),
+        default = 150.0,
+        dest = "plot_limit_png",
+        help = "Maximum size of the PNG device in inches [150.0]",
+        type = "double"
       )
     )
   ))
@@ -125,11 +132,11 @@ suppressPackageStartupMessages(expr = library(package = "readr"))
 suppressPackageStartupMessages(expr = library(package = "stringr"))
 suppressPackageStartupMessages(expr = library(package = "tibble"))
 suppressPackageStartupMessages(expr = library(package = "tidyr"))
+# BSF
+suppressPackageStartupMessages(expr = library(package = "bsfR"))
 
 # Save plots in the following formats.
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
-# Maximum size for the PNG device in inches.
-graphics_maximum_size_png <- 100.0
 
 #' Process Trimmomatic STDERR files and return a tibble.
 #'
@@ -170,7 +177,7 @@ process_stderr <- function(file_path) {
   if (length(x = trimmomatic_filtered) > 0L) {
     # Annotate the character vector with names, but skip the first element, which is the original matched line.
     trimmomatic_list <-
-      as.list(x = trimmomatic_filtered[[1L]][2L:6L])
+      as.list(x = as.integer(x = trimmomatic_filtered[[1L]][2L:6L]))
     names(x = trimmomatic_list) <-
       c("input", "both", "first", "second", "dropped")
 
@@ -353,14 +360,14 @@ process_trim_log <- function(file_path, number = -1L) {
       counter_1 <- counter_1 + length(x = which(x = reads_1))
       summary_tibble_1 <-
         update_summary_tibble(summary_tibble = summary_tibble_1,
-                              trim_log_character_matrix = trim_log_character_matrix[reads_1,])
+                              trim_log_character_matrix = trim_log_character_matrix[reads_1, ])
     }
     # Check for read 2.
     if (any(reads_2)) {
       counter_2 <- counter_2 + length(x = which(x = reads_2))
       summary_tibble_2 <-
         update_summary_tibble(summary_tibble = summary_tibble_2,
-                              trim_log_character_matrix = trim_log_character_matrix[reads_2,])
+                              trim_log_character_matrix = trim_log_character_matrix[reads_2, ])
     }
     # This must be Trimmomatic data in SE mode, which lacks /1 and /2 suffices.
     if (!any(reads_1, reads_2)) {
@@ -605,7 +612,7 @@ process_summary <- function(directory_path) {
   }
 
   summary_tibble <-
-    purrr::map_dfr(
+    dplyr::bind_rows(purrr::map(
       .x = base::list.files(
         path = directory_path,
         pattern = '^trimmomatic_read_group_.*_summary.tsv',
@@ -613,7 +620,7 @@ process_summary <- function(directory_path) {
         recursive = FALSE
       ),
       .f = process_read_group_tibble
-    )
+    ))
 
   readr::write_tsv(x = summary_tibble, file = "trimmomatic_summary.tsv")
 
@@ -636,39 +643,11 @@ if (!is.null(x = argument_list$summary_path)) {
 
 if (!is.null(x = argument_list$stderr_path)) {
   summary_tibble <-
-    purrr::map_dfr(
-      .x = base::list.files(
-        path = argument_list$stderr_path,
-        pattern = argument_list$stderr_pattern_file,
-        full.names = TRUE,
-        recursive = TRUE
-      ),
-      .f = process_stderr
-    )
-
-  summary_tibble <-
-    readr::type_convert(
-      df = summary_tibble,
-      col_types = readr::cols(
-        "input" = readr::col_integer(),
-        "both" = readr::col_integer(),
-        "first" = readr::col_integer(),
-        "second" = readr::col_integer(),
-        "dropped" = readr::col_integer()
-      )
-    )
-
-  # Prepend the read group name.
-  summary_tibble <-
-    dplyr::mutate(
-      .data = summary_tibble,
-      "read_group" = base::gsub(
-        pattern = .env$argument_list$stderr_pattern_read_group,
-        replacement = "\\1",
-        x = base::basename(path = .data$file_path)
-      ),
-      .before = .data$input
-    )
+    bsfR::bsfu_summarise_report_files(
+      directory_path = argument_list$stderr_path,
+      file_pattern = argument_list$stderr_pattern_file,
+      report_function = process_stderr,
+      variable_name = "read_group")
 
   readr::write_tsv(x = summary_tibble, file = "trimmomatic_statistics.tsv")
 
@@ -725,8 +704,8 @@ if (!is.null(x = argument_list$stderr_path)) {
       filename = paste("trimmomatic_statistics_number", graphics_format, sep = "."),
       plot = ggplot_object,
       width = if (graphics_format == "png" &&
-                  plot_width > graphics_maximum_size_png)
-        graphics_maximum_size_png
+                  plot_width > argument_list$plot_limit_png)
+        argument_list$plot_limit_png
       else
         plot_width,
       height = argument_list$plot_height,
@@ -797,8 +776,8 @@ if (!is.null(x = argument_list$stderr_path)) {
       ),
       plot = ggplot_object,
       width = if (graphics_format == "png" &&
-                  plot_width > graphics_maximum_size_png)
-        graphics_maximum_size_png
+                  plot_width > argument_list$plot_limit_png)
+        argument_list$plot_limit_png
       else
         plot_width,
       height = argument_list$plot_height,
@@ -813,7 +792,6 @@ rm(
   process_summary,
   process_trim_log,
   process_stderr,
-  graphics_maximum_size_png,
   graphics_formats
 )
 

@@ -51,17 +51,23 @@ argument_list <-
         type = "logical"
       ),
       optparse::make_option(
-        opt_str = "--pattern-file",
-        default = "^star_align_.*_Log\\.final\\.out$",
-        dest = "pattern_file",
-        help = "STAR alignment report file name pattern [^star_align_.*_Log\\.final\\.out$]",
+        opt_str = "--directory-path",
+        default = ".",
+        dest = "directory_path",
+        help = "STAR alignment report directory path [.]",
         type = "character"
       ),
       optparse::make_option(
-        opt_str = "--pattern-sample",
+        opt_str = "--file-pattern",
         default = "^star_align_(.*)_Log\\.final\\.out$",
-        dest = "pattern_sample",
+        dest = "file_pattern",
         help = "STAR alignment report sample name pattern [^star_align_(.*)_Log\\.final\\.out$]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = "--sample-table-path",
+        dest = "sample_table_path",
+        help = "Sample to Read Group TSV table",
         type = "character"
       ),
       optparse::make_option(
@@ -69,6 +75,13 @@ argument_list <-
         default = "star_summary",
         dest = "prefix",
         help = "File name prefix",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--output-directory"),
+        default = ".",
+        dest = "output_directory",
+        help = "Output directory path [.]",
         type = "character"
       ),
       optparse::make_option(
@@ -83,6 +96,13 @@ argument_list <-
         default = 7.0,
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
+        type = "double"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-limit-png"),
+        default = 150.0,
+        dest = "plot_limit_png",
+        help = "Maximum size of the PNG device in inches [150.0]",
         type = "double"
       )
     )
@@ -103,129 +123,113 @@ suppressPackageStartupMessages(expr = library(package = "tidyr"))
 
 # Save plots in the following formats.
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
-# Maximum size for the PNG device in inches.
-graphics_maximum_size_png <- 100.0
 
 # Parse STAR aligner log files --------------------------------------------
 
 
-read_group_tibble <- tibble::tibble(
-  "file_name" =
-    base::list.files(pattern = argument_list$pattern_file, recursive = TRUE),
-  "read_group_name" = base::gsub(
-    pattern = argument_list$pattern_sample,
-    replacement = "\\1",
-    x = base::basename(path = .data$file_name)
-  )
-)
+parse_report <-
+  function(file_path) {
+    # Empty lines and single column rows render parsing STAR Log.final.out files
+    # more cumbersome than necessary. Use base::readLines() and
+    # stringr::str_split_fixed() to split into a matrix.
+    #
+    # > stringr::str_split_fixed(string = star_lines, pattern = fixed(pattern = "\t"), n = 2)
+    # [,1]                                                [,2]
+    # [01,] "                                 Started job on |" "Apr 01 20:49:14"
+    # [02,] "                             Started mapping on |" "Apr 01 20:50:12"
+    # [03,] "                                    Finished on |" "Apr 01 20:51:57"
+    # [04,] "       Mapping speed, Million of reads per hour |" "43.78"
+    # [05,] ""                                                  ""
+    # [06,] "                          Number of input reads |" "1276962"
+    # [07,] "                      Average input read length |" "302"
+    # [08,] "                                    UNIQUE READS:" ""
+    # [09,] "                   Uniquely mapped reads number |" "1128810"
+    # [10,] "                        Uniquely mapped reads % |" "88.40%"
+    # [11,] "                          Average mapped length |" "297.00"
+    # [12,] "                       Number of splices: Total |" "17699"
+    # [13,] "            Number of splices: Annotated (sjdb) |" "8"
+    # [14,] "                       Number of splices: GT/AG |" "475"
+    # [15,] "                       Number of splices: GC/AG |" "16"
+    # [16,] "                       Number of splices: AT/AC |" "0"
+    # [17,] "               Number of splices: Non-canonical |" "17208"
+    # [18,] "                      Mismatch rate per base, % |" "0.92%"
+    # [19,] "                         Deletion rate per base |" "0.01%"
+    # [20,] "                        Deletion average length |" "2.05"
+    # [21,] "                        Insertion rate per base |" "0.00%"
+    # [22,] "                       Insertion average length |" "1.07"
+    # [23,] "                             MULTI-MAPPING READS:" ""
+    # [24,] "        Number of reads mapped to multiple loci |" "3276"
+    # [25,] "             % of reads mapped to multiple loci |" "0.26%"
+    # [26,] "        Number of reads mapped to too many loci |" "1"
+    # [27,] "             % of reads mapped to too many loci |" "0.00%"
+    # [28,] "                                  UNMAPPED READS:" ""
+    # [29,] "       % of reads unmapped: too many mismatches |" "0.00%"
+    # [30,] "                 % of reads unmapped: too short |" "11.28%"
+    # [31,] "                     % of reads unmapped: other |" "0.06%"
+    # [32,] "                                  CHIMERIC READS:" ""
+    # [33,] "                       Number of chimeric reads |" "0"
+    # [34,] "                            % of chimeric reads |" "0.00%"
 
-message(
-  "Processing STAR alignment reports for number of read groups: ",
-  base::nrow(x = read_group_tibble)
-)
+    star_character <- stringr::str_split_fixed(
+      string = base::readLines(con = file_path),
+      pattern = "\t",
+      n = 2L
+    )[c(1L:4L, 6L:7L, 9L:22L, 24L:27L, 29L:31L, 33L:34L), 2L]
 
-# Empty lines and single column rows render parsing STAR Log.final.out files
-# more cumbersome than necessary. Use base::readLines() and
-# stringr::str_split_fixed() to split into a matrix.
-#
-# > stringr::str_split_fixed(string = star_lines, pattern = fixed(pattern = "\t"), n = 2)
-# [,1]                                                [,2]
-# [01,] "                                 Started job on |" "Apr 01 20:49:14"
-# [02,] "                             Started mapping on |" "Apr 01 20:50:12"
-# [03,] "                                    Finished on |" "Apr 01 20:51:57"
-# [04,] "       Mapping speed, Million of reads per hour |" "43.78"
-# [05,] ""                                                  ""
-# [06,] "                          Number of input reads |" "1276962"
-# [07,] "                      Average input read length |" "302"
-# [08,] "                                    UNIQUE READS:" ""
-# [09,] "                   Uniquely mapped reads number |" "1128810"
-# [10,] "                        Uniquely mapped reads % |" "88.40%"
-# [11,] "                          Average mapped length |" "297.00"
-# [12,] "                       Number of splices: Total |" "17699"
-# [13,] "            Number of splices: Annotated (sjdb) |" "8"
-# [14,] "                       Number of splices: GT/AG |" "475"
-# [15,] "                       Number of splices: GC/AG |" "16"
-# [16,] "                       Number of splices: AT/AC |" "0"
-# [17,] "               Number of splices: Non-canonical |" "17208"
-# [18,] "                      Mismatch rate per base, % |" "0.92%"
-# [19,] "                         Deletion rate per base |" "0.01%"
-# [20,] "                        Deletion average length |" "2.05"
-# [21,] "                        Insertion rate per base |" "0.00%"
-# [22,] "                       Insertion average length |" "1.07"
-# [23,] "                             MULTI-MAPPING READS:" ""
-# [24,] "        Number of reads mapped to multiple loci |" "3276"
-# [25,] "             % of reads mapped to multiple loci |" "0.26%"
-# [26,] "        Number of reads mapped to too many loci |" "1"
-# [27,] "             % of reads mapped to too many loci |" "0.00%"
-# [28,] "                                  UNMAPPED READS:" ""
-# [29,] "       % of reads unmapped: too many mismatches |" "0.00%"
-# [30,] "                 % of reads unmapped: too short |" "11.28%"
-# [31,] "                     % of reads unmapped: other |" "0.06%"
-# [32,] "                                  CHIMERIC READS:" ""
-# [33,] "                       Number of chimeric reads |" "0"
-# [34,] "                            % of chimeric reads |" "0.00%"
+    names(x = star_character) <- c(
+      "started_job",
+      "started_mapping",
+      "finished",
+      "mapping_speed",
+      # [5,]
+      "input_reads",
+      "average_length",
+      # [8,] UNIQUE READS
+      "uniquely_mapped_reads",
+      "uniquely_mapped_percentage",
+      "average_mapped_length",
+      "number_splice_total",
+      "number_splice_sjdb",
+      "number_splice_gtag",
+      "number_splice_gcag",
+      "number_splice_atac",
+      "number_splice_non_canonical",
+      "mismatch_rate",
+      "deletion_rate",
+      "deletion_average_length",
+      "insertion_rate",
+      "insertion_average_length",
+      # [23,] MULTI-MAPPING READS
+      "multi_mapped_number",
+      "multi_mapped_percentage",
+      "multi_unmapped_number",
+      "multi_unmapped_percentage",
+      # [28,] UNMAPPED READS
+      "unmapped_mismatched_percentage",
+      "unmapped_short_percentage",
+      "unmapped_other_percentage",
+      # [32,] CHIMERIC READS
+      "chimeric_number",
+      "chimeric_percentage"
+    )
 
-variable_names <- c(
-  "started_job",
-  "started_mapping",
-  "finished",
-  "mapping_speed",
-  # [5,]
-  "input_reads",
-  "average_length",
-  # [8,] UNIQUE READS
-  "uniquely_mapped_reads",
-  "uniquely_mapped_percentage",
-  "average_mapped_length",
-  "number_splice_total",
-  "number_splice_sjdb",
-  "number_splice_gtag",
-  "number_splice_gcag",
-  "number_splice_atac",
-  "number_splice_non_canonical",
-  "mismatch_rate",
-  "deletion_rate",
-  "deletion_average_length",
-  "insertion_rate",
-  "insertion_average_length",
-  # [23,] MULTI-MAPPING READS
-  "multi_mapped_number",
-  "multi_mapped_percentage",
-  "multi_unmapped_number",
-  "multi_unmapped_percentage",
-  # [28,] UNMAPPED READS
-  "unmapped_mismatched_percentage",
-  "unmapped_short_percentage",
-  "unmapped_other_percentage",
-  # [32,] CHIMERIC READS
-  "chimeric_number",
-  "chimeric_percentage"
-)
-
-star_tibble <- tibble::tibble()
-for (i in seq_len(length.out = base::nrow(x = read_group_tibble))) {
-  message("  ", read_group_tibble$read_group_name[i])
-
-  star_character <- stringr::str_split_fixed(
-    string = base::readLines(con = read_group_tibble$file_name[i]),
-    pattern = "\t",
-    n = 2L
-  )[c(1L:4L, 6L:7L, 9L:22L, 24L:27L, 29L:31L, 33L:34L), 2L]
-  names(x = star_character) <- variable_names
-  star_tibble <- dplyr::bind_rows(star_tibble, star_character)
-  rm(star_character)
-}
-rm(i)
+    return(star_character)
+  }
 
 read_group_tibble <-
-  dplyr::bind_cols(read_group_tibble, star_tibble)
-rm(star_tibble, variable_names)
+  bsfR::bsfu_summarise_report_files(
+    directory_path = argument_list$directory_path,
+    file_pattern = argument_list$file_pattern,
+    report_function = parse_report,
+    variable_name = "read_group_name"
+  )
 
 # Convert types.
 read_group_tibble <-
   readr::type_convert(
     df = read_group_tibble,
     col_types = readr::cols(
+      "read_group_name" = readr::col_character(),
       # The following three dates lack the year, so are not terribly useful.
       "started_job" = readr::col_character(),
       "started_mapping" = readr::col_character(),
@@ -261,17 +265,18 @@ read_group_tibble <-
       # [32,] CHIMERIC READS
       "chimeric_number" = readr::col_integer(),
       "chimeric_percentage" = readr::col_double(),
+      "file_path" = readr::col_character(),
     )
   )
 
 message("Writing read group-level summary table")
 readr::write_tsv(
   x = read_group_tibble,
-  file = paste(
+  file = file.path(argument_list$output_directory, paste(
     paste(argument_list$prefix, "table", "read_group", sep = "_"),
     "tsv",
     sep = "."
-  ),
+  )),
   col_names = TRUE
 )
 
@@ -336,22 +341,25 @@ plot_width <-
 
 for (graphics_format in graphics_formats) {
   if (graphics_format == "png" &&
-      plot_width > graphics_maximum_size_png) {
+      plot_width > argument_list$plot_limit_png) {
     message("PNG plot exceeding maximum size: ",
             plot_width,
             " > ",
-            graphics_maximum_size_png)
+            argument_list$plot_limit_png)
     next
   }
 
   ggplot2::ggsave(
-    filename = paste(
-      paste(argument_list$prefix,
-            "alignment",
-            "read_group",
-            sep = "_"),
-      graphics_format,
-      sep = "."
+    filename = file.path(
+      argument_list$output_directory,
+      paste(
+        paste(argument_list$prefix,
+              "alignment",
+              "read_group",
+              sep = "_"),
+        graphics_format,
+        sep = "."
+      )
     ),
     plot = ggplot_object,
     width = plot_width,
@@ -425,23 +433,26 @@ plot_width <-
 
 for (graphics_format in graphics_formats) {
   if (graphics_format == "png" &&
-      plot_width > graphics_maximum_size_png) {
+      plot_width > argument_list$plot_limit_png) {
     message("PNG plot exceeding maximum size: ",
             plot_width,
             " > ",
-            graphics_maximum_size_png)
+            argument_list$plot_limit_png)
     next
   }
 
   ggplot2::ggsave(
-    filename = paste(
-      paste(argument_list$prefix,
-            "mapped",
-            "number",
-            "read_group",
-            sep = "_"),
-      graphics_format,
-      sep = "."
+    filename = file.path(
+      argument_list$output_directory,
+      paste(
+        paste(argument_list$prefix,
+              "mapped",
+              "number",
+              "read_group",
+              sep = "_"),
+        graphics_format,
+        sep = "."
+      )
     ),
     plot = ggplot_object,
     width = plot_width,
@@ -516,25 +527,28 @@ plot_width <-
 
 for (graphics_format in graphics_formats) {
   if (graphics_format == "png" &&
-      plot_width > graphics_maximum_size_png) {
+      plot_width > argument_list$plot_limit_png) {
     message("PNG plot exceeding maximum size: ",
             plot_width,
             " > ",
-            graphics_maximum_size_png)
+            argument_list$plot_limit_png)
     next
   }
 
   ggplot2::ggsave(
-    filename = paste(
+    filename = file.path(
+      argument_list$output_directory,
       paste(
-        argument_list$prefix,
-        "mapped",
-        "fraction",
-        "read_group",
-        sep = "_"
-      ),
-      graphics_format,
-      sep = "."
+        paste(
+          argument_list$prefix,
+          "mapped",
+          "fraction",
+          "read_group",
+          sep = "_"
+        ),
+        graphics_format,
+        sep = "."
+      )
     ),
     plot = ggplot_object,
     width = plot_width,
@@ -608,25 +622,28 @@ plot_width <-
 
 for (graphics_format in graphics_formats) {
   if (graphics_format == "png" &&
-      plot_width > graphics_maximum_size_png) {
+      plot_width > argument_list$plot_limit_png) {
     message("PNG plot exceeding maximum size: ",
             plot_width,
             " > ",
-            graphics_maximum_size_png)
+            argument_list$plot_limit_png)
     next
   }
 
   ggplot2::ggsave(
-    filename = paste(
+    filename = file.path(
+      argument_list$output_directory,
       paste(
-        argument_list$prefix,
-        "junction",
-        "number",
-        "read_group",
-        sep = "_"
-      ),
-      graphics_format,
-      sep = "."
+        paste(
+          argument_list$prefix,
+          "junction",
+          "number",
+          "read_group",
+          sep = "_"
+        ),
+        graphics_format,
+        sep = "."
+      )
     ),
     plot = ggplot_object,
     width = plot_width,
@@ -700,25 +717,28 @@ plot_width <-
 
 for (graphics_format in graphics_formats) {
   if (graphics_format == "png" &&
-      plot_width > graphics_maximum_size_png) {
+      plot_width > argument_list$plot_limit_png) {
     message("PNG plot exceeding maximum size: ",
             plot_width,
             " > ",
-            graphics_maximum_size_png)
+            argument_list$plot_limit_png)
     next
   }
 
   ggplot2::ggsave(
-    filename = paste(
+    filename = file.path(
+      argument_list$output_directory,
       paste(
-        argument_list$prefix,
-        "junction",
-        "fraction",
-        "read_group",
-        sep = "_"
-      ),
-      graphics_format,
-      sep = "."
+        paste(
+          argument_list$prefix,
+          "junction",
+          "fraction",
+          "read_group",
+          sep = "_"
+        ),
+        graphics_format,
+        sep = "."
+      )
     ),
     plot = ggplot_object,
     width = plot_width,
@@ -733,15 +753,13 @@ rm(graphics_format, plot_width, ggplot_object)
 
 # Can the read group-level data be integrated on the sample level?
 
-file_path <-
-  paste0(argument_list$prefix, "_read_group_to_sample.tsv")
-if (file.exists(file_path)) {
+if (file.exists(argument_list$sample_table_path)) {
   message("Integrating on sample-level ...")
   sample_tibble <-
     dplyr::left_join(
       # Read the read group to sample mapping data frame provided by BSF Python.
       x = readr::read_tsv(
-        file = file_path,
+        file = argument_list$sample_table_path,
         col_names = TRUE,
         col_types = readr::cols(
           "sample" = readr::col_character(),
@@ -789,10 +807,13 @@ if (file.exists(file_path)) {
   message("Writing sample-level summary table")
   readr::write_tsv(
     x = sample_tibble,
-    file = paste(
-      paste(argument_list$prefix, "table", "sample", sep = "_"),
-      "tsv",
-      sep = "."
+    file = file.path(
+      argument_list$output_directory,
+      paste(
+        paste(argument_list$prefix, "table", "sample", sep = "_"),
+        "tsv",
+        sep = "."
+      )
     ),
     col_names = TRUE
   )
@@ -866,22 +887,25 @@ if (file.exists(file_path)) {
 
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
-        plot_width > graphics_maximum_size_png) {
+        plot_width > argument_list$plot_limit_png) {
       message("PNG plot exceeding maximum size: ",
               plot_width,
               " > ",
-              graphics_maximum_size_png)
+              argument_list$plot_limit_png)
       next
     }
 
     ggplot2::ggsave(
-      filename = paste(
-        paste(argument_list$prefix,
-              "alignment",
-              "sample",
-              sep = "_"),
-        graphics_format,
-        sep = "."
+      filename = file.path(
+        argument_list$output_directory,
+        paste(
+          paste(argument_list$prefix,
+                "alignment",
+                "sample",
+                sep = "_"),
+          graphics_format,
+          sep = "."
+        )
       ),
       plot = ggplot_object,
       width = plot_width,
@@ -958,23 +982,26 @@ if (file.exists(file_path)) {
 
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
-        plot_width > graphics_maximum_size_png) {
+        plot_width > argument_list$plot_limit_png) {
       message("PNG plot exceeding maximum size: ",
               plot_width,
               " > ",
-              graphics_maximum_size_png)
+              argument_list$plot_limit_png)
       next
     }
 
     ggplot2::ggsave(
-      filename = paste(
-        paste(argument_list$prefix,
-              "mapped",
-              "number",
-              "sample",
-              sep = "_"),
-        graphics_format,
-        sep = "."
+      filename = file.path(
+        argument_list$output_directory,
+        paste(
+          paste(argument_list$prefix,
+                "mapped",
+                "number",
+                "sample",
+                sep = "_"),
+          graphics_format,
+          sep = "."
+        )
       ),
       plot = ggplot_object,
       width = plot_width,
@@ -1051,23 +1078,26 @@ if (file.exists(file_path)) {
 
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
-        plot_width > graphics_maximum_size_png) {
+        plot_width > argument_list$plot_limit_png) {
       message("PNG plot exceeding maximum size: ",
               plot_width,
               " > ",
-              graphics_maximum_size_png)
+              argument_list$plot_limit_png)
       next
     }
 
     ggplot2::ggsave(
-      filename = paste(
-        paste(argument_list$prefix,
-              "mapped",
-              "fraction",
-              "sample",
-              sep = "_"),
-        graphics_format,
-        sep = "."
+      filename = file.path(
+        argument_list$output_directory,
+        paste(
+          paste(argument_list$prefix,
+                "mapped",
+                "fraction",
+                "sample",
+                sep = "_"),
+          graphics_format,
+          sep = "."
+        )
       ),
       plot = ggplot_object,
       width = plot_width,
@@ -1145,23 +1175,26 @@ if (file.exists(file_path)) {
 
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
-        plot_width > graphics_maximum_size_png) {
+        plot_width > argument_list$plot_limit_png) {
       message("PNG plot exceeding maximum size: ",
               plot_width,
               " > ",
-              graphics_maximum_size_png)
+              argument_list$plot_limit_png)
       next
     }
 
     ggplot2::ggsave(
-      filename = paste(
-        paste(argument_list$prefix,
-              "junction",
-              "number",
-              "sample",
-              sep = "_"),
-        graphics_format,
-        sep = "."
+      filename = file.path(
+        argument_list$output_directory,
+        paste(
+          paste(argument_list$prefix,
+                "junction",
+                "number",
+                "sample",
+                sep = "_"),
+          graphics_format,
+          sep = "."
+        )
       ),
       plot = ggplot_object,
       width = plot_width,
@@ -1239,25 +1272,28 @@ if (file.exists(file_path)) {
 
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
-        plot_width > graphics_maximum_size_png) {
+        plot_width > argument_list$plot_limit_png) {
       message("PNG plot exceeding maximum size: ",
               plot_width,
               " > ",
-              graphics_maximum_size_png)
+              argument_list$plot_limit_png)
       next
     }
 
     ggplot2::ggsave(
-      filename = paste(
+      filename = file.path(
+        argument_list$output_directory,
         paste(
-          argument_list$prefix,
-          "junction",
-          "fraction",
-          "sample",
-          sep = "_"
-        ),
-        graphics_format,
-        sep = "."
+          paste(
+            argument_list$prefix,
+            "junction",
+            "fraction",
+            "sample",
+            sep = "_"
+          ),
+          graphics_format,
+          sep = "."
+        )
       ),
       plot = ggplot_object,
       width = plot_width,
@@ -1269,12 +1305,13 @@ if (file.exists(file_path)) {
 
   rm(sample_tibble)
 }
-rm(file_path)
 
-rm(read_group_tibble,
-   graphics_maximum_size_png,
-   graphics_formats,
-   argument_list)
+rm(
+  read_group_tibble,
+  parse_report,
+  graphics_formats,
+  argument_list
+)
 
 message("All done")
 
