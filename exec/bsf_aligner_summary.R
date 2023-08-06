@@ -58,6 +58,20 @@ argument_list <-
         type = "character"
       ),
       optparse::make_option(
+        opt_str = c("--directory-path"),
+        default = ".",
+        dest = "directory_path",
+        help = "Directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
+        opt_str = c("--output-directory"),
+        default = ".",
+        dest = "output_directory",
+        help = "Output directory path [.]",
+        type = "character"
+      ),
+      optparse::make_option(
         opt_str = "--plot-width",
         default = 7.0,
         dest = "plot_width",
@@ -70,6 +84,13 @@ argument_list <-
         dest = "plot_height",
         help = "Plot height in inches [7.0]",
         type = "double"
+      ),
+      optparse::make_option(
+        opt_str = c("--plot-limit-png"),
+        default = 150.0,
+        dest = "plot_limit_png",
+        help = "Maximum size of the PNG device in inches [150.0]",
+        type = "double"
       )
     )
   ))
@@ -81,13 +102,12 @@ argument_list <-
 suppressPackageStartupMessages(expr = library(package = "sessioninfo"))
 # CRAN Tidyverse
 suppressPackageStartupMessages(expr = library(package = "ggplot2"))
-suppressPackageStartupMessages(expr = library(package = "tidyr"))
+# BSF
+suppressPackageStartupMessages(expr = library(package = "PicardReports"))
 
 
 # Save plots in the following formats.
 graphics_formats <- c("pdf" = "pdf", "png" = "png")
-# Maximum size for the PNG device in inches.
-graphics_maximum_size_png <- 200.0
 
 # Assign a file prefix.
 prefix_summary <- paste(argument_list$prefix, "summary", sep = "_")
@@ -99,248 +119,73 @@ prefix_pdsm <- "pdsm"
 # Picard Alignment Summary Metrics ----------------------------------------
 
 
-# Process Picard Alignment Summary Metrics reports.
+# This block is essentially identical to the
+# PicardReports/exec/picard_reports_alignment_summary.R script, but uses
+# different file search patterns, as well as plot and TSV file paths.
 
-message("Processing Picard Alignment Summary Metrics report for sample:")
-combined_metrics_sample <- NULL
-combined_metrics_read_group <- NULL
-
-file_names <-
-  base::list.files(
-    pattern = paste0(
+picard_frame <-
+  PicardReports::PicardFrameFromDirectoryPath(
+    directory_path = argument_list$directory_path,
+    file_pattern = paste0(
       "^",
       argument_list$prefix,
-      "_sample_.*_alignment_summary_metrics.tsv$"
-    ),
-    recursive = TRUE
+      "_sample_(.*)_alignment_summary_metrics.tsv$"
+    )
   )
 
-for (file_name in file_names) {
-  sample_name <-
-    base::gsub(
-      pattern = paste0(
-        "^",
-        argument_list$prefix,
-        "_sample_(.*?)_alignment_summary_metrics.tsv$"
-      ),
-      replacement = "\\1",
-      x = base::basename(path = file_name)
-    )
+type_list <- list("READ_GROUP" = "read_group", "SAMPLE" = "sample")
 
-  message("  ", sample_name)
+for (type in names(x = type_list)) {
+  # Write the metrics tibble in TSV format --------------------------------
 
-  # Since the Picard AlignmentSummaryMetrics uses a hash character (#) in the
-  # read group component to separate platform unit and sample name, the Picard
-  # reports need special parsing.
-  # Find the ## METRICS CLASS line and parse without allowing further comments.
-  metrics_lines <- readLines(con = file_name)
-  metrics_line <-
-    which(x = grepl(pattern = "## METRICS CLASS", x = metrics_lines))
 
-  picard_metrics_total <-
-    utils::read.table(
-      file = file_name,
-      header = TRUE,
-      sep = "\t",
-      skip = metrics_line[1L],
-      fill = TRUE,
-      comment.char = "",
-      stringsAsFactors = FALSE
-    )
-  rm(metrics_line, metrics_lines)
-
-  # To support numeric sample names the utils::read.table(stringsAsFactors = FALSE) is turned off.
-  # Convert SAMPLE, LIBRARY and READ_GROUP into character vectors.
-
-  picard_metrics_total$SAMPLE <-
-    as.character(x = picard_metrics_total$SAMPLE)
-
-  picard_metrics_total$LIBRARY <-
-    as.character(x = picard_metrics_total$LIBRARY)
-
-  picard_metrics_total$READ_GROUP <-
-    as.character(x = picard_metrics_total$READ_GROUP)
-
-  # The Picard Alignment Metrics report has changed format through versions.
-  # Columns PF_READS_IMPROPER_PAIRS and PCT_PF_READS_IMPROPER_PAIRS were added at a later stage.
-
-  if (!"PF_READS_IMPROPER_PAIRS" %in% names(x = picard_metrics_total)) {
-    picard_metrics_total$PF_READS_IMPROPER_PAIRS <- 0L
-  }
-
-  if (!"PCT_PF_READS_IMPROPER_PAIRS" %in% names(x = picard_metrics_total)) {
-    picard_metrics_total$PCT_PF_READS_IMPROPER_PAIRS <- 0.0
-  }
-
-  # Select only rows showing the SAMPLE summary, i.e. showing SAMPLE, but no LIBRARY and READ_GROUP information.
-  picard_metrics_sample <-
-    picard_metrics_total[(!is.na(x = picard_metrics_total$SAMPLE)) &
-                           (picard_metrics_total$SAMPLE != "") &
-                           (picard_metrics_total$LIBRARY == "") &
-                           (picard_metrics_total$READ_GROUP == ""),]
-
-  combined_metrics_sample <-
-    base::rbind(combined_metrics_sample, picard_metrics_sample)
-
-  rm(picard_metrics_sample)
-
-  # Select only rows showing READ_GROUP summary, i.e. showing READ_GROUP information.
-  picard_metrics_read_group <-
-    picard_metrics_total[(picard_metrics_total$READ_GROUP != ""),]
-
-  combined_metrics_read_group <-
-    base::rbind(combined_metrics_read_group, picard_metrics_read_group)
-
-  rm(picard_metrics_read_group)
-
-  rm(sample_name, picard_metrics_total)
-}
-rm(file_name, file_names)
-
-if (!is.null(x = combined_metrics_sample)) {
-  # Order the data frame by SAMPLE.
-  combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
-
-  # Manually convert CATEGORY and SAMPLE columns into factors, which are handy for plotting.
-  combined_metrics_sample$CATEGORY <-
-    as.factor(x = combined_metrics_sample$CATEGORY)
-
-  combined_metrics_sample$SAMPLE <-
-    as.factor(x = combined_metrics_sample$SAMPLE)
-
-  # Manually convert PF_READS and PF_READS_ALIGNED into integer vectors.
-  combined_metrics_sample$PF_READS <-
-    as.integer(x = combined_metrics_sample$PF_READS)
-
-  combined_metrics_sample$PF_READS_ALIGNED <-
-    as.integer(x = combined_metrics_sample$PF_READS_ALIGNED)
-
-  # Manually convert PCT_PF_READS_ALIGNED into a double vector.
-  # combined_metrics_sample$PCT_PF_READS_ALIGNED <-
-  #   as.double(x = combined_metrics_sample$PCT_PF_READS_ALIGNED)
-
-  # Add an additional LABEL factor column defined as a concatenation of SAMPLE and CATEGORY.
-  combined_metrics_sample$LABEL <-
-    as.factor(x = paste(
-      combined_metrics_sample$SAMPLE,
-      combined_metrics_sample$CATEGORY,
-      sep =
-        "_"
-    ))
-
-  utils::write.table(
-    x = combined_metrics_sample,
-    file = paste(prefix_summary, prefix_pasm, "metrics_sample.tsv", sep = "_"),
-    sep = "\t",
-    row.names = FALSE,
-    col.names = TRUE
-  )
-
-  # Order the data frame by READ_GROUP
-  combined_metrics_read_group <-
-    combined_metrics_read_group[order(combined_metrics_read_group$READ_GROUP),]
-
-  # Manually convert CATEGORY and READ_GROUP columns into factors, which are handy for plotting.
-  combined_metrics_read_group$CATEGORY <-
-    as.factor(x = combined_metrics_read_group$CATEGORY)
-
-  combined_metrics_read_group$READ_GROUP <-
-    as.factor(x = combined_metrics_read_group$READ_GROUP)
-
-  # Manually convert PF_READS and PF_READS_ALIGNED into integer vectors.
-  combined_metrics_read_group$PF_READS <-
-    as.integer(x = combined_metrics_read_group$PF_READS)
-
-  combined_metrics_read_group$PF_READS_ALIGNED <-
-    as.integer(x = combined_metrics_read_group$PF_READS_ALIGNED)
-
-  # Manually convert PCT_PF_READS_ALIGNED into a double vector.
-  # combined_metrics_read_group$PCT_PF_READS_ALIGNED <-
-  #   as.double(x = combined_metrics_read_group$PCT_PF_READS_ALIGNED)
-
-  # Add an additional LABEL factor column defined as a concatenation of READ_GROUP and CATEGORY.
-  combined_metrics_read_group$LABEL <-
-    as.factor(
-      x = paste(
-        combined_metrics_read_group$READ_GROUP,
-        combined_metrics_read_group$CATEGORY,
-        sep =
-          "_"
+  readr::write_tsv(
+    x = PicardReports::metrics_tibble(object = picard_frame, type = type),
+    file = file.path(
+      argument_list$output_directory,
+      paste(
+        paste(prefix_summary,
+              prefix_pasm,
+              "metrics",
+              type_list[[type]],
+              sep = "_"),
+        "tsv",
+        sep = "."
       )
     )
-
-  utils::write.table(
-    x = combined_metrics_read_group,
-    file = paste(prefix_summary, prefix_pasm, "metrics_read_group.tsv", sep = "_"),
-    sep = "\t",
-    row.names = FALSE,
-    col.names = TRUE
   )
 
-  # Plot the absolute number versus the fraction per sample ---------------
+  # Plot the absolute number versus the fraction --------------------------
 
-
-  message("Plotting the absolute number versus the fraction per sample")
-  ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED", "PF_READS"), drop = FALSE])
 
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(
-      mapping = ggplot2::aes(
-        x = .data$PF_READS_ALIGNED,
-        y = .data$PF_READS_ALIGNED / .data$PF_READS,
-        colour = .data$SAMPLE,
-        shape = .data$CATEGORY
-      ),
-      alpha = I(1 / 3)
-    )
+    PicardReports::plot_number_versus_fraction(object = picard_frame, type = type)
 
-  ggplot_object <- ggplot_object + ggplot2::labs(
-    x = "Reads Number",
-    y = "Reads Fraction",
-    colour = "Sample",
-    shape = "Category",
-    title = "Alignment Summary per Sample"
-  )
-
-  # Reduce the label font size and the legend key size and allow a maximum of 24
-  # guide legend rows.
-  ggplot_object <-
-    ggplot_object + ggplot2::guides(
-      colour = ggplot2::guide_legend(
-        keywidth = ggplot2::rel(x = 0.8),
-        keyheight = ggplot2::rel(x = 0.8),
-        nrow = 24L
-      )
-    )
-
-  ggplot_object <-
-    ggplot_object + ggplot2::theme(legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7)))
-
-  # Adjust the plot width according to batches of 24 samples or read groups.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample$SAMPLE) / 24L) - 1L) * argument_list$plot_width * 0.33
+    argument_list$plot_width + (ceiling(x = nlevels(x = ggplot_object$data[, type, drop = TRUE]) / 24L) - 1L) * argument_list$plot_width * 0.75
 
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
-        plot_width > graphics_maximum_size_png) {
+        plot_width > argument_list$plot_limit_png) {
       message("PNG plot exceeding maximum size: ",
               plot_width,
               " > ",
-              graphics_maximum_size_png)
+              argument_list$plot_limit_png)
       next
     }
 
     ggplot2::ggsave(
-      filename = paste(
-        paste(prefix_summary,
-              prefix_pasm,
-              "alignment",
-              "sample",
-              sep = "_"),
-        graphics_format,
-        sep = "."
+      filename = file.path(
+        argument_list$output_directory,
+        paste(
+          paste(prefix_summary,
+                prefix_pasm,
+                "alignment",
+                type_list[[type]],
+                sep = "_"),
+          graphics_format,
+          sep = "."
+        )
       ),
       plot = ggplot_object,
       width = plot_width,
@@ -350,71 +195,37 @@ if (!is.null(x = combined_metrics_sample)) {
   }
   rm(graphics_format, plot_width, ggplot_object)
 
-  # Plot the absolute number versus the fraction per read group -----------
+  # Plot the absolute number of aligned pass-filter reads -----------------
 
-
-  message("Plotting the absolute number versus the fraction per read group")
-  ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PF_READS_ALIGNED", "PF_READS"), drop = FALSE])
 
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(
-      mapping = ggplot2::aes(
-        x = .data$PF_READS_ALIGNED,
-        y = .data$PF_READS_ALIGNED / .data$PF_READS,
-        colour = .data$READ_GROUP,
-        shape = .data$CATEGORY
-      ),
-      alpha = I(1 / 3)
-    )
+    PicardReports::plot_aligned_pass_filter_numbers(object = picard_frame, type = type)
 
-  ggplot_object <- ggplot_object + ggplot2::labs(
-    x = "Reads Number",
-    y = "Reads Fraction",
-    colour = "Read Group",
-    shape = "Category",
-    title = "Alignment Summary per Read Group"
-  )
-
-  # Reduce the label font size and the legend key size and allow a maximum of 24
-  # guide legend rows.
-  ggplot_object <-
-    ggplot_object + ggplot2::guides(
-      colour = ggplot2::guide_legend(
-        keywidth = ggplot2::rel(x = 0.8),
-        keyheight = ggplot2::rel(x = 0.8),
-        nrow = 24L
-      )
-    )
-
-  ggplot_object <-
-    ggplot_object + ggplot2::theme(legend.text = ggplot2::element_text(size = ggplot2::rel(x = 0.7)))
-
-  # Adjust the plot width according to batches of 24 samples or read groups.
   plot_width <-
-    argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_read_group$READ_GROUP) / 24L) - 1L) * argument_list$plot_width * 0.75
+    argument_list$plot_width + (ceiling(x = nlevels(x = ggplot_object$data[, type, drop = TRUE]) / 24L) - 1L) * argument_list$plot_width * 0.75
 
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
-        plot_width > graphics_maximum_size_png) {
+        plot_width > argument_list$plot_limit_png) {
       message("PNG plot exceeding maximum size: ",
               plot_width,
               " > ",
-              graphics_maximum_size_png)
+              argument_list$plot_limit_png)
       next
     }
 
     ggplot2::ggsave(
-      filename = paste(
+      filename = file.path(
+        argument_list$output_directory,
         paste(
-          prefix_summary,
-          prefix_pasm,
-          "alignment",
-          "read_group",
-          sep = "_"
-        ),
-        graphics_format,
-        sep = "."
+          paste(prefix_summary,
+                prefix_pasm,
+                "absolute",
+                type_list[[type]],
+                sep = "_"),
+          graphics_format,
+          sep = "."
+        )
       ),
       plot = ggplot_object,
       width = plot_width,
@@ -424,568 +235,149 @@ if (!is.null(x = combined_metrics_sample)) {
   }
   rm(graphics_format, plot_width, ggplot_object)
 
-  # Adjust the plot width according to batches of 24 samples or read groups.
-  plot_width_sample <-
-    argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample$SAMPLE) / 24L) - 1L) * argument_list$plot_width * 0.25
+  # Plot the fraction of aligned pass-filter reads ------------------------
 
-  plot_width_read_group <-
-    argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_read_group$READ_GROUP) / 24L) - 1L) * argument_list$plot_width * 0.25
-
-  # Plot the absolute number of aligned pass-filter reads per sample ------
-
-
-  message("Plotting the absolute number of aligned pass-filter reads per sample")
-  ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PF_READS_ALIGNED"), drop = FALSE])
 
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(
-      mapping = ggplot2::aes(
-        x = .data$SAMPLE,
-        y = .data$PF_READS_ALIGNED,
-        colour = .data$CATEGORY
-      ),
-      alpha = I(1 / 3)
-    )
+    PicardReports::plot_aligned_pass_filter_fractions(object = picard_frame, type = type)
 
-  ggplot_object <- ggplot_object + ggplot2::labs(
-    x = "Sample",
-    y = "Reads Number",
-    colour = "Category",
-    title = "Aligned Pass-Filter Reads per Sample"
-  )
-
-  ggplot_object <-
-    ggplot_object + ggplot2::theme(
-      axis.text.x = ggplot2::element_text(
-        size = ggplot2::rel(x = 0.8),
-        hjust = 0.0,
-        vjust = 0.5,
-        angle = 90.0
-      )
-    )
+  plot_width <-
+    argument_list$plot_width + (ceiling(x = nlevels(x = ggplot_object$data[, type, drop = TRUE]) / 24L) - 1L) * argument_list$plot_width * 0.75
 
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
-        plot_width_sample > graphics_maximum_size_png) {
-      message(
-        "PNG plot exceeding maximum size: ",
-        plot_width_sample,
-        " > ",
-        graphics_maximum_size_png
-      )
+        plot_width > argument_list$plot_limit_png) {
+      message("PNG plot exceeding maximum size: ",
+              plot_width,
+              " > ",
+              argument_list$plot_limit_png)
       next
     }
 
     ggplot2::ggsave(
-      filename = paste(
-        paste(prefix_summary,
-              prefix_pasm,
-              "absolute",
-              "sample",
-              sep = "_"),
-        graphics_format,
-        sep = "."
-      ),
-      plot = ggplot_object,
-      width = plot_width_sample,
-      height = argument_list$plot_height,
-      limitsize = FALSE
-    )
-  }
-  rm(graphics_format, ggplot_object)
-
-  # Plot the absolute number of aligned pass-filter reads per read group ----
-
-
-  message("Plotting the absolute number of aligned pass-filter reads per read group")
-  ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PF_READS_ALIGNED"), drop = FALSE])
-
-  ggplot_object <-
-    ggplot_object + ggplot2::geom_point(
-      mapping = ggplot2::aes(
-        x = .data$READ_GROUP,
-        y = .data$PF_READS_ALIGNED,
-        colour = .data$CATEGORY
-      ),
-      alpha = I(1 / 3)
-    )
-
-  ggplot_object <- ggplot_object + ggplot2::labs(
-    x = "Read Group",
-    y = "Reads Number",
-    colour = "Category",
-    title = "Aligned Pass-Filter Reads per Read Group"
-  )
-
-  ggplot_object <-
-    ggplot_object + ggplot2::theme(
-      axis.text.x = ggplot2::element_text(
-        size = ggplot2::rel(x = 0.8),
-        hjust = 0.0,
-        vjust = 0.5,
-        angle = 90.0
-      )
-    )
-
-  for (graphics_format in graphics_formats) {
-    if (graphics_format == "png" &&
-        plot_width_read_group > graphics_maximum_size_png) {
-      message(
-        "PNG plot exceeding maximum size: ",
-        plot_width_read_group,
-        " > ",
-        graphics_maximum_size_png
-      )
-      next
-    }
-
-    ggplot2::ggsave(
-      filename = paste(
+      filename = file.path(
+        argument_list$output_directory,
         paste(
-          prefix_summary,
-          prefix_pasm,
-          "absolute",
-          "read_group",
-          sep = "_"
-        ),
-        graphics_format,
-        sep = "."
+          paste(
+            prefix_summary,
+            prefix_pasm,
+            "percentage",
+            type_list[[type]],
+            sep = "_"
+          ),
+          graphics_format,
+          sep = "."
+        )
       ),
       plot = ggplot_object,
-      width = plot_width_read_group,
+      width = plot_width,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
   }
-  rm(graphics_format, ggplot_object)
+  rm(graphics_format, plot_width, ggplot_object)
 
-  # Plot the percentage of aligned pass-filter reads per sample -----------
+  # Plot the strand balance of aligned pass-filter reads ------------------
 
-
-  message("Plotting the percentage of aligned pass-filter reads per sample")
-  ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "PCT_PF_READS_ALIGNED"), drop = FALSE])
 
   ggplot_object <-
-    ggplot_object + ggplot2::geom_point(
-      mapping = ggplot2::aes(
-        x = .data$SAMPLE,
-        y = .data$PCT_PF_READS_ALIGNED,
-        colour = .data$CATEGORY
-      ),
-      alpha = I(1 / 3)
-    )
+    PicardReports::plot_strand_balance(object = picard_frame, type = type)
 
-  ggplot_object <-
-    ggplot_object + ggplot2::labs(
-      x = "Sample",
-      y = "Reads Fraction",
-      colour = "Category",
-      title = "Aligned Pass-Filter Reads per Sample"
-    )
-
-  ggplot_object <-
-    ggplot_object + ggplot2::theme(
-      axis.text.x = ggplot2::element_text(
-        size = ggplot2::rel(x = 0.8),
-        hjust = 0.0,
-        vjust = 0.5,
-        angle = 90.0
-      )
-    )
+  plot_width <-
+    argument_list$plot_width + (ceiling(x = nlevels(x = ggplot_object$data[, type, drop = TRUE]) / 24L) - 1L) * argument_list$plot_width * 0.75
 
   for (graphics_format in graphics_formats) {
     if (graphics_format == "png" &&
-        plot_width_sample > graphics_maximum_size_png) {
-      message(
-        "PNG plot exceeding maximum size: ",
-        plot_width_sample,
-        " > ",
-        graphics_maximum_size_png
-      )
+        plot_width > argument_list$plot_limit_png) {
+      message("PNG plot exceeding maximum size: ",
+              plot_width,
+              " > ",
+              argument_list$plot_limit_png)
       next
     }
 
     ggplot2::ggsave(
-      filename = paste(
-        paste(prefix_summary,
-              prefix_pasm,
-              "percentage",
-              "sample",
-              sep = "_"),
-        graphics_format,
-        sep = "."
-      ),
-      plot = ggplot_object,
-      width = plot_width_sample,
-      height = argument_list$plot_height,
-      limitsize = FALSE
-    )
-  }
-  rm(graphics_format, ggplot_object)
-
-  # Plot the percentage of aligned pass-filter reads per read group -------
-
-
-  message("Plotting the percentage of aligned pass-filter reads per read group")
-  ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "PCT_PF_READS_ALIGNED"), drop = FALSE])
-
-  ggplot_object <-
-    ggplot_object + ggplot2::geom_point(
-      mapping = ggplot2::aes(
-        x = .data$READ_GROUP,
-        y = .data$PCT_PF_READS_ALIGNED,
-        colour = .data$CATEGORY
-      ),
-      alpha = I(1 / 3)
-    )
-
-  ggplot_object <-
-    ggplot_object + ggplot2::labs(
-      x = "Read Group",
-      y = "Reads Fraction",
-      colour = "Category",
-      title = "Aligned Pass-Filter Reads per Read Group"
-    )
-
-  ggplot_object <-
-    ggplot_object + ggplot2::theme(
-      axis.text.x = ggplot2::element_text(
-        size = ggplot2::rel(x = 0.8),
-        hjust = 0.0,
-        vjust = 0.5,
-        angle = 90.0
-      )
-    )
-
-  for (graphics_format in graphics_formats) {
-    if (graphics_format == "png" &&
-        plot_width_read_group > graphics_maximum_size_png) {
-      message(
-        "PNG plot exceeding maximum size: ",
-        plot_width_read_group,
-        " > ",
-        graphics_maximum_size_png
-      )
-      next
-    }
-
-    ggplot2::ggsave(
-      filename = paste(
+      filename = file.path(
+        argument_list$output_directory,
         paste(
-          prefix_summary,
-          prefix_pasm,
-          "percentage",
-          "read_group",
-          sep = "_"
-        ),
-        graphics_format,
-        sep = "."
+          paste(
+            prefix_summary,
+            prefix_pasm,
+            "strand_balance",
+            type_list[[type]],
+            sep = "_"
+          ),
+          graphics_format,
+          sep = "."
+        )
       ),
       plot = ggplot_object,
-      width = plot_width_read_group,
+      width = plot_width,
       height = argument_list$plot_height,
       limitsize = FALSE
     )
   }
-  rm(graphics_format, ggplot_object)
-
-  # Plot the strand balance of aligned pass-filter reads per sample -------
-
-
-  message("Plotting the strand balance of aligned pass-filter reads per sample")
-  ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_sample[, c("CATEGORY", "SAMPLE", "STRAND_BALANCE"), drop = FALSE])
-
-  ggplot_object <-
-    ggplot_object + ggplot2::geom_point(
-      mapping = ggplot2::aes(
-        x = .data$SAMPLE,
-        y = .data$STRAND_BALANCE,
-        colour = .data$CATEGORY
-      ),
-      alpha = I(1 / 3)
-    )
-
-  ggplot_object <-
-    ggplot_object + ggplot2::labs(
-      x = "Sample",
-      y = "Reads Fraction",
-      colour = "Category",
-      title = "Strand Balance of Aligned Pass-Filter Reads per Sample"
-    )
-
-  ggplot_object <-
-    ggplot_object + ggplot2::theme(
-      axis.text.x = ggplot2::element_text(
-        size = ggplot2::rel(x = 0.8),
-        hjust = 0.0,
-        vjust = 0.5,
-        angle = 90.0
-      )
-    )
-
-  for (graphics_format in graphics_formats) {
-    if (graphics_format == "png" &&
-        plot_width_sample > graphics_maximum_size_png) {
-      message(
-        "PNG plot exceeding maximum size: ",
-        plot_width_sample,
-        " > ",
-        graphics_maximum_size_png
-      )
-      next
-    }
-
-    ggplot2::ggsave(
-      filename = paste(
-        paste(
-          prefix_summary,
-          prefix_pasm,
-          "strand_balance",
-          "sample",
-          sep = "_"
-        ),
-        graphics_format,
-        sep = "."
-      ),
-      plot = ggplot_object,
-      width = plot_width_sample,
-      height = argument_list$plot_height,
-      limitsize = FALSE
-    )
-  }
-  rm(graphics_format, ggplot_object)
-
-  # Plot the strand balance of aligned pass-filter reads per read group ----
-
-
-  message("Plotting the strand balance of aligned pass-filter reads per read group")
-  ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_read_group[, c("CATEGORY", "READ_GROUP", "STRAND_BALANCE"), drop = FALSE])
-
-  ggplot_object <-
-    ggplot_object + ggplot2::geom_point(
-      mapping = ggplot2::aes(
-        x = .data$READ_GROUP,
-        y = .data$STRAND_BALANCE,
-        colour = .data$CATEGORY
-      ),
-      alpha = I(1 / 3)
-    )
-
-  ggplot_object <-
-    ggplot_object + ggplot2::labs(
-      x = "Read Group",
-      y = "Reads Fraction",
-      colour = "Category",
-      title = "Strand Balance of Aligned Pass-Filter Reads per Read Group"
-    )
-
-  ggplot_object <-
-    ggplot_object + ggplot2::theme(
-      axis.text.x = ggplot2::element_text(
-        size = ggplot2::rel(x = 0.8),
-        hjust = 0.0,
-        vjust = 0.5,
-        angle = 90.0
-      )
-    )
-
-  for (graphics_format in graphics_formats) {
-    if (graphics_format == "png" &&
-        plot_width_read_group > graphics_maximum_size_png) {
-      message(
-        "PNG plot exceeding maximum size: ",
-        plot_width_read_group,
-        " > ",
-        graphics_maximum_size_png
-      )
-      next
-    }
-
-    ggplot2::ggsave(
-      filename = paste(
-        paste(
-          prefix_summary,
-          prefix_pasm,
-          "strand_balance",
-          "read_group",
-          sep = "_"
-        ),
-        graphics_format,
-        sep = "."
-      ),
-      plot = ggplot_object,
-      width = plot_width_read_group,
-      height = argument_list$plot_height,
-      limitsize = FALSE
-    )
-  }
-  rm(graphics_format, ggplot_object)
-
-  rm(plot_width_read_group, plot_width_sample)
+  rm(graphics_format, plot_width, ggplot_object)
 }
-rm(combined_metrics_read_group, combined_metrics_sample)
+rm(type, type_list, picard_frame)
 
 # Picard Duplication Metrics ----------------------------------------------
 
 
-# Process Picard Duplication Metrics reports.
+# This block is essentially identical with
+# PicardReports/exec/picard_reports_duplication.R, but uses different
+# file search patterns, as well as plot and TSV file paths.
 
-message("Processing Picard Duplication Metrics reports for sample:")
-combined_metrics_sample <- NULL
-
-file_names <-
-  base::list.files(
-    pattern = paste0(
+picard_frame <-
+  PicardReports::PicardFrameFromDirectoryPath(
+    directory_path = argument_list$directory_path,
+    file_pattern = paste0(
       "^",
       argument_list$prefix,
-      "_sample_.*_duplicate_metrics.tsv$"
-    ),
-    recursive = TRUE
+      "_sample_(.*)_duplicate_metrics.tsv$"
+    )
   )
 
-for (file_name in file_names) {
-  sample_name <-
-    base::gsub(
-      pattern = paste0(
-        "^",
-        argument_list$prefix,
-        "_sample_(.*?)_duplicate_metrics.tsv$"
-      ),
-      replacement = "\\1",
-      x = base::basename(path = file_name)
-    )
-  message("  ", sample_name)
+# Write the summary tibble in TSV format ----------------------------------
 
-  # Picard Tools added a histogram section that needs excluding from parsing.
-  # Find the lines starting with "## METRICS CLASS" and "## HISTOGRAM" and read that many lines.
-  metrics_lines <- readLines(con = file_name)
-  metrics_line <-
-    which(x = grepl(pattern = "## METRICS CLASS", x = metrics_lines))
-  histogram_line <-
-    which(x = grepl(pattern = "## HISTOGRAM", x = metrics_lines))
 
-  if (length(x = histogram_line)) {
-    # Set the number of rows to read excluding 3 more lines,
-    # the "## HISTOGRAM" line, the blank line and the header line.
-    number_read <- histogram_line[1L] - metrics_line[1L] - 3L
-    number_skip <- metrics_line[1L]
-  } else {
-    number_read <- -1L
-    number_skip <- metrics_line[1L]
+readr::write_tsv(
+  x = PicardReports::metrics_tibble(object = picard_frame),
+  file = file.path(argument_list$output_directory,
+                   paste(
+                     paste(prefix_summary,
+                           prefix_pdsm,
+                           "metrics",
+                           "sample",
+                           sep = "_"),
+                     "tsv",
+                     sep = "."
+                   ))
+)
+
+# Plot the duplication fractions per sample (or library) ------------------
+
+
+ggplot_object <-
+  PicardReports::plot_fractions(object = picard_frame)
+
+plot_width <-
+  argument_list$plot_width + (ceiling(x = nrow(x = ggplot_object$data) / 24L) - 1L) * argument_list$plot_width * 0.75
+
+for (graphics_format in graphics_formats) {
+  if (graphics_format == "png" &&
+      plot_width > argument_list$plot_limit_png) {
+    message("PNG plot exceeding maximum size: ",
+            plot_width,
+            " > ",
+            argument_list$plot_limit_png)
+    next
   }
 
-  picard_metrics_sample <-
-    utils::read.table(
-      file = file_name,
-      header = TRUE,
-      sep = "\t",
-      nrows = number_read,
-      skip = number_skip,
-      fill = TRUE,
-      comment.char = "",
-      stringsAsFactors = FALSE
-    )
-
-  rm(number_read,
-     number_skip,
-     histogram_line,
-     metrics_line,
-     metrics_lines)
-
-  # Add the sample name, which is not part of the Picard report.
-  picard_metrics_sample$SAMPLE <- as.character(x = sample_name)
-
-  # The Picard Duplication Metrics report has changed format through versions.
-  # Column SECONDARY_OR_SUPPLEMENTARY_RDS was added at a later stage.
-  if (!"SECONDARY_OR_SUPPLEMENTARY_RDS" %in% picard_metrics_sample) {
-    picard_metrics_sample$SECONDARY_OR_SUPPLEMENTARY_RDS <- 0L
-  }
-
-  combined_metrics_sample <-
-    base::rbind(combined_metrics_sample, picard_metrics_sample)
-
-  rm(sample_name, picard_metrics_sample)
-}
-rm(file_name, file_names)
-
-if (!is.null(x = combined_metrics_sample)) {
-  # Order the sample frame by SAMPLE.
-  combined_metrics_sample <-
-    combined_metrics_sample[order(combined_metrics_sample$SAMPLE),]
-
-  # Convert the SAMPLE column into factors, which come more handy for plotting.
-  combined_metrics_sample$SAMPLE <-
-    as.factor(x = combined_metrics_sample$SAMPLE)
-
-  # Add additional percentages into the table.
-  combined_metrics_sample$PERCENT_UNPAIRED_READ_DUPLICATION <-
-    combined_metrics_sample$UNPAIRED_READ_DUPLICATES / combined_metrics_sample$UNPAIRED_READS_EXAMINED
-
-  combined_metrics_sample$PERCENT_READ_PAIR_DUPLICATION <-
-    combined_metrics_sample$READ_PAIR_DUPLICATES / combined_metrics_sample$READ_PAIRS_EXAMINED
-
-  combined_metrics_sample$PERCENT_READ_PAIR_OPTICAL_DUPLICATION <-
-    combined_metrics_sample$READ_PAIR_OPTICAL_DUPLICATES / combined_metrics_sample$READ_PAIRS_EXAMINED
-
-  utils::write.table(
-    x = combined_metrics_sample,
-    file = paste(prefix_summary, prefix_pdsm, "metrics_sample.tsv", sep = "_"),
-    sep = "\t",
-    row.names = FALSE,
-    col.names = TRUE
-  )
-
-  # Adjust the plot width according to batches of 24 samples or read groups.
-  plot_width <-
-    argument_list$plot_width + (ceiling(x = nlevels(x = combined_metrics_sample$SAMPLE) / 24L) - 1L) * argument_list$plot_width * 0.3
-
-  # Plot Percent Duplication per Sample -----------------------------------
-
-
-  message("Plotting the percent duplication per sample")
-  ggplot_object <-
-    ggplot2::ggplot(data = combined_metrics_sample)
-
-  ggplot_object <-
-    ggplot_object + ggplot2::geom_point(
-      mapping = ggplot2::aes(x = .data$SAMPLE, y = .data$PERCENT_DUPLICATION),
-      alpha = I(1 / 3)
-    )
-
-  ggplot_object <-
-    ggplot_object + ggplot2::labs(x = "Sample", y = "Duplication Fraction", title = "Duplication Fraction per Sample")
-
-  ggplot_object <-
-    ggplot_object + ggplot2::guides(colour = ggplot2::guide_legend(nrow = 24L))
-
-  ggplot_object <-
-    ggplot_object + ggplot2::theme(
-      axis.text.x = ggplot2::element_text(
-        size = ggplot2::rel(x = 0.8),
-        hjust = 0.0,
-        vjust = 0.5,
-        angle = 90.0
-      )
-    )
-
-  for (graphics_format in graphics_formats) {
-    if (graphics_format == "png" &&
-        plot_width > graphics_maximum_size_png) {
-      message("PNG plot exceeding maximum size: ",
-              plot_width,
-              " > ",
-              graphics_maximum_size_png)
-      next
-    }
-
-    ggplot2::ggsave(
-      filename = paste(
+  ggplot2::ggsave(
+    filename = file.path(
+      argument_list$output_directory,
+      paste(
         paste(prefix_summary,
               prefix_pdsm,
               "percentage",
@@ -993,69 +385,39 @@ if (!is.null(x = combined_metrics_sample)) {
               sep = "_"),
         graphics_format,
         sep = "."
-      ),
-      plot = ggplot_object,
-      width = plot_width,
-      height = argument_list$plot_height,
-      limitsize = FALSE
-    )
-  }
-  rm(graphics_format, ggplot_object)
-
-  # Plot Duplication Classes per Sample -----------------------------------
-
-
-  # Plot PERCENT_UNPAIRED_READ_DUPLICATION, PERCENT_READ_PAIR_DUPLICATION,
-  # PERCENT_READ_PAIR_OPTICAL_DUPLICATION and PERCENT_DUPLICATION per sample.
-
-  message("Plotting the duplication levels per sample")
-
-  ggplot_object <- ggplot2::ggplot(
-    data = tidyr::pivot_longer(
-      data = combined_metrics_sample,
-      cols = c(
-        "PERCENT_UNPAIRED_READ_DUPLICATION",
-        "PERCENT_READ_PAIR_DUPLICATION",
-        "PERCENT_READ_PAIR_OPTICAL_DUPLICATION",
-        "PERCENT_DUPLICATION"
-      ),
-      names_to = "DUPLICATION",
-      values_to = "fraction"
-    )
-  )
-
-  ggplot_object <-
-    ggplot_object + ggplot2::geom_point(
-      mapping = ggplot2::aes(
-        x = .data$SAMPLE,
-        y = .data$fraction,
-        colour = .data$DUPLICATION
-      ),
-      alpha = I(1 / 3),
-      na.rm = TRUE
-    )
-
-  ggplot_object <-
-    ggplot_object + ggplot2::labs(
-      x = "Sample",
-      y = "Duplication Fraction",
-      colour = "Duplication",
-      title = "Duplication Levels per Sample"
-    )
-
-  ggplot_object <-
-    ggplot_object + ggplot2::theme(
-      axis.text.x = ggplot2::element_text(
-        size = ggplot2::rel(x = 0.8),
-        hjust = 0.0,
-        vjust = 0.5,
-        angle = 90.0
       )
-    )
+    ),
+    plot = ggplot_object,
+    width = plot_width,
+    height = argument_list$plot_height,
+    limitsize = FALSE
+  )
+}
+rm(graphics_format, plot_width, ggplot_object)
 
-  for (graphics_format in graphics_formats) {
-    ggplot2::ggsave(
-      filename = paste(
+# Plot the duplication levels per sample (or library) ---------------------
+
+
+ggplot_object <-
+  PicardReports::plot_levels(object = picard_frame)
+
+plot_width <-
+  argument_list$plot_width + (ceiling(x = nrow(x = ggplot_object$data) / 24L) - 1L) * argument_list$plot_width * 0.75
+
+for (graphics_format in graphics_formats) {
+  if (graphics_format == "png" &&
+      plot_width > argument_list$plot_limit_png) {
+    message("PNG plot exceeding maximum size: ",
+            plot_width,
+            " > ",
+            argument_list$plot_limit_png)
+    next
+  }
+
+  ggplot2::ggsave(
+    filename = file.path(
+      argument_list$output_directory,
+      paste(
         paste(prefix_summary,
               prefix_pdsm,
               "levels",
@@ -1063,26 +425,21 @@ if (!is.null(x = combined_metrics_sample)) {
               sep = "_"),
         graphics_format,
         sep = "."
-      ),
-      plot = ggplot_object,
-      width = plot_width,
-      height = argument_list$plot_height,
-      limitsize = FALSE
-    )
-  }
-
-  rm(graphics_format, ggplot_object)
-
-  rm(plot_width)
+      )
+    ),
+    plot = ggplot_object,
+    width = plot_width,
+    height = argument_list$plot_height,
+    limitsize = FALSE
+  )
 }
-rm(combined_metrics_sample)
+rm(graphics_format, plot_width, ggplot_object)
 
 rm(
   prefix_pdsm,
   prefix_pasm,
   prefix_summary,
   argument_list,
-  graphics_maximum_size_png,
   graphics_formats
 )
 
