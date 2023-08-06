@@ -71,14 +71,14 @@ bsfg_get_genome_tibble <-
       genome_tibble <-
         dplyr::mutate(
           .data = genome_tibble,
-          !!genome_path := file.path(.env$resource_directory,
-                                     .data[[assembly_version]]),
-          !!transcriptome_path := file.path(.env$resource_directory,
-                                            paste(
-                                              .data[[assembly_version]],
-                                              paste0("e", .env$ensembl_version),
-                                              sep = "_"
-                                            ))
+          "{genome_path}" := file.path(.env$resource_directory,
+                                       .data[[assembly_version]]),
+          "{transcriptome_path}" := file.path(.env$resource_directory,
+                                              paste(
+                                                .data[[assembly_version]],
+                                                paste0("e", .env$ensembl_version),
+                                                sep = "_"
+                                              ))
         )
 
       rm(transcriptome_path, genome_path, assembly_version)
