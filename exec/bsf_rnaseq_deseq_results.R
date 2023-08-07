@@ -196,7 +196,10 @@ contrast_tibble <-
     .data = contrast_tibble,
     "Significant" = 0L,
     "SignificantUp" = 0L,
-    "SignificantDown" = 0L
+    "SignificantDown" = 0L,
+    "Effective" = 0L,
+    "EffectiveUp" = 0L,
+    "EffectiveDown" = 0L
   )
 
 for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
@@ -284,7 +287,7 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   }
   rm(file_path)
 
-  # Record the number of significant genes in the summary tibble regardless.
+  # Record the number of significant features in the summary tibble regardless.
 
   contrast_tibble$Significant[contrast_index] <-
     sum(deseq_results$padj <= design_list$padj_threshold, na.rm = TRUE)
@@ -302,6 +305,27 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
         deseq_results$log2FoldChange < 0.0,
       na.rm = TRUE
     )
+
+  # Record the number of effective features in the summary tibble regardless.
+
+  contrast_tibble$Effective[contrast_index] <-
+    sum(base::abs(x = deseq_results$log2FoldChange) >= design_list$l2fc_threshold,
+        na.rm = TRUE)
+
+  contrast_tibble$EffectiveUp[contrast_index] <-
+    sum(
+      base::abs(x = deseq_results$log2FoldChange) >= design_list$l2fc_threshold &
+        deseq_results$log2FoldChange > 0.0,
+      na.rm = TRUE
+    )
+
+  contrast_tibble$EffectiveDown[contrast_index] <-
+    sum(
+      base::abs(x = deseq_results$log2FoldChange) >= design_list$l2fc_threshold &
+        deseq_results$log2FoldChange < 0.0,
+      na.rm = TRUE
+    )
+
 
   # IHW weights plots -----------------------------------------------------
 
@@ -558,7 +582,7 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
                                       paste(prefix,
                                             "contrast",
                                             contrast_character,
-                                            "genes",
+                                            "differential",
                                             sep = "_"),
                                       "rds",
                                       sep = "."
@@ -570,7 +594,7 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
                                       paste(prefix,
                                             "contrast",
                                             contrast_character,
-                                            "genes",
+                                            "differential",
                                             sep = "_"),
                                       "tsv",
                                       sep = "."
@@ -579,7 +603,7 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   # Significant DESeqResults Tibble -------------------------------------
 
 
-  # Filter for significant genes, which also removes observations with NA
+  # Filter for significant features, which also removes observations with NA
   # values.
   readr::write_tsv(
     x = dplyr::filter(.data = deseq_results_tibble,
@@ -600,7 +624,7 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
   # Effective DESeqResults Tibble ---------------------------------------
 
 
-  # Filter for effective genes, which also removes observations with NA
+  # Filter for effective features, which also removes observations with NA
   # values.
   readr::write_tsv(
     x = dplyr::filter(
@@ -643,8 +667,7 @@ for (contrast_index in seq_len(length.out = base::nrow(x = contrast_tibble))) {
     # EnhancedVolcano needs the annotated tibble from above, but filtered for NA
     # values in the padj variable and coerced into a data.frame.
     deseq_results_frame <-
-      base::as.data.frame(x = dplyr::filter(.data = deseq_results_tibble,
-                                            !rlang::are_na(x = .data$padj)))
+      base::as.data.frame(x = dplyr::filter(.data = deseq_results_tibble,!rlang::are_na(x = .data$padj)))
 
     ggplot_object <- EnhancedVolcano::EnhancedVolcano(
       toptable = deseq_results_frame,

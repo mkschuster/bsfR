@@ -1461,7 +1461,7 @@ bsfrd_read_result_tibble <-
                   paste(prefix_deseq,
                         "contrast",
                         contrast_character,
-                        "genes",
+                        "differential",
                         sep = "_"),
                   "rds",
                   sep = "."

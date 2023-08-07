@@ -28,8 +28,7 @@
 # BSF R script to run a DESeq2 analysis.
 #
 # Reads are counted on the basis of a reference (Ensembl) transcriptome supplied
-# as a GTF file and imported via rtracklayer::import() into exon
-# GenomicRanges::GRanges objects. The exon GenomicRanges::GRanges are
+# as a GenomicRanges::GRanges object. The exon GenomicRanges::GRanges are
 # subsequently converted into a GenomicRanges::GRangesList object by (Ensembl)
 # gene identifiers. A SummarizedExperiment::RangedSummarizedExperiment object is
 # created by the GenomicAlignments::summarizeOverlaps() function. Reads in
@@ -101,7 +100,7 @@ argument_list <-
         opt_str = "--pca-top-number",
         default = 500L,
         dest = "pca_top_number",
-        help = "Number of most variable genes for PCA [500]",
+        help = "Number of most variable features for PCA [500]",
         type = "integer"
       ),
       optparse::make_option(
@@ -813,8 +812,8 @@ plot_rin_scores <- function(object) {
 #' Create a Multi-Dimensional Scaling (MDS) Plot.
 #'
 #' Create an MDS plot based on Classical (Metric) Multi-Dimensional Scaling of
-#' Euclidean distances of transformed counts for each gene. Save PDF and PNG
-#' documents.
+#' Euclidean distances of transformed counts for each feature. Save PDF and PNG
+#' plots.
 #'
 #' @param object A \code{DESeq2::DESeqTransform} object.
 #' @param plot_list A \code{list} of \code{list} objects configuring plots and
@@ -1019,7 +1018,7 @@ plot_mds <- function(object,
 #' Create a Heat Map Plot.
 #'
 #' Create a heat map plot based on hierarchical clustering of Euclidean
-#' distances of transformed counts for each gene. Save PDF and PNG documents.
+#' distances of transformed counts for each feature. Save PDF and PNG plots.
 #'
 #' @param object A \code{DESeq2::DESeqTransform} object.
 #' @param plot_list A \code{list} of \code{list} objects configuring plots and
@@ -1173,8 +1172,8 @@ plot_heatmap <- function(object,
 #' Create a Principal Component Analysis (PCA) Plot.
 #'
 #' Create a principal component analysis plot based on the top-most variant rows
-#' (i.e. genes) calculated via \code{genefilter::rowVars()}. Save PDF and PNG
-#' documents.
+#' (i.e. features) calculated via \code{genefilter::rowVars()}. Save PDF and PNG
+#' plots.
 #'
 #' @param object A \code{DESeq2::DESeqTransform} object.
 #' @param plot_list A \code{list} of \code{list} objects configuring plots and
@@ -1202,16 +1201,17 @@ plot_pca <- function(object,
 
   message("Creating ", suffix, " PCA plots:")
 
-  # Calculate the variance for each row (i.e., gene).
+  # Calculate the variance for each row (i.e., feature).
   row_variance <-
     genefilter::rowVars(x = SummarizedExperiment::assay(x = object, i = 1L))
 
-  # Order by decreasing variance and select the top number of rows (i.e., genes).
+  # Order by decreasing variance and select the top number of rows (i.e.,
+  # features).
   selected_rows <-
     order(row_variance, decreasing = TRUE)[seq_len(length.out = min(argument_list$pca_top_number, length(x = row_variance)))]
 
   # Perform a PCA on the (count) matrix returned by
-  # SummarizedExperiment::assay() for the selected genes.
+  # SummarizedExperiment::assay() for the selected features.
   pca_object <-
     stats::prcomp(x = t(x = SummarizedExperiment::assay(x = object, i = 1L)[selected_rows, ]))
 
@@ -1531,7 +1531,7 @@ deseq_data_set <-
 
 rm(transcriptome_granges)
 
-# TODO: Write the matrix of gene versus model coefficients as a data.frame to
+# TODO: Write the matrix of feature versus model coefficients as a data.frame to
 # disk.
 
 # Cooks Distances Plot ----------------------------------------------------
@@ -1588,6 +1588,7 @@ lrt_reduced_formula_test <-
                   prefix,
                   "lrt",
                   attr(x = reduced_formula_character, which = "reduced_name"),
+                  "differential",
                   sep = "_"
                 ),
                 "tsv",
@@ -1614,7 +1615,8 @@ lrt_reduced_formula_test <-
         attr(x = reduced_formula_character, which = "reduced_name")
       )
 
-      # Read the existing table to count the number of significant genes after LRT.
+      # Read the existing table to count the number of significant features
+      # after LRT.
       deseq_results_lrt_frame <-
         utils::read.table(file = file_path_significant,
                           header = TRUE,
@@ -1625,7 +1627,8 @@ lrt_reduced_formula_test <-
         "full_formula" = global_design_list$full_formula,
         "reduced_name" = attr(x = reduced_formula_character, which = "reduced_name"),
         "reduced_formula" = reduced_formula_character,
-        "significant" = base::nrow(x = deseq_results_lrt_frame)
+        "significant" = base::sum(x = deseq_results_lrt_frame$significant),
+        "effective" = base::sum(deseq_results_lrt_tibble$effective)
       )
 
       rm(deseq_results_lrt_frame)
@@ -1761,11 +1764,11 @@ lrt_reduced_formula_test <-
           )
         )
 
-      # Write all genes.
+      # Write all features.
       readr::write_tsv(x = deseq_results_lrt_tibble,
                        file = file_path_all)
 
-      # Write only significant genes.
+      # Write only significant features.
       readr::write_tsv(
         x = dplyr::filter(
           .data = deseq_results_lrt_tibble,
@@ -1779,7 +1782,8 @@ lrt_reduced_formula_test <-
         "full_formula" = global_design_list$full_formula,
         "reduced_name" = attr(x = reduced_formula_character, which = "reduced_name"),
         "reduced_formula" = reduced_formula_character,
-        "significant" = base::nrow(deseq_results_lrt_tibble)
+        "significant" = base::sum(deseq_results_lrt_tibble$significant),
+        "effective" = base::sum(deseq_results_lrt_tibble$effective)
       )
 
       rm(deseq_results_lrt_tibble,

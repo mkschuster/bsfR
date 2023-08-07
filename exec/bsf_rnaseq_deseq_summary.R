@@ -113,30 +113,31 @@ if (!file.exists(output_directory)) {
 # FIXME: Rather than matching the design names from the directory names,
 # the original (BSF Python) design list could be used. This table would also
 # allow excluding any unwanted designs.
-summary_tibble <- purrr::map_dfr(
-  .x = base::gsub(
-    pattern = "^rnaseq_deseq_(.*?)$",
-    replacement = "\\1",
-    x = base::basename(path = base::dirname(
-      path = base::list.files(
-        path = argument_list$genome_directory,
-        pattern = "rnaseq_deseq_.*_contrasts_summary.tsv$",
-        full.names = TRUE,
-        recursive = TRUE
-      )
-    ))
-  ),
-  .f = ~ bsfR::bsfrd_read_contrast_tibble(
-    genome_directory = argument_list$genome_directory,
-    design_name = .x,
-    summary = TRUE,
-    verbose = argument_list$verbose
-  )
-)
+summary_tibble <-
+  dplyr::bind_rows(purrr::map(
+    .x = base::gsub(
+      pattern = "^rnaseq_deseq_(.*?)$",
+      replacement = "\\1",
+      x = base::basename(path = base::dirname(
+        path = base::list.files(
+          path = argument_list$genome_directory,
+          pattern = "rnaseq_deseq_.*_contrasts_summary.tsv$",
+          full.names = TRUE,
+          recursive = TRUE
+        )
+      ))
+    ),
+    .f = ~ bsfR::bsfrd_read_contrast_tibble(
+      genome_directory = argument_list$genome_directory,
+      design_name = .x,
+      summary = TRUE,
+      verbose = argument_list$verbose
+    )
+  ))
 
 # Drop the "Exclude" variable.
 summary_tibble <-
-  dplyr::select(.data = summary_tibble,-"Exclude")
+  dplyr::select(.data = summary_tibble, -"Exclude")
 
 # Replace NA and "" values in the Numerator and Denominator with character "1".
 summary_tibble <-
@@ -154,7 +155,7 @@ key_tibble <-
 
 duplicated_tibble <-
   summary_tibble[duplicated(x = key_tibble) |
-                   duplicated(x = key_tibble, fromLast = TRUE), ]
+                   duplicated(x = key_tibble, fromLast = TRUE),]
 
 if (base::nrow(x = duplicated_tibble)) {
   print(x = "Duplicated Design, Numerator and Denominator rows:")
@@ -166,7 +167,7 @@ rm(duplicated_tibble, key_tibble)
 # then spread "Significant" values on the "Design" key.
 readr::write_tsv(
   x = tidyr::pivot_wider(
-    data = dplyr::select(.data = summary_tibble,-"Label"),
+    data = dplyr::select(.data = summary_tibble, -"Label"),
     names_from = "Design",
     values_from = "Significant"
   ),
@@ -183,7 +184,7 @@ key_tibble <-
 
 duplicated_tibble <-
   summary_tibble[duplicated(x = key_tibble) |
-                   duplicated(x = key_tibble, fromLast = TRUE), ]
+                   duplicated(x = key_tibble, fromLast = TRUE),]
 
 if (base::nrow(x = duplicated_tibble)) {
   print(x = "Duplicated Design and Label rows:")
@@ -195,7 +196,7 @@ rm(duplicated_tibble, key_tibble)
 # then spread "Significant" values on the "Design" key.
 readr::write_tsv(
   x = tidyr::pivot_wider(
-    data = dplyr::select(.data = summary_tibble,-c("Numerator", "Denominator")),
+    data = dplyr::select(.data = summary_tibble, -c("Numerator", "Denominator")),
     names_from = "Design",
     values_from = "Significant"
   ),
